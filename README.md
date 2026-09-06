@@ -5,6 +5,15 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 
 当前中文评审材料：
 
+- `docs/std.lock.json`
+- `docs/management/current-document-inventory.md`
+- `docs/management/piko-std-tailoring-v0.1.md`
+- `docs/design/piko-agent-runtime-design-v0.3.md`
+- `docs/design/piko-collaboration-bridge-design-v0.3.md`
+- `docs/contracts/piko-agent-runtime-contract-v0.3.md`
+- `docs/assurance/piko-agent-runtime-vv-plan-v0.3.md`
+- `docs/assurance/piko-agent-runtime-test-specification-v0.3.md`
+- `docs/review/piko-std-migration-review-packet.md`
 - `docs/design/agent-runtime-matrix-collaboration-design-v0.3.md`
 - `docs/contracts/agent-runtime-matrix-openapi-v0.3.yaml`
 - `docs/contracts/schemas/agent-runtime-matrix-v0.3.schema.json`
@@ -23,3 +32,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 上述 v0.3 文件是 Matrix/Element 增量提案，v0.2 文件是其 Agent Runtime 基础。
 在跨项目评审关闭前，不得把它们视为已经冻结的 Slinky 契约或实现证据。v0.1 文件
 是英文历史草案，仅供审计，不再作为当前评审版本。跨项目新消息只通过 Matrix 传递。
+
+`piko-*` 候选文档按 STD `0.1.0-draft.1` 模板生成并处于 review 状态。STD 尚无
+immutable source revision，因此它们尚未进入项目 RAG，也不能标记 accepted/released；
+迁移通过前原设计和机器契约继续保留。

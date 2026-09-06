@@ -1,0 +1,23 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-agent-runtime-vv-plan-v0.3",
+  "document_type": "assurance.vv-plan",
+  "title": "Piko Agent Runtime v0.3 验证与确认计划",
+  "std_version": "0.1.0-draft.1",
+  "template_id": "assurance.vv-plan",
+  "template_version": "0.1.0",
+  "template_sha256": "bde7e15d100f8e63cead9fa4590c61d2d79be36b68393a36f588950a413d3c89",
+  "design_level": "subsystem",
+  "domain": [
+    "software"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "source_commit": null,
+  "parent_document_id": "piko-agent-runtime-design-v0.3",
+  "supersedes": null,
+  "profiles": ["software", "agent-runtime", "assurance"],
+  "created_at": "2026-09-07",
+  "updated_at": "2026-09-07"
+}

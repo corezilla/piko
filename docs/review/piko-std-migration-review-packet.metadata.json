@@ -1,0 +1,23 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-std-migration-review-packet",
+  "document_type": "review.packet",
+  "title": "Piko STD 首轮迁移 Review Packet",
+  "std_version": "0.1.0-draft.1",
+  "template_id": "review.packet",
+  "template_version": "0.1.0",
+  "template_sha256": "44d5329fed520c961a8ae650421316b5fe5d0e18fb9e01cfcc713f364dd45f18",
+  "design_level": "project",
+  "domain": [
+    "software"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "source_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "profiles": ["software", "agent-runtime", "std-migration"],
+  "created_at": "2026-09-07",
+  "updated_at": "2026-09-07"
+}

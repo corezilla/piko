@@ -1,0 +1,23 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-agent-runtime-design-v0.3",
+  "document_type": "design.definition",
+  "title": "Piko Agent Runtime 服务设计",
+  "std_version": "0.1.0-draft.1",
+  "template_id": "design.definition",
+  "template_version": "0.1.0",
+  "template_sha256": "d290a73188c7cfc8d6e121a8c98af31ea38cf3a0eb0890cbfb9d9e7fd359aa4c",
+  "design_level": "subsystem",
+  "domain": [
+    "software"
+  ],
+  "status": "review",
+  "visibility": "project",
+  "source_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "profiles": ["software", "agent-runtime"],
+  "created_at": "2026-09-07",
+  "updated_at": "2026-09-07"
+}
