@@ -49,4 +49,7 @@ Matrix 决策和 authority。
 - Review 通过后，可将 v0.1 文件标记为历史归档；是否移动路径另行评审。
 - OpenAPI、JSON Schema、error catalog、fixture 和 validator 继续作为机器权威，不复制进
   Markdown。
-- 当前没有生成 RAG ingestion manifest；只有成为项目 canonical artifact 后才能索引。
+- 已保留 `rag/std-ingestion-manifest.jsonl` 作为 STD draft 来源 SHA-256 清单，与
+  `docs/std.lock.json.manifest_path` 对应；它不含 Piko 项目文档，也不执行 ingestion。
+- 当前没有生成或执行 Piko 项目文档的 RAG ingestion；候选通过项目 Review 并另行确定
+  canonical authority 后才允许索引。

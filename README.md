@@ -6,6 +6,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 当前中文评审材料：
 
 - `docs/std.lock.json`
+- `rag/std-ingestion-manifest.jsonl`（仅锁定 STD draft 来源 SHA-256，不代表项目文档已进入 RAG）
 - `docs/management/current-document-inventory.md`
 - `docs/management/piko-std-tailoring-v0.1.md`
 - `docs/design/piko-agent-runtime-design-v0.3.md`
@@ -34,5 +35,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 是英文历史草案，仅供审计，不再作为当前评审版本。跨项目新消息只通过 Matrix 传递。
 
 `piko-*` 候选文档按 STD `0.1.0-draft.1` 模板生成并处于 review 状态。STD 尚无
-immutable source revision，因此它们尚未进入项目 RAG，也不能标记 accepted/released；
-迁移通过前原设计和机器契约继续保留。
+immutable source revision，因此它们不能标记 accepted/released；迁移通过前原设计和机器契约
+继续作为当前可追溯输入。`rag/std-ingestion-manifest.jsonl` 只是 `docs/std.lock.json` 指向的
+STD 来源哈希清单，不含 Piko 项目文档、也不触发项目 RAG ingestion。项目文档只有在项目
+Review 通过并另行决定 canonical authority 后才允许由现有 RAG 机制索引。

@@ -7,10 +7,11 @@ STD：`0.1.0-draft.1`，`source_revision=null`
 ## 1. Review 请求与期望决定
 
 请评审 Piko v0.3 设计是否在不改变既有契约语义的前提下，完整迁移到 STD 模板，并确认
-新候选设计可否作为后续实现的 canonical design candidate。
+新候选设计可否继续作为 STD-structured design review candidate；本轮不决定其取代旧 authority。
 
 决定只允许：`ACCEPTED / AMENDMENT / REJECTED / BLOCKED`。由于 STD 尚无 immutable
-source revision，即使内容通过，本轮也只能接受迁移结构和项目候选状态，不能标记 released。
+source revision，本轮迁移候选不得标记 accepted/released；reviewer 只能确认结构是否满足
+继续评审条件，不能借迁移替 Piko owner 批准设计或改变旧 authority。
 
 ## 2. Scope、authority 与 reviewers
 
@@ -42,6 +43,8 @@ source revision，即使内容通过，本轮也只能接受迁移结构和项�
 - `docs/management/current-document-inventory.md`：盘点旧文档、authority、版本、冲突和模板映射。
 - `docs/management/piko-std-tailoring-v0.1.md` + metadata：记录 keep/simplify/omit。
 - `docs/std.lock.json`：锁定 STD draft version，按要求保持 source revision null。
+- `rag/std-ingestion-manifest.jsonl`：保存 STD draft 来源文件 SHA-256；不含 Piko 项目文档，
+  不代表已经执行项目 RAG ingestion。
 
 ### 4.2 新增候选设计
 
@@ -88,7 +91,8 @@ fixture、OpenAPI、JSON Schema、error catalog 和 validator 保持机器可读
 ### STD migration limitation
 
 STD 当前是 draft 且 `source_revision=null`。项目 metadata 只能保持 draft/review；STD 首次
-immutable commit/tag 后必须统一升级 lock，并审阅模板差异。
+immutable commit/tag 后必须统一升级 lock，并审阅模板差异。`rag/std-ingestion-manifest.jsonl`
+仅保留来源 SHA-256，不能解释为候选设计已进入 RAG。
 
 ## 7. 验证命令与结果
 
@@ -99,6 +103,8 @@ python3 scripts/validate_v03_contract.py
 /Users/ben/work/STD/scripts/validate-design docs
 python3 -m json.tool docs/std.lock.json
 python3 -m json.tool <all metadata files>
+python3 -m json.tool <each line of rag/std-ingestion-manifest.jsonl>
+cmp -s rag/std-ingestion-manifest.jsonl /Users/ben/work/STD/rag/std-ingestion-manifest.jsonl
 git diff --check
 ```
 
@@ -107,6 +113,8 @@ git diff --check
 - STD `validate-design docs`：通过；
 - `docs/std.lock.json` 与全部 `.metadata.json` JSON parse：通过；
 - STD metadata Draft 2020-12 Schema 与 template SHA-256 复核：通过；
+- STD 来源 manifest：22 条记录均可解析，source path、content SHA-256、source_commit=null
+  复核通过，且与公共 STD 当前 manifest 完全一致；
 - 未解析 `TODO`/模板变量扫描：通过；
 - `git diff --check`：通过。
 
@@ -129,6 +137,7 @@ git diff --check
 
 当前决定：`PENDING_REVIEW`。
 
-若接受：新候选设计成为 Piko v0.3 后续实现的 canonical design candidate；旧文档保留至归档
-决定。若 Amendment：Piko在同一迁移分支继续修订，不生成并行模板版本。若 STD source
-revision 仍为空，不执行 RAG ingestion，也不把文档标记 accepted/released。
+若结构评审无进一步 Amendment：新候选设计仍保持 review candidate，是否成为 canonical
+authority 由后续 Piko owner/用户批准决定；旧文档在此之前继续作为当前可追溯输入。若
+Amendment：Piko 在同一迁移分支继续修订，不生成并行模板版本。若 STD source revision
+仍为空，不执行项目文档 RAG ingestion，也不把文档标记 accepted/released。

@@ -34,7 +34,8 @@
 | TAIL-P-006 | `assurance.vv-plan` + `test-specification` | keep | 必须区分验证策略与可执行 Case | 无 | 待项目 Review | N/A |
 | TAIL-P-007 | `assurance.test-report` | omit | 尚未执行 production、Matrix homeserver 或 crash E2E | 不能误报验证完成 | 待项目 Review | N/A |
 | TAIL-P-008 | `operations.release` | omit | 尚无实现、部署或 release baseline | 运维设计必须在实现前补齐 | 待项目 Review | N/A |
-| TAIL-P-009 | RAG ingestion | omit | 新文档尚未完成项目 Review，不是 canonical artifact | 暂不可通过 RAG 发现候选迁移 | 待项目 Review | N/A |
+| TAIL-P-009 | Piko 项目文档 RAG ingestion | omit | 新文档尚未完成项目 Review，不是 canonical artifact | 暂不可通过 RAG 发现候选迁移 | 待项目 Review | N/A |
+| TAIL-P-010 | STD 来源 SHA-256 manifest | keep | `source_revision=null` 时仍须保留公共 STD 来源哈希，并由 `docs/std.lock.json.manifest_path` 指向 | STD draft 内容变化时必须重新生成快照并复审 | 待项目 Review | N/A |
 
 ## 4. 禁止裁剪项
 
@@ -48,7 +49,8 @@ activation gate。
 
 ## 5. Review 与生效
 
-当前状态为 `draft`。STD `source_revision` 尚未冻结，因此本清单不能标记 accepted。
+当前状态为 `review`。STD `source_revision` 尚未冻结，因此本清单及全部迁移候选不能标记
+accepted/released。来源 manifest 仅锁定 STD draft 内容，不提升候选状态，也不执行项目 RAG。
 
 重新评审触发条件：STD 首次 immutable commit/tag、模板或 Schema version 变化、Piko
 authority/API/状态机变化、Pi/LLMTier/Matrix contract 变化、production topology 确定，或
