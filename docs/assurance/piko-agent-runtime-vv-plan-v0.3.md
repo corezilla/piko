@@ -83,6 +83,14 @@ mutation、Workspace write、AS transaction commit/ACK、Matrix send、membershi
 archive、checkpoint 和 lease handoff。恢复必须查询原 identity 并保留 obligation；不得生成新 key、
 txn、Run、Session 或 room 作为通用重试。
 
+Close 故障注入必须区分“禁止新业务 admission/send/wakeup”和“继续 drain 已确认 obligation”：
+在 Closing 前后、每条 inbox/outbox 完成前后、archive/retention commit 前后崩溃，恢复后都使用
+原 Session/room/txn/archive reference，并验证部分失败投影 RecoveryRequired 而非 Closed。
+
+LLMTier lost-response 必须覆盖两个分支：已有 Invocation ID 时 GET；首个响应头也丢失、无 ID 时，
+显式 adapter 在 D=24h 内以同一 namespace/key/digest 重放原 POST，取得 canonical response 或
+Invocation ID 后再 GET。两者都断言 Backend dispatch 不增加；UnknownOutcome 不自动重派。
+
 ## 9. 偏差、waiver、问题与重测
 
 任何 waiver 必须记录 requirement、风险、owner、期限、补偿控制和批准人。因依赖版本未冻结、

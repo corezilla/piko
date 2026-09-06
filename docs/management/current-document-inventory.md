@@ -21,7 +21,7 @@ Matrix 决策和 authority。
 | `contracts/schemas/agent-runtime-v0.2.schema.json` | Piko Schema 字段权威候选 | v0.2 draft | OpenAPI 本地引用 | v0.1 为历史版本 | `contracts.specification` 的机器附件 |
 | `contracts/error-blocker-catalog-v0.2.json` | Piko error catalog | v0.2 draft | 基础 Agent Runtime | v0.3 增量不替代基础项 | `contracts.specification` 的机器附件 |
 | `contracts/agent-runtime-matrix-openapi-v0.3.yaml` | Piko Matrix 增量 API | v0.3 review candidate | 扩展唯一 Agent Runtime API | 不得成为第二 runtime surface | `contracts.specification` 的机器附件 |
-| `contracts/schemas/agent-runtime-matrix-v0.3.schema.json` | Piko Matrix 增量 Schema | v0.3 review candidate | 扩展 v0.2 Schema | 与 OpenAPI 必须同步 | `contracts.specification` 的机器附件 |
+| `contracts/schemas/agent-runtime-matrix-v0.3.schema.json` | Piko Matrix 增量 Schema | v0.3 review candidate | 扩展 v0.2 Schema | 与 OpenAPI 同步；SessionSummary/CloseResult enum 尚未对齐 Slinky v0.6，必须单独 Contract Amendment | `contracts.specification` 的机器附件 |
 | `contracts/error-blocker-catalog-v0.3.json` | Piko Matrix error 增量 | v0.3 review candidate | 以 v0.2 catalog 为 base | 不得复制出第二 error authority | `contracts.specification` 的机器附件 |
 | `contracts/fixtures/v0.3/collaboration-decision-fixtures.json` | Contract evidence | v0.3 candidate | 验证多 room/resolution/authority | 不转写为 Markdown | fixture 保留 |
 | `contracts/*v0.1*` | 历史机器契约 | superseded | 被 v0.2/v0.3 取代 | 不作为当前事实 | 历史归档，不实例化 |
@@ -53,3 +53,8 @@ Matrix 决策和 authority。
   `docs/std.lock.json.manifest_path` 对应；它不含 Piko 项目文档，也不执行 ingestion。
 - 当前没有生成或执行 Piko 项目文档的 RAG ingestion；候选通过项目 Review 并另行确定
   canonical authority 后才允许索引。
+- 当前机器候选的 SessionSummary `Provisioning/Unavailable` 与 CloseResult `Unchanged` 未找到
+  已冻结为 Slinky wire contract 的 Review ID；原迁移输入只记录
+  `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，而原 QA 仍把 Session 状态确认列为
+  review item。按 Slinky v0.6，目标 wire enum 是 Summary 的 `RecoveryRequired` 与 CloseResult
+  的 `AlreadyClosed/RecoveryRequired`。本次迁移只登记冲突，不直接修改机器文件。

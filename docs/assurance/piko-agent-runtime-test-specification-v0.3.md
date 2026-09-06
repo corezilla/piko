@@ -32,13 +32,13 @@ authority：Piko
 | V03-E2E-085..092 | AR core | admission/result/recovery | Slinky black-box fixtures | frozen Run/Result contract | E2E package | P1 |
 | V03-E2E-093 | MX profile/binding | ETag/idempotency/identity | create/update/replay/stale | stable identity + typed 412 | E2E package | P1 |
 | V03-E2E-094 | MX rename/isolation | same display + rename/restart | two IR + monotonic profile | MXID/room/history unchanged | E2E package | P1 |
-| V03-E2E-095 | MX room/Element/close | encrypted/federated/embed/close | policy variants | fail closed + ExternalLink | E2E package | P1 |
+| V03-E2E-095 | MX room/Element/close | encrypted/federated/embed/close/drain/restart | policy variants + pending obligation + partial failure + duplicate close | fail closed + ExternalLink；Closing 继续原 obligation；RecoveryRequired/Closed/AlreadyClosed 精确 | E2E package | P1 |
 | V03-E2E-096 | MX delivery recovery | txn/event/outbound/failover | crash at durable boundaries | zero duplicate obligation/message | ledger evidence | P1 |
 | V03-E2E-097 | MX multi-room | parallel rooms/page/filter/route | two Attempts/Sessions | exact route + stable pagination | E2E package | P1 |
 | V03-E2E-098 | MX resolution | unresolved 3-party team | minority + evidence + user constraint | NeedsParticipantDecision，无越权 | Result/audit | P1 |
 | V03-E2E-099 | MX Element decision | exact Session link/unavailable | active and unavailable source | ExternalLink/UserSession or typed 503 | browser/API evidence | P1 |
 | LT-C-001 | MX-017 | exact model/Scope B | Worker vs worker；stream true；Chat | exact case；400/404 fail closed | adapter capture | P1 |
-| LT-R-001 | AR-004 | lost response/replay | same key/digest + 202/terminal | no new dispatch；typed disposition | client/server ledgers | P1 |
+| LT-R-001 | AR-004 | lost response/replay | same key/digest；分别覆盖已有 Invocation ID 与首个 header/body 全丢失无 ID | 有 ID 则 GET；无 ID 则显式重放原 POST取得 outcome/ID；no new dispatch；typed disposition | client/server ledgers | P1 |
 
 ## 4. 正常、边界、负向与并发场景
 
@@ -53,6 +53,19 @@ close+inbound、page update 和 lease failover。
 每项外部动作在 intent commit 前、commit 后/dispatch 前、dispatch 后/response 前和 outcome
 record 后注入 crash。恢复断言：复用原 Run/Session/key/txn/obligation；未确认 outcome 保持
 UnknownOutcome/Unavailable/Closing；不得以新 Attempt、room、message 或 invocation掩盖失败。
+
+`V03-E2E-095` 的 close oracle：进入 Closing 后禁止新业务 admission/message/wakeup，但 harness
+必须允许并观察关闭前已确认 outbox/inbox 继续以原 txn/obligation drain；部分失败和重启期间为
+`RecoveryRequired`，pending count/blocker 准确；仅 obligation 清零、archive 成功、retention
+已记录后为 `Closed`；重复相同 close 为 `AlreadyClosed`。当前 Piko machine enum 未对齐 Slinky
+v0.6 时，此 case 标为 Blocked，不把旧 `Unavailable/Unchanged` 当 Pass。
+
+`LT-R-001` 的无 ID 子场景：在 LLMTier 接收/持久化首次 POST 后、任何 response header 到达前
+丢弃连接。Piko 的 stock SDK `maxRetries=0`，但显式 adapter 在 D=24h 内复用同一 authenticated
+client/source、endpoint/version、Idempotency-Key、canonical digest、body 和语义 headers 重放
+原 POST。Oracle 是 LLMTier Backend dispatch count 仍为 1，且 replay 返回 canonical 200 或带
+Invocation ID 的 202/terminal error；得到 ID 后才 GET。新 key、新 Attempt、第二 invocation 或
+UnknownOutcome 自动重派均为 Fail。
 
 ## 6. 性能、容量、功耗或时序测试
 

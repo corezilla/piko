@@ -197,20 +197,46 @@ mxid = "@" + localpart + ":" + verified_matrix_server_name
 完整 256-bit digest 不截断。homeserver name 来自 Probe 结果；display name、room title、alias
 均不参与派生或 routing。碰撞返回 `MatrixIdentityCollision`，不能随机重试或切换算法。
 
-### 7.3 Session 状态机
+### 7.3 内部生命周期与外部状态映射
 
 ```text
 Provisioning -> Active <-> WaitingForReply -> Closing -> Closed
        |             |              |             |
-       +----------> Unavailable <----+-------------+
+       +-------> RecoveryRequired <--+-------------+
 ```
 
-- `Provisioning`：identity/room/membership 尚未全部验证。
-- `Active`：允许 contract 内消息与 wakeup。
-- `WaitingForReply`：存在未到期的 reply obligation。
-- `Closing`：拒绝新发送/wakeup，收敛 inbox/outbox/reply。
-- `Closed`：archive 完成并开始 retention enforcement。
-- `Unavailable`：当前依赖/一致性不可用，不代表历史消失。
+- `Provisioning` 是内部瞬态；identity/room/membership 尚未全部验证。它不作为 Slinky v0.6
+  `CollaborationSessionSummary.status` 的成功投影。完成后投影 `Active`；失败或结果不明时
+  投影 `RecoveryRequired` 并保留 blocking reason/obligation。
+- `Active`：允许 contract 内新业务消息与 wakeup；Summary 投影 `Active`。
+- `WaitingForReply`：存在未到期的 reply obligation；Summary 投影 `WaitingForReply`。
+- `Closing`：拒绝新业务 admission、发送和 Agent wakeup，但允许 Delivery Processor/Outbox
+  Sender 继续完成关闭前已经确认并持久化的 inbox/outbox/reply obligation；Summary 投影
+  `Closing`。
+- `RecoveryRequired`：部分 drain、archive、membership 或依赖操作尚不能证明完成；Summary
+  投影 `RecoveryRequired`，重启后继续同一 obligation，不创建第二 Session/room。
+- `Closed`：全部已确认 obligation 已完成或形成经批准的终止证据，archive execution 成功且
+  retention enforcement 已开始；Summary 投影 `Closed`。
+
+外部 DTO 不共用一个状态 enum：
+
+| 内部事实 | SessionSummary v0.6 | CloseResult v0.6 | ElementConversationDescriptor |
+|---|---|---|---|
+| Provisioning 正常进行 | 不产生成功 Summary 投影；由关联 Run/operation observation 表达 | N/A | 不返回可打开 descriptor |
+| Active | Active | N/A | source 可解析时 Active |
+| WaitingForReply | WaitingForReply | N/A | source 可解析时 WaitingForReply |
+| Closing，仍有已确认 obligation | Closing | Closing | view availability 独立计算，不用 Closing 充当 descriptor status |
+| drain/archive 部分失败或结果不明 | RecoveryRequired | RecoveryRequired | source 不可用时 typed 503；不得用 Session 状态替代 descriptor 状态 |
+| Closed，首次完成 close | Closed | Closed | Closed |
+| 已 Closed 后重复相同 close | Closed | AlreadyClosed | Closed |
+
+当前 Piko 机器候选仍把 SessionSummary 定义为
+`Provisioning|Active|WaitingForReply|Closing|Closed|Unavailable`，CloseResult 定义为
+`Closing|Closed|Unchanged`；这是与 Slinky v0.6 的已知对齐缺口，不是本文认可的第二 wire
+语义。该机器契约必须在独立 Contract Amendment 中改为上表后，generated types、Contract Test
+和 runtime activation 才可继续。本次 STD 迁移不直接增删冻结 Schema enum。Element descriptor
+的 `Unavailable` 属于 view/source 可见性语义；标准 source-unavailable 路径仍返回 typed 503，
+不能代替 SessionSummary 的 `RecoveryRequired`。
 
 ## 8. 控制流、并发与时序
 
@@ -274,9 +300,16 @@ expiry。跨 scope/filter、篡改或过期 cursor 返回 typed error，不回�
 
 ### 8.4 Close
 
-close 要求 current ETag + Idempotency-Key。进入 Closing 后停止新发送和 Agent wakeup；
-先完成/明确阻塞 delivery/reply，再执行 archive 和 retention。重试返回同一 close outcome；
-存在 pending obligation 时公开 count/blocker，不能虚报 Closed。
+close 要求 current ETag + Idempotency-Key。进入 Closing 后停止新的业务 admission、业务消息
+创建和 Agent wakeup；这不停止关闭 intent 前已经确认并持久化的 inbox/outbox/reply obligation。
+同一 Delivery Processor/Outbox Sender 在 fencing owner 下 drain 这些 obligation，发送重试复用
+原 Matrix txn id。只有 `pending_delivery_count=0`、reply obligation 已收敛、archive execution
+成功且 retention activation 已记录后才返回/投影 `Closed`。
+
+drain、archive 或 retention 只完成一部分时返回 `RecoveryRequired`、准确 pending count 与
+blocking reason；不得提前 archive、丢弃 obligation 或虚报 Closed。已 Closed 后重复同一 close
+返回 `AlreadyClosed`。所有 close 重试复用同一 Idempotency-Key、Session、room、archive
+execution reference 和 obligation identity，不建立第二恢复机制。
 
 ## 9. 失败、恢复与可观测性
 
@@ -286,7 +319,8 @@ close 要求 current ETag + Idempotency-Key。进入 Closing 后停止新发送�
 2. 校验 profile、credential binding、schema version；
 3. 恢复未确认 AS transaction/event dedup；
 4. 恢复 outbox 并保持原 Matrix txn id；
-5. 恢复 Session delivery/reply/close obligation；
+5. 恢复 Session delivery/reply/close obligation；Closing 状态继续 drain 关闭前已确认的
+   inbox/outbox，不重新开放新业务 admission；
 6. 恢复 rename、membership、archive、retention reconciliation；
 7. exact scope Ready 后才恢复发送/wakeup。
 
@@ -385,7 +419,8 @@ reference，不含 AS token、credential、message body 或用户登录材料。
 - OG-CB-001：Operator retention policy catalog Schema、duration 和 enforcement evidence。
 - OG-CB-002：Matrix homeserver/Application Service version 与 Probe checklist。
 - OG-CB-003：normalized CollaborationEvent、route/reply/deadline final fixture。
-- OG-CB-004：membership/invite/archive/reconciliation timeout 与 manual recovery entry。
+- OG-CB-004：membership/invite/archive/reconciliation timeout 与 manual recovery entry；以及
+  Piko 机器候选 SessionSummary/CloseResult enum 对齐 Slinky v0.6 的 Contract Amendment。
 - OG-CB-005：Element route encoding 和 target Element browser compatibility。
 - OG-CB-006：cursor signing key rotation、snapshot storage/expiry、transport capacity/SLO。
 - OG-CB-007：Pi AgentSession collaboration hook capture。

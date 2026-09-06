@@ -86,7 +86,13 @@ fixture、OpenAPI、JSON Schema、error catalog 和 validator 保持机器可读
 - Workspace/Tool materialized descriptor 和 controlled execution profile；
 - retention catalog、homeserver/AS version、CollaborationEvent fixture；
 - Element route encoding、cursor signing/snapshot/expiry；
+- SessionSummary/CloseResult enum 与 Slinky v0.6 的独立 Contract alignment；
 - transport capacity、backpressure、SLO 和完整 Recovery/Security/E2E evidence。
+
+其中 Session/close enum 缺口来自对迁移输入的核对：现有 Piko Matrix 设计引用
+`S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，但原 QA 仍把 Session 状态列为待确认；
+没有证据表明当前机器候选中的 `Provisioning/Unavailable/Unchanged` 已被 Slinky 冻结为 wire
+enum。Slinky v0.6 要求已在新候选设计中作为目标映射记录，机器文件留待独立 Contract Amendment。
 
 ### STD migration limitation
 

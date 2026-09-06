@@ -257,11 +257,24 @@ sequenceDiagram
     else 202 active replay
         L-->>A: Location + Retry-After
         A->>L: GET Invocation
-    else 网络结果未知
-        A->>D: 保留 unresolved obligation
+    else 网络结果未知且已有 Invocation ID
+        A->>D: 保留 unresolved obligation + Invocation ID
         A->>L: GET Invocation/Response，不生成新 key
+    else 响应头与 body 均丢失、尚无 Invocation ID
+        A->>D: 保留原 namespace/key/digest/request 与 deadline
+        A->>L: 显式 recovery adapter 重放同一 POST
+        L-->>A: 200 canonical outcome，或 202/terminal error + Invocation ID
+        A->>L: 取得 ID 后按 disposition GET；UnknownOutcome 不盲重派
     end
 ```
+
+`maxRetries=0` 只关闭 stock SDK 的隐式 transport retry，不关闭 Piko 的显式 recovery adapter。
+首次响应头也丢失时，Piko 尚不能构造 Invocation GET；它必须在既定 `D=24h` 内重放完全相同的
+POST，复用同一 canonical client/source namespace、endpoint/version、Idempotency-Key、request
+digest 和语义 headers。LLMTier 的 durable idempotency ledger 将该 POST 解析为同一逻辑
+Invocation：active 返回 202 与 Invocation ID，Succeeded 返回 canonical 200，terminal 返回带
+Invocation ID 的 typed error。取得 ID 后才使用 GET；整个过程不得生成新 key、增加业务 Attempt
+或把 transport retry 变成第二次 logical invocation。
 
 ## 9. 失败、恢复与可观测性
 

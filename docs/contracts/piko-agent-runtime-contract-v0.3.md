@@ -74,6 +74,14 @@ Embeddings 由 Knowledge/Memory consumer 验证；Chat/SSE 属 V0.4。`Idempoten
 - IR binding 外部：Active/Suspended；内部恢复态不扩展外部 enum。
 - LLMTier Invocation 状态由 LLMTier authority；Piko只映射 observation 与 obligation。
 
+上述 CollaborationSession 行是当前 Piko 机器候选的审计事实，不是最终 wire 对齐结论。Slinky
+v0.6 要求 SessionSummary 为 `Active|WaitingForReply|Closing|Closed|RecoveryRequired`，close
+outcome 为 `Closing|Closed|AlreadyClosed|RecoveryRequired`；Element descriptor 状态属于独立
+view/source DTO。当前 Schema 的 `Provisioning/Unavailable/Unchanged` 与该要求存在 Contract
+alignment gate，本次 STD 迁移不直接修改机器 enum。内部→wire 映射、Closing drain 与重复 close
+语义以 CollaborationBridge §7.3/§8.4 为设计目标，机器 Contract Amendment 完成前不得生成
+runtime types 或激活能力。
+
 ### 4.2 Error surface
 
 API error、execution error、planning blocker 分开。典型 Matrix errors：
@@ -97,6 +105,9 @@ message 文本不参与客户端分支；code/status/retryable/required details 
 4. Matrix AS transaction 在 txn/event/delivery/checkpoint 原子落盘后 ACK。
 5. Matrix outbound retry 复用同一 txn id；LLMTier retry/recovery 复用同一 key/digest/obligation。
 6. 单写者 lease + fencing 阻止 stale process ACK、send 或推进 version。
+7. LLMTier 首次响应头丢失且尚无 Invocation ID 时，显式 adapter 复用同一 namespace/key/digest
+   重放原 POST 以取得 canonical outcome 或 Invocation ID；`maxRetries=0` 只禁 SDK 隐式重试，
+   不得生成新 key、Attempt 或 logical invocation。
 
 ## 6. Pagination、filter、ordering 与 retention
 
@@ -148,7 +159,8 @@ response loss、cursor tamper/expiry、LLMTier lost-response 和 Secret corpus�
 
 ## 11. Activation Gate 与未决项
 
-Design/schema validation 不等于 runtime activation。未关闭项：persistence/HA、Pi collaboration
+Design/schema validation 不等于 runtime activation。未关闭项：SessionSummary/CloseResult enum
+对齐 Slinky v0.6 的独立 Contract Amendment、persistence/HA、Pi collaboration
 hook、Workspace/Tool descriptor、retention catalog、homeserver/AS version、CollaborationEvent
 fixture、Element route、capacity/SLO，以及完整 Contract/Recovery/Security/E2E execution。
 
