@@ -9,8 +9,11 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 - `docs/contracts/agent-runtime-matrix-openapi-v0.3.yaml`
 - `docs/contracts/schemas/agent-runtime-matrix-v0.3.schema.json`
 - `docs/contracts/error-blocker-catalog-v0.3.json`
+- `docs/contracts/fixtures/v0.3/collaboration-decision-fixtures.json`
 - `docs/qa/agent-runtime-contract-qa-v0.3.md`
 - `docs/review/matrix-element-v0.3-review-packet.md`
+- `docs/review/llmtier-v0.3-review-20260906.md`
+- `scripts/validate_v03_contract.py`
 - `docs/design/agent-runtime-service-design-v0.2.md`
 - `docs/contracts/agent-runtime-openapi-v0.2.yaml`
 - `docs/contracts/schemas/agent-runtime-v0.2.schema.json`

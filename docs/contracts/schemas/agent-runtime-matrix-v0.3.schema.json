@@ -19,6 +19,41 @@
       "type":"object","additionalProperties":false,"required":["code","affected_scope","retryable"],
       "properties":{"code":{"type":"string","minLength":1,"maxLength":128},"affected_scope":{"type":"string","minLength":1,"maxLength":512},"retryable":{"type":"boolean"},"details_ref":{"$ref":"#/$defs/OpaqueId"}}
     },
+    "ResolutionPoint": {
+      "type":"object","additionalProperties":false,"required":["point_id","statement","evidence_refs"],
+      "properties":{"point_id":{"$ref":"#/$defs/OpaqueId"},"statement":{"type":"string","minLength":1,"maxLength":8192},"evidence_refs":{"type":"array","items":{"$ref":"#/$defs/Reference"},"uniqueItems":true}}
+    },
+    "DisagreementItem": {
+      "type":"object","additionalProperties":false,"required":["disagreement_id","statement","evidence_refs"],
+      "properties":{"disagreement_id":{"$ref":"#/$defs/OpaqueId"},"statement":{"type":"string","minLength":1,"maxLength":8192},"evidence_refs":{"type":"array","items":{"$ref":"#/$defs/Reference"},"uniqueItems":true}}
+    },
+    "ParticipantResolutionPosition": {
+      "type":"object","additionalProperties":false,"required":["participant_ir_ref","position","rationale","evidence_refs"],
+      "properties":{"participant_ir_ref":{"$ref":"#/$defs/IrReference"},"position":{"type":"string","minLength":1,"maxLength":8192},"rationale":{"type":"string","minLength":1,"maxLength":16384},"evidence_refs":{"type":"array","items":{"$ref":"#/$defs/Reference"},"uniqueItems":true}}
+    },
+    "CollaborationResolutionSummary": {
+      "type":"object","additionalProperties":false,
+      "required":["resolution_ref","collaboration_session_ref","status","agreed_points","disagreement_items","participant_positions","attempted_resolution_refs","evidence_refs","recommended_next_step"],
+      "properties":{
+        "resolution_ref":{"$ref":"#/$defs/Reference"},"collaboration_session_ref":{"$ref":"#/$defs/Reference"},
+        "status":{"enum":["Resolved","NeedsExpert","NeedsProjectManager","NeedsParticipantDecision","Blocked"]},
+        "agreed_points":{"type":"array","items":{"$ref":"#/$defs/ResolutionPoint"},"uniqueItems":true},
+        "disagreement_items":{"type":"array","items":{"$ref":"#/$defs/DisagreementItem"},"uniqueItems":true},
+        "participant_positions":{"type":"array","items":{"$ref":"#/$defs/ParticipantResolutionPosition"},"minItems":1,"uniqueItems":true},
+        "attempted_resolution_refs":{"type":"array","items":{"$ref":"#/$defs/Reference"},"uniqueItems":true},
+        "evidence_refs":{"type":"array","items":{"$ref":"#/$defs/Reference"},"uniqueItems":true},
+        "recommended_next_step":{"type":"string","minLength":1,"maxLength":8192}
+      },
+      "allOf":[
+        {"if":{"properties":{"status":{"const":"Resolved"}}},"then":{"properties":{"disagreement_items":{"maxItems":0}}}},
+        {"if":{"properties":{"status":{"enum":["NeedsExpert","NeedsProjectManager","NeedsParticipantDecision","Blocked"]}}},"then":{"properties":{"disagreement_items":{"minItems":1}}}}
+      ],
+      "x-semantic-constraints":[
+        "participant_positions 的 participant_ir_ref 集合必须与 CollaborationContract participant_ir_refs 精确相等",
+        "不得根据多数票、最后一条消息或 transcript 自动生成或覆盖 position",
+        "recommended_next_step 不授予创建 Expert/PM Work、ParticipantActionRequest、用户 Decision、Plan change 或 Artifact acceptance 的权限"
+      ]
+    },
     "MatrixTransportProfileRequest": {
       "type":"object","additionalProperties":false,
       "required":["schema_version","matrix_homeserver_url","element_web_base_url","identity_provisioning_mode","credential_binding_ref","room_topology","encryption_policy","federation_policy","allowed_element_origins","allowed_retention_policy_refs","enabled"],
@@ -140,12 +175,44 @@
       }
     },
     "CollaborationSessionSummary": {
-      "type":"object","additionalProperties":false,"required":["collaboration_session_id","session_version","etag","agent_run_ref","work_execution_ref","attempt_ref","matrix_room_id","status","retention_policy_ref","pending_delivery_count","observed_at"],
-      "properties":{"collaboration_session_id":{"$ref":"#/$defs/OpaqueId"},"session_version":{"$ref":"#/$defs/Version"},"etag":{"type":"string","minLength":1},"agent_run_ref":{"$ref":"#/$defs/Reference"},"work_execution_ref":{"$ref":"#/$defs/Reference"},"attempt_ref":{"$ref":"#/$defs/Reference"},"matrix_room_id":{"type":"string","pattern":"^!.+:.+$"},"status":{"enum":["Provisioning","Active","WaitingForReply","Closing","Closed","Unavailable"]},"retention_policy_ref":{"$ref":"#/$defs/Reference"},"pending_delivery_count":{"type":"integer","minimum":0},"observed_at":{"$ref":"#/$defs/Timestamp"}}
+      "type":"object","additionalProperties":false,"required":["collaboration_session_id","collaboration_session_version","etag","agent_run_ref","work_execution_ref","attempt_ref","participants","matrix_room_id","status","last_message_at","blocking_reasons","latest_collaboration_resolution_ref","retention_policy_ref","pending_delivery_count","observed_at"],
+      "properties":{"collaboration_session_id":{"$ref":"#/$defs/OpaqueId"},"collaboration_session_version":{"$ref":"#/$defs/Version"},"etag":{"type":"string","minLength":1},"agent_run_ref":{"$ref":"#/$defs/Reference"},"work_execution_ref":{"$ref":"#/$defs/Reference"},"attempt_ref":{"$ref":"#/$defs/Reference"},"participants":{"type":"array","items":{"$ref":"#/$defs/CollaborationParticipantDescriptor"},"minItems":1},"matrix_room_id":{"type":"string","pattern":"^!.+:.+$"},"status":{"enum":["Provisioning","Active","WaitingForReply","Closing","Closed","Unavailable"]},"last_message_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},"blocking_reasons":{"type":"array","items":{"$ref":"#/$defs/BlockingReason"}},"latest_collaboration_resolution_ref":{"oneOf":[{"$ref":"#/$defs/Reference"},{"type":"null"}]},"retention_policy_ref":{"$ref":"#/$defs/Reference"},"pending_delivery_count":{"type":"integer","minimum":0},"observed_at":{"$ref":"#/$defs/Timestamp"}},
+      "x-forbidden-projections":["stage","planned_work","room_attention","participant_action_request","matrix_message_body","transcript","transcript_summary"]
     },
     "CollaborationSessionList": {
       "type":"object","additionalProperties":false,"required":["items","next_cursor","observed_at"],
-      "properties":{"items":{"type":"array","items":{"$ref":"#/$defs/CollaborationSessionSummary"}},"next_cursor":{"type":["string","null"]},"observed_at":{"$ref":"#/$defs/Timestamp"}}
+      "properties":{"items":{"type":"array","items":{"$ref":"#/$defs/CollaborationSessionSummary"}},"next_cursor":{"type":["string","null"],"minLength":1},"observed_at":{"$ref":"#/$defs/Timestamp"}},
+      "x-pagination-order":"last_message_at DESC NULLS LAST, collaboration_session_id ASC",
+      "x-cursor-binds":["client_id","project_id","filter_digest","snapshot_upper_bound","last_sort_key","expires_at"]
+    },
+    "AgentTaskResultV03": {
+      "type":"object","additionalProperties":false,
+      "required":["api_version","schema_version","result_version","agent_run_id","run_version","work_execution_id","attempt_id","request_digest","terminal_status","execution_summary","participant_results","artifact_candidate_refs","validation_execution_refs","evidence_refs","tier_invocation_refs","tool_invocation_refs","usage_summary","unresolved_side_effect_refs","completed_at","result_digest"],
+      "properties":{
+        "api_version":{"const":"agent-runtime/v1"},"schema_version":{"const":"agent-runtime-schema/v0.3"},
+        "result_version":{"type":"integer","minimum":1},"agent_run_id":{"$ref":"#/$defs/OpaqueId"},"run_version":{"type":"integer","minimum":1},
+        "work_execution_id":{"$ref":"#/$defs/OpaqueId"},"attempt_id":{"$ref":"#/$defs/OpaqueId"},
+        "request_digest":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Digest"},
+        "terminal_status":{"enum":["Succeeded","Failed","Cancelled","TimedOut","UnknownOutcome"]},
+        "execution_summary":{"type":"string","minLength":1,"maxLength":32768},
+        "participant_results":{"type":"array","items":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/ParticipantResult"},"minItems":1},
+        "artifact_candidate_refs":{"type":"array","items":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"uniqueItems":true},
+        "code_change_set_ref":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"review_finding_set_ref":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"review_coverage_manifest_ref":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},
+        "validation_execution_refs":{"type":"array","items":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"uniqueItems":true},
+        "evidence_refs":{"type":"array","items":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"uniqueItems":true},
+        "blocker":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Blocker"},
+        "tier_invocation_refs":{"type":"array","items":{"$ref":"#/$defs/OpaqueId"},"uniqueItems":true},"tool_invocation_refs":{"type":"array","items":{"$ref":"#/$defs/OpaqueId"},"uniqueItems":true},
+        "usage_summary":{"type":"object","additionalProperties":true},"unresolved_side_effect_refs":{"type":"array","items":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},"uniqueItems":true},
+        "error":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/ErrorDescriptor"},"supersedes_result_ref":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Reference"},
+        "collaboration_resolution_summary":{"$ref":"#/$defs/CollaborationResolutionSummary"},
+        "completed_at":{"$ref":"#/$defs/Timestamp"},"result_digest":{"$ref":"./agent-runtime-v0.2.schema.json#/$defs/Digest","x-digest-scope":"按 RFC 8785 序列化 Result，并排除 result_digest 自身"}
+      },
+      "allOf":[
+        {"if":{"properties":{"terminal_status":{"const":"Succeeded"}}},"then":{"properties":{"unresolved_side_effect_refs":{"maxItems":0}},"not":{"anyOf":[{"required":["error"]},{"required":["blocker"]}]}}},
+        {"if":{"properties":{"terminal_status":{"const":"Failed"}}},"then":{"required":["error"],"properties":{"unresolved_side_effect_refs":{"maxItems":0}}}},
+        {"if":{"properties":{"terminal_status":{"enum":["Cancelled","TimedOut"]}}},"then":{"required":["error"],"properties":{"unresolved_side_effect_refs":{"maxItems":0},"evidence_refs":{"minItems":1}}}},
+        {"if":{"properties":{"terminal_status":{"const":"UnknownOutcome"}}},"then":{"properties":{"unresolved_side_effect_refs":{"minItems":1}},"anyOf":[{"required":["error"]},{"required":["blocker"]}]}}
+      ]
     },
     "CollaborationSessionCloseRequest": {
       "type":"object","additionalProperties":false,"required":["reason_code","work_execution_ref","attempt_ref","retention_policy_ref","correlation_id"],

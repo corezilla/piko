@@ -1,0 +1,157 @@
+{
+  "fixture_version": "agent-runtime-matrix/v0.3-review-1",
+  "schema_cases": [
+    {
+      "id": "multi-room-page-positive",
+      "schema": "CollaborationSessionList",
+      "valid": true,
+      "value": {
+        "items": [
+          {
+            "collaboration_session_id": "cs-002",
+            "collaboration_session_version": 4,
+            "etag": "\"cs-002-v4\"",
+            "agent_run_ref": {"id": "run-002", "version": 3},
+            "work_execution_ref": {"id": "work-002", "version": 2},
+            "attempt_ref": {"id": "attempt-002", "version": 1},
+            "participants": [
+              {"ir_ref": {"ir_id": "ir-reviewer", "ir_version": 7}, "display_name": "评审者", "display_profile_version": 2, "matrix_user_id": "@piko_ir_a:matrix.local", "role_assignment_ref": {"id": "role-reviewer", "version": 1}, "participant_run_ref": {"id": "pr-002-a", "version": 1}},
+              {"ir_ref": {"ir_id": "ir-builder", "ir_version": 9}, "display_name": "实现者", "display_profile_version": 3, "matrix_user_id": "@piko_ir_b:matrix.local", "role_assignment_ref": {"id": "role-builder", "version": 1}, "participant_run_ref": {"id": "pr-002-b", "version": 1}}
+            ],
+            "matrix_room_id": "!room002:matrix.local",
+            "status": "WaitingForReply",
+            "last_message_at": "2026-09-06T08:05:00Z",
+            "blocking_reasons": [],
+            "latest_collaboration_resolution_ref": {"id": "resolution-002", "version": 1},
+            "retention_policy_ref": {"id": "retention-standard", "version": 1},
+            "pending_delivery_count": 1,
+            "observed_at": "2026-09-06T08:06:00Z"
+          },
+          {
+            "collaboration_session_id": "cs-001",
+            "collaboration_session_version": 2,
+            "etag": "\"cs-001-v2\"",
+            "agent_run_ref": {"id": "run-001", "version": 1},
+            "work_execution_ref": {"id": "work-001", "version": 1},
+            "attempt_ref": {"id": "attempt-001", "version": 1},
+            "participants": [
+              {"ir_ref": {"ir_id": "ir-planner", "ir_version": 5}, "display_name": "规划者", "display_profile_version": 1, "matrix_user_id": "@piko_ir_c:matrix.local", "role_assignment_ref": {"id": "role-planner", "version": 1}, "participant_run_ref": {"id": "pr-001-a", "version": 1}}
+            ],
+            "matrix_room_id": "!room001:matrix.local",
+            "status": "Active",
+            "last_message_at": "2026-09-06T08:00:00Z",
+            "blocking_reasons": [],
+            "latest_collaboration_resolution_ref": null,
+            "retention_policy_ref": {"id": "retention-standard", "version": 1},
+            "pending_delivery_count": 0,
+            "observed_at": "2026-09-06T08:06:00Z"
+          }
+        ],
+        "next_cursor": "cursor-page-2",
+        "observed_at": "2026-09-06T08:06:00Z"
+      }
+    },
+    {
+      "id": "resolution-minority-preserved-positive",
+      "schema": "CollaborationResolutionSummary",
+      "valid": true,
+      "expected_participant_ir_ids": ["ir-builder", "ir-reviewer", "ir-security"],
+      "value": {
+        "resolution_ref": {"id": "resolution-002", "version": 1},
+        "collaboration_session_ref": {"id": "cs-002", "version": 4},
+        "status": "NeedsParticipantDecision",
+        "agreed_points": [
+          {"point_id": "agree-1", "statement": "只保留唯一的 Matrix CollaborationBridge 路径。", "evidence_refs": [{"id": "evidence-contract", "version": 1}]}
+        ],
+        "disagreement_items": [
+          {"disagreement_id": "disagree-1", "statement": "是否允许在当前版本扩大保留期。", "evidence_refs": [{"id": "evidence-retention", "version": 2}]}
+        ],
+        "participant_positions": [
+          {"participant_ir_ref": {"ir_id": "ir-builder", "ir_version": 9}, "position": "接受扩大保留期。", "rationale": "有利于恢复窗口。", "evidence_refs": [{"id": "evidence-recovery", "version": 1}]},
+          {"participant_ir_ref": {"ir_id": "ir-reviewer", "ir_version": 7}, "position": "接受，但要求保留策略版本化。", "rationale": "避免策略漂移。", "evidence_refs": [{"id": "evidence-policy", "version": 3}]},
+          {"participant_ir_ref": {"ir_id": "ir-security", "ir_version": 4}, "position": "反对扩大保留期。", "rationale": "少数立场认为数据最小化优先。", "evidence_refs": [{"id": "evidence-privacy", "version": 5}]}
+        ],
+        "attempted_resolution_refs": [{"id": "attempted-resolution-1", "version": 1}],
+        "evidence_refs": [{"id": "evidence-contract", "version": 1}, {"id": "evidence-privacy", "version": 5}],
+        "recommended_next_step": "请求 Slinky Runtime 创建唯一的 ParticipantActionRequest；Piko 不自行创建或执行该动作。"
+      }
+    },
+    {
+      "id": "resolution-authority-overflow-negative",
+      "schema": "CollaborationResolutionSummary",
+      "valid": false,
+      "value": {
+        "resolution_ref": {"id": "resolution-003", "version": 1},
+        "collaboration_session_ref": {"id": "cs-003", "version": 1},
+        "status": "NeedsParticipantDecision",
+        "agreed_points": [],
+        "disagreement_items": [{"disagreement_id": "d-1", "statement": "需要用户决定。", "evidence_refs": []}],
+        "participant_positions": [{"participant_ir_ref": {"ir_id": "ir-a", "ir_version": 1}, "position": "等待决定。", "rationale": "存在显式约束冲突。", "evidence_refs": []}],
+        "attempted_resolution_refs": [],
+        "evidence_refs": [],
+        "recommended_next_step": "等待 Slinky Runtime 编排。",
+        "participant_action_request_ref": {"id": "forbidden", "version": 1}
+      }
+    },
+    {
+      "id": "agent-task-result-with-resolution-positive",
+      "schema": "AgentTaskResultV03",
+      "valid": true,
+      "expected_participant_ir_ids": ["ir-a"],
+      "value": {
+        "api_version": "agent-runtime/v1",
+        "schema_version": "agent-runtime-schema/v0.3",
+        "result_version": 1,
+        "agent_run_id": "run-result-1",
+        "run_version": 1,
+        "work_execution_id": "work-result-1",
+        "attempt_id": "attempt-result-1",
+        "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "terminal_status": "Succeeded",
+        "execution_summary": "团队完成执行，但保留一个需参与者决定的分歧。",
+        "participant_results": [{"participant_id": "participant-a", "participant_run_ref": {"id": "pr-a", "version": 1}, "ir_ref": {"id": "ir-a", "version": 1}, "role_assignment_ref": {"id": "role-a", "version": 1}, "terminal_status": "Succeeded", "output_refs": [], "finding_refs": [], "evidence_refs": [], "tier_invocation_refs": [], "tool_invocation_refs": []}],
+        "artifact_candidate_refs": [],
+        "validation_execution_refs": [],
+        "evidence_refs": [],
+        "tier_invocation_refs": [],
+        "tool_invocation_refs": [],
+        "usage_summary": {},
+        "unresolved_side_effect_refs": [],
+        "collaboration_resolution_summary": {
+          "resolution_ref": {"id": "resolution-result-1", "version": 1},
+          "collaboration_session_ref": {"id": "cs-result-1", "version": 1},
+          "status": "NeedsParticipantDecision",
+          "agreed_points": [],
+          "disagreement_items": [{"disagreement_id": "d-result-1", "statement": "用户约束需要明确。", "evidence_refs": []}],
+          "participant_positions": [{"participant_ir_ref": {"ir_id": "ir-a", "ir_version": 1}, "position": "等待用户决定。", "rationale": "不能以多数票覆盖显式约束。", "evidence_refs": []}],
+          "attempted_resolution_refs": [],
+          "evidence_refs": [],
+          "recommended_next_step": "由 Slinky Runtime 决定后续动作。"
+        },
+        "completed_at": "2026-09-06T08:10:00Z",
+        "result_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "semantic_cases": [
+    {
+      "id": "resolution-participant-set-mismatch-negative",
+      "schema_case_id": "resolution-minority-preserved-positive",
+      "expected_participant_ir_ids": ["ir-builder", "ir-reviewer", "ir-security", "ir-minority-missing"],
+      "expected_error": "CollaborationResolutionInvalid"
+    },
+    {
+      "id": "exact-room-descriptor-source-unavailable",
+      "request": {"project_id": "project-1", "collaboration_session_id": "cs-404"},
+      "expected_http_status": 503,
+      "expected_error": "ElementConversationSourceUnavailable",
+      "fallback_forbidden": ["transcript", "transcript_summary", "iframe", "token_url", "login_proxy"]
+    }
+  ],
+  "pagination_contract": {
+    "filters": ["status", "ir_id", "work_execution_id", "agent_run_id"],
+    "combination": "AND",
+    "order": "last_message_at DESC NULLS LAST, collaboration_session_id ASC",
+    "cursor_binds": ["client_id", "project_id", "filter_digest", "snapshot_upper_bound", "last_sort_key", "expires_at"]
+  }
+}

@@ -4,7 +4,7 @@
 状态：等待 Slinky 评审  
 日期：2026-09-06  
 基础版本：`agent-runtime-service-design-v0.2.md`  
-冻结输入：Matrix 消息 `S-20260906-df6086da1916`
+冻结输入：Matrix 消息 `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`
 
 ## 1. 文档目的与证据边界
 
@@ -35,6 +35,18 @@ Agent Runtime 的增量设计，不是第二套运行时、兼容接口或外部
    intent 原子创建或恢复，不增加单独的 Session 创建接口。
 10. Session 关闭使用显式 `:close`。v0.3 不允许 participant mutation；成员变化必须
     创建新的 Attempt、Run 和 Session。
+11. 同一 Project 可并行存在多个独占 room。Session list 使用 cursor pagination，并按
+    status、IR、WorkExecution 和 AgentRun exact filter；分页不得把 room 合并或按标题路由。
+12. Team 无法达成一致时，严格 Result 可携带
+    `CollaborationResolutionSummary`，完整保留 agreement、disagreement、每个
+    participant 的 position/rationale/Evidence 与已尝试的解决动作。
+13. Resolution 只陈述 Piko Team execution outcome，不创建 Expert/PM PlannedWork、
+    ParticipantActionRequest、用户 Decision、Plan change 或 Artifact acceptance。
+14. 用户通过 exact CollaborationSession 获取已有 `ElementConversationDescriptor`，并以
+   自己的 Matrix session 打开完整讨论；Piko 不增加 transcript/summary API。
+15. Tier model identity 来自 `GET /v1/models` 并保持 exact case。v0.3 Piko generation
+    surface 仅为 non-stream Responses、Models 和 Responses recovery；Embeddings 由
+    Knowledge/Memory consumer 验证，Chat/SSE 延至 v0.4，且不存在 fallback。
 
 ## 3. 权限边界
 
@@ -44,6 +56,8 @@ Slinky Runtime 拥有以下 authority：
 - CollaborationContract，包括 participant、route、observer、reply obligation、
   message deadline、创建/关闭 intent 与 retention policy selection；
 - WorkExecution、Attempt、Role assignment 和业务验收。
+- 是否创建 Expert Work、Project Manager Work 或唯一 ParticipantActionRequest；用户
+  Decision、Plan change、Artifact acceptance 及 explicit user constraint 的最终解释。
 
 Piko 拥有以下执行责任：
 
@@ -52,6 +66,7 @@ Piko 拥有以下执行责任：
 - exclusive room、精确 membership、消息收发、去重与 durable delivery；
 - Session/room mapping、关闭收敛、归档执行、retention enforcement 与审计；
 - 无 Secret 的 Element conversation descriptor。
+- 每个 Team Run 的结构化 resolution outcome；它只能陈述执行结果和建议下一步。
 
 Matrix transcript 只是 communication Evidence，不是 Project、IR、Run 或工作成功的
 authority。Pi AgentSession 不直接持有 Matrix credential、AS token、transaction ledger、
@@ -213,6 +228,52 @@ Descriptor 禁止包含：access token、AS token、credential、device key、en
 delivery checkpoint、自动登录材料或 transcript 副本。`element_route` 只能由已批准的
 Element base URL 和精确 Matrix room ID 构造，不能接受调用者提供的任意 URL。
 
+### 9.1 多 room 列表与稳定分页
+
+同一 Project 可以同时存在多个 active、waiting、closing 或 historical Session；每个
+Session 仍独占一个 room。列表支持 `cursor`、`limit`，以及 `status`、`ir_id`、
+`work_execution_id`、`agent_run_id` exact filter。过滤在 Client/Project authorization
+之后执行，组合条件使用逻辑 AND。
+
+分页使用稳定 keyset cursor。cursor 至少绑定 Client、Project、filter digest、查询
+snapshot upper bound、排序键和过期时间，并由 Piko 签名；调用方不能修改或跨 filter
+复用。排序固定为 `last_message_at DESC NULLS LAST, collaboration_session_id ASC`。
+在同一 cursor snapshot 内，并行 room 的新增消息不会导致已返回 item 重复或跳过；
+snapshot 后新建的 Session 由下一次无 cursor 查询看到。无效、过期或 scope 不匹配的
+cursor 返回 typed error，不回退到第一页。
+
+每个 summary 至少返回 Session identity/version、AgentRun、WorkExecution、Attempt、
+participants、status、`last_message_at`、blocking reasons 和最新 resolution reference。
+可以保留 exact room ID、retention 与 pending-delivery observation，但禁止 Matrix message
+body、transcript 摘要、Stage、PlannedWork、room attention 或 ParticipantActionRequest。
+后五类 Project/View 字段由 Slinky 使用 exact refs 本地组合。
+
+### 9.2 CollaborationResolutionSummary
+
+当 Team 有结构化 resolution outcome 时，Piko 把可选
+`CollaborationResolutionSummary` 写入严格 `AgentTaskResultV03`。该对象包含：
+
+- exact resolution 与 CollaborationSession reference；
+- `Resolved|NeedsExpert|NeedsProjectManager|NeedsParticipantDecision|Blocked`；
+- agreed points、disagreement items；
+- 每个 participant 的 position、rationale 和 Evidence reference；
+- attempted resolution references、聚合 Evidence 与 recommended next step。
+
+参与者 position 集合必须与当前 CollaborationContract 的 participant IR 集合精确相等；
+不得遗漏少数立场，也不得从多数票、最后一条消息或 transcript 自动推导 resolution。
+所有 Evidence 都必须是已有、可授权读取的 exact reference。`recommended_next_step` 是
+非权威建议；Piko 不把它执行成 Expert/PM Work、ParticipantActionRequest、用户
+Decision、Plan change 或 Artifact acceptance，也不得用多数票覆盖 explicit user
+constraint。
+
+### 9.3 用户决策与完整讨论
+
+当 resolution 为 `NeedsParticipantDecision` 或 Slinky 需要用户裁决时，Slinky 使用
+summary 中的 exact `collaboration_session_ref` 调用既有 `element-view`。Piko 只返回
+`ExternalLink + UserMatrixSession` descriptor；descriptor source 不可用时显式返回
+`ElementConversationSourceUnavailable`，禁止伪造 URL、返回缓存 transcript、代理登录或
+降级为 iframe/token URL。
+
 ## 10. Matrix transport 与 durable delivery
 
 Application Service transaction ingress 的处理顺序：
@@ -286,6 +347,8 @@ writer ownership 不可证明时必须停止推进受影响 scope，并公开结
 - Run 中 collaboration contract；
 - Session list、element-view 与 `:close`；
 - 所有正负错误、ETag 和幂等重放 fixture。
+- 多 room cursor pagination、四类 exact filter 与跨 filter cursor 拒绝；
+- resolution Schema 正负样例、所有 participant position 完整性与 authority overflow 拒绝。
 
 ### Recovery
 
@@ -294,6 +357,7 @@ writer ownership 不可证明时必须停止推进受影响 scope，并公开结
 - checkpoint 损坏、credential rotation、rename 部分失败；
 - writer lease 过期、双实例竞争与 fencing；
 - Closing 中重启、pending delivery 收敛与 archive 重放。
+- 并行 room 更新期间分页 snapshot 恢复，以及 latest resolution reference 的单调恢复。
 
 ### Security
 
@@ -302,17 +366,20 @@ writer ownership 不可证明时必须停止推进受影响 scope，并公开结
 - 加密、联邦、shared-room/thread 和 iframe 请求 fail closed；
 - homeserver/Element URL SSRF 与 redirect；
 - API、日志、descriptor、Evidence 与 audit 中的 Secret 泄漏。
+- list 不包含 Matrix message body/transcript；少数立场与冲突 Evidence 不丢失；
+- `NeedsParticipantDecision` 不创建或执行 Slinky-owned action。
 
 ### E2E
 
-覆盖 Slinky `V03-E2E-093..096`：profile/binding 并发与身份、rename/同名隔离、
-ExternalLink/unsupported policy，以及 transaction/txn/checkpoint/writer failover。
+覆盖 Slinky `V03-E2E-093..099`：profile/binding 并发与身份、rename/同名隔离、
+ExternalLink/unsupported policy、transaction/txn/checkpoint/writer failover、多 room
+分页与 exact route、resolution/少数立场保留、用户 decision descriptor 与越权阻断。
 
 ## 15. 实现门槛与未决项
 
 以下项目不阻塞草案评审，但在实现或 activation 前必须关闭：
 
-- 固定 Pi SDK package/version 及 AgentSession collaboration hook 实测；
+- 已固定 Pi SDK package/version；AgentSession collaboration hook 仍需实测；
 - Operator retention policy catalog 的完整 Schema 与实际时长；
 - Matrix homeserver/Application Service 支持版本与 Probe 判定；
 - 规范化 CollaborationEvent、route、reply deadline 的 machine-readable fixture；

@@ -7,6 +7,8 @@
     {"code":"MatrixTransportProfileNotFound","category":"NotFound","http_status":404,"retryable":false},
     {"code":"IRCommunicationBindingNotFound","category":"NotFound","http_status":404,"retryable":false},
     {"code":"CollaborationSessionNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"InvalidCollaborationSessionCursor","category":"InvalidRequest","http_status":400,"retryable":false,"required_details":["cursor_reason"]},
+    {"code":"InvalidCollaborationSessionFilter","category":"InvalidRequest","http_status":400,"retryable":false,"required_details":["filter_name"]},
     {"code":"IdempotencyConflict","category":"Conflict","http_status":409,"retryable":false},
     {"code":"CollaborationSessionClosing","category":"Lifecycle","http_status":409,"retryable":true},
     {"code":"ResourceVersionMismatch","category":"Precondition","http_status":412,"retryable":true,"required_details":["resource_type","current_resource_version","current_etag"]},
@@ -17,6 +19,9 @@
     {"code":"EncryptedRoomNotSupported","category":"Security","http_status":422,"retryable":false},
     {"code":"FederatedRoomNotSupported","category":"Security","http_status":422,"retryable":false},
     {"code":"ElementEmbeddingNotSupported","category":"Security","http_status":422,"retryable":false},
+    {"code":"ElementConversationSourceUnavailable","category":"Dependency","http_status":503,"retryable":true,"required_details":["collaboration_session_ref"]},
+    {"code":"CollaborationResolutionInvalid","category":"Contract","http_status":422,"retryable":false,"required_details":["resolution_ref"]},
+    {"code":"CollaborationResolutionAuthorityViolation","category":"Authorization","http_status":422,"retryable":false,"required_details":["forbidden_field"]},
     {"code":"RetentionPolicyNotAllowed","category":"Authorization","http_status":422,"retryable":false},
     {"code":"CollaborationRouteDenied","category":"Authorization","http_status":403,"retryable":false},
     {"code":"CollaborationDeliveryBackpressure","category":"Capacity","http_status":429,"retryable":true},
@@ -28,12 +33,15 @@
     {"code":"MatrixIdentityProvisioningFailed","category":"Dependency","terminal_status":"FailedOrUnknownOutcome","retryable":true},
     {"code":"MatrixRoomProvisioningFailed","category":"Dependency","terminal_status":"FailedOrUnknownOutcome","retryable":true},
     {"code":"CollaborationDeliveryOutcomeUnconfirmed","category":"Recovery","terminal_status":"UnknownOutcome","retryable":false},
-    {"code":"CollaborationCloseIncomplete","category":"Recovery","terminal_status":"UnknownOutcome","retryable":true}
+    {"code":"CollaborationCloseIncomplete","category":"Recovery","terminal_status":"UnknownOutcome","retryable":true},
+    {"code":"CollaborationResolutionContractViolation","category":"Contract","terminal_status":"FailedOrUnknownOutcome","retryable":false}
   ],
   "rules": {
     "no_fallback": "不支持的身份、加密、联邦、拓扑或嵌入策略必须 fail closed，不得切换到另一通信路径",
     "version_precondition": "创建使用 If-None-Match:*；更新使用 If-Match；body 不重复 expected_version",
     "delivery_truth": "存在未确认 Matrix side effect 时保留 delivery obligation，不得虚报发送失败或重新生成 txn_id",
-    "secret_boundary": "任何 API、日志、descriptor、Evidence 或 audit projection 都不得包含 token、credential、device key 或 delivery checkpoint"
+    "secret_boundary": "任何 API、日志、descriptor、Evidence 或 audit projection 都不得包含 token、credential、device key 或 delivery checkpoint",
+    "resolution_authority": "CollaborationResolutionSummary 只陈述 Team execution outcome，不得创建或执行 Slinky-owned Expert/PM Work、ParticipantActionRequest、用户 Decision、Plan change 或 Artifact acceptance",
+    "no_transcript_projection": "Session list 与 Result 不得返回 Matrix message body 或 transcript 副本；完整讨论只能通过 exact ElementConversationDescriptor 打开"
   }
 }

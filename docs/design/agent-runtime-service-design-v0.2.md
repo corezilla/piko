@@ -236,29 +236,45 @@ OpenAICloudModelBinding
 └─ timeout / retry / streaming policy
 ```
 
-Piko 在受控 Secret boundary 中解析 `credential_binding_ref`，通过标准 OpenAI SDK
-或与其语义等价的 Pi SDK provider configuration 调用云模型。Tier 必须提供
-与双方冻结 surface 兼容的 OpenAI API，使 Piko 只需替换 `base_url`、credential
-和 `model`，不需要 Tier-specific generation protocol。
+Piko 在受控 Secret boundary 中解析 `credential_binding_ref`。固定 Pi 基线为
+`@earendil-works/pi-coding-agent@0.85.1`、`@earendil-works/pi-ai@0.85.1`
+（Pi commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`）。该版本内建
+`openai-responses` 强制 `stream:true`，不能直接消费 LLMTier V0.3 的 non-stream
+Responses 与 recovery extension。因此唯一接入实现是 Piko 注册的
+`piko-llmtier-responses-v0.3` adapter：它负责 non-stream Responses、Invocation/
+Response recovery、typed status 和 durable idempotency；禁止只替换 `base_url`，也
+禁止失败后退回 Pi 内建 provider 或另一 endpoint。
 
-计划中的最低 Pi-facing surface：
+计划中的 Pi-facing surface：
 
-- 主路径：`POST /v1/responses`；
-- 可选兼容路径：只有 pinned Pi SDK 确实需要且 frozen compatibility manifest
-  授权时，才允许 `POST /v1/chat/completions`；两者仍映射到同一云模型
-  binding，不是 fallback；
-- 可选的 model 校验：`GET /v1/models`，仅校验请求中的 exact `model`；
+- V0.3 Agent generation surface 仅为 non-stream `POST /v1/responses`；
+- 恢复扩展：`GET /v1/invocations/{invocation_id}` 与
+  `GET /v1/responses/{response_id}`，只由同一 adapter 在同一持久 obligation 中调用；
+- Embeddings 由 Knowledge/Memory consumer 独立验证，不作为 Piko Agent generation
+  surface；Chat Completions 与全部 SSE/streaming 延至 V0.4；
+- `GET /v1/models[/...]` 只接受 exact-case Service Level ID；
+- V0.3 surface 在 exact OpenAPI/fixture、custom adapter、crash/lost-response 与真实
+  route capture 通过前保持 activation=false；未声明 endpoint 必须 fail closed，不允许
+  runtime fallback；
 - 不调用 Tier Observation API 或 Management API，不访问 Provider、Account、
   Backend Pool 或 physical model endpoint。
 
 Compatibility manifest 作为已 materialize 的 versioned contract 输入或 Piko deployment
 已验证配置进入 readiness，Piko 不为获取它而新增 Tier control-plane 路径。
 
-Piko 保存 OpenAI response 中约定的 request ID、usage、stream terminal state，
-以及 Tier 以兼容 header 返回的 `x-tier-invocation-id`。Response/stream 丢失后的
-outcome query 必须由契约明确提供并受 Client scope 保护；未提供可验证 query
-时，Piko 不盲目重派，而是保留 `UnknownOutcome`。云模型 queue pressure 只能形成受
-Run deadline 限制的短期 dependency wait，不能成为 Piko project queue。
+Piko 保存 OpenAI response 中约定的 response ID、usage、Invocation ID、Location、
+typed status 和 recovery obligation。认证、幂等和恢复的 canonical scope 是
+`client_id + source_id`；`source_instance_id` 只用于 observation/correlation。任何
+transport retry、agent-level retry 或 restart recovery 都必须复用首次 dispatch 前
+持久化的同一 Idempotency-Key 和 request digest。Response 丢失后的 outcome query
+必须由契约明确提供并受 Client scope 保护；未提供可验证 query 时，Piko 不盲目重派，
+而是保留 `UnknownOutcome`。云模型 queue pressure 只能形成受 Run deadline 限制的
+短期 dependency wait，不能成为 Piko project queue。
+
+Recovery 时间约束固定为 `W=168h`、`M=24h`、Piko 产品 retry deadline `D=24h`，
+满足 `D <= W-M`。`replay_same_request` 只能在 D 内复用同一 key、digest 和 Invocation
+obligation。terminal typed error 即使使用 HTTP 502/503，也以 envelope 的
+`retryable=false` 为准，禁止 Pi 通用 5xx retry 重新 dispatch。
 
 ## 13. Workspace、Tool 与 Knowledge 边界
 
@@ -291,6 +307,9 @@ session memory。共享信息只能通过声明的 materialized Artifact、struc
 ChangeSet 或 Validation Evidence。
 
 ## 15. SSE 事件与保留策略（候选 D5）
+
+本节的 SSE 是 Piko 自身 `AgentRunEvent` 读取面，不是 LLMTier 模型 generation SSE；
+后者按 §12 在 V0.3 明确 fail closed 并延至 V0.4。
 
 Sequence 在单个 Run 内严格递增，并在 process restart 后保持。Retention window 内，
 `Last-Event-ID` 从下一条恢复。如果请求早于 retention floor，Piko 在建立 stream 前
