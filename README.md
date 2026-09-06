@@ -1,16 +1,16 @@
 # Piko
 
-Piko is the independent Agent Runtime Service proposed for Slinky v0.3. The
-repository is currently in contract and system-design review; it does not yet
-contain a production implementation.
+Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目前处于契约与系统设计
+评审阶段，尚未包含生产实现。
 
-Current review artifacts:
+当前中文评审材料：
 
-- `docs/design/agent-runtime-service-design-v0.1.md`
-- `docs/contracts/agent-runtime-openapi-v0.1.yaml`
-- `docs/contracts/schemas/agent-runtime-v0.1.schema.json`
-- `docs/contracts/error-blocker-catalog-v0.1.json`
-- `docs/qa/agent-runtime-contract-qa-v0.1.md`
+- `docs/design/agent-runtime-service-design-v0.2.md`
+- `docs/contracts/agent-runtime-openapi-v0.2.yaml`
+- `docs/contracts/schemas/agent-runtime-v0.2.schema.json`
+- `docs/contracts/error-blocker-catalog-v0.2.json`
+- `docs/qa/agent-runtime-contract-qa-v0.2.md`
 
-All v0.1 artifacts are proposals. They must not be treated as a frozen Slinky
-contract or implementation evidence until the cross-project review closes.
+上述 v0.2 文件均为提案。在跨项目评审关闭前，不得把它们视为已经冻结的 Slinky
+契约或实现证据。v0.1 文件是已经通过本地文件邮箱公布 digest 的英文历史草案，仅供
+审计，不再作为当前评审版本。

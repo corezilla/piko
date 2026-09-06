@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "catalog_version": "agent-runtime-errors/v0.2",
+  "status": "proposal",
+  "api_errors": [
+    {"code":"InvalidRequest","category":"InvalidRequest","http_status":400,"retryable":false},
+    {"code":"AuthenticationFailed","category":"Authentication","http_status":401,"retryable":false},
+    {"code":"ScopeDenied","category":"Authorization","http_status":403,"retryable":false},
+    {"code":"RunNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"ResultVersionNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"EventHistoryExpired","category":"Gone","http_status":410,"retryable":false,"required_details":["retention_floor_sequence","current_run_ref","recovery_action"]},
+    {"code":"RunNotTerminal","category":"Conflict","http_status":409,"retryable":true,"required_details":["current_run_version","current_status"]},
+    {"code":"IdempotencyConflict","category":"Conflict","http_status":409,"retryable":false},
+    {"code":"SlotConflict","category":"Conflict","http_status":409,"retryable":true,"required_details":["current_slot_snapshot_ref"]},
+    {"code":"DuplicateAttemptRun","category":"Consistency","http_status":409,"retryable":false},
+    {"code":"ResourceVersionMismatch","category":"Precondition","http_status":412,"retryable":true,"required_details":["resource_type","current_resource_version"]},
+    {"code":"ExecutionPackageInvalid","category":"Contract","http_status":422,"retryable":false},
+    {"code":"IndependenceViolation","category":"Contract","http_status":422,"retryable":false},
+    {"code":"PlanRefinementRequired","category":"Planning","http_status":422,"retryable":false,"applicability":"admission_only"},
+    {"code":"CapabilityEscalationRequired","category":"Planning","http_status":422,"retryable":false,"applicability":"admission_only"},
+    {"code":"NoAgentCapacity","category":"Capacity","http_status":429,"retryable":true},
+    {"code":"QueueLimitExceeded","category":"Capacity","http_status":429,"retryable":true},
+    {"code":"ServiceNotReady","category":"Dependency","http_status":503,"retryable":true},
+    {"code":"TierDependencyUnavailable","category":"Dependency","http_status":503,"retryable":true},
+    {"code":"ServiceDraining","category":"Lifecycle","http_status":503,"retryable":true},
+    {"code":"ApiOperationTimeout","category":"Transport","http_status":504,"retryable":true},
+    {"code":"InternalFailure","category":"Internal","http_status":500,"retryable":false},
+    {"code":"TerminalResultMissing","category":"Consistency","http_status":500,"retryable":false,"readiness_effect":"DegradedRecoveryRequired"}
+  ],
+  "execution_errors": [
+    {"code":"AgentSessionCreationFailed","category":"Runtime","terminal_status":"Failed","retryable":true},
+    {"code":"ResultContractViolation","category":"Contract","terminal_status":"FailedOrUnknownOutcome","retryable":false},
+    {"code":"RunDeadlineExceeded","category":"Deadline","terminal_status":"TimedOutOrUnknownOutcome","retryable":false},
+    {"code":"CancellationRequested","category":"Cancellation","terminal_status":"CancelledOrUnknownOutcome","retryable":false},
+    {"code":"TierInvocationFailed","category":"Dependency","terminal_status":"FailedOrUnknownOutcome","retryable":true},
+    {"code":"ToolInvocationFailed","category":"Tool","terminal_status":"FailedOrUnknownOutcome","retryable":false},
+    {"code":"OutcomeUnconfirmed","category":"Recovery","terminal_status":"UnknownOutcome","retryable":false}
+  ],
+  "planning_blockers": [
+    {"code":"PlanRefinementRequired","category":"Planning","required_action":"new_plan_or_attempt"},
+    {"code":"CapabilityEscalationRequired","category":"Planning","required_action":"new_ir_assignment_and_attempt"},
+    {"code":"WorkspaceCapabilityRequired","category":"Resource","required_action":"new_pr_allocation_and_attempt"},
+    {"code":"ToolCapabilityRequired","category":"Capability","required_action":"new_tool_binding_and_attempt"},
+    {"code":"KnowledgeCapabilityRequired","category":"Capability","required_action":"new_knowledge_binding_and_attempt"}
+  ],
+  "rules": {
+    "slot_version_alias": "不接受 SlotVersionMismatch；统一使用 ResourceVersionMismatch，并设置 details.resource_type=AgentSlot",
+    "accepted_run_outcome": "异步 Run 的 outcome 写入 AgentTaskResult，不用后续 HTTP failure status 表示",
+    "unknown_side_effect": "只要存在未解决的 execution side effect，terminal_status 必须保持 UnknownOutcome，直到有 Evidence 支持的 reconciliation 完成",
+    "message_usage": "message 仅用于诊断，不得驱动 Client 逻辑"
+  }
+}

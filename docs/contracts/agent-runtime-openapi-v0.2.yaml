@@ -1,0 +1,469 @@
+openapi: 3.1.0
+info:
+  title: Piko 智能体运行时 API 提案
+  version: 0.2.0
+  description: 供 Slinky 评审的中文草案，不是已冻结或已实现的 API。
+servers:
+  - url: https://piko.example/agent-runtime/v1
+security:
+  - bearerAuth: []
+paths:
+  /health/live:
+    get:
+      operationId: getLiveness
+      security: []
+      responses:
+        '200':
+          description: 进程可以响应；此结果不表示已具备请求接收能力。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccessEnvelope'
+  /health/ready:
+    get:
+      operationId: getReadiness
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 当前全局和作用域级就绪状态。
+          headers:
+            ETag: {$ref: '#/components/headers/ETag'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessEnvelope'
+        '304': {$ref: '#/components/responses/NotModified'}
+  /runtime-profile:
+    get:
+      operationId: getRuntimeProfile
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': {$ref: '#/components/responses/RuntimeProfileSuccess'}
+        '304': {$ref: '#/components/responses/NotModified'}
+  /slots:
+    get:
+      operationId: listSlots
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - {name: status, in: query, schema: {type: string}}
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': {$ref: '#/components/responses/SlotSnapshotSuccess'}
+        '304': {$ref: '#/components/responses/NotModified'}
+  /tool-capabilities:
+    get:
+      operationId: listToolCapabilities
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': {$ref: '#/components/responses/ToolCatalogSuccess'}
+        '304': {$ref: '#/components/responses/NotModified'}
+  /capacity-profile:
+    get:
+      operationId: getCapacityProfile
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': {$ref: '#/components/responses/CapacityProfileSuccess'}
+        '304': {$ref: '#/components/responses/NotModified'}
+  /runs:
+    post:
+      operationId: startRun
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentTaskRequest'
+      responses:
+        '202':
+          description: Run 标识、幂等记录和 Slot 占用均已持久化并接收。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccessEnvelope'
+        '400': {$ref: '#/components/responses/ApiError'}
+        '401': {$ref: '#/components/responses/ApiError'}
+        '403': {$ref: '#/components/responses/ApiError'}
+        '409': {$ref: '#/components/responses/ApiError'}
+        '412': {$ref: '#/components/responses/ApiError'}
+        '422': {$ref: '#/components/responses/ApiError'}
+        '429': {$ref: '#/components/responses/ApiError'}
+        '503': {$ref: '#/components/responses/ApiError'}
+  /runs:by-attempt:
+    get:
+      operationId: getRunByAttempt
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - {name: work_execution_id, in: query, required: true, schema: {type: string}}
+        - {name: attempt_id, in: query, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: 返回认证 Client 作用域内与 Attempt 对应的唯一 Run。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunEnvelope'
+        '404': {$ref: '#/components/responses/ApiError'}
+        '409': {$ref: '#/components/responses/ApiError'}
+  /runs/{agent_run_id}:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+    get:
+      operationId: getRun
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 当前 AgentRun。
+          headers:
+            ETag: {$ref: '#/components/headers/ETag'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunEnvelope'
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/ApiError'}
+  /runs/{agent_run_id}:cancel:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+    post:
+      operationId: cancelRun
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason_code, requested_by_ref, deadline]
+              properties:
+                reason_code: {type: string}
+                requested_by_ref: {type: string}
+                deadline: {type: string, format: date-time}
+      responses:
+        '200':
+          description: 返回当前或已更新 Run；无法确认的清理结果必须保持 UnknownOutcome。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunEnvelope'
+        '404': {$ref: '#/components/responses/ApiError'}
+        '409': {$ref: '#/components/responses/ApiError'}
+        '412': {$ref: '#/components/responses/ApiError'}
+  /runs/{agent_run_id}:reconcile:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+    post:
+      operationId: reconcileRun
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason_code, known_attempt_state, known_dispatch_digest]
+              properties:
+                reason_code: {type: string}
+                known_attempt_state: {type: string}
+                known_dispatch_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
+      responses:
+        '200': {$ref: '#/components/responses/ReconciliationSuccess'}
+        '404': {$ref: '#/components/responses/ApiError'}
+        '409': {$ref: '#/components/responses/ApiError'}
+        '412': {$ref: '#/components/responses/ApiError'}
+  /runs/{agent_run_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+    get:
+      operationId: streamRunEvents
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: {type: string}
+      responses:
+        '200':
+          description: 单个 Run 内严格有序的事件流。
+          content:
+            text/event-stream:
+              schema:
+                $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentEvent'
+        '404': {$ref: '#/components/responses/ApiError'}
+        '410':
+          description: 请求的事件早于最早保留序号。
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/ApiErrorEnvelope'
+  /runs/{agent_run_id}/result:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+    get:
+      operationId: getCurrentRunResult
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 当前不可变的终态 Result 版本。
+          headers:
+            ETag: {$ref: '#/components/headers/ETag'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskResultEnvelope'
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/ApiError'}
+        '409': {$ref: '#/components/responses/ApiError'}
+        '500': {$ref: '#/components/responses/ApiError'}
+  /runs/{agent_run_id}/results/{result_version}:
+    parameters:
+      - $ref: '#/components/parameters/AgentRunId'
+      - name: result_version
+        in: path
+        required: true
+        schema: {type: integer, minimum: 1}
+    get:
+      operationId: getHistoricalRunResult
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/SourceInstanceId'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Traceparent'
+      responses:
+        '200':
+          description: 指定的不可变历史 Result 版本。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskResultEnvelope'
+        '404': {$ref: '#/components/responses/ApiError'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    AgentRunId:
+      name: agent_run_id
+      in: path
+      required: true
+      schema: {type: string, minLength: 1}
+    ClientId:
+      name: X-Agent-Runtime-Client-ID
+      in: header
+      required: true
+      schema: {type: string, minLength: 1}
+    SourceInstanceId:
+      name: X-Agent-Runtime-Source-Instance-ID
+      in: header
+      required: true
+      schema: {type: string, minLength: 1}
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema: {type: string, minLength: 1}
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      schema: {type: string}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 256}
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema: {type: string, minLength: 1}
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: {type: string, minLength: 1}
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: {type: string}
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: {type: integer, minimum: 1, maximum: 200, default: 50}
+  headers:
+    ETag:
+      schema: {type: string}
+  schemas:
+    GenericSuccessEnvelope:
+      type: object
+      additionalProperties: false
+      required: [api_version, request_id, correlation_id, data, observed_at]
+      properties:
+        api_version: {const: agent-runtime/v1}
+        request_id: {type: string}
+        correlation_id: {type: string}
+        data: {type: object, additionalProperties: true}
+        observed_at: {type: string, format: date-time}
+    ReadinessEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/GenericSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentRuntimeReadiness'
+    AgentRunEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/GenericSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentRun'
+    AgentTaskResultEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/GenericSuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentTaskResult'
+  responses:
+    GenericSuccess:
+      description: 成功的带版本响应。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericSuccessEnvelope'
+    RuntimeProfileSuccess:
+      description: 当前运行时配置概要。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/GenericSuccessEnvelope'
+              - type: object
+                properties:
+                  data: {$ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentRuntimeProfile'}
+    SlotSnapshotSuccess:
+      description: 带版本的 Slot 快照分页结果。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/GenericSuccessEnvelope'
+              - type: object
+                properties:
+                  data: {$ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentSlotSnapshot'}
+    ToolCatalogSuccess:
+      description: 带版本的 Tool 能力目录分页结果。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/GenericSuccessEnvelope'
+              - type: object
+                properties:
+                  data: {$ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/ToolCapabilityCatalog'}
+    CapacityProfileSuccess:
+      description: 当前部署容量概要。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/GenericSuccessEnvelope'
+              - type: object
+                properties:
+                  data: {$ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/DeploymentCapacityProfile'}
+    ReconciliationSuccess:
+      description: 同一 Run 的核对结果。
+      headers:
+        ETag: {$ref: '#/components/headers/ETag'}
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/GenericSuccessEnvelope'
+              - type: object
+                properties:
+                  data: {$ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/AgentRunReconciliationResult'}
+    ApiError:
+      description: 带类型的 API 错误；message 仅用于诊断。
+      content:
+        application/json:
+          schema:
+            $ref: './schemas/agent-runtime-v0.2.schema.json#/$defs/ApiErrorEnvelope'
+    NotModified:
+      description: ETag 仍是当前版本，响应不包含 envelope 或 body。
