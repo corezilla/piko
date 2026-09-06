@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "catalog_version": "agent-runtime-errors/v0.3",
+  "status": "proposal",
+  "base_catalog": "error-blocker-catalog-v0.2.json",
+  "matrix_api_errors": [
+    {"code":"MatrixTransportProfileNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"IRCommunicationBindingNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"CollaborationSessionNotFound","category":"NotFound","http_status":404,"retryable":false},
+    {"code":"IdempotencyConflict","category":"Conflict","http_status":409,"retryable":false},
+    {"code":"CollaborationSessionClosing","category":"Lifecycle","http_status":409,"retryable":true},
+    {"code":"ResourceVersionMismatch","category":"Precondition","http_status":412,"retryable":true,"required_details":["resource_type","current_resource_version","current_etag"]},
+    {"code":"ResourceAlreadyExists","category":"Precondition","http_status":412,"retryable":false,"required_details":["resource_type","current_resource_ref"]},
+    {"code":"MatrixIdentityCollision","category":"Consistency","http_status":409,"retryable":false,"readiness_effect":"DegradedRecoveryRequired"},
+    {"code":"UnsupportedIdentityProvisioningMode","category":"Contract","http_status":422,"retryable":false},
+    {"code":"UnsupportedRoomTopology","category":"Contract","http_status":422,"retryable":false},
+    {"code":"EncryptedRoomNotSupported","category":"Security","http_status":422,"retryable":false},
+    {"code":"FederatedRoomNotSupported","category":"Security","http_status":422,"retryable":false},
+    {"code":"ElementEmbeddingNotSupported","category":"Security","http_status":422,"retryable":false},
+    {"code":"RetentionPolicyNotAllowed","category":"Authorization","http_status":422,"retryable":false},
+    {"code":"CollaborationRouteDenied","category":"Authorization","http_status":403,"retryable":false},
+    {"code":"CollaborationDeliveryBackpressure","category":"Capacity","http_status":429,"retryable":true},
+    {"code":"MatrixTransportNotReady","category":"Dependency","http_status":503,"retryable":true},
+    {"code":"MatrixHomeserverUnavailable","category":"Dependency","http_status":503,"retryable":true},
+    {"code":"CollaborationStateInconsistent","category":"Consistency","http_status":503,"retryable":false,"readiness_effect":"DegradedRecoveryRequired"}
+  ],
+  "matrix_execution_errors": [
+    {"code":"MatrixIdentityProvisioningFailed","category":"Dependency","terminal_status":"FailedOrUnknownOutcome","retryable":true},
+    {"code":"MatrixRoomProvisioningFailed","category":"Dependency","terminal_status":"FailedOrUnknownOutcome","retryable":true},
+    {"code":"CollaborationDeliveryOutcomeUnconfirmed","category":"Recovery","terminal_status":"UnknownOutcome","retryable":false},
+    {"code":"CollaborationCloseIncomplete","category":"Recovery","terminal_status":"UnknownOutcome","retryable":true}
+  ],
+  "rules": {
+    "no_fallback": "不支持的身份、加密、联邦、拓扑或嵌入策略必须 fail closed，不得切换到另一通信路径",
+    "version_precondition": "创建使用 If-None-Match:*；更新使用 If-Match；body 不重复 expected_version",
+    "delivery_truth": "存在未确认 Matrix side effect 时保留 delivery obligation，不得虚报发送失败或重新生成 txn_id",
+    "secret_boundary": "任何 API、日志、descriptor、Evidence 或 audit projection 都不得包含 token、credential、device key 或 delivery checkpoint"
+  }
+}
