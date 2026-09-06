@@ -86,10 +86,15 @@ txn、Run、Session 或 room 作为通用重试。
 Close 故障注入必须区分“禁止新业务 admission/send/wakeup”和“继续 drain 已确认 obligation”：
 在 Closing 前后、每条 inbox/outbox 完成前后、archive/retention commit 前后崩溃，恢复后都使用
 原 Session/room/txn/archive reference，并验证部分失败投影 RecoveryRequired 而非 Closed。
+同一 close namespace/key/digest 在首次记录 `Closing`、Session 后续变为 Closed 后仍返回所记录的
+`Closing` 结果且不重复 archive；另一个通过鉴权和版本检查的新请求才验证 `AlreadyClosed`，相同
+key 不同 digest 验证 `IdempotencyConflict`。
 
 LLMTier lost-response 必须覆盖两个分支：已有 Invocation ID 时 GET；首个响应头也丢失、无 ID 时，
 显式 adapter 在 D=24h 内以同一 namespace/key/digest 重放原 POST，取得 canonical response 或
-Invocation ID 后再 GET。两者都断言 Backend dispatch 不增加；UnknownOutcome 不自动重派。
+Invocation ID 后再 GET。若故障前已证明 Backend dispatch，则总数保持 1；若故障发生在 durable
+record 后、首次 dispatch 前，则原 Invocation 可从 0 推进到最多 1，且 replay 不得新增 dispatch
+intent/Invocation；dispatch 前拒绝或取消保持 0。所有分支都禁止 UnknownOutcome 自动重派。
 
 ## 9. 偏差、waiver、问题与重测
 

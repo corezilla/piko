@@ -276,6 +276,17 @@ Invocation：active 返回 202 与 Invocation ID，Succeeded 返回 canonical 20
 Invocation ID 的 typed error。取得 ID 后才使用 GET；整个过程不得生成新 key、增加业务 Attempt
 或把 transport retry 变成第二次 logical invocation。
 
+dispatch 数量的 oracle 必须绑定故障点证据，而不能仅从“首次 POST 已持久化”推出已经 dispatch：
+
+- 若 ledger 或受控测试 Backend 已证明首次 Backend dispatch 完成，随后才丢失响应头，则恢复后
+  该 logical Invocation 的总 dispatch 数必须保持为 1；replay 新增 dispatch 数为 0。
+- 若连接在 durable record 已提交、首次 Backend dispatch 之前丢失，则 replay 仍只解析为原
+  Invocation，不创建额外 dispatch intent；原 Invocation 可从 0 次合法推进到最多 1 次。
+- 若原 Invocation 在 dispatch 前被 admission 拒绝或取消，则最终 dispatch 数保持为 0。
+
+三种分支均复用原 namespace/key/digest/obligation，禁止新 key、新业务 Attempt、第二 Invocation
+或 `UnknownOutcome` 盲重派。“replay 不新增 dispatch”不等于禁止原异步 Invocation 继续其首次执行。
+
 ## 9. 失败、恢复与可观测性
 
 ### 9.1 Failure classes

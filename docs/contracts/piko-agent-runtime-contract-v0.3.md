@@ -108,6 +108,12 @@ message 文本不参与客户端分支；code/status/retryable/required details 
 7. LLMTier 首次响应头丢失且尚无 Invocation ID 时，显式 adapter 复用同一 namespace/key/digest
    重放原 POST 以取得 canonical outcome 或 Invocation ID；`maxRetries=0` 只禁 SDK 隐式重试，
    不得生成新 key、Attempt 或 logical invocation。
+8. close 的同一 namespace/key/digest 重放返回该请求首次记录的同一 CloseResult 语义且不重复
+   close/archive；相同 key 不同 digest 返回冲突。只有已 Closed Session 上另一项通过鉴权和版本
+   检查的新请求才可记录 `AlreadyClosed`；Session 最新状态通过既有查询读取。
+9. LLMTier replay 本身不得新增 dispatch intent 或 Invocation。若故障前已有 Backend dispatch
+   证据，总数保持 1；若故障发生在 durable record 后、首次 dispatch 前，原 Invocation 可从 0
+   推进到最多 1；dispatch 前拒绝或取消保持 0。
 
 ## 6. Pagination、filter、ordering 与 retention
 

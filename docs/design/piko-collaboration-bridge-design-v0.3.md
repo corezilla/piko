@@ -227,8 +227,9 @@ Provisioning -> Active <-> WaitingForReply -> Closing -> Closed
 | WaitingForReply | WaitingForReply | N/A | source 可解析时 WaitingForReply |
 | Closing，仍有已确认 obligation | Closing | Closing | view availability 独立计算，不用 Closing 充当 descriptor status |
 | drain/archive 部分失败或结果不明 | RecoveryRequired | RecoveryRequired | source 不可用时 typed 503；不得用 Session 状态替代 descriptor 状态 |
-| Closed，首次完成 close | Closed | Closed | Closed |
-| 已 Closed 后重复相同 close | Closed | AlreadyClosed | Closed |
+| Closed，首次 close 请求完成 | Closed | 该请求已记录的 `Closed` | Closed |
+| 同一 close namespace/key/digest 重放，首次结果为 Closing/Closed/RecoveryRequired | 当前事实对应的 Summary 状态 | 返回首次请求已记录的同一 CloseResult 语义 | 当前 source/view 状态；最新 Session 状态由查询读取 |
+| 已 Closed 后发起另一项合法的新 close 请求 | Closed | AlreadyClosed | Closed |
 
 当前 Piko 机器候选仍把 SessionSummary 定义为
 `Provisioning|Active|WaitingForReply|Closing|Closed|Unavailable`，CloseResult 定义为
@@ -307,9 +308,14 @@ close 要求 current ETag + Idempotency-Key。进入 Closing 后停止新的业�
 成功且 retention activation 已记录后才返回/投影 `Closed`。
 
 drain、archive 或 retention 只完成一部分时返回 `RecoveryRequired`、准确 pending count 与
-blocking reason；不得提前 archive、丢弃 obligation 或虚报 Closed。已 Closed 后重复同一 close
-返回 `AlreadyClosed`。所有 close 重试复用同一 Idempotency-Key、Session、room、archive
-execution reference 和 obligation identity，不建立第二恢复机制。
+blocking reason；不得提前 archive、丢弃 obligation 或虚报 Closed。close 请求的
+namespace/key/digest 与首次响应语义必须原子记录：同一 namespace/key/digest 的 transport retry
+始终返回该请求已记录的同一 `Closing|Closed|RecoveryRequired` 结果，不重新执行 close/archive；
+即使 Session 后来已变为 Closed，也不能把原先记录的 `Closing` 改写成 `AlreadyClosed`。调用方
+通过既有 Session 查询读取最新状态。同一 key 不同 digest 返回 `IdempotencyConflict`，不得以
+`AlreadyClosed` 掩盖冲突。只有针对已 Closed Session 发起另一项使用新 Idempotency-Key 的合法
+close 请求，并通过既有 authorization/version 检查后，才记录并返回 `AlreadyClosed`。所有恢复
+复用原 Session、room、archive execution reference 和 obligation identity，不建立第二恢复机制。
 
 ## 9. 失败、恢复与可观测性
 
