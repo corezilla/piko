@@ -1,10 +1,28 @@
-# Piko CollaborationBridge 子系统设计
+<!-- STD_DOCUMENT_COVER_BEGIN -->
+# Piko CollaborationBridge 端到端机制设计
 
-文档版本：v0.3  
-状态：STD 迁移候选，等待项目 Review  
-日期：2026-09-07  
-模板：STD `design.definition@0.1.0`，层级 `subsystem`，领域 `software`  
-authority：Piko
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-collaboration-bridge-design-v0.3` |
+| Document Version | `0.3.0-draft.17` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | Piko Architecture Owner |
+| Authors | corezilla |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-07` |
+| STD Version | `0.1.0-draft.17` |
+| Template ID | `design.system-mechanism` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `piko` |
+| Canonical Path | `docs/design/piko-collaboration-bridge-design-v0.3.md` |
+| Supersedes | none |
+
+> 本文件是 Migration Review candidate；不替代旧文档或机器契约，不触发 promotion、RAG ingestion 或 Runtime Activation。
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目的、范围与上位输入
 

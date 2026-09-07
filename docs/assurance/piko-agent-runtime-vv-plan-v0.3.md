@@ -1,8 +1,28 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Agent Runtime v0.3 验证与确认计划
 
-状态：STD 迁移候选，尚未形成 production test report  
-日期：2026-09-07  
-authority：Piko
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-agent-runtime-vv-plan-v0.3` |
+| Document Version | `0.3.0-draft.17` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | Piko Verification Owner |
+| Authors | corezilla |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-07` |
+| STD Version | `0.1.0-draft.17` |
+| Template ID | `assurance.vv-plan` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `piko` |
+| Canonical Path | `docs/assurance/piko-agent-runtime-vv-plan-v0.3.md` |
+| Supersedes | none |
+
+> 本计划不构成 production test report 或 Runtime Activation authority。
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标、范围与 V&V authority
 
@@ -21,7 +41,7 @@ authority：Piko
 | OpenAI SDK | 6.40.0 | mock capture 已有 |
 | LLMTier | Piko-facing Scope B/recovery bundle | semantics accepted，activation false |
 | Matrix/Element | version/config 未冻结 | Open Gate |
-| STD | `0.1.0-draft.1`，source revision null | draft only |
+| STD | `0.1.0-draft.17`，revision `94c0262de35b5b989bba9f8d23f212af709c9dbf` | immutable source locked；project candidate draft only |
 
 每个执行 evidence 必须记录 source commit、Schema version、环境 topology、dependency version、
 configuration fingerprint、case/run ID 和时间。

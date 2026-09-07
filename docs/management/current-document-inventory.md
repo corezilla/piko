@@ -14,8 +14,8 @@ Matrix 决策和 authority。
 
 | 路径 | 类型/authority | 状态与版本 | 上位/下位关系 | 重复或冲突 | 建议模板 |
 |---|---|---|---|---|---|
-| `design/agent-runtime-service-design-v0.2.md` | Piko 服务设计 | 中文 review draft v0.2 | 上位设计；Matrix v0.3 在其上增量 | v0.1 为历史版本；候选 D1-D5 尚未全部冻结 | `design.definition` / subsystem |
-| `design/agent-runtime-matrix-collaboration-design-v0.3.md` | Piko 子系统设计 | 中文 review draft v0.3 | 下位于服务设计；约束 Matrix 契约 | 与基础设计部分重复 authority/security/recovery | `design.definition` / subsystem |
+| `design/agent-runtime-service-design-v0.2.md` | Piko 服务设计 | 中文 review draft v0.2 | 上位设计；Matrix v0.3 在其上增量 | v0.1 为历史版本；候选 D1-D5 尚未全部冻结 | `design.system` / system |
+| `design/agent-runtime-matrix-collaboration-design-v0.3.md` | Piko 子系统设计 | 中文 review draft v0.3 | 下位于服务设计；约束 Matrix 契约 | 与基础设计部分重复 authority/security/recovery | `design.system-mechanism` + `design.definition` |
 | `design/agent-runtime-service-design-v0.1.md` | Piko 历史设计 | superseded 英文草案 | 被 v0.2 取代 | 不迁移事实；保留审计 | 历史归档，不实例化 |
 | `contracts/agent-runtime-openapi-v0.2.yaml` | Piko API 字段权威候选 | v0.2 draft | 服务设计的机器接口 | v0.1 为历史版本 | `contracts.specification` 的机器附件 |
 | `contracts/schemas/agent-runtime-v0.2.schema.json` | Piko Schema 字段权威候选 | v0.2 draft | OpenAPI 本地引用 | v0.1 为历史版本 | `contracts.specification` 的机器附件 |
@@ -35,8 +35,11 @@ Matrix 决策和 authority。
 
 | 新候选文档 | 来源 | STD Template |
 |---|---|---|
-| `design/piko-agent-runtime-design-v0.3.md` | service design v0.2 + 已冻结 LLMTier/Matrix delta | `design.definition` |
-| `design/piko-collaboration-bridge-design-v0.3.md` | Matrix collaboration design v0.3 | `design.definition` |
+| `management/piko-std-migration-plan-v0.1.md` | 已接受的迁移共识、当前 candidate/evidence | `management.project-plan` |
+| `design/piko-agent-runtime-design-v0.3.md` | service design v0.2 + 已冻结 LLMTier/Matrix delta | `design.system` |
+| `design/piko-collaboration-bridge-design-v0.3.md` | Matrix collaboration design v0.3 | `design.system-mechanism` |
+| `design/piko-collaboration-bridge-internal-design-v0.3.md` | mechanism 内的 Piko-owned 内部结构 | `design.definition` |
+| `management/piko-requirements-traceability-v0.3.md` | Requirement/Matrix/Test IDs | `requirements.traceability` |
 | `contracts/piko-agent-runtime-contract-v0.3.md` | v0.2/v0.3 OpenAPI、Schema、error、fixture | `contracts.specification` |
 | `assurance/piko-agent-runtime-vv-plan-v0.3.md` | QA v0.2/v0.3 | `assurance.vv-plan` |
 | `assurance/piko-agent-runtime-test-specification-v0.3.md` | QA cases、V03-E2E-085..099 | `assurance.test-specification` |
@@ -49,8 +52,8 @@ Matrix 决策和 authority。
 - Review 通过后，可将 v0.1 文件标记为历史归档；是否移动路径另行评审。
 - OpenAPI、JSON Schema、error catalog、fixture 和 validator 继续作为机器权威，不复制进
   Markdown。
-- 已保留 `rag/std-ingestion-manifest.jsonl` 作为 STD draft 来源 SHA-256 清单，与
-  `docs/std.lock.json.manifest_path` 对应；它不含 Piko 项目文档，也不执行 ingestion。
+- `docs/std-source-manifest.json` 是 draft.17 的 71-artifact source lock；旧
+  `rag/std-ingestion-manifest.jsonl` 原样保留为 draft.1 历史 artifact，不执行 ingestion。
 - 当前没有生成或执行 Piko 项目文档的 RAG ingestion；候选通过项目 Review 并另行确定
   canonical authority 后才允许索引。
 - 当前机器候选的 SessionSummary `Provisioning/Unavailable` 与 CloseResult `Unchanged` 未找到

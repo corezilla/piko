@@ -1,0 +1,161 @@
+{
+  "schema_version": "piko-migration-evidence.v2",
+  "captured_at": "2026-09-07T17:20:58+08:00",
+  "project_root": "/Users/ben/work/piko",
+  "input": {
+    "head": "2386ea7fa6e5161ed6074b1e261fad74d148c067",
+    "working_tree": "clean",
+    "tracked_index_sha256": "514460c6d55b577008093abf4df36517c1d0f69e8cbe3b27064205df870050bc"
+  },
+  "draft17_upgrade_input": {
+    "head": "2386ea7fa6e5161ed6074b1e261fad74d148c067",
+    "working_tree": "dirty_by_draft16_migration_cohort",
+    "status_sha256": "5330c02f813f56f436534da43e1eb26da66f745726e76aa70b80517a957a0969"
+  },
+  "migration_plan_input": {
+    "request_id": "S-20260907-ad32032e5f62",
+    "head": "2386ea7fa6e5161ed6074b1e261fad74d148c067",
+    "working_tree": "dirty_by_existing_draft17_candidate",
+    "status_sha256": "5330c02f813f56f436534da43e1eb26da66f745726e76aa70b80517a957a0969",
+    "dirty_path_count": 25,
+    "dirty_content_sha256": "78b2f8fe0d070f2a55fc942cd5daa1936a619b78655303266f486cbc30add073"
+  },
+  "execution": {
+    "head": "2386ea7fa6e5161ed6074b1e261fad74d148c067",
+    "working_tree": "dirty_by_this_migration_cohort",
+    "dirty_path_set_sha256_excluding_this_evidence_file": "8034bf0a6ec4ca4b19371a38388165bbda061063452e784f3eea70e954169182",
+    "final_status_sha256_including_this_evidence_file": "829b23bb7e4ed0615c5f089537bf5bfd443dfd0911f7a99a969c891488acd62a",
+    "candidate_artifact_count_excluding_this_evidence_file": 26,
+    "candidate_artifact_set_sha256": "99c0c1ad90b9366fb397a787f48fd18c48bf29ab0c8c57082c78f15916c92ddf"
+  },
+  "candidate_artifact_digest_algorithm": {
+    "algorithm_id": "piko-artifact-set-sha256.v1",
+    "scope": "The 27-path precommit allowlist excluding exactly docs/review/piko-std-migration-evidence.json, leaving 26 artifacts.",
+    "path_encoding": "UTF-8 without normalization",
+    "ordering": "Ascending lexicographic order of UTF-8 path bytes",
+    "content_digest": "SHA-256 over exact file bytes, rendered as 64 lowercase ASCII hex characters",
+    "record_format": "content_sha256_hex + two ASCII spaces + repository_relative_path_utf8 + LF",
+    "record_separator": "Each record includes exactly one trailing LF byte; no other separator, prefix, suffix, or final extra blank line.",
+    "set_digest": "SHA-256 over the concatenation of all 26 record byte strings",
+    "manifest_byte_count": 3073,
+    "recompute_command": "python3 -c 'import hashlib,json; from pathlib import Path; ep=\"docs/review/piko-std-migration-evidence.json\"; e=json.loads(Path(ep).read_text(encoding=\"utf-8\")); raw=e[\"precommit_gate\"][\"changed_files\"]; assert len(raw)==27 and len(set(raw))==27 and ep in raw; ps=sorted((p for p in raw if p!=ep),key=lambda p:p.encode(\"utf-8\")); assert len(ps)==26 and all(Path(p).is_file() and not Path(p).is_symlink() for p in ps); manifest=b\"\".join(hashlib.sha256(Path(p).read_bytes()).hexdigest().encode(\"ascii\")+b\"  \"+p.encode(\"utf-8\")+b\"\\n\" for p in ps); print(hashlib.sha256(manifest).hexdigest())'",
+    "result_sha256": "99c0c1ad90b9366fb397a787f48fd18c48bf29ab0c8c57082c78f15916c92ddf"
+  },
+  "std_source": {
+    "repository": "corezilla/architecture-standards",
+    "revision": "94c0262de35b5b989bba9f8d23f212af709c9dbf",
+    "tag": "std-v0.1.0-draft.17",
+    "manifest": "docs/std-source-manifest.json",
+    "manifest_sha256": "2b6150c4dfd0df543ff24faff7c76a70ec3bb7c7169b43ccb8fcafb4bb4974ec"
+  },
+  "commands": [
+    {
+      "command": "/Users/ben/work/STD/scripts/build-source-manifest --force --output /Users/ben/work/piko/docs/std-source-manifest.json --source-revision 94c0262de35b5b989bba9f8d23f212af709c9dbf --source-tag std-v0.1.0-draft.17",
+      "exit_code": 0,
+      "key_output": "/Users/ben/work/piko/docs/std-source-manifest.json: 71 artifacts"
+    },
+    {
+      "command": "/Users/ben/work/STD/scripts/verify-source-manifest --std-root /Users/ben/work/STD docs/std-source-manifest.json",
+      "exit_code": 0,
+      "key_output": "STD source manifest verification OK: 71 artifacts"
+    },
+    {
+      "command": "/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/piko --require-immutable-std --json /tmp/piko-std-validation.json",
+      "exit_code": 0,
+      "key_output": "ok=true; new_error_count=0; inherited_error_count=0; checked_metadata=10; checked_markdown=10; checked_decisions=1"
+    },
+    {
+      "command": "python3 -m unittest discover -s /Users/ben/work/STD/tests -p test_*.py -v",
+      "exit_code": 0,
+      "key_output": "2 discovery/read regression tests passed"
+    },
+    {
+      "command": "python3 scripts/validate_v03_contract.py",
+      "exit_code": 0,
+      "key_output": "OK: 4 Schema fixtures, 2 semantic fixtures, OpenAPI refs/filter/typed error and authority boundaries passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "key_output": "no output"
+    }
+  ],
+  "discovery_audit": {
+    "relevant_symlink_paths": [],
+    "same_suffix_directories": [],
+    "ignored_candidate_paths": [],
+    "tracked_nonregular_candidate_paths": [],
+    "expected_candidate_omissions": []
+  },
+  "gates": {
+    "l1_std_structural": "PASS",
+    "l2_project_contract_schema": "PASS",
+    "l3_runtime_external_evidence": "NOT_COMPLETE_UNCHANGED",
+    "l3_note": "Real Matrix, database crash/restart, credential isolation, and LLMTier E2E evidence remain planned or blocked; draft.17 does not close them."
+  },
+  "owner_decision": {
+    "repository_identifier": "piko",
+    "migration_review_verdict": "ACCEPTED",
+    "reviewer": "User / Piko Project Owner",
+    "decided_at": "2026-09-07T18:18:29+08:00",
+    "document_status_changed": false,
+    "canonical_promotion_authorized": false,
+    "rag_ingestion_authorized": false,
+    "runtime_activation_authorized": false
+  },
+  "precommit_gate": {
+    "request_id": "S-20260907-9c1d17a9387e",
+    "amendment_request_id": "S-20260907-96d2af979b65",
+    "amendment_resolved": true,
+    "digest_blocker_request_id": "S-20260907-4256cff71bc6",
+    "digest_blocker_resolved": true,
+    "superseded_reported_digest": "6711394e444da024ed2d57035355aa20a88fe407dc51f489ec1691bcf0629488",
+    "status": "READY_FOR_COMMIT",
+    "superseded_commit_approval_request_id": "S-20260907-28434b2e32c1",
+    "superseded_commit_approval_digest": "3ffd7893263a909caf3f6121d20320eff876655d8a1b432a841ef0c08306d5ad",
+    "superseded_commit_approval_reason": "Staged git diff --check exposed trailing whitespace in a previously untracked Markdown candidate; the one-line mechanical correction changed the artifact-set digest and requires renewed approval.",
+    "commit_approved": false,
+    "commit_performed_at_evidence_capture": false,
+    "push_performed_at_evidence_capture": false,
+    "head": "2386ea7fa6e5161ed6074b1e261fad74d148c067",
+    "status_sha256": "829b23bb7e4ed0615c5f089537bf5bfd443dfd0911f7a99a969c891488acd62a",
+    "changed_file_count": 27,
+    "changed_files": [
+      "README.md",
+      "docs/assurance/piko-agent-runtime-test-specification-v0.3.md",
+      "docs/assurance/piko-agent-runtime-test-specification-v0.3.metadata.json",
+      "docs/assurance/piko-agent-runtime-vv-plan-v0.3.md",
+      "docs/assurance/piko-agent-runtime-vv-plan-v0.3.metadata.json",
+      "docs/contracts/piko-agent-runtime-contract-v0.3.md",
+      "docs/contracts/piko-agent-runtime-contract-v0.3.metadata.json",
+      "docs/design/piko-agent-runtime-design-v0.3.md",
+      "docs/design/piko-agent-runtime-design-v0.3.metadata.json",
+      "docs/design/piko-collaboration-bridge-design-v0.3.md",
+      "docs/design/piko-collaboration-bridge-design-v0.3.metadata.json",
+      "docs/design/piko-collaboration-bridge-internal-design-v0.3.md",
+      "docs/design/piko-collaboration-bridge-internal-design-v0.3.metadata.json",
+      "docs/management/current-document-inventory.md",
+      "docs/management/piko-requirements-traceability-v0.3.md",
+      "docs/management/piko-requirements-traceability-v0.3.metadata.json",
+      "docs/management/piko-std-migration-map.md",
+      "docs/management/piko-std-migration-plan-v0.1.md",
+      "docs/management/piko-std-migration-plan-v0.1.metadata.json",
+      "docs/management/piko-std-tailoring-v0.1.md",
+      "docs/management/piko-std-tailoring-v0.1.metadata.json",
+      "docs/review/piko-std-migration-evidence.json",
+      "docs/review/piko-std-migration-review-packet.md",
+      "docs/review/piko-std-migration-review-packet.metadata.json",
+      "docs/review/piko-std-migration-review-packet.review-decision.json",
+      "docs/std-source-manifest.json",
+      "docs/std.lock.json"
+    ]
+  },
+  "boundaries": {
+    "repository_identifier": "piko",
+    "canonical_promotion": false,
+    "document_status_upgrade": false,
+    "project_rag_ingestion": false,
+    "external_publication": false,
+    "runtime_activation": false
+  }
+}

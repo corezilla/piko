@@ -1,23 +1,13 @@
 {
-  "project": "piko",
-  "authority": "piko",
-  "document_id": "piko-agent-runtime-contract-v0.3",
-  "document_type": "contracts.specification",
-  "title": "Piko Agent Runtime v0.3 契约说明",
-  "std_version": "0.1.0-draft.1",
-  "template_id": "contracts.specification",
-  "template_version": "0.1.0",
-  "template_sha256": "b6f9d822f148318c1aeee156027dea27a71749709afcb29a08201e43e2746702",
-  "design_level": "subsystem",
-  "domain": [
-    "software"
-  ],
-  "status": "review",
-  "visibility": "project",
-  "source_commit": null,
-  "parent_document_id": "piko-agent-runtime-design-v0.3",
-  "supersedes": null,
-  "profiles": ["software", "agent-runtime", "contracts"],
-  "created_at": "2026-09-07",
-  "updated_at": "2026-09-07"
+  "project": "piko", "authority": "piko",
+  "document_id": "piko-agent-runtime-contract-v0.3", "document_type": "contracts.specification",
+  "document_version": "0.3.0-draft.17", "title": "Piko Agent Runtime v0.3 契约说明",
+  "document_owner": "Piko Contract Owner", "authors": ["corezilla"],
+  "source_repository": "piko", "source_path": "docs/contracts/piko-agent-runtime-contract-v0.3.md",
+  "std_version": "0.1.0-draft.17", "template_id": "contracts.specification", "template_version": "0.1.0-draft.17",
+  "template_sha256": "758235a7d1d141250cfe709a0d8d651eaf0e1b7a13df86647460fb774782c0e4",
+  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
+  "design_level": "system", "domain": ["software"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
 }

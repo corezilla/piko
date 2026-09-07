@@ -1,0 +1,13 @@
+{
+  "project": "piko", "authority": "piko",
+  "document_id": "piko-std-migration-plan-v0.1", "document_type": "management.project-plan",
+  "document_version": "0.1.0-draft.17", "title": "Piko STD draft.17 分阶段迁移计划",
+  "document_owner": "Piko Project Owner", "authors": ["corezilla"],
+  "source_repository": "piko", "source_path": "docs/management/piko-std-migration-plan-v0.1.md",
+  "std_version": "0.1.0-draft.17", "template_id": "management.project-plan", "template_version": "0.1.0-draft.17",
+  "template_sha256": "39f4b2ab22ead333961fed543913c4cd0964d5c6778f3212ea700af5fdfd5bf1",
+  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
+  "design_level": "project", "domain": ["management", "systems", "software"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": null, "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
+}

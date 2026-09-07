@@ -1,23 +1,13 @@
 {
-  "project": "piko",
-  "authority": "piko",
-  "document_id": "piko-agent-runtime-design-v0.3",
-  "document_type": "design.definition",
-  "title": "Piko Agent Runtime 服务设计",
-  "std_version": "0.1.0-draft.1",
-  "template_id": "design.definition",
-  "template_version": "0.1.0",
-  "template_sha256": "d290a73188c7cfc8d6e121a8c98af31ea38cf3a0eb0890cbfb9d9e7fd359aa4c",
-  "design_level": "subsystem",
-  "domain": [
-    "software"
-  ],
-  "status": "review",
-  "visibility": "project",
-  "source_commit": null,
-  "parent_document_id": null,
-  "supersedes": null,
-  "profiles": ["software", "agent-runtime"],
-  "created_at": "2026-09-07",
-  "updated_at": "2026-09-07"
+  "project": "piko", "authority": "piko",
+  "document_id": "piko-agent-runtime-design-v0.3", "document_type": "design.system",
+  "document_version": "0.3.0-draft.17", "title": "Piko Agent Runtime 服务设计",
+  "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
+  "source_repository": "piko", "source_path": "docs/design/piko-agent-runtime-design-v0.3.md",
+  "std_version": "0.1.0-draft.17", "template_id": "design.system", "template_version": "0.1.0-draft.17",
+  "template_sha256": "5a0132952ed09934e72c437b6edaaf0e2b5fb1cf50bac41915754e0302dbf621",
+  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
+  "design_level": "system", "domain": ["systems", "software"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": null, "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
 }

@@ -1,0 +1,17 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-std-draft17-migration-review",
+  "packet_id": "piko-std-migration-review-packet",
+  "verdict": "ACCEPTED",
+  "document_status_before": "draft",
+  "requested_document_status_after": "unchanged",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": ["User / Piko Project Owner"],
+  "decided_at": "2026-09-07T18:18:29+08:00",
+  "decision_commit": null,
+  "conditions": [
+    "No canonical promotion, RAG ingestion, external publication, or runtime activation is requested."
+  ],
+  "rationale": "The user approved repository identifier piko and accepted the current Migration Review Packet. This verdict does not change Document Status or authorize promotion, publication, RAG ingestion, or Runtime Activation."
+}

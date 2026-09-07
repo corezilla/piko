@@ -1,149 +1,124 @@
-# Piko STD 首轮迁移 Review Packet
+<!-- STD_DOCUMENT_COVER_BEGIN -->
+# Piko STD draft.17 Migration Review Packet
 
-状态：等待项目与跨项目 Review  
-日期：2026-09-07  
-STD：`0.1.0-draft.1`，`source_revision=null`
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-std-migration-review-packet` |
+| Document Version | `0.1.0-draft.17` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | Piko Project Owner |
+| Authors | corezilla |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-07` |
+| STD Version | `0.1.0-draft.17` |
+| Template ID | `review.packet` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `piko` |
+| Canonical Path | `docs/review/piko-std-migration-review-packet.md` |
+| Supersedes | none |
 
-## 1. Review 请求与期望决定
+> 本 packet 请求 Migration Review，不请求 canonical promotion、Document Status 升级、RAG ingestion 或 Runtime Activation。
+<!-- STD_DOCUMENT_COVER_END -->
 
-请评审 Piko v0.3 设计是否在不改变既有契约语义的前提下，完整迁移到 STD 模板，并确认
-新候选设计可否继续作为 STD-structured design review candidate；本轮不决定其取代旧 authority。
+## 1. Review 目标与期望决定
 
-决定只允许：`ACCEPTED / AMENDMENT / REJECTED / BLOCKED`。由于 STD 尚无 immutable
-source revision，本轮迁移候选不得标记 accepted/released；reviewer 只能确认结构是否满足
-继续评审条件，不能借迁移替 Piko owner 批准设计或改变旧 authority。
+确认本 cohort 是否忠实地把 Piko 当前事实组织为 STD draft.17 候选，并维持既有 authority、机器契约、
+运行证据与 residual scope 边界。终局决定记录在同名 `.review-decision.json`；用户已于
+2026-09-07 给出 `ACCEPTED`。
 
-## 2. Scope、authority 与 reviewers
-
-- 修改范围：仅 `/Users/ben/work/piko`；未读取或修改 Slinky/LLMTier 项目文件。
-- Piko authority：Agent Runtime、Pi/LLMTier adapter、CollaborationBridge、内部状态与恢复。
-- Slinky authority：Project/Plan/IR/Work/Decision/Acceptance 及外部需求冻结。
-- LLMTier authority：模型服务 Registry/admission/provider routing/Invocation ledger。
-- 期望 reviewers：用户、Slinky；涉及 consumed LLMTier contract 的章节抄送 llmtier。
-
-## 3. 冻结基线
+## 2. Scope 与输入基线
 
 | 项目 | 值 |
 |---|---|
-| Piko repository | `/Users/ben/work/piko` |
-| 迁移 base commit | `fbdf51a5749a0a7d9483780a76d40982851f540f` |
-| STD version | `0.1.0-draft.1` |
-| STD source revision | `null`（STD 尚未创建首个 immutable commit） |
-| Pi baseline | `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` |
-| Pi/OpenAI packages | pi-coding-agent/pi-ai 0.85.1；openai 6.40.0 |
-| Piko API candidate | base v0.2 + Matrix increment v0.3 |
+| canonical project root | `/Users/ben/work/piko` |
+| input HEAD | `2386ea7fa6e5161ed6074b1e261fad74d148c067` |
+| input working tree | clean |
+| input tracked-index SHA-256 | `514460c6d55b577008093abf4df36517c1d0f69e8cbe3b27064205df870050bc` |
+| draft.17 upgrade input | draft.16 cohort dirty；status SHA-256 `5330c02f813f56f436534da43e1eb26da66f745726e76aa70b80517a957a0969` |
+| STD revision | `94c0262de35b5b989bba9f8d23f212af709c9dbf` |
+| STD annotated tag | `std-v0.1.0-draft.17` |
+| profile/domains | `software`; `management`, `systems`, `software` |
+| READY request | `S-20260907-1b9e2433919c` |
+| draft.17 review request | `S-20260907-7a832b6e147e` |
 
-候选文件的最终 SHA-256 与 review commit 在提交后通过 Matrix review message 提供，避免在
-文件自身写入自引用 hash。机器契约沿用 base commit 中的 immutable 内容。
+只读取 STD 标准来源，只修改本项目。未 reset/clean/覆盖输入；旧文档、机器契约、QA、跨项目 review 和
+`rag/std-ingestion-manifest.jsonl` 保持原状。
 
-## 4. 变更摘要与设计理由
+## 3. 候选 artifact
 
-### 4.1 新增治理文件
+- source control：`docs/std.lock.json`、`docs/std-source-manifest.json`；
+- control：migration plan、inventory、tailoring、migration map、requirements traceability；
+- design：Agent Runtime system、CollaborationBridge end-to-end mechanism、Piko-owned internal definition；
+- contract：contract specification；字段 authority 仍由现有 OpenAPI/JSON Schema/error catalog/fixtures 承担；
+- assurance：V&V plan、test specification；
+- review：本 packet、终局 review decision、`piko-std-migration-evidence.json`。
 
-- `docs/management/current-document-inventory.md`：盘点旧文档、authority、版本、冲突和模板映射。
-- `docs/management/piko-std-tailoring-v0.1.md` + metadata：记录 keep/simplify/omit。
-- `docs/std.lock.json`：锁定 STD draft version，按要求保持 source revision null。
-- `rag/std-ingestion-manifest.jsonl`：保存 STD draft 来源文件 SHA-256；不含 Piko 项目文档，
-  不代表已经执行项目 RAG ingestion。
+## 4. Authority 与 canonical 边界
 
-### 4.2 新增候选设计
+| 范围 | canonical authority（本轮不变） |
+|---|---|
+| Piko project/system | Piko Agent Runtime、内部模块、adapter 与恢复设计 |
+| Piko machine contract | 本项目现有 OpenAPI、JSON Schema、error catalog、fixtures |
+| testing source | `scripts/validate_v03_contract.py` 与 QA/Test IDs |
+| runtime evidence | 实际执行输出；文档断言不是 production evidence |
+| Slinky | Project/Plan/IR/Work/Decision/Acceptance；Piko 不复制 |
+| LLMTier | provider/capacity/routing/Invocation；Piko 仅描述 consumed boundary |
+| legacy/current docs | promotion 前继续保留全部 residual-scope authority |
 
-- `docs/design/piko-agent-runtime-design-v0.3.md`：整体服务的完整 STD definition。
-- `docs/design/piko-collaboration-bridge-design-v0.3.md`：Matrix/Element 子系统白盒设计。
+## 5. Validation plan 与结果
 
-两份设计均补齐 Current Baseline/Approved Delta、authority、上下文、一级构建块、内部责任、
-数据 owner、状态机、主路径时序、并发、失败恢复、可观测性、资源限制、安全、实现映射、
-traceability 和 activation gate。旧设计未删除或覆盖。
+三层验证：
 
-### 4.3 新增契约与 Assurance 说明
+1. STD source：verify 71-artifact manifest 对 locked clean checkout；
+2. STD project-root：校验 lock/catalog/hash/path/sidecar/cover/ID/ref/decision；
+3. project contract：执行 `python3 scripts/validate_v03_contract.py`。
 
-- `docs/contracts/piko-agent-runtime-contract-v0.3.md`：聚合机器契约 authority，不复制 Schema。
-- `docs/assurance/piko-agent-runtime-vv-plan-v0.3.md`：区分分析、检查、演示、测试和 Acceptance。
-- `docs/assurance/piko-agent-runtime-test-specification-v0.3.md`：保留原 ID，明确 input/oracle/evidence。
+draft.17 discovery 定点核验：Piko 没有名称匹配的 symlink、同后缀目录、ignored candidate 或 tracked
+non-regular candidate。10 份 STD metadata/Markdown 与 1 份 decision 均属于 tracked 或未忽略 untracked
+普通文件，因此新 discovery 语义不会漏掉本 cohort。STD 自身 2 个 discovery/read regression test 通过。
 
-fixture、OpenAPI、JSON Schema、error catalog 和 validator 保持机器可读，不转写进 Markdown。
+相对 draft.16，内容模板 SHA-256 未变化；本 cohort 只升级 lock、71-artifact source manifest、metadata 的
+STD/catalog version、封面/文本版本引用与验证证据，不重写设计事实或 authority。
 
-## 5. Requirement、Design、Contract、Test 对齐
+原始命令、exit code、摘要、artifact hashes 与执行时 Git 状态记录在
+`docs/review/piko-std-migration-evidence.json`。`reviewed_commit` 保持 null，因为工作树候选尚未形成供 reviewer
+确认的 immutable Piko commit。
 
-| Requirement | Design | Contract | Test |
-|---|---|---|---|
-| 单一 Runtime/Inference path | Runtime §2/5/12 | base OpenAPI/Schema | AR-001、LT-C-001 |
-| atomic Run/Slot/Session intent | Runtime §4/7/8；Bridge §4 | AgentTaskRequest/Run | V03-E2E-085..087/095 |
-| strict Result/UnknownOutcome | Runtime §7/9 | AgentTaskResult/Error | V03-E2E-088..092 |
-| LLMTier exact model/recovery | Runtime §6/8/10 | consumed Scope B contract | LT-C-001、LT-R-001 |
-| stable Matrix identity/exclusive room | Bridge §3/7/11 | Matrix OpenAPI/Schema/errors | V03-E2E-093..095 |
-| durable delivery/failover | Bridge §8/9 | txn/event/outbox rules | V03-E2E-096 |
-| multi-room cursor | Bridge §8.3 | Session list/filter/cursor | MX-U/C/R-013、V03-E2E-097 |
-| structured resolution/authority | Bridge §5/11 | AgentTaskResultV03/Resolution | MX-U-014、MX-S-013/014、V03-E2E-098 |
-| exact Element discussion | Bridge §6/11 | Descriptor + typed 503 | MX-C-015、V03-E2E-099 |
+## 6. Risk、blocker 与开放项
 
-## 6. 风险、未决项和不阻塞项
+### Migration Review blocker
 
-### Blocking activation, not migration review
+- none。用户已批准 `Repository/source_repository=piko` 并接受本 packet。
+- 上述批准不授权 canonical promotion；候选仍为 Draft，`reviewed_commit` 仍为 null。
 
-- persistence engine、database migration、single-writer/HA topology；
-- Pi AgentSession collaboration hook 实测；
-- Workspace/Tool materialized descriptor 和 controlled execution profile；
-- retention catalog、homeserver/AS version、CollaborationEvent fixture；
-- Element route encoding、cursor signing/snapshot/expiry；
-- SessionSummary/CloseResult enum 与 Slinky v0.6 的独立 Contract alignment；
-- transport capacity、backpressure、SLO 和完整 Recovery/Security/E2E evidence。
+### 非迁移 blocker
 
-其中 Session/close enum 缺口来自对迁移输入的核对：现有 Piko Matrix 设计引用
-`S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，但原 QA 仍把 Session 状态列为待确认；
-没有证据表明当前机器候选中的 `Provisioning/Unavailable/Unchanged` 已被 Slinky 冻结为 wire
-enum。Slinky v0.6 要求已在新候选设计中作为目标映射记录，机器文件留待独立 Contract Amendment。
+- SessionSummary/CloseResult enum alignment 仍是 contract/runtime activation gate；本轮不改机器契约。
+- 真实 Matrix、数据库 crash/restart、credential isolation、LLMTier E2E 尚无运行证据。
 
-### STD migration limitation
+## 7. Publication 与 RAG 计划
 
-STD 当前是 draft 且 `source_revision=null`。项目 metadata 只能保持 draft/review；STD 首次
-immutable commit/tag 后必须统一升级 lock，并审阅模板差异。`rag/std-ingestion-manifest.jsonl`
-仅保留来源 SHA-256，不能解释为候选设计已进入 RAG。
+后置 Gate 批准后才可：以批准 commit 填写 `reviewed_commit`、逐份 promotion、切换项目索引、按迁移完成范围
+标记旧文档 Superseded。部分迁移时旧文档继续承担 residual authority。项目 RAG 只纳入已 promotion 的
+canonical artifact，排除 Draft、旧版本、review evidence、source manifest 与 runtime evidence；本 cohort 不做
+ingestion。Runtime Activation 必须另有独立 authority。
 
-## 7. 验证命令与结果
+## 8. Recorded decision
 
-已执行：
+Review Verdict=`ACCEPTED`。该 verdict 与 Document Status、publication、RAG inclusion 和 Runtime
+Activation 相互独立；本轮没有启动任何后置动作。
 
-```bash
-python3 scripts/validate_v03_contract.py
-/Users/ben/work/STD/scripts/validate-design docs
-python3 -m json.tool docs/std.lock.json
-python3 -m json.tool <all metadata files>
-python3 -m json.tool <each line of rag/std-ingestion-manifest.jsonl>
-cmp -s rag/std-ingestion-manifest.jsonl /Users/ben/work/STD/rag/std-ingestion-manifest.jsonl
-git diff --check
-```
+## 9. STD Pre-Commit Review Gate
 
-- `scripts/validate_v03_contract.py`：4 个 Schema fixture、2 个语义 fixture及
-  OpenAPI `$ref`/filter/typed error/authority boundary 全部通过；
-- STD `validate-design docs`：通过；
-- `docs/std.lock.json` 与全部 `.metadata.json` JSON parse：通过；
-- STD metadata Draft 2020-12 Schema 与 template SHA-256 复核：通过；
-- STD 来源 manifest：22 条记录均可解析，source path、content SHA-256、source_commit=null
-  复核通过，且与公共 STD 当前 manifest 完全一致；
-- 未解析 `TODO`/模板变量扫描：通过；
-- `git diff --check`：通过。
-
-提交后通过 Matrix review message 附 immutable commit 和全部候选文件 SHA-256。
-
-## 8. Review Checklist
-
-- [x] scope 与 authority 清楚；
-- [x] Current Baseline、Approved Delta 和未来设想未混写；
-- [x] 两个设计均完整覆盖 STD `design.definition` 十四章；
-- [x] 接口、错误、状态、数据 owner 和恢复已闭合到现有证据边界；
-- [x] 安全、Secret、多项目隔离和 authority overflow 已描述；
-- [x] Requirement -> Design -> Contract -> Test traceability 可追踪；
-- [x] 原文档、原 ID 和机器契约均保留；
-- [x] 未发生静默 fallback、兼容性扩张或第二实现路径；
-- [x] STD validator 和项目 validator 最终通过；
-- [ ] Slinky/用户 Review 完成。
-
-## 9. 决定、条件与签署
-
-当前决定：`PENDING_REVIEW`。
-
-若结构评审无进一步 Amendment：新候选设计仍保持 review candidate，是否成为 canonical
-authority 由后续 Piko owner/用户批准决定；旧文档在此之前继续作为当前可追溯输入。若
-Amendment：Piko 在同一迁移分支继续修订，不生成并行模板版本。若 STD source revision
-仍为空，不执行项目文档 RAG ingestion，也不把文档标记 accepted/released。
+- 状态：`READY_FOR_COMMIT`，等待 STD 明确 `COMMIT_APPROVED`。
+- 当前 HEAD：`2386ea7fa6e5161ed6074b1e261fad74d148c067`；尚未 commit/push。
+- dirty preservation：27 个 cohort 路径；`git status --porcelain=v1` SHA-256 为
+  `829b23bb7e4ed0615c5f089537bf5bfd443dfd0911f7a99a969c891488acd62a`。
+- 完整变更文件清单、三层命令/exit/output 与 artifact digest 位于
+  `docs/review/piko-std-migration-evidence.json`。
+- 获准提交时只允许提交 evidence 中冻结的 MR-01 文件；不得夹带其他用户/任务修改。提交后仍不得自行
+  canonical promotion、状态升级、RAG ingestion、外部发布或 Runtime Activation。

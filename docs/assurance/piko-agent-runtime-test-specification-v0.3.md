@@ -1,8 +1,28 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Agent Runtime v0.3 测试规格
 
-状态：STD 迁移候选；仅文档/fixture case 已具备执行入口  
-日期：2026-09-07  
-authority：Piko
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-agent-runtime-test-specification-v0.3` |
+| Document Version | `0.3.0-draft.17` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | Piko Verification Owner |
+| Authors | corezilla |
+| Created Date | `2026-09-07` |
+| Last Modified Date | `2026-09-07` |
+| STD Version | `0.1.0-draft.17` |
+| Template ID | `assurance.test-specification` |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `piko` |
+| Canonical Path | `docs/assurance/piko-agent-runtime-test-specification-v0.3.md` |
+| Supersedes | none |
+
+> 仅现有 contract validator/fixture case 具备执行入口；其余案例保持 Planned/Blocked。
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标、范围与被测对象
 

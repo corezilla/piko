@@ -1,23 +1,13 @@
 {
-  "project": "piko",
-  "authority": "piko",
-  "document_id": "piko-std-tailoring-v0.1",
-  "document_type": "management.tailoring",
-  "title": "Piko STD 迁移裁剪清单",
-  "std_version": "0.1.0-draft.1",
-  "template_id": "management.tailoring",
-  "template_version": "0.1.0",
-  "template_sha256": "56b9a1b3d5384c891fe08493a6f1eedaaffc7847c782cb07f497f50aaebed962",
-  "design_level": "project",
-  "domain": [
-    "management"
-  ],
-  "status": "review",
-  "visibility": "project",
-  "source_commit": null,
-  "parent_document_id": null,
-  "supersedes": null,
-  "profiles": ["software", "agent-runtime"],
-  "created_at": "2026-09-07",
-  "updated_at": "2026-09-07"
+  "project": "piko", "authority": "piko",
+  "document_id": "piko-std-tailoring-v0.1", "document_type": "management.tailoring",
+  "document_version": "0.1.0-draft.17", "title": "Piko STD 迁移裁剪清单",
+  "document_owner": "Piko Project Owner", "authors": ["corezilla"],
+  "source_repository": "piko", "source_path": "docs/management/piko-std-tailoring-v0.1.md",
+  "std_version": "0.1.0-draft.17", "template_id": "management.tailoring", "template_version": "0.1.0-draft.17",
+  "template_sha256": "3f0cd7ecac2977882e1182c7dfefdae78da376c3ee379b96327375ca51b2015f",
+  "template_conformance": "native", "tailoring_ref": null, "migration_map_ref": null,
+  "design_level": "project", "domain": ["management"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": null, "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
 }

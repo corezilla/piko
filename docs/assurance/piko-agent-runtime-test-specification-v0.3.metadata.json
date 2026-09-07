@@ -1,23 +1,13 @@
 {
-  "project": "piko",
-  "authority": "piko",
-  "document_id": "piko-agent-runtime-test-specification-v0.3",
-  "document_type": "assurance.test-specification",
-  "title": "Piko Agent Runtime v0.3 测试规格",
-  "std_version": "0.1.0-draft.1",
-  "template_id": "assurance.test-specification",
-  "template_version": "0.1.0",
-  "template_sha256": "c4bae7b56b2e3e15591a1f717e46bb1ab54f58bacad03c0b746327cd1f7d7451",
-  "design_level": "subsystem",
-  "domain": [
-    "software"
-  ],
-  "status": "review",
-  "visibility": "project",
-  "source_commit": null,
-  "parent_document_id": "piko-agent-runtime-vv-plan-v0.3",
-  "supersedes": null,
-  "profiles": ["software", "agent-runtime", "assurance"],
-  "created_at": "2026-09-07",
-  "updated_at": "2026-09-07"
+  "project": "piko", "authority": "piko",
+  "document_id": "piko-agent-runtime-test-specification-v0.3", "document_type": "assurance.test-specification",
+  "document_version": "0.3.0-draft.17", "title": "Piko Agent Runtime v0.3 测试规格",
+  "document_owner": "Piko Verification Owner", "authors": ["corezilla"],
+  "source_repository": "piko", "source_path": "docs/assurance/piko-agent-runtime-test-specification-v0.3.md",
+  "std_version": "0.1.0-draft.17", "template_id": "assurance.test-specification", "template_version": "0.1.0-draft.17",
+  "template_sha256": "47de457d52f8a3fe7e573e66b6f21ffd65fc27ff768fba1b11c468e05113b557",
+  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
+  "design_level": "system", "domain": ["software"], "status": "draft", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": "piko-agent-runtime-vv-plan-v0.3", "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
 }
