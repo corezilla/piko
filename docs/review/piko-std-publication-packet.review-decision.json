@@ -1,0 +1,20 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-pub01-publication-rag",
+  "packet_id": "piko-std-publication-packet",
+  "verdict": "ACCEPTED",
+  "document_status_before": "accepted",
+  "requested_document_status_after": "accepted",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": ["User / Piko Project Owner"],
+  "decided_at": "2026-09-08T00:29:18+08:00",
+  "decision_commit": "119aa51af60da32c2db8d27c53bbf2975ab12938",
+  "conditions": [
+    "Applies only to publication of the ten Approved canonical Markdown artifacts from CP-01 commit 119aa51af60da32c2db8d27c53bbf2975ab12938.",
+    "STD pre-commit COMMIT_APPROVED remains required before committing or pushing PUB-01.",
+    "The Git-tracked manifest is the publication artifact; external vector indexing is N/A because the project has no existing RAG backend.",
+    "Machine contracts and QA/runtime evidence retain their separate authority, and Runtime Activation remains false and NOT_RUN."
+  ],
+  "rationale": "The user directly authorized PUB-01 as a separate post-promotion cohort. This decision permits the deterministic project ingestion manifest and its local retrieval and authority checks without inventing an external RAG backend or authorizing Runtime Activation."
+}

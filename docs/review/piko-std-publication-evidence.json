@@ -1,0 +1,139 @@
+{
+  "schema_version": "piko-publication-evidence.v1",
+  "captured_at": "2026-09-08T00:29:18+08:00",
+  "project_root": "/Users/ben/work/piko",
+  "cohort": "PUB-01",
+  "input": {
+    "head": "119aa51af60da32c2db8d27c53bbf2975ab12938",
+    "tree": "9e014af426a61eb02588590750a4b3332a0df43d",
+    "branch": "main",
+    "working_tree": "clean",
+    "remote": "https://github.com/corezilla/piko",
+    "remote_main": "119aa51af60da32c2db8d27c53bbf2975ab12938"
+  },
+  "std_source": {
+    "version": "0.1.0-draft.18",
+    "repository": "corezilla/architecture-standards",
+    "revision": "9841083c4d8d0ed1556bdc413d77b4567ac696b4",
+    "tag": "std-v0.1.0-draft.18",
+    "checkout": "/Users/ben/work/STD",
+    "artifact_count": 71
+  },
+  "publication": {
+    "manifest": "rag/project-ingestion-manifest.jsonl",
+    "manifest_sha256": "d5e741a2f0e77f00822714f085f30ebedba3fcc889d1ec97cd86760bb86e10b2",
+    "record_count": 10,
+    "source_commit": "119aa51af60da32c2db8d27c53bbf2975ab12938",
+    "namespace": "piko",
+    "authority": "piko",
+    "visibility": "project",
+    "status": "accepted",
+    "chunk_strategy": "markdown-heading",
+    "external_index_backend": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  },
+  "inclusion": [
+    "docs/assurance/piko-agent-runtime-test-specification-v0.3.md",
+    "docs/assurance/piko-agent-runtime-vv-plan-v0.3.md",
+    "docs/contracts/piko-agent-runtime-contract-v0.3.md",
+    "docs/design/piko-agent-runtime-design-v0.3.md",
+    "docs/design/piko-collaboration-bridge-design-v0.3.md",
+    "docs/design/piko-collaboration-bridge-internal-design-v0.3.md",
+    "docs/management/piko-requirements-traceability-v0.3.md",
+    "docs/management/piko-std-migration-plan-v0.1.md",
+    "docs/management/piko-std-tailoring-v0.1.md",
+    "docs/review/piko-std-migration-review-packet.md"
+  ],
+  "exclusion": {
+    "superseded_prose": [
+      "docs/design/agent-runtime-service-design-v0.2.md",
+      "docs/design/agent-runtime-matrix-collaboration-design-v0.3.md"
+    ],
+    "categories": [
+      "historical v0.1 documents",
+      "machine contracts and fixtures",
+      "QA ledgers",
+      "cross-project review and publication evidence",
+      "STD lock and source manifest",
+      "rag/std-ingestion-manifest.jsonl",
+      "Draft and In Review documents",
+      "runtime and external evidence"
+    ]
+  },
+  "gates": {
+    "l1_source_verifier": {
+      "command": "/Users/ben/work/STD/scripts/verify-source-manifest --std-root /Users/ben/work/STD docs/std-source-manifest.json",
+      "exit_code": 0,
+      "key_output": "STD source manifest verification OK: 71 artifacts",
+      "status": "PASS"
+    },
+    "l1_project_root": {
+      "command": "/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/piko --require-immutable-std --json /tmp/piko-pub01-validation.json",
+      "exit_code": 0,
+      "key_output": "ok=true; checked_metadata=12; checked_markdown=12; checked_decisions=3; new_error_count=0; inherited_error_count=0",
+      "artifact": "/tmp/piko-pub01-validation.json",
+      "status": "PASS"
+    },
+    "l2_project_contract": {
+      "command": "python3 scripts/validate_v03_contract.py",
+      "exit_code": 0,
+      "key_output": "OK: 4 Schema fixtures, 2 semantic fixtures, OpenAPI refs/filter/typed error and authority boundaries passed",
+      "status": "PASS"
+    },
+    "l2_publication_manifest": {
+      "command": "python3 inline verifier: parse rag/project-ingestion-manifest.jsonl; require exact 10-path set and unique paths/IDs; compare repository/commit/status/visibility/authority/template_version; hash git show 119aa51:<path>; compare sidecar identity/type/version/status/visibility; require exclusions disjoint; require lookup fields",
+      "exit_code": 0,
+      "key_output": "PUB-01 manifest PASS: 10 unique Approved canonical Markdown records; immutable content/metadata hashes PASS; exclusions disjoint; authority=piko visibility=project. Retrieval contract PASS.",
+      "status": "PASS"
+    },
+    "l3_external_rag_runtime": {
+      "status": "N/A_NO_PROJECT_BACKEND",
+      "detail": "No existing Piko vector index or external RAG ingestion backend exists. PUB-01 publishes a Git-tracked deterministic manifest and does not authorize Runtime Activation."
+    },
+    "single_authority": {
+      "status": "PASS",
+      "detail": "Only the ten CP-01 canonical Markdown artifacts are included; superseded prose, machine authority, QA and review evidence are excluded."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "status": "PASS"
+    }
+  },
+  "artifact_digest_algorithm": {
+    "algorithm_id": "piko-artifact-set-sha256.v1",
+    "scope": "The 8-path PUB-01 precommit allowlist excluding exactly docs/review/piko-std-publication-evidence.json, leaving 7 artifacts.",
+    "path_encoding": "UTF-8 without normalization",
+    "ordering": "Ascending lexicographic order of UTF-8 path bytes",
+    "record_format": "SHA-256 hex of exact file bytes + two ASCII spaces + repository-relative UTF-8 path + LF",
+    "recompute_command": "python3 -c 'import hashlib,json; from pathlib import Path; ep=\"docs/review/piko-std-publication-evidence.json\"; e=json.loads(Path(ep).read_text()); raw=e[\"precommit_gate\"][\"changed_files\"]; ps=sorted((p for p in raw if p!=ep),key=lambda p:p.encode(\"utf-8\")); manifest=b\"\".join(hashlib.sha256(Path(p).read_bytes()).hexdigest().encode(\"ascii\")+b\"  \"+p.encode(\"utf-8\")+b\"\\n\" for p in ps); print(hashlib.sha256(manifest).hexdigest())'",
+    "manifest_byte_count": 755,
+    "result_sha256": "a6b08cff86143437b3aa23a392034f3945af9b9aa5c0aefae21d36c5d625b149"
+  },
+  "precommit_gate": {
+    "status": "READY_FOR_COMMIT",
+    "commit_approved": false,
+    "commit_performed": false,
+    "push_performed": false,
+    "head": "119aa51af60da32c2db8d27c53bbf2975ab12938",
+    "status_capture_command": "git status --short",
+    "status_sha256": "6ac286782b2f49c6c1a6a8c058f8450f614aeab139eb64c7f411cdb858ab994b",
+    "changed_file_count": 8,
+    "changed_files": [
+      "README.md",
+      "docs/management/current-document-inventory.md",
+      "docs/management/piko-std-migration-map.md",
+      "docs/review/piko-std-publication-evidence.json",
+      "docs/review/piko-std-publication-packet.md",
+      "docs/review/piko-std-publication-packet.metadata.json",
+      "docs/review/piko-std-publication-packet.review-decision.json",
+      "rag/project-ingestion-manifest.jsonl"
+    ]
+  },
+  "boundaries": {
+    "canonical_promotion": "COMPLETED_BY_CP01_COMMIT_119aa51",
+    "publication_manifest": "READY_FOR_COMMIT",
+    "external_vector_ingestion": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  }
+}

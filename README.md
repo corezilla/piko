@@ -8,6 +8,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 - `docs/std.lock.json`
 - `docs/std-source-manifest.json`（锁定 STD draft.18 的 71 个来源 artifact）
 - `rag/std-ingestion-manifest.jsonl`（保留的 draft.1 历史 artifact；不代表项目 RAG ingestion）
+- `rag/project-ingestion-manifest.jsonl`（PUB-01 候选：只纳入 CP-01 的 10 份 Approved canonical 文档）
 - `docs/management/current-document-inventory.md`
 - `docs/management/piko-std-migration-plan-v0.1.md`
 - `docs/management/piko-std-tailoring-v0.1.md`
@@ -44,6 +45,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` 固定，并以 STD `0.1.0-draft.18` 完成 CP-01
 canonical promotion。当前 canonical prose 是上列 `piko-*` design/contract/traceability/assurance
 文档；旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
-fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。项目 RAG publication 由 PUB-01
-独立处理，Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
+fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。PUB-01 以 CP-01 commit
+`119aa51af60da32c2db8d27c53bbf2975ab12938` 生成项目 ingestion manifest，外部 RAG backend 不存在，
+因此 indexing 诚实记录为 `N/A_NO_PROJECT_BACKEND`。Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
 canonical GitHub repository 为 `corezilla/piko`。

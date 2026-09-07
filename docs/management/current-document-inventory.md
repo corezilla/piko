@@ -54,8 +54,10 @@ Matrix 决策和 authority。
   Markdown。
 - `docs/std-source-manifest.json` 是 draft.18 的 71-artifact source lock；旧
   `rag/std-ingestion-manifest.jsonl` 原样保留为 draft.1 历史 artifact，不执行 ingestion。
-- 当前没有生成或执行 Piko 项目文档的 RAG ingestion；候选通过项目 Review 并另行确定
-  canonical authority 后才允许索引。
+- PUB-01 候选 `rag/project-ingestion-manifest.jsonl` 只纳入 CP-01 commit
+  `119aa51af60da32c2db8d27c53bbf2975ab12938` 的 10 份 Approved canonical Markdown。
+  旧 prose、机器 authority、QA/review/evidence、STD source artifact 与 Draft/In Review 文档均排除。
+  项目没有现存外部 RAG backend，因此外部向量 indexing 为 `N/A_NO_PROJECT_BACKEND`。
 - 当前机器候选的 SessionSummary `Provisioning/Unavailable` 与 CloseResult `Unchanged` 未找到
   已冻结为 Slinky wire contract 的 Review ID；原迁移输入只记录
   `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，而原 QA 仍把 Session 状态确认列为
@@ -77,3 +79,12 @@ Matrix 决策和 authority。
 
 同一 scope 只允许上表一个 current prose authority。Runtime/external evidence 仍以实际执行 artifact
 为 authority；Document Status 不把 NOT_RUN/BLOCKED 变为 PASS。
+
+## 6. PUB-01 publication registry
+
+- publication commit input：`119aa51af60da32c2db8d27c53bbf2975ab12938`。
+- publication artifact：`rag/project-ingestion-manifest.jsonl`。
+- namespace/authority/ACL：`piko` / `piko` / `visibility=project`。
+- inclusion：上表 current canonical prose 中 10 份 Approved、带 sidecar 的 Markdown。
+- exclusion：Superseded/historical prose、机器契约、QA、review/evidence、STD lock/source manifest 与 runtime evidence。
+- Runtime Activation：`false / NOT_RUN`。

@@ -33,4 +33,8 @@
   两份 CollaborationBridge canonical 文档，旧文档标记 Superseded 并保留历史。
 - OpenAPI、JSON Schema、error catalog 和 fixtures 不迁出字段 authority；它们保持 current。
 - QA v0.2/v0.3 与跨项目 review artifact 保留未关闭 item、输入与历史证据，不整体 Supersede。
-- CP-01 不修改 `rag/std-ingestion-manifest.jsonl`，不执行 PUB-01 ingestion，不激活 runtime。
+- CP-01 不修改 `rag/std-ingestion-manifest.jsonl`，也不激活 runtime。后续 PUB-01 候选以 CP-01
+  immutable commit `119aa51af60da32c2db8d27c53bbf2975ab12938` 生成独立
+  `rag/project-ingestion-manifest.jsonl`，只纳入 10 份 Approved canonical Markdown；机器 authority、
+  QA/review/evidence、旧 prose 与 runtime artifact 全部排除。外部 RAG backend 不存在，indexing 为
+  `N/A_NO_PROJECT_BACKEND`，Runtime Activation 仍为 `false / NOT_RUN`。
