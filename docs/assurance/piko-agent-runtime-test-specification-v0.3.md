@@ -4,20 +4,23 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `assurance.test-specification` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/assurance/piko-agent-runtime-test-specification-v0.3.md` |
 | Supersedes | none |
 

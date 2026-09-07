@@ -1,7 +1,7 @@
-# Piko STD draft.17 Migration Map
+# Piko STD Migration Map
 
-状态：Migration Review working artifact（不属于 canonical promotion）
-基线：Piko `2386ea7fa6e5161ed6074b1e261fad74d148c067`；STD `94c0262de35b5b989bba9f8d23f212af709c9dbf`
+状态：CP-01 canonical authority map
+基线：Piko reviewed candidate `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`；STD `9841083c4d8d0ed1556bdc413d77b4567ac696b4`
 
 ## 1. 文档映射
 
@@ -25,8 +25,12 @@
   observability、validation 章节覆盖端到端机制模板；内部模块细节拆到 `design.definition`。
 - contract、V&V、test 文档保留现有 ID 和表格，用 tailoring 维持机器 authority 与证据边界。
 
-## 3. Publication 边界
+## 3. CP-01 authority disposition
 
-本 cohort 不删除、不改名、不整体 Supersede 原文档；不改机器契约，不修改
-`rag/std-ingestion-manifest.jsonl`，不建立项目 RAG inclusion，不激活 runtime。只有后置批准明确每份 scope
-全部迁出后，才可逐份切换 canonical 索引并标记旧文档 Superseded；否则旧文档保留 residual-scope authority。
+- `agent-runtime-service-design-v0.2.md` 的 system-design prose scope 已完整迁入
+  `piko-agent-runtime-design-v0.3.md`，旧文档标记 Superseded 并保留历史。
+- `agent-runtime-matrix-collaboration-design-v0.3.md` 的 mechanism/internal prose scope 已完整迁入
+  两份 CollaborationBridge canonical 文档，旧文档标记 Superseded 并保留历史。
+- OpenAPI、JSON Schema、error catalog 和 fixtures 不迁出字段 authority；它们保持 current。
+- QA v0.2/v0.3 与跨项目 review artifact 保留未关闭 item、输入与历史证据，不整体 Supersede。
+- CP-01 不修改 `rag/std-ingestion-manifest.jsonl`，不执行 PUB-01 ingestion，不激活 runtime。

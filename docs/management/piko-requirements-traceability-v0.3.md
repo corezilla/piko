@@ -4,20 +4,23 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-requirements-traceability-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `requirements.traceability` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/management/piko-requirements-traceability-v0.3.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -43,4 +46,5 @@ Slinky、LLMTier、Matrix 的 Owner authority。
 
 - SessionSummary/CloseResult enum alignment remains a contract/runtime gate.
 - Real Matrix, database crash/restart, credential isolation and LLMTier E2E evidence do not yet exist.
-- This candidate has no immutable reviewed Piko commit; `reviewed_commit` remains null.
+- Immutable reviewed Piko commit is `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`;
+  document approval does not close the listed contract/runtime evidence gates.

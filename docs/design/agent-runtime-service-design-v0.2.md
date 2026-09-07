@@ -1,7 +1,11 @@
 # Piko 智能体运行时服务设计提案
 
+> **Superseded (prose scope)：** 本文的 system-design prose 已由
+> `docs/design/piko-agent-runtime-design-v0.3.md` 取代。字段级机器契约仍由既有
+> OpenAPI、JSON Schema、error catalog 与 fixtures 承担；本文保留用于历史审计。
+
 版本：v0.2
-状态：等待 Slinky 评审的中文草案
+状态：Superseded（prose scope）
 日期：2026-09-06
 取代：v0.1 英文草案
 

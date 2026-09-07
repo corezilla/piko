@@ -4,24 +4,28 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `design.system` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/design/piko-agent-runtime-design-v0.3.md` |
-| Supersedes | none |
+| Supersedes | `docs/design/agent-runtime-service-design-v0.2.md` |
 
-> 本文件是 Migration Review candidate；不替代旧文档或机器契约，不触发 promotion、RAG ingestion 或 Runtime Activation。
+> 本文件是已批准的 canonical system-design prose。字段级机器 authority 仍在既有 OpenAPI、
+> JSON Schema、error catalog 与 fixtures；Document Status 不触发 Runtime Activation。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目的、范围与上位输入
@@ -413,7 +417,8 @@ credential、AS token、device key 或未授权 transcript；metrics label 不�
 - OG-AR-003：Workspace/Tool materialized descriptor 与 controlled execution profile。
 - OG-AR-004：AgentRun Event retention、cursor expiry 和 historical Result lifetime。
 - OG-AR-005：SLO workload、capacity、backpressure threshold 和 deployment topology。
-- OG-AR-006：已锁定 STD draft.17 immutable source；仍需形成并评审 Piko candidate commit。
+- OG-AR-006：STD draft.18 immutable source 已锁定；reviewed candidate commit 为
+  `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`，文档批准不等于 Runtime Activation。
 
 ### 14.3 Activation gate
 

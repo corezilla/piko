@@ -52,7 +52,7 @@ Matrix 决策和 authority。
 - Review 通过后，可将 v0.1 文件标记为历史归档；是否移动路径另行评审。
 - OpenAPI、JSON Schema、error catalog、fixture 和 validator 继续作为机器权威，不复制进
   Markdown。
-- `docs/std-source-manifest.json` 是 draft.17 的 71-artifact source lock；旧
+- `docs/std-source-manifest.json` 是 draft.18 的 71-artifact source lock；旧
   `rag/std-ingestion-manifest.jsonl` 原样保留为 draft.1 历史 artifact，不执行 ingestion。
 - 当前没有生成或执行 Piko 项目文档的 RAG ingestion；候选通过项目 Review 并另行确定
   canonical authority 后才允许索引。
@@ -61,3 +61,19 @@ Matrix 决策和 authority。
   `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，而原 QA 仍把 Session 状态确认列为
   review item。按 Slinky v0.6，目标 wire enum 是 Summary 的 `RecoveryRequired` 与 CloseResult
   的 `AlreadyClosed/RecoveryRequired`。本次迁移只登记冲突，不直接修改机器文件。
+
+## 5. CP-01 canonical authority registry
+
+| Scope | Current canonical authority after CP-01 | Prior artifact disposition |
+|---|---|---|
+| Agent Runtime system-design prose | `docs/design/piko-agent-runtime-design-v0.3.md` | `agent-runtime-service-design-v0.2.md` prose scope Superseded；保留历史 |
+| CollaborationBridge mechanism prose | `docs/design/piko-collaboration-bridge-design-v0.3.md` | `agent-runtime-matrix-collaboration-design-v0.3.md` prose scope Superseded；保留历史 |
+| CollaborationBridge internal definition | `docs/design/piko-collaboration-bridge-internal-design-v0.3.md` | 新拆分的 Piko-owned scope；无旧整份文档被替代 |
+| API/Schema/error/fixture fields | 既有 OpenAPI、JSON Schema、catalog、fixtures | 保持字段级 machine authority，不被 Markdown 复制或 Supersede |
+| Contract boundary prose | `docs/contracts/piko-agent-runtime-contract-v0.3.md` | 汇总/引用机器 authority；不取得 Slinky/LLMTier authority |
+| Requirement/Test traceability | `docs/management/piko-requirements-traceability-v0.3.md` | 原 ID 保留；外部 Owner scope 不迁入 Piko |
+| V&V strategy and test specification | `docs/assurance/piko-agent-runtime-vv-plan-v0.3.md` 与 `piko-agent-runtime-test-specification-v0.3.md` | QA ledgers继续承担未关闭 item 与历史证据，不整体 Supersede |
+| Migration governance | Approved plan、tailoring 与 MR-01 packet/decision | evidence 与旧 review packet 保留为审计记录 |
+
+同一 scope 只允许上表一个 current prose authority。Runtime/external evidence 仍以实际执行 artifact
+为 authority；Document Status 不把 NOT_RUN/BLOCKED 变为 PASS。

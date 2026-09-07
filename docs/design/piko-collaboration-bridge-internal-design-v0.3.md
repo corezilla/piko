@@ -4,20 +4,23 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `design.definition` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/design/piko-collaboration-bridge-internal-design-v0.3.md` |
 | Supersedes | none |
 
@@ -89,4 +92,5 @@ profile 和 scope；Element locator 是无 Secret 描述符。
 ## 12. 开放项
 
 SessionSummary/CloseResult 与上游冻结语义的对齐是 contract/runtime activation gate，不阻塞本次文档迁移候选。
-Repository identifier 已由用户批准为 `piko`；canonical promotion 仍需独立授权。
+内部 repository identifier 为 `piko`；canonical GitHub repository 为 `corezilla/piko`。
+本文已通过 CP-01 文档批准；Runtime Activation 仍需独立授权。

@@ -6,7 +6,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 当前中文评审材料：
 
 - `docs/std.lock.json`
-- `docs/std-source-manifest.json`（锁定 STD draft.17 的 71 个来源 artifact）
+- `docs/std-source-manifest.json`（锁定 STD draft.18 的 71 个来源 artifact）
 - `rag/std-ingestion-manifest.jsonl`（保留的 draft.1 历史 artifact；不代表项目 RAG ingestion）
 - `docs/management/current-document-inventory.md`
 - `docs/management/piko-std-migration-plan-v0.1.md`
@@ -40,7 +40,10 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 在跨项目评审关闭前，不得把它们视为已经冻结的 Slinky 契约或实现证据。v0.1 文件
 是英文历史草案，仅供审计，不再作为当前评审版本。跨项目新消息只通过 Matrix 传递。
 
-`piko-*` 候选文档按 STD `0.1.0-draft.17` 的 immutable commit/tag 建立，目前仍是
-Migration Review `draft`。迁移通过前，原设计和机器契约继续作为可追溯输入；不执行 canonical
-promotion、项目 RAG ingestion 或 Runtime Activation。用户已批准内部 repository identifier 为
-`piko`；这项批准不构成后续 canonical promotion 授权。
+`piko-*` 文档的内容由 MR-01 immutable candidate commit
+`f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` 固定，并以 STD `0.1.0-draft.18` 完成 CP-01
+canonical promotion。当前 canonical prose 是上列 `piko-*` design/contract/traceability/assurance
+文档；旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
+fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。项目 RAG publication 由 PUB-01
+独立处理，Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
+canonical GitHub repository 为 `corezilla/piko`。

@@ -1,0 +1,153 @@
+{
+  "schema_version": "piko-canonical-promotion-evidence.v1",
+  "captured_at": "2026-09-08T00:02:27+08:00",
+  "project_root": "/Users/ben/work/piko",
+  "cohort": "CP-01",
+  "input": {
+    "head": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722",
+    "tree": "3113a2ef8947602a2b2d86f21a68489312753d3e",
+    "branch": "main",
+    "working_tree": "clean",
+    "tracked_index_sha256": "ad4961da2cdf518307413e4710b471b6afca4b73232ee90c23e228fb5128b26a",
+    "remote": null
+  },
+  "std_source": {
+    "version": "0.1.0-draft.18",
+    "repository": "corezilla/architecture-standards",
+    "revision": "9841083c4d8d0ed1556bdc413d77b4567ac696b4",
+    "tag": "std-v0.1.0-draft.18",
+    "checkout": "/Users/ben/work/STD",
+    "checkout_clean": true,
+    "manifest": "docs/std-source-manifest.json",
+    "manifest_sha256": "db246ee60ab0d02bb2e7995fdf9152f31540a5ac2f0c4e578eb693d64d24a011",
+    "artifact_count": 71,
+    "lock_sha256": "6d9d4372437ecd11fd702044acdd7f90efb35872869371837931df20ff93e229"
+  },
+  "authorization": {
+    "migration_review_verdict": "ACCEPTED",
+    "reviewed_candidate_commit": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722",
+    "canonical_promotion_authorized": true,
+    "publication_rag_authorized_as_separate_cohort": true,
+    "runtime_activation_authorized": false,
+    "delivery": "Codex internal task delegation into the original Piko task"
+  },
+  "promotion": {
+    "promoted_document_count": 10,
+    "document_status_before": "draft",
+    "document_status_after": "accepted",
+    "cover_status_after": "Approved",
+    "reviewed_commit": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722",
+    "superseded_prose": [
+      "docs/design/agent-runtime-service-design-v0.2.md",
+      "docs/design/agent-runtime-matrix-collaboration-design-v0.3.md"
+    ],
+    "residual_authority": [
+      "OpenAPI, JSON Schema, error catalog and fixtures retain field-level machine authority.",
+      "QA v0.2/v0.3 ledgers retain unresolved items and historical evidence.",
+      "Cross-project review artifacts retain historical input and decisions.",
+      "Runtime and external evidence remain authoritative only when actually executed."
+    ]
+  },
+  "gates": {
+    "l1_source_verifier": {
+      "command": "/Users/ben/work/STD/scripts/verify-source-manifest --std-root /Users/ben/work/STD docs/std-source-manifest.json",
+      "exit_code": 0,
+      "key_output": "STD source manifest verification OK: 71 artifacts",
+      "status": "PASS"
+    },
+    "l1_project_root": {
+      "command": "/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/piko --require-immutable-std --json /tmp/piko-cp01-validation.json",
+      "exit_code": 0,
+      "key_output": "ok=true; checked_metadata=11; checked_markdown=11; checked_decisions=2; new_error_count=0; inherited_error_count=0",
+      "artifact": "/tmp/piko-cp01-validation.json",
+      "status": "PASS"
+    },
+    "l2_project_contract": {
+      "command": "python3 scripts/validate_v03_contract.py",
+      "exit_code": 0,
+      "key_output": "OK: 4 Schema fixtures, 2 semantic fixtures, OpenAPI refs/filter/typed error and authority boundaries passed",
+      "status": "PASS"
+    },
+    "l3_runtime_external": {
+      "status": "NOT_COMPLETE_UNCHANGED",
+      "detail": "Real Matrix product evidence, database crash/restart, credential isolation and LLMTier E2E remain planned or blocked; CP-01 does not request Runtime Activation."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "key_output": "no output",
+      "status": "PASS"
+    },
+    "single_authority": {
+      "status": "PASS",
+      "detail": "README, current-document-inventory and migration map name one current prose authority per promoted scope; machine and QA residual authority are explicit."
+    }
+  },
+  "artifact_digest_algorithm": {
+    "algorithm_id": "piko-artifact-set-sha256.v1",
+    "scope": "The 31-path CP-01 precommit allowlist excluding exactly docs/review/piko-std-canonical-promotion-evidence.json, leaving 30 artifacts.",
+    "path_encoding": "UTF-8 without normalization",
+    "ordering": "Ascending lexicographic order of UTF-8 path bytes",
+    "content_digest": "SHA-256 over exact file bytes, rendered as 64 lowercase ASCII hex characters",
+    "record_format": "content_sha256_hex + two ASCII spaces + repository_relative_path_utf8 + LF",
+    "record_separator": "Each record includes exactly one trailing LF byte; no other separator, prefix, suffix, or final extra blank line.",
+    "set_digest": "SHA-256 over the concatenation of all 30 record byte strings",
+    "recompute_command": "python3 -c 'import hashlib,json; from pathlib import Path; ep=\"docs/review/piko-std-canonical-promotion-evidence.json\"; e=json.loads(Path(ep).read_text(encoding=\"utf-8\")); raw=e[\"precommit_gate\"][\"changed_files\"]; assert len(raw)==31 and len(set(raw))==31 and ep in raw; ps=sorted((p for p in raw if p!=ep),key=lambda p:p.encode(\"utf-8\")); assert len(ps)==30 and all(Path(p).is_file() and not Path(p).is_symlink() for p in ps); manifest=b\"\".join(hashlib.sha256(Path(p).read_bytes()).hexdigest().encode(\"ascii\")+b\"  \"+p.encode(\"utf-8\")+b\"\\n\" for p in ps); print(hashlib.sha256(manifest).hexdigest())'",
+    "manifest_byte_count": 3564,
+    "result_sha256": "66d1c52c24ff17414244f9566464e2d64e9c37f73c4dcfed10a41f686e249f7b"
+  },
+  "precommit_gate": {
+    "status": "READY_FOR_COMMIT",
+    "amendment_request_id": "S-20260908-6ff823a5577c",
+    "amendment_resolved": true,
+    "amendment_scope": "Removed only the extra final blank line from the CP-01 packet Markdown and its metadata JSON; no business semantics or allowlist paths changed.",
+    "superseded_reported_digest": "fabc0435279f06ec655f9fc1351e5ffbca16fff83ee289f196ef613fcdc37e46",
+    "commit_approved": false,
+    "commit_performed": false,
+    "push_performed": false,
+    "head": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722",
+    "status_capture_command": "git status --short",
+    "status_sha256": "487331166591ddc8a338a3722ed4bcf28764d554802c29c6479594c5bf366946",
+    "changed_file_count": 31,
+    "changed_files": [
+      "README.md",
+      "docs/assurance/piko-agent-runtime-test-specification-v0.3.md",
+      "docs/assurance/piko-agent-runtime-test-specification-v0.3.metadata.json",
+      "docs/assurance/piko-agent-runtime-vv-plan-v0.3.md",
+      "docs/assurance/piko-agent-runtime-vv-plan-v0.3.metadata.json",
+      "docs/contracts/piko-agent-runtime-contract-v0.3.md",
+      "docs/contracts/piko-agent-runtime-contract-v0.3.metadata.json",
+      "docs/design/agent-runtime-matrix-collaboration-design-v0.3.md",
+      "docs/design/agent-runtime-service-design-v0.2.md",
+      "docs/design/piko-agent-runtime-design-v0.3.md",
+      "docs/design/piko-agent-runtime-design-v0.3.metadata.json",
+      "docs/design/piko-collaboration-bridge-design-v0.3.md",
+      "docs/design/piko-collaboration-bridge-design-v0.3.metadata.json",
+      "docs/design/piko-collaboration-bridge-internal-design-v0.3.md",
+      "docs/design/piko-collaboration-bridge-internal-design-v0.3.metadata.json",
+      "docs/management/current-document-inventory.md",
+      "docs/management/piko-requirements-traceability-v0.3.md",
+      "docs/management/piko-requirements-traceability-v0.3.metadata.json",
+      "docs/management/piko-std-migration-map.md",
+      "docs/management/piko-std-migration-plan-v0.1.md",
+      "docs/management/piko-std-migration-plan-v0.1.metadata.json",
+      "docs/management/piko-std-tailoring-v0.1.md",
+      "docs/management/piko-std-tailoring-v0.1.metadata.json",
+      "docs/review/piko-std-canonical-promotion-evidence.json",
+      "docs/review/piko-std-canonical-promotion-packet.md",
+      "docs/review/piko-std-canonical-promotion-packet.metadata.json",
+      "docs/review/piko-std-canonical-promotion-packet.review-decision.json",
+      "docs/review/piko-std-migration-review-packet.md",
+      "docs/review/piko-std-migration-review-packet.metadata.json",
+      "docs/std-source-manifest.json",
+      "docs/std.lock.json"
+    ]
+  },
+  "boundaries": {
+    "publication_rag": "AUTHORIZED_SEPARATE_COHORT_NOT_RUN",
+    "external_publication": "NOT_RUN",
+    "runtime_activation": false,
+    "remote_configuration": "NOT_RUN_UNTIL_COMMIT_APPROVED",
+    "push": "NOT_RUN_UNTIL_COMMIT_APPROVED"
+  }
+}

@@ -4,20 +4,23 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `assurance.vv-plan` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/assurance/piko-agent-runtime-vv-plan-v0.3.md` |
 | Supersedes | none |
 
@@ -41,7 +44,7 @@
 | OpenAI SDK | 6.40.0 | mock capture 已有 |
 | LLMTier | Piko-facing Scope B/recovery bundle | semantics accepted，activation false |
 | Matrix/Element | version/config 未冻结 | Open Gate |
-| STD | `0.1.0-draft.17`，revision `94c0262de35b5b989bba9f8d23f212af709c9dbf` | immutable source locked；project candidate draft only |
+| STD | `0.1.0-draft.18`，revision `9841083c4d8d0ed1556bdc413d77b4567ac696b4` | immutable source locked；document approved，runtime activation=false |
 
 每个执行 evidence 必须记录 source commit、Schema version、环境 topology、dependency version、
 configuration fingerprint、case/run ID 和时间。

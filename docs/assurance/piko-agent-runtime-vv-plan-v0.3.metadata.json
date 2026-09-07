@@ -1,13 +1,13 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-agent-runtime-vv-plan-v0.3", "document_type": "assurance.vv-plan",
-  "document_version": "0.3.0-draft.17", "title": "Piko Agent Runtime v0.3 验证与确认计划",
+  "document_version": "0.3.0", "title": "Piko Agent Runtime v0.3 验证与确认计划",
   "document_owner": "Piko Verification Owner", "authors": ["corezilla"],
-  "source_repository": "piko", "source_path": "docs/assurance/piko-agent-runtime-vv-plan-v0.3.md",
-  "std_version": "0.1.0-draft.17", "template_id": "assurance.vv-plan", "template_version": "0.1.0-draft.17",
+  "source_repository": "corezilla/piko", "source_path": "docs/assurance/piko-agent-runtime-vv-plan-v0.3.md",
+  "std_version": "0.1.0-draft.18", "template_id": "assurance.vv-plan", "template_version": "0.1.0-draft.18",
   "template_sha256": "79e53c6af812cc1867392f408891725b7a5a35b7c0fbba7cdfcf099d7ace2881",
   "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
-  "design_level": "system", "domain": ["software"], "status": "draft", "visibility": "project",
-  "reviewed_commit": null, "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": null,
-  "created_at": "2026-09-07", "last_modified_at": "2026-09-07"
+  "design_level": "system", "domain": ["software"], "status": "accepted", "visibility": "project",
+  "reviewed_commit": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722", "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": null,
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-08"
 }

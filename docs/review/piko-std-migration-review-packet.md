@@ -1,27 +1,31 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko STD draft.17 Migration Review Packet
+# Piko STD Migration Review Packet
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-migration-review-packet` |
-| Document Version | `0.1.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.1.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `review.packet` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/review/piko-std-migration-review-packet.md` |
 | Supersedes | none |
 
-> 本 packet 请求 Migration Review，不请求 canonical promotion、Document Status 升级、RAG ingestion 或 Runtime Activation。
+> 本 packet 是 MR-01 的 Approved audit record。其 `ACCEPTED` verdict 固定内容候选；后续 CP-01
+> 由独立授权执行，PUB-01 与 Runtime Activation 仍是分离 Gate。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. Review 目标与期望决定
@@ -85,15 +89,16 @@ non-regular candidate。10 份 STD metadata/Markdown 与 1 份 decision 均属�
 STD/catalog version、封面/文本版本引用与验证证据，不重写设计事实或 authority。
 
 原始命令、exit code、摘要、artifact hashes 与执行时 Git 状态记录在
-`docs/review/piko-std-migration-evidence.json`。`reviewed_commit` 保持 null，因为工作树候选尚未形成供 reviewer
-确认的 immutable Piko commit。
+`docs/review/piko-std-migration-evidence.json`。reviewed immutable Piko commit 为
+`f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`。
 
 ## 6. Risk、blocker 与开放项
 
 ### Migration Review blocker
 
 - none。用户已批准 `Repository/source_repository=piko` 并接受本 packet。
-- 上述批准不授权 canonical promotion；候选仍为 Draft，`reviewed_commit` 仍为 null。
+- MR-01 verdict 本身不授权 canonical promotion；后续用户已通过独立 Gate 授权 CP-01。
+- 本 packet 与 promoted 文档的 sidecar 记录 reviewed commit `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`。
 
 ### 非迁移 blocker
 
@@ -114,11 +119,9 @@ Activation 相互独立；本轮没有启动任何后置动作。
 
 ## 9. STD Pre-Commit Review Gate
 
-- 状态：`READY_FOR_COMMIT`，等待 STD 明确 `COMMIT_APPROVED`。
-- 当前 HEAD：`2386ea7fa6e5161ed6074b1e261fad74d148c067`；尚未 commit/push。
-- dirty preservation：27 个 cohort 路径；`git status --porcelain=v1` SHA-256 为
-  `829b23bb7e4ed0615c5f089537bf5bfd443dfd0911f7a99a969c891488acd62a`。
+- 状态：`COMPLETED`。
+- immutable candidate commit：`f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`；27 个批准路径。
+- candidate artifact digest：`99c0c1ad90b9366fb397a787f48fd18c48bf29ab0c8c57082c78f15916c92ddf`。
 - 完整变更文件清单、三层命令/exit/output 与 artifact digest 位于
   `docs/review/piko-std-migration-evidence.json`。
-- 获准提交时只允许提交 evidence 中冻结的 MR-01 文件；不得夹带其他用户/任务修改。提交后仍不得自行
-  canonical promotion、状态升级、RAG ingestion、外部发布或 Runtime Activation。
+- MR-01 immutable history 不因 CP-01/PUB-01 重写。Runtime Activation 仍未授权。

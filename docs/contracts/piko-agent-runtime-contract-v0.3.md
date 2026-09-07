@@ -4,20 +4,23 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `contracts.specification` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/contracts/piko-agent-runtime-contract-v0.3.md` |
 | Supersedes | none |
 
@@ -158,7 +161,8 @@ message 文本不参与客户端分支；code/status/retryable/required details 
 - create/update 使用强 ETag；schema/profile/contract exact version admission。
 - 不支持的版本或 feature fail closed；不建立兼容 endpoint/fallback。
 - STD 迁移只改变文档结构，不改变现有 operation、field、error、test 或 Matrix ID。
-- STD source 已锁定 draft.17；Piko candidate 尚无 reviewed commit，文档保持 draft。
+- STD source 已锁定 draft.18；本文由 MR-01 reviewed commit
+  `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` 支撑并已完成文档批准；runtime activation=false。
 
 ## 9. Positive/Negative fixture 与 validator
 

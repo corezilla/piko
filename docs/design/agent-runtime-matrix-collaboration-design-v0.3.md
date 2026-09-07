@@ -1,7 +1,12 @@
 # Piko 智能体运行时 Matrix/Element 协作设计草案
 
+> **Superseded (prose scope)：** 本文的 CollaborationBridge mechanism/internal prose 已由
+> `docs/design/piko-collaboration-bridge-design-v0.3.md` 与
+> `docs/design/piko-collaboration-bridge-internal-design-v0.3.md` 取代。v0.3 OpenAPI、Schema、
+> error catalog 与 fixtures 继续承担字段级 authority；本文保留用于历史审计。
+
 版本：v0.3  
-状态：等待 Slinky 评审  
+状态：Superseded（prose scope）
 日期：2026-09-06  
 基础版本：`agent-runtime-service-design-v0.2.md`  
 冻结输入：Matrix 消息 `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`

@@ -1,51 +1,54 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko STD draft.17 分阶段迁移计划
+# Piko STD 分阶段迁移计划
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-migration-plan-v0.1` |
-| Document Version | `0.1.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.1.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `management.project-plan` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/management/piko-std-migration-plan-v0.1.md` |
 | Supersedes | none |
 
-> 本计划只授权非破坏 Migration Review 工作；不授权 canonical promotion、Document Status 升级、
-> 项目 RAG ingestion、外部发布或 Runtime Activation。
+> MR-01 已形成 immutable candidate。用户随后授权 CP-01 canonical promotion 与独立 PUB-01；
+> Runtime Activation 未授权并保持 `false / NOT_RUN`。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标、范围与成功标准
 
-- 目标：把 Piko 当前设计、机器契约索引、traceability 与验证计划整理为可审阅的 STD draft.17
-  Migration Review candidate，同时保持既有事实、ID、authority 和 dirty worktree。
-- 范围内：source lock、inventory、tailoring、migration map、计划、system/mechanism/internal design、
-  contract specification、traceability、V&V、test specification、review packet/decision/evidence。
-- 范围外：实现变更、新 runtime/config/fallback/compatibility path、其他项目文件、canonical promotion、
-  状态升级、RAG ingestion、外部发布和 Runtime Activation。
-- 成功标准：immutable STD source 可复验；所有受控候选通过结构校验；项目机器契约 Gate 通过；L3
-  证据如实标为 PASS/NOT_RUN/BLOCKED/N/A；Owner 能从单一 packet 审阅映射、残余 authority 与 blocker。
+- 目标：以 MR-01 immutable candidate 为内容基线，完成 Piko 文档的 canonical promotion，并在
+  后续独立 PUB-01 中发布可追溯的项目 RAG manifest。
+- 范围内：draft.18 source lock、逐 scope authority/index 切换、已批准文档状态、旧 prose
+  Superseded/historical 标记、CP-01 packet/decision/evidence；PUB-01 单独管理 publication/RAG。
+- 范围外：实现变更、新 runtime/config/fallback/compatibility path、其他项目文件、外部产品发布和
+  Runtime Activation。
+- 成功标准：immutable STD source 可复验；单一 current authority；机器契约 authority 不丢失；
+  L1/L2 通过且 L3 如实记录；每个 cohort 经 STD pre-commit Gate 后单独提交。
 
 ## 2. 输入基线与 dirty-worktree 保护
 
 | 项目 | 值 |
 |---|---|
 | project root | `/Users/ben/work/piko` |
-| input commit | `2386ea7fa6e5161ed6074b1e261fad74d148c067` |
-| 本次计划输入状态 | dirty；全部为已存在的 draft.17 migration cohort |
-| status SHA-256 | `5330c02f813f56f436534da43e1eb26da66f745726e76aa70b80517a957a0969` |
-| 25-path content SHA-256 | `78b2f8fe0d070f2a55fc942cd5daa1936a619b78655303266f486cbc30add073` |
-| STD commit/tag | `94c0262de35b5b989bba9f8d23f212af709c9dbf` / `std-v0.1.0-draft.17` |
+| CP-01 input commit | `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` |
+| CP-01 input state | clean；MR-01 immutable candidate 已提交 |
+| input tree | `3113a2ef8947602a2b2d86f21a68489312753d3e` |
+| tracked-index SHA-256 | `ad4961da2cdf518307413e4710b471b6afca4b73232ee90c23e228fb5128b26a` |
+| STD commit/tag | `9841083c4d8d0ed1556bdc413d77b4567ac696b4` / `std-v0.1.0-draft.18` |
 | profile/domains | `software`; `management`, `systems`, `software` |
 
 不得 reset、clean、checkout 覆盖或重建候选；任何增量先确认路径与 diff，只修改本项目。
@@ -69,7 +72,7 @@ Invocation；Matrix/Element 实现不属于 Piko。Piko 只迁移本项目拥有
 
 ## 4. Cohort、工作包与顺序
 
-当前授权只有 `MR-01`；其内部工作包按依赖顺序推进，但共享一个可审阅 Migration Review Packet。
+MR-01 已提交为 `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`。后续按 CP-01、PUB-01 顺序独立审阅与提交。
 
 | Cohort / 包 | 内容 | 依赖 | 当前状态 | 首要 milestone / 完成标准 |
 |---|---|---|---|---|
@@ -77,9 +80,9 @@ Invocation；Matrix/Element 实现不属于 Piko。Piko 只迁移本项目拥有
 | MR-01.B Design | Agent Runtime system、Bridge end-to-end mechanism、Piko internal definition | A；现有设计事实 | `COMPLETED` | G2 已确认：无 authority 漂移 |
 | MR-01.C Contract/Trace/V&V | contract spec、机器附件索引、traceability、V&V、test spec | A/B；现有机器契约/QA | `COMPLETED` | L2 PASS；L3 缺口已逐项标注 |
 | MR-01.D Review Closure | packet、终局 decision、原始命令/exit/output/digest | A-C | `ACCEPTED` | G4 已完成；Document Status 仍保持 Draft |
-| MR-01.E Pre-Commit Gate | 计划、27-file cohort 清单、packet/decision、三层证据、HEAD/dirty preservation | D | `READY_FOR_COMMIT` | 等待 STD `COMMIT_APPROVED`；期间不 commit/push |
-| CP-01 Canonical Promotion | approved scope 的 canonical path、reviewed commit、索引和旧文档标记 | G4 + repository ID + 独立批准 | 未授权 | 单一 authority 且 residual scope 无丢失 |
-| PUB-01 Publication/RAG | publication manifest、RAG include/exclude、检索验证 | CP-01 + 独立批准 | 未授权 | 只索引 promoted canonical artifacts |
+| MR-01.E Pre-Commit Gate | 计划、27-file cohort 清单、packet/decision、三层证据、HEAD/dirty preservation | D | `COMPLETED` | STD approved；commit `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` |
+| CP-01 Canonical Promotion | approved scope 的 canonical path、reviewed commit、索引和旧文档标记 | G4 + repository ID + 独立批准 | `IN_PROGRESS` | draft.18 单一 lock；单一 authority；等待 STD pre-commit Gate |
+| PUB-01 Publication/RAG | publication manifest、RAG include/exclude、检索验证 | CP-01 commit + 独立批准 | `AUTHORIZED_NOT_STARTED` | 只索引 promoted canonical artifacts；独立 cohort |
 | RT-01 Runtime Evidence/Activation | 真实 Matrix/DB recovery/security/LLMTier E2E 与激活 | 实现、环境、G7 | 未授权/部分 BLOCKED | 运行证据完整；activation 独立决定 |
 
 ## 5. 源→目标与模板映射
@@ -113,14 +116,14 @@ Invocation；Matrix/Element 实现不属于 Piko。Piko 只迁移本项目拥有
 | PIKO-MIG-B01 | 已关闭决定 | 用户已批准内部 repository identifier 为 `piko` | 字段已定稿；不自动授权 promotion | 2026-09-07 关闭；G5 仍需独立批准 |
 | PIKO-CON-B01 | contract/runtime gate | SessionSummary/CloseResult enum alignment 未关闭 | 不阻止文档迁移；阻止相关契约/runtime activation | 单独 contract amendment/review；G3/G7 |
 | PIKO-L3-B01 | evidence gate | 真实 Matrix、DB recovery、credential isolation、LLMTier E2E 未完成 | L3 不能 PASS | 实现与环境就绪后按 RT-01 执行 |
-| PIKO-MIG-R01 | 迁移风险 | 新候选与旧文档并存可能造成双 authority | review 期间检索/引用歧义 | 所有候选保持 Draft；README/packet 明示 residual boundary |
+| PIKO-MIG-R01 | 迁移风险 | promoted 文档与旧文档并存可能造成双 authority | 检索/引用歧义 | README、authority registry、map 与旧 prose banner 明示 current/residual boundary |
 
-当前没有未关闭的 Migration Review blocker。G4 已接受 MR-01；提交仅等待 G4.5 STD pre-commit review。
-CP-01、PUB-01、RT-01 仍因未获独立授权而不启动。
+当前没有未关闭的文档迁移 blocker。G4/G4.5 已完成 MR-01；CP-01 与 PUB-01 已获授权并按独立
+cohort 推进。仓库 remote 缺失只阻塞最终 push，不阻塞本地 candidate/Gate。RT-01 未授权。
 
 ## 8. 旧文档 residual authority 与完成标准
 
-- G5 前不删除、不移动、不整体 Supersede 原设计、机器契约、QA 或 review 文档。
+- CP-01 不删除或移动旧文档；只对已完整迁出的两份旧 prose scope 标记 Superseded。
 - 机器契约始终保留字段级 authority；迁移后的 contract specification 不复制字段定义。
 - 若未来只 promotion 部分 scope，原文档继续承担未迁出的 residual scope，并在索引中明确边界。
 - MR-01 完成：G0-G3 证据齐全、packet/decision 可审阅且 G4 给出 verdict；这不等于 status/promotion。
@@ -132,9 +135,9 @@ CP-01、PUB-01、RT-01 仍因未获独立授权而不启动。
 ## 9. 沟通、配置与变更控制
 
 跨项目迁移协调只通过 `std-migration` Matrix profile，以固定身份 `piko` 回复；不轮询旧房间。
-G4 接受的是 evidence 中由 artifact-set digest 固定的当前内容集合；下一次获准提交只把该固定集合形成
-immutable candidate snapshot，不构成 canonical promotion。该 snapshot 提交后，`reviewed_commit` 的记录、
-Document Status 变化与 authority promotion 仍分别受后续独立 Gate 控制，不从 G4 或 commit 自动推导。
+G4 接受的内容集合已由 MR-01 commit 固定；CP-01 经用户独立授权后记录 `reviewed_commit`、Document
+Status 与逐 scope authority promotion，但仍须 STD pre-commit Gate。PUB-01 只在 CP-01 immutable commit
+之后生成 canonical publication/RAG manifest；Runtime Activation 不从任何文档 Gate 推导。
 重大设计变化单独提出，不藏入格式迁移；STD revision、模板 hash、authority 或 contract 改变即触发增量复审。
 
 资源/采购：本轮只需本地仓库、locked STD checkout 与现有 validator；无采购、模型权重或外部数据依赖。

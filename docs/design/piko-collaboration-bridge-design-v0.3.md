@@ -4,24 +4,28 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.3.0-draft.17` |
-| Status | `Draft` |
+| Document Version | `0.3.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-07` |
-| STD Version | `0.1.0-draft.17` |
+| Last Modified Date | `2026-09-08` |
+| STD Version | `0.1.0-draft.18` |
 | Template ID | `design.system-mechanism` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
-| Repository | `piko` |
+| Repository | `corezilla/piko` |
 | Canonical Path | `docs/design/piko-collaboration-bridge-design-v0.3.md` |
-| Supersedes | none |
+| Supersedes | `docs/design/agent-runtime-matrix-collaboration-design-v0.3.md` |
 
-> 本文件是 Migration Review candidate；不替代旧文档或机器契约，不触发 promotion、RAG ingestion 或 Runtime Activation。
+> 本文件是已批准的 canonical CollaborationBridge mechanism prose。Piko v0.3 机器契约继续承担
+> 字段级 authority；Document Status 不触发 Runtime Activation。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目的、范围与上位输入
