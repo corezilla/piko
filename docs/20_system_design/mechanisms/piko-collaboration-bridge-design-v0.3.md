@@ -39,7 +39,7 @@ Element locator，并在重启、重复事务、rename、close 和用户决策�
 ### 1.2 上位输入
 
 - 上位服务设计：`piko-agent-runtime-design-v0.3.md`；
-- 迁移来源：`agent-runtime-matrix-collaboration-design-v0.3.md`；
+- 历史输入：已删除工作树副本的 `agent-runtime-matrix-collaboration-design-v0.3.md`，可从 Git/evidence 审计；
 - 字段级 authority：v0.3 Matrix OpenAPI、JSON Schema、error catalog；
 - Evidence：`collaboration-decision-fixtures.json` 与 `validate_v03_contract.py`；
 - Slinky 冻结消息：`S-20260906-df6086da1916`、`S-20260906-1df5563ef488`。

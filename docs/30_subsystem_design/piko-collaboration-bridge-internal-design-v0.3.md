@@ -91,6 +91,6 @@ profile 和 scope；Element locator 是无 Secret 描述符。
 
 ## 12. 开放项
 
-SessionSummary/CloseResult 与上游冻结语义的对齐是 contract/runtime activation gate，不阻塞本次文档迁移候选。
+SessionSummary/CloseResult 等接口语义在后续重新设计与编码阶段统一处理；迁移阶段已经关闭，不要求现在对齐。
 内部 repository identifier 为 `piko`；canonical GitHub repository 为 `corezilla/piko`。
 本文已通过 CP-01 文档批准；Runtime Activation 仍需独立授权。

@@ -44,7 +44,7 @@ Slinky、LLMTier、Matrix 的 Owner authority。
 
 ## 3. Coverage gaps
 
-- SessionSummary/CloseResult enum alignment remains a contract/runtime gate.
+- SessionSummary/CloseResult 等接口语义留给后续重新设计与编码阶段，不属于迁移 Gate。
 - Real Matrix, database crash/restart, credential isolation and LLMTier E2E evidence do not yet exist.
 - Immutable reviewed Piko commit is `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`;
   document approval does not close the listed contract/runtime evidence gates.

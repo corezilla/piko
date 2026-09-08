@@ -28,11 +28,12 @@
 ## 3. DIR-01 authority disposition
 
 - `agent-runtime-service-design-v0.2.md` 的 system-design prose scope 已完整迁入
-  `piko-agent-runtime-design-v0.3.md`，旧文档标记 Superseded 并保留历史。
+  `piko-agent-runtime-design-v0.3.md`；旧工作树副本已删除，历史只从 Git/evidence 查询。
 - `agent-runtime-matrix-collaboration-design-v0.3.md` 的 mechanism/internal prose scope 已完整迁入
-  两份 CollaborationBridge canonical 文档，旧文档标记 Superseded 并保留历史。
+  两份 CollaborationBridge canonical 文档；旧工作树副本已删除。
 - OpenAPI、JSON Schema、error catalog 和 fixtures 不迁出字段 authority；它们保持 current。
-- QA v0.2/v0.3 与跨项目 review artifact 保留未关闭 item、输入与历史证据，不整体 Supersede。
+- 旧 QA 与跨项目 review 工作树副本已删除；仍有价值的约束位于 canonical design、contract 和 V&V
+  文档，作为后续重新设计/编码输入，不属于迁移 blocker。
 - DIR-01 将 current prose、机器契约、验证资料、评审记录与历史材料一次搬到 STD 默认路径；不改变
   Document ID、业务语义、接口 ID 或 Runtime Activation。
 - `rag/project-ingestion-manifest.jsonl` 已删除全部 PUB-01 Piko 记录，并由 PUB-02 基于最终文档

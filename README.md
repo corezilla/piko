@@ -7,7 +7,6 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 
 - `docs/std.lock.json`
 - `docs/std-source-manifest.json`（锁定 STD draft.19 的 71 个来源 artifact）
-- `rag/std-ingestion-manifest.jsonl`（保留的 draft.1 历史 artifact；不代表项目 RAG ingestion）
 - `rag/project-ingestion-manifest.jsonl`（PUB-02：基于最终文档快照重新录入的 10 份 Piko canonical 文档）
 - `docs/98_migration/current-document-inventory.md`
 - `docs/00_management/piko-std-migration-plan-v0.1.md`
@@ -22,24 +21,18 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 - `docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md`
 - `docs/91_reviews/piko-std-migration-review-packet.md`
 - `docs/91_reviews/piko-std-migration-review-packet.review-decision.json`
-- `docs/99_reference/design/agent-runtime-matrix-collaboration-design-v0.3.md`
 - `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml`
 - `interfaces/schemas/agent-runtime-matrix-v0.3.schema.json`
 - `interfaces/error-codes/error-blocker-catalog-v0.3.json`
 - `interfaces/vectors/v0.3/collaboration-decision-fixtures.json`
-- `docs/70_verification/reports/agent-runtime-contract-qa-v0.3.md`
-- `docs/91_reviews/matrix-element-v0.3-review-packet.md`
-- `docs/91_reviews/llmtier-v0.3-review-20260906.md`
 - `tests/contract/validate_v03_contract.py`
-- `docs/99_reference/design/agent-runtime-service-design-v0.2.md`
 - `interfaces/openapi/agent-runtime-openapi-v0.2.yaml`
 - `interfaces/schemas/agent-runtime-v0.2.schema.json`
 - `interfaces/error-codes/error-blocker-catalog-v0.2.json`
-- `docs/70_verification/reports/agent-runtime-contract-qa-v0.2.md`
 
-上述 v0.3 文件是 Matrix/Element 增量提案，v0.2 文件是其 Agent Runtime 基础。
-在跨项目评审关闭前，不得把它们视为已经冻结的 Slinky 契约或实现证据。v0.1 文件
-是英文历史草案，仅供审计，不再作为当前评审版本。跨项目新消息只通过 Matrix 传递。
+上述 v0.3 文件是 Matrix/Element 增量设计输入，v0.2 文件是其 Agent Runtime 基础机器契约。
+后续需要重新设计与编码的 open item 在对应设计、契约和 V&V 文档中管理，不属于 STD 迁移阶段。
+被 canonical 文档取代的旧工作树副本已经删除；必要历史通过 Git 与迁移 evidence 查询。
 
 `piko-*` 文档的内容由 MR-01 immutable candidate commit
 `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` 固定，并在 CP-01 commit

@@ -36,10 +36,11 @@
 Run 如何被可靠创建和推进、Pi 如何承载 participant、LLMTier/Workspace/Tool 如何被约束、
 状态和 Evidence 如何持久化，以及故障后如何恢复。
 
-本文是结构化迁移候选，不取代字段级机器契约。迁移来源为：
+本文是当前 canonical system-design baseline，不取代字段级机器契约。其历史输入已从工作树删除，
+仍可通过 Git 与迁移 evidence 审计；设计事实来源包括：
 
-- `agent-runtime-service-design-v0.2.md`；
-- `agent-runtime-matrix-collaboration-design-v0.3.md`；
+- 历史 `agent-runtime-service-design-v0.2.md`；
+- 历史 `agent-runtime-matrix-collaboration-design-v0.3.md`；
 - v0.2/v0.3 OpenAPI、JSON Schema、error catalog 和 fixture；
 - Matrix 已冻结的 Slinky/Piko/LLMTier 决定；
 - Piko 对 LLMTier V0.3 machine contract 的 Review 记录。

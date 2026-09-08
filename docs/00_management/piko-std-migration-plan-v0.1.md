@@ -86,8 +86,7 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 | CP-01 Canonical Promotion | approved scope 的 canonical path、reviewed commit、索引和旧文档标记 | G4 + repository ID + 独立批准 | `COMPLETED` | commit `119aa51af60da32c2db8d27c53bbf2975ab12938` |
 | PUB-01 Publication/RAG | publication manifest、RAG include/exclude、检索验证 | CP-01 commit + 独立批准 | `COMPLETED` | commit `21e24df144ef81e73203372dcbab15f533e3c511` |
 | DIR-01 Default Layout | 编号 docs 树、顶层 interfaces、tests/contract 与引用修复 | 用户直接批准；draft.19 | `COMPLETED` | commit `9f55da4a82e764b8479b134b0c5ffe11d1ce5ec4` 已推送；L1/L2/链接检查通过 |
-| PUB-02 Relocated Publication | 以最终文档 snapshot 重建 RAG manifest | DIR-01 commit + 用户直接批准 | `AUTHORIZED_FINAL_STEP` | 新 source_path/hash 全部可从 immutable input commit 复算；旧 Piko 记录为零 |
-| RT-01 Runtime Evidence/Activation | 真实 Matrix/DB recovery/security/LLMTier E2E 与激活 | 实现、环境、G7 | 未授权/部分 BLOCKED | 运行证据完整；activation 独立决定 |
+| PUB-02 Relocated Publication | 以最终文档 snapshot 重建 RAG manifest | DIR-01 commit + 用户直接批准 | `COMPLETED` | commit `11c6408cd7767342a69ae45f67a0871240ac980a`；旧 Piko 记录为零 |
 
 ## 5. 源→目标与模板映射
 
@@ -109,7 +108,7 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 |---|---|---|---|
 | L1 STD structural/source | `verify-source-manifest` + `validate-design --project-root ... --require-immutable-std` | PASS | 0 new/inherited error；全部 sidecar/cover/decision/source 一致 |
 | L2 project contract/schema/test | `python3 tests/contract/validate_v03_contract.py` | PASS | fixtures、OpenAPI refs/filter、typed errors、authority boundary 通过 |
-| L3 runtime/external | V&V/Test Specification 中 Matrix、DB crash/restart、credential、LLMTier E2E | NOT_COMPLETE/BLOCKED | 不以文档或 mock 冒充；每项有真实环境与 artifact 才能 PASS |
+| L3 runtime/external | Runtime Activation 与外部 vector backend | `N/A` for migration | 后续设计、编码和运行验证使用独立 Gate，不作为迁移 blocker |
 
 每次 cohort packet 保存原始命令、exit code、关键输出、artifact 路径、执行 commit 和 dirty/content digest。
 
@@ -118,24 +117,22 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 | ID | 类型 | 描述 | 影响 | 处置 / Owner Gate |
 |---|---|---|---|---|
 | PIKO-MIG-B01 | 已关闭决定 | 用户已批准内部 repository identifier 为 `piko` | 字段已定稿；不自动授权 promotion | 2026-09-07 关闭；G5 仍需独立批准 |
-| PIKO-CON-B01 | contract/runtime gate | SessionSummary/CloseResult enum alignment 未关闭 | 不阻止文档迁移；阻止相关契约/runtime activation | 单独 contract amendment/review；G3/G7 |
-| PIKO-L3-B01 | evidence gate | 真实 Matrix、DB recovery、credential isolation、LLMTier E2E 未完成 | L3 不能 PASS | 实现与环境就绪后按 RT-01 执行 |
-| PIKO-MIG-R01 | 迁移风险 | promoted 文档与旧文档并存可能造成双 authority | 检索/引用歧义 | README、authority registry、map 与旧 prose banner 明示 current/residual boundary |
+| PIKO-MIG-R01 | 已关闭风险 | promoted 文档与旧文档并存可能造成双 authority | 已通过删除旧工作树副本关闭 | Git history 与迁移 evidence 保留审计，不参与 current authority |
 
-当前没有未关闭的目录迁移 blocker。MR-01、CP-01、PUB-01 与 DIR-01 已完成并推送；用户已直接要求
-完成 PUB-02，形成最终 RAG manifest 后文档迁移即可关闭。RT-01 未授权。
+当前没有未关闭的迁移 blocker。MR-01、CP-01、PUB-01、DIR-01 与 PUB-02 均已完成并推送。
+契约对齐、系统实现、运行环境和测试证据属于后续重新设计与编码，不在迁移计划中跟踪。
 
 ## 8. 旧文档 residual authority 与完成标准
 
-- CP-01 当时未删除或移动旧文档；DIR-01 将两份 Superseded prose 移入 `docs/99_reference/design/`，
-  保留 Git history 与 residual authority 说明。
+- CP-01/DIR-01 完成 authority 切换后，被 Superseded 的旧 prose、机器草案、QA 和旧 review 工作树
+  副本已删除；历史由 Git commit 与迁移 evidence 保存。
 - 机器契约始终保留字段级 authority；迁移后的 contract specification 不复制字段定义。
-- 若未来只 promotion 部分 scope，原文档继续承担未迁出的 residual scope，并在索引中明确边界。
+- 本项目当前没有 residual prose scope；后续设计变更直接修改对应 canonical 文档并重新 review。
 - MR-01 完成：G0-G3 证据齐全、packet/decision 可审阅且 G4 给出 verdict；这不等于 status/promotion。
 - Commit 前：向 STD 报 `READY_FOR_COMMIT` 并冻结 cohort 文件清单；只有收到 `COMMIT_APPROVED` 才可提交，
   且提交不得夹带清单外文件。commit 本身也不构成 canonical promotion。
-- 全迁移完成：G5 对每份 scope 完成单一 authority 切换，旧 scope 正确标记，G6 如获授权完成 publication/RAG；
-  G7 Runtime Activation 可保持 false，不是文档迁移完成的必要推论。
+- 全迁移已完成：每份 scope 已完成单一 authority 切换，旧工作树副本已删除，项目 RAG 已重建；
+  Runtime Activation 保持 false，不是文档迁移完成的必要推论。
 
 ## 9. 沟通、配置与变更控制
 

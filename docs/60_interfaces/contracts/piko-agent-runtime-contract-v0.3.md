@@ -186,10 +186,10 @@ response loss、cursor tamper/expiry、LLMTier lost-response 和 Secret corpus�
 | MX-016 Element full discussion | element-view + typed 503 | V03-E2E-099 |
 | MX-017 LLMTier exact model/Scope B | consumed machine contract | pinned adapter/lost-response tests |
 
-## 11. Activation Gate 与未决项
+## 11. 后续重新设计、编码与 Activation Gate
 
-Design/schema validation 不等于 runtime activation。未关闭项：SessionSummary/CloseResult enum
-对齐 Slinky v0.6 的独立 Contract Amendment、persistence/HA、Pi collaboration
+Design/schema validation 不等于 runtime activation。以下内容是后续重新设计与编码输入，不属于迁移
+阶段的问题：SessionSummary/CloseResult enum、persistence/HA、Pi collaboration
 hook、Workspace/Tool descriptor、retention catalog、homeserver/AS version、CollaborationEvent
 fixture、Element route、capacity/SLO，以及完整 Contract/Recovery/Security/E2E execution。
 
