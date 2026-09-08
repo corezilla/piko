@@ -1,0 +1,20 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-dir01-default-layout",
+  "packet_id": "piko-std-directory-relocation-packet",
+  "verdict": "ACCEPTED",
+  "document_status_before": "accepted",
+  "requested_document_status_after": "accepted",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": ["User / Piko Project Owner"],
+  "decided_at": "2026-09-08T12:40:18+08:00",
+  "decision_commit": "21e24df144ef81e73203372dcbab15f533e3c511",
+  "conditions": [
+    "Applies only to one atomic relocation of existing Piko tracked artifacts into the STD default software directory tree, with path-reference and draft.19 control updates.",
+    "Document identity, business semantics, canonical scope authority, machine authority and prior immutable audit facts must remain unchanged.",
+    "STD pre-commit COMMIT_APPROVED remains required before committing or pushing DIR-01.",
+    "PUB-02 must use the immutable DIR-01 commit to publish relocated paths; external vector ingestion remains N/A and Runtime Activation remains false and NOT_RUN."
+  ],
+  "rationale": "The user directly authorized the standard directory tree and one-time file relocation. The accepted scope is a non-runtime, authority-preserving path migration; immutable publication rebinding remains a separate post-commit cohort."
+}

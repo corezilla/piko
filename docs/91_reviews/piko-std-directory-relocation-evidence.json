@@ -1,0 +1,107 @@
+{
+  "schema_version": "piko-directory-relocation-evidence.v1",
+  "captured_at": "2026-09-08T12:40:18+08:00",
+  "project_root": "/Users/ben/work/piko",
+  "cohort": "DIR-01",
+  "input": {
+    "head": "21e24df144ef81e73203372dcbab15f533e3c511",
+    "tree": "80c3db41ab43a84a9165200215b00838e45dcaee",
+    "branch": "main",
+    "working_tree": "clean",
+    "remote": "https://github.com/corezilla/piko",
+    "remote_main": "21e24df144ef81e73203372dcbab15f533e3c511"
+  },
+  "std_source": {
+    "version": "0.1.0-draft.19",
+    "repository": "corezilla/architecture-standards",
+    "revision": "eeaf9bf33012928e3e74a9ca30e87d717690d343",
+    "tag": "std-v0.1.0-draft.19",
+    "checkout": "/Users/ben/work/STD",
+    "artifact_count": 71
+  },
+  "relocation": {
+    "mode": "atomic-default-layout",
+    "business_semantics_changed": false,
+    "document_status_changed": false,
+    "authority_changed": false,
+    "publication_rebound": false,
+    "external_vector_ingestion": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  },
+  "gates": {
+    "l1_source_verifier": {
+      "command": "/Users/ben/work/STD/scripts/verify-source-manifest --std-root /Users/ben/work/STD docs/std-source-manifest.json",
+      "exit_code": 0,
+      "key_output": "STD source manifest verification OK: 71 artifacts",
+      "status": "PASS"
+    },
+    "l1_project_root": {
+      "command": "/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/piko --require-immutable-std --json /tmp/piko-dir01-validation.json",
+      "exit_code": 0,
+      "key_output": "ok=true; checked_metadata=13; checked_markdown=13; checked_decisions=4; new_error_count=0; inherited_error_count=0",
+      "artifact": "/tmp/piko-dir01-validation.json",
+      "status": "PASS"
+    },
+    "l2_project_contract": {
+      "command": "python3 tests/contract/validate_v03_contract.py",
+      "exit_code": 0,
+      "key_output": "OK: 4 Schema fixtures, 2 semantic fixtures, OpenAPI refs/filter/typed error and authority boundaries passed",
+      "status": "PASS"
+    },
+    "l2_relocation_audit": {
+      "command": "temporary-index plus inline Python audit: require metadata source_path and Markdown Canonical Path to equal actual location; require no candidate-tracked files in old docs management/design/contracts/assurance/qa/review trees; resolve all non-fragment OpenAPI refs; ignored platform metadata is outside discovery",
+      "exit_code": 0,
+      "key_output": "RELOCATION_AUDIT_PASS",
+      "status": "PASS"
+    },
+    "l3_runtime_external": {
+      "status": "NOT_RUN",
+      "detail": "DIR-01 changes documentation and repository paths only. No runtime deployment, external service, vector backend or activation was invoked; external vector ingestion remains N/A_NO_PROJECT_BACKEND."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    "temporary_index_check": {
+      "command": "tmp_index=$(mktemp); GIT_INDEX_FILE=\"$tmp_index\" git read-tree HEAD; GIT_INDEX_FILE=\"$tmp_index\" git add -A -- README.md docs interfaces tests scripts; GIT_INDEX_FILE=\"$tmp_index\" git diff --cached --name-status --no-renames | LC_ALL=C sort; GIT_INDEX_FILE=\"$tmp_index\" git diff --cached --check",
+      "exit_code": 0,
+      "key_output": "Exact allowlist match; git diff --cached --check PASS",
+      "status": "PASS"
+    }
+  },
+  "artifact_digest_algorithm": {
+    "algorithm_id": "piko-artifact-set-sha256.v1",
+    "scope": "DIR-01 existing files in the exact precommit allowlist, excluding exactly docs/91_reviews/piko-std-directory-relocation-evidence.json; deletion paths are recorded by the allowlist but omitted because they have no candidate bytes.",
+    "path_encoding": "UTF-8 without normalization",
+    "ordering": "Ascending lexicographic order of UTF-8 path bytes",
+    "record_format": "SHA-256 hex of exact file bytes + two ASCII spaces + repository-relative UTF-8 path + LF",
+    "recompute_command": "python3 -c 'from pathlib import Path; import hashlib; e=\"docs/91_reviews/piko-std-directory-relocation-evidence.json\"; a=Path(\"docs/91_reviews/piko-std-directory-relocation-allowlist.txt\"); ps=sorted((p for s,p in (line.split(\"\\t\",1) for line in a.read_text().splitlines()) if s!=\"D\" and p!=e),key=lambda p:p.encode(\"utf-8\")); m=b\"\".join(hashlib.sha256(Path(p).read_bytes()).hexdigest().encode(\"ascii\")+b\"  \"+p.encode(\"utf-8\")+b\"\\n\" for p in ps); print(hashlib.sha256(m).hexdigest())'",
+    "manifest_byte_count": 7313,
+    "result_sha256": "5c3fb97eaecc489cbebcfba744c91a30c55702f55e3abf3feed7f09c84a09cf9"
+  },
+  "precommit_gate": {
+    "status": "READY_FOR_COMMIT",
+    "commit_approved": false,
+    "commit_performed": false,
+    "push_performed": false,
+    "head": "21e24df144ef81e73203372dcbab15f533e3c511",
+    "allowlist": "docs/91_reviews/piko-std-directory-relocation-allowlist.txt",
+    "allowlist_sha256": "03cb3f709868a699d4bdfef5c33d6fdd6bb446f1aaae1fff80d156898ace69f8",
+    "allowlist_format": "One TAB-separated Git status and repository-relative path per line, sorted by the complete line in C locale; rename detection disabled so source deletions and target additions are explicit.",
+    "changed_path_count": 110,
+    "existing_artifact_count": 59,
+    "existing_artifact_count_excluding_evidence": 58,
+    "deleted_path_count": 51,
+    "working_status_command": "git status --porcelain=v1 --untracked-files=all",
+    "working_status_entry_count": 110,
+    "working_status_sha256": "ae87b1b81e949bbe65a658622f82d0ab887fe50b15fd9574b8fffc14e1321731"
+  },
+  "boundaries": {
+    "canonical_promotion": "PRESERVED_FROM_CP01_COMMIT_119aa51",
+    "pub01_manifest": "PRESERVED_IMMUTABLE_AUDIT_RECORD",
+    "pub02_relocated_publication": "PENDING_DIR01_IMMUTABLE_COMMIT",
+    "external_vector_ingestion": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  }
+}
