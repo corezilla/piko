@@ -9,7 +9,7 @@
   "runtime_activation_authority": null,
   "reviewers": ["User / Piko Project Owner"],
   "decided_at": "2026-09-08T13:10:00+08:00",
-  "decision_commit": "eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f",
+  "decision_commit": "84d12da6f786e57e200b64cf80567e32f68f8d45",
   "conditions": [
     "Replace all prior Piko project manifest records rather than appending to them.",
     "Every new record must bind the immutable final document snapshot, new STD path, draft.19 metadata and exact content hash.",

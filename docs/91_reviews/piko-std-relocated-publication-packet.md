@@ -29,7 +29,7 @@
 ## 1. Immutable publication input
 
 - repository：`corezilla/piko`
-- source commit：`eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f`
+- source commit：`84d12da6f786e57e200b64cf80567e32f68f8d45`
 - source branch：`main`
 - STD：`0.1.0-draft.19` / `eeaf9bf33012928e3e74a9ca30e87d717690d343`
 - publication artifact：`rag/project-ingestion-manifest.jsonl`

@@ -1,7 +1,7 @@
 # Piko STD Migration Map
 
 状态：STD document migration completed；PUB-02 rebuilt
-基线：Piko final document snapshot `eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f`；STD `eeaf9bf33012928e3e74a9ca30e87d717690d343`
+基线：Piko final document snapshot `84d12da6f786e57e200b64cf80567e32f68f8d45`；STD `eeaf9bf33012928e3e74a9ca30e87d717690d343`
 
 ## 1. 文档映射
 

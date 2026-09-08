@@ -40,7 +40,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 `0.1.0-draft.19` 将已发布内容一次迁入默认目录树，不改变业务 authority。当前 canonical prose 是上列 `piko-*` design/contract/traceability/assurance
 文档；旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
 fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。PUB-02 已删除 manifest 中全部旧
-Piko 记录，并以最终文档 snapshot `eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f` 的新路径和内容 hash
+Piko 记录，并以清理后的最终文档 snapshot `84d12da6f786e57e200b64cf80567e32f68f8d45` 的新路径和内容 hash
 全量重新录入。项目不存在外部 RAG backend，因此 indexing 诚实记录为
 `N/A_NO_PROJECT_BACKEND`。Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
 canonical GitHub repository 为 `corezilla/piko`。
