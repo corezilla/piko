@@ -72,8 +72,9 @@ Invocation；Matrix/Element 实现不属于 Piko。Piko 只迁移本项目拥有
 
 ## 4. Cohort、工作包与顺序
 
-MR-01、CP-01、PUB-01 已分别提交。DIR-01 完成一次性目录搬移；PUB-02 在其 immutable commit 后
-重建 RAG manifest，因此不会伪造包含自身的 publication commit。
+MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
+`9f55da4a82e764b8479b134b0c5ffe11d1ce5ec4` 完成并推送一次性目录搬移；PUB-02 以包含本状态更新的
+最终文档快照为输入重建 RAG manifest，因此不会伪造包含自身的 publication commit。
 
 | Cohort / 包 | 内容 | 依赖 | 当前状态 | 首要 milestone / 完成标准 |
 |---|---|---|---|---|
@@ -84,8 +85,8 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 完成一次性目录搬移；PU
 | MR-01.E Pre-Commit Gate | 计划、27-file cohort 清单、packet/decision、三层证据、HEAD/dirty preservation | D | `COMPLETED` | STD approved；commit `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` |
 | CP-01 Canonical Promotion | approved scope 的 canonical path、reviewed commit、索引和旧文档标记 | G4 + repository ID + 独立批准 | `COMPLETED` | commit `119aa51af60da32c2db8d27c53bbf2975ab12938` |
 | PUB-01 Publication/RAG | publication manifest、RAG include/exclude、检索验证 | CP-01 commit + 独立批准 | `COMPLETED` | commit `21e24df144ef81e73203372dcbab15f533e3c511` |
-| DIR-01 Default Layout | 编号 docs 树、顶层 interfaces、tests/contract 与引用修复 | 用户直接批准；draft.19 | `IN_PROGRESS` | 全部 tracked artifact 单次搬移；L1/L2/链接检查通过 |
-| PUB-02 Relocated Publication | 以 DIR-01 immutable commit 重建 RAG manifest | DIR-01 commit | `PLANNED` | 新 source_path/hash 全部可从 commit 复算 |
+| DIR-01 Default Layout | 编号 docs 树、顶层 interfaces、tests/contract 与引用修复 | 用户直接批准；draft.19 | `COMPLETED` | commit `9f55da4a82e764b8479b134b0c5ffe11d1ce5ec4` 已推送；L1/L2/链接检查通过 |
+| PUB-02 Relocated Publication | 以最终文档 snapshot 重建 RAG manifest | DIR-01 commit + 用户直接批准 | `AUTHORIZED_FINAL_STEP` | 新 source_path/hash 全部可从 immutable input commit 复算；旧 Piko 记录为零 |
 | RT-01 Runtime Evidence/Activation | 真实 Matrix/DB recovery/security/LLMTier E2E 与激活 | 实现、环境、G7 | 未授权/部分 BLOCKED | 运行证据完整；activation 独立决定 |
 
 ## 5. 源→目标与模板映射
@@ -121,8 +122,8 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 完成一次性目录搬移；PU
 | PIKO-L3-B01 | evidence gate | 真实 Matrix、DB recovery、credential isolation、LLMTier E2E 未完成 | L3 不能 PASS | 实现与环境就绪后按 RT-01 执行 |
 | PIKO-MIG-R01 | 迁移风险 | promoted 文档与旧文档并存可能造成双 authority | 检索/引用歧义 | README、authority registry、map 与旧 prose banner 明示 current/residual boundary |
 
-当前没有未关闭的目录迁移 blocker。MR-01、CP-01 与 PUB-01 已完成并推送；DIR-01 与后续
-PUB-02 继续使用独立 STD pre-commit Gate。RT-01 未授权。
+当前没有未关闭的目录迁移 blocker。MR-01、CP-01、PUB-01 与 DIR-01 已完成并推送；用户已直接要求
+完成 PUB-02，形成最终 RAG manifest 后文档迁移即可关闭。RT-01 未授权。
 
 ## 8. 旧文档 residual authority 与完成标准
 
@@ -140,7 +141,8 @@ PUB-02 继续使用独立 STD pre-commit Gate。RT-01 未授权。
 
 跨项目迁移协调只通过 `std-migration` Matrix profile，以固定身份 `piko` 回复；不轮询旧房间。
 G4 接受的内容集合由 MR-01 commit 固定；CP-01 记录 Document Status 与 authority promotion；PUB-01
-记录旧路径 publication。DIR-01 经用户直接授权只搬移路径，提交后 PUB-02 再发布新路径 manifest。
+记录旧路径 publication。DIR-01 已由 `9f55da4a82e764b8479b134b0c5ffe11d1ce5ec4` 固定并推送；PUB-02
+以随后的最终文档 snapshot 发布新路径 manifest。
 Runtime Activation 不从任何文档或目录 Gate 推导。
 重大设计变化单独提出，不藏入格式迁移；STD revision、模板 hash、authority 或 contract 改变即触发增量复审。
 
