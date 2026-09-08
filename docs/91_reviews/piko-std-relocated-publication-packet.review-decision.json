@@ -1,0 +1,19 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-pub02-relocated-publication",
+  "packet_id": "piko-std-relocated-publication-packet",
+  "verdict": "ACCEPTED",
+  "document_status_before": "accepted",
+  "requested_document_status_after": "accepted",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": ["User / Piko Project Owner"],
+  "decided_at": "2026-09-08T13:10:00+08:00",
+  "decision_commit": "eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f",
+  "conditions": [
+    "Replace all prior Piko project manifest records rather than appending to them.",
+    "Every new record must bind the immutable final document snapshot, new STD path, draft.19 metadata and exact content hash.",
+    "External vector indexing remains N/A_NO_PROJECT_BACKEND and Runtime Activation remains false and NOT_RUN."
+  ],
+  "rationale": "The user directly requested removal of all old Piko RAG content and a single re-ingestion after migration completion. The Git-tracked manifest is the only available project publication backend and is rebuilt deterministically from the immutable final document snapshot."
+}

@@ -8,7 +8,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 - `docs/std.lock.json`
 - `docs/std-source-manifest.json`（锁定 STD draft.19 的 71 个来源 artifact）
 - `rag/std-ingestion-manifest.jsonl`（保留的 draft.1 历史 artifact；不代表项目 RAG ingestion）
-- `rag/project-ingestion-manifest.jsonl`（PUB-01 immutable publication 记录；DIR-01 后由 PUB-02 重建新路径）
+- `rag/project-ingestion-manifest.jsonl`（PUB-02：基于最终文档快照重新录入的 10 份 Piko canonical 文档）
 - `docs/98_migration/current-document-inventory.md`
 - `docs/00_management/piko-std-migration-plan-v0.1.md`
 - `docs/00_management/piko-std-tailoring-v0.1.md`
@@ -46,8 +46,8 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 `119aa51af60da32c2db8d27c53bbf2975ab12938` 完成 canonical promotion。DIR-01 以 STD
 `0.1.0-draft.19` 将已发布内容一次迁入默认目录树，不改变业务 authority。当前 canonical prose 是上列 `piko-*` design/contract/traceability/assurance
 文档；旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
-fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。PUB-01 以 CP-01 commit
-`119aa51af60da32c2db8d27c53bbf2975ab12938` 生成项目 ingestion manifest，外部 RAG backend 不存在，
-因此 indexing 诚实记录为 `N/A_NO_PROJECT_BACKEND`；迁移路径对应的 PUB-02 必须以 DIR-01 immutable
-commit 为输入另行生成。Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
+fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。PUB-02 已删除 manifest 中全部旧
+Piko 记录，并以最终文档 snapshot `eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f` 的新路径和内容 hash
+全量重新录入。项目不存在外部 RAG backend，因此 indexing 诚实记录为
+`N/A_NO_PROJECT_BACKEND`。Runtime Activation 保持 `false / NOT_RUN`。内部 repository identifier 为 `piko`，
 canonical GitHub repository 为 `corezilla/piko`。

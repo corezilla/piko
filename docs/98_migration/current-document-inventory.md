@@ -1,6 +1,6 @@
 # Piko 当前文档盘点与 STD 映射
 
-状态：DIR-01 default-layout relocation candidate
+状态：STD document migration completed；PUB-02 publication rebuilt
 日期：2026-09-08
 authority：Piko
 
@@ -54,11 +54,11 @@ authority：Piko
   Markdown。
 - `docs/std-source-manifest.json` 是 draft.19 的 71-artifact source lock；旧
   `rag/std-ingestion-manifest.jsonl` 原样保留为 draft.1 历史 artifact，不执行 ingestion。
-- PUB-01 immutable `rag/project-ingestion-manifest.jsonl` 只纳入 CP-01 commit
-  `119aa51af60da32c2db8d27c53bbf2975ab12938` 的 10 份 Approved canonical Markdown。
+- PUB-02 `rag/project-ingestion-manifest.jsonl` 只纳入最终文档 snapshot
+  `eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f` 的 10 份 Approved canonical Markdown。
   旧 prose、机器 authority、QA/review/evidence、STD source artifact 与 Draft/In Review 文档均排除。
-  项目没有现存外部 RAG backend，因此外部向量 indexing 为 `N/A_NO_PROJECT_BACKEND`。该 manifest
-  保留旧 commit/路径的准确记录；DIR-01 commit 后由 PUB-02 生成新路径 publication manifest。
+  项目没有现存外部 RAG backend，因此外部向量 indexing 为 `N/A_NO_PROJECT_BACKEND`。旧 Piko
+  manifest 记录已全部删除，并按新路径、draft.19 metadata 与 immutable content hash 全量重建。
 - 当前机器候选的 SessionSummary `Provisioning/Unavailable` 与 CloseResult `Unchanged` 未找到
   已冻结为 Slinky wire contract 的 Review ID；原迁移输入只记录
   `S-20260906-df6086da1916`、`S-20260906-1df5563ef488`，而原 QA 仍把 Session 状态确认列为
@@ -81,12 +81,12 @@ authority：Piko
 同一 scope 只允许上表一个 current prose authority。Runtime/external evidence 仍以实际执行 artifact
 为 authority；Document Status 不把 NOT_RUN/BLOCKED 变为 PASS。
 
-## 6. PUB-01 publication registry 与 PUB-02 边界
+## 6. PUB-02 publication registry
 
-- publication commit input：`119aa51af60da32c2db8d27c53bbf2975ab12938`。
+- publication commit input：`eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f`。
 - publication artifact：`rag/project-ingestion-manifest.jsonl`。
 - namespace/authority/ACL：`piko` / `piko` / `visibility=project`。
 - inclusion：上表 current canonical prose 中 10 份 Approved、带 sidecar 的 Markdown。
 - exclusion：Superseded/historical prose、机器契约、QA、review/evidence、STD lock/source manifest 与 runtime evidence。
 - Runtime Activation：`false / NOT_RUN`。
-- DIR-01 不改写该 immutable publication 记录；PUB-02 必须在 DIR-01 commit 后重算新路径与内容 hash。
+- replacement semantics：旧 Piko 记录为零；10 条记录全部使用新规范路径、draft.19 与可复算内容 hash。

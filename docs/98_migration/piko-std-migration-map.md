@@ -1,7 +1,7 @@
 # Piko STD Migration Map
 
-状态：DIR-01 default-layout relocation map
-基线：Piko published commit `21e24df144ef81e73203372dcbab15f533e3c511`；STD `eeaf9bf33012928e3e74a9ca30e87d717690d343`
+状态：STD document migration completed；PUB-02 rebuilt
+基线：Piko final document snapshot `eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f`；STD `eeaf9bf33012928e3e74a9ca30e87d717690d343`
 
 ## 1. 文档映射
 
@@ -35,7 +35,7 @@
 - QA v0.2/v0.3 与跨项目 review artifact 保留未关闭 item、输入与历史证据，不整体 Supersede。
 - DIR-01 将 current prose、机器契约、验证资料、评审记录与历史材料一次搬到 STD 默认路径；不改变
   Document ID、业务语义、接口 ID 或 Runtime Activation。
-- `rag/project-ingestion-manifest.jsonl` 保留 PUB-01 对旧 immutable commit 的准确记录；DIR-01 提交后
-  由 PUB-02 基于新路径 commit 重建，避免在未提交工作树中伪造 source commit。
+- `rag/project-ingestion-manifest.jsonl` 已删除全部 PUB-01 Piko 记录，并由 PUB-02 基于最终文档
+  snapshot 全量重建；10 条记录均使用新路径、draft.19 和可复算 content hash。
 - 外部 RAG backend 不存在，indexing 为 `N/A_NO_PROJECT_BACKEND`；Runtime Activation 仍为
   `false / NOT_RUN`。

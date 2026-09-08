@@ -1,0 +1,95 @@
+{
+  "schema_version": "piko-relocated-publication-evidence.v1",
+  "captured_at": "2026-09-08T13:10:00+08:00",
+  "project_root": "/Users/ben/work/piko",
+  "cohort": "PUB-02",
+  "input": {
+    "head": "eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f",
+    "branch": "main",
+    "remote": "https://github.com/corezilla/piko",
+    "remote_main": "eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f",
+    "working_tree": "clean"
+  },
+  "publication": {
+    "manifest": "rag/project-ingestion-manifest.jsonl",
+    "manifest_sha256": "e222b677b0a00eaed76441fa72ab016daad17681984b439674a12eba5ae29b13",
+    "source_commit": "eefb12a3b45fd8ffb5a1b2d950d430f4508fec3f",
+    "record_count": 10,
+    "old_piko_record_count": 0,
+    "namespace": "piko",
+    "authority": "piko",
+    "visibility": "project",
+    "status": "accepted",
+    "template_version": "0.1.0-draft.19",
+    "external_index_backend": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  },
+  "gates": {
+    "l1_source_verifier": {
+      "command": "/Users/ben/work/STD/scripts/verify-source-manifest --std-root /Users/ben/work/STD docs/std-source-manifest.json",
+      "exit_code": 0,
+      "key_output": "STD source manifest verification OK: 71 artifacts",
+      "status": "PASS"
+    },
+    "l1_project_root": {
+      "command": "/Users/ben/work/STD/scripts/validate-design --project-root /Users/ben/work/piko --require-immutable-std --json /tmp/piko-pub02-validation.json",
+      "exit_code": 0,
+      "key_output": "ok=true; checked_metadata=14; checked_markdown=14; checked_decisions=5; new_error_count=0; inherited_error_count=0",
+      "status": "PASS"
+    },
+    "l2_project_contract": {
+      "command": "python3 tests/contract/validate_v03_contract.py",
+      "exit_code": 0,
+      "key_output": "OK: 4 Schema fixtures, 2 semantic fixtures, OpenAPI refs/filter/typed error and authority boundaries passed",
+      "status": "PASS"
+    },
+    "l2_publication_manifest": {
+      "command": "inline verifier: require exact 10-path set and unique paths/Document IDs; reject old prefixes and commits; verify project/authority/visibility/status/template version; hash git show eefb12a:<path>; compare immutable sidecars",
+      "exit_code": 0,
+      "key_output": "PUB02_MANIFEST_PASS: 10 unique records; old path/commit count=0; immutable hashes and metadata match",
+      "status": "PASS"
+    },
+    "l3_external_rag_runtime": {
+      "status": "N/A_NO_PROJECT_BACKEND",
+      "detail": "No existing external vector backend is available. The Git-tracked manifest is the authoritative re-ingestion artifact; Runtime Activation remains false and NOT_RUN."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "status": "PASS"
+    }
+  },
+  "artifact_digest_algorithm": {
+    "algorithm_id": "piko-artifact-set-sha256.v1",
+    "scope": "The exact 8-path PUB-02 commit set excluding exactly docs/91_reviews/piko-std-relocated-publication-evidence.json, leaving 7 artifacts.",
+    "path_encoding": "UTF-8 without normalization",
+    "ordering": "Ascending lexicographic order of UTF-8 path bytes",
+    "record_format": "SHA-256 hex of exact file bytes + two ASCII spaces + repository-relative UTF-8 path + LF",
+    "manifest_byte_count": 801,
+    "result_sha256": "0bc9b7f1d5fd922f68007d9e5bcf8bb94cc87737a3fee06f1b97d92f0762fee6"
+  },
+  "commit_gate": {
+    "approval_authority": "User / Piko Project Owner direct instruction",
+    "approved": true,
+    "commit_performed": false,
+    "push_performed": false,
+    "changed_file_count": 8,
+    "changed_files": [
+      "README.md",
+      "docs/91_reviews/piko-std-relocated-publication-evidence.json",
+      "docs/91_reviews/piko-std-relocated-publication-packet.md",
+      "docs/91_reviews/piko-std-relocated-publication-packet.metadata.json",
+      "docs/91_reviews/piko-std-relocated-publication-packet.review-decision.json",
+      "docs/98_migration/current-document-inventory.md",
+      "docs/98_migration/piko-std-migration-map.md",
+      "rag/project-ingestion-manifest.jsonl"
+    ]
+  },
+  "boundaries": {
+    "directory_migration": "COMPLETED_AND_PUSHED",
+    "project_manifest_replacement": "VALIDATED_AND_USER_APPROVED",
+    "std_history_manifest": "PRESERVED_SEPARATE_AUTHORITY",
+    "external_vector_ingestion": "N/A_NO_PROJECT_BACKEND",
+    "runtime_activation": false
+  }
+}
