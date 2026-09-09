@@ -1,13 +1,13 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-collaboration-bridge-design-v0.3", "document_type": "design.system-mechanism",
-  "document_version": "0.3.0", "title": "Piko CollaborationBridge 端到端机制设计",
+  "document_version": "0.3.1", "title": "Piko CollaborationBridge 端到端机制设计",
   "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md",
-  "std_version": "0.1.0-draft.19", "template_id": "design.system-mechanism", "template_version": "0.1.0-draft.19",
-  "template_sha256": "8bb52c7b4af9651fa984ebdc56f63ecfdb74bef7bf76dce09e13468bad68887e",
+  "template_id": "design.system-mechanism", "template_version": "0.1.0",
+  "template_sha256": "c0fd5ca749863a5dd7fde0afd347a09cff9bb6f8e4565864ff1ab4add2e01f13",
   "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
-  "design_level": "cross-level", "domain": ["systems", "software"], "status": "accepted", "visibility": "project",
-  "reviewed_commit": "f2bb0937f31a27c36ecc1adefc31b1b78b6dc722", "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": "docs/99_reference/design/agent-runtime-matrix-collaboration-design-v0.3.md",
-  "created_at": "2026-09-07", "last_modified_at": "2026-09-08"
+  "design_level": "cross-level", "domain": ["systems", "software"], "status": "review", "visibility": "project",
+  "reviewed_commit": null, "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": "docs/99_reference/design/agent-runtime-matrix-collaboration-design-v0.3.md",
+  "created_at": "2026-09-07", "last_modified_at": "2026-09-09"
 }

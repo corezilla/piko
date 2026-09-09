@@ -3,10 +3,15 @@
 Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目前处于契约与系统设计
 评审阶段，尚未包含生产实现。
 
+## Engineering Standard
+
+本项目采用 STD `0.1.0-draft.21`，由 `docs/std.lock.json` 锁定。STD 升级只在用户明确要求时
+执行；单份文档只跟踪其 `Template ID`、独立 `Template Version` 和模板 SHA-256。
+
 当前中文评审材料：
 
 - `docs/std.lock.json`
-- `docs/std-source-manifest.json`（锁定 STD draft.19 的 71 个来源 artifact）
+- `docs/std-source-manifest.json`（锁定 STD draft.21 的来源 artifact）
 - `rag/project-ingestion-manifest.jsonl`（PUB-02：基于最终文档快照重新录入的 10 份 Piko canonical 文档）
 - `docs/98_migration/current-document-inventory.md`
 - `docs/00_management/piko-std-migration-plan-v0.1.md`
@@ -21,6 +26,7 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 - `docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md`
 - `docs/91_reviews/piko-std-migration-review-packet.md`
 - `docs/91_reviews/piko-std-migration-review-packet.review-decision.json`
+- `docs/91_reviews/piko-std-draft21-upgrade-packet.md`（本次结构升级评审候选）
 - `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml`
 - `interfaces/schemas/agent-runtime-matrix-v0.3.schema.json`
 - `interfaces/error-codes/error-blocker-catalog-v0.3.json`
@@ -37,8 +43,10 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 `piko-*` 文档的内容由 MR-01 immutable candidate commit
 `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722` 固定，并在 CP-01 commit
 `119aa51af60da32c2db8d27c53bbf2975ab12938` 完成 canonical promotion。DIR-01 以 STD
-`0.1.0-draft.19` 将已发布内容一次迁入默认目录树，不改变业务 authority。当前 canonical prose 是上列 `piko-*` design/contract/traceability/assurance
-文档；旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
+`0.1.0-draft.19` 将已发布内容一次迁入默认目录树，不改变业务 authority；本次项目采用升级至
+STD `0.1.0-draft.21` 时，文档实例只按各自独立 Template Version 判断是否需要调整。上一
+canonical snapshot 仍由既有 publication evidence 与 RAG manifest 指向；本次 `0.3.1` 系统/机制设计
+在批准和 promotion 前保持 review candidate。旧 v0.2/v0.3 prose 仅保留历史或 residual scope。OpenAPI、JSON Schema、error catalog 与
 fixtures 继续是字段级机器 authority；QA ledger 继续承担未关闭项。PUB-02 已删除 manifest 中全部旧
 Piko 记录，并以清理后的最终文档 snapshot `84d12da6f786e57e200b64cf80567e32f68f8d45` 的新路径和内容 hash
 全量重新录入。项目不存在外部 RAG backend，因此 indexing 诚实记录为

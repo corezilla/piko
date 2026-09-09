@@ -15,8 +15,8 @@
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.19` |
 | Template ID | `assurance.vv-plan` |
+| Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
@@ -44,7 +44,7 @@
 | OpenAI SDK | 6.40.0 | mock capture 已有 |
 | LLMTier | Piko-facing Scope B/recovery bundle | semantics accepted，activation false |
 | Matrix/Element | version/config 未冻结 | Open Gate |
-| STD | `0.1.0-draft.19`，revision `eeaf9bf33012928e3e74a9ca30e87d717690d343` | immutable source locked；document approved，runtime activation=false |
+| STD | 项目采用 `0.1.0-draft.21`，revision `274ef0a67eda080baa0063ae27ede7ee129aa32a` | immutable source locked；本次结构升级为 review candidate，runtime activation=false |
 
 每个执行 evidence 必须记录 source commit、Schema version、环境 topology、dependency version、
 configuration fingerprint、case/run ID 和时间。

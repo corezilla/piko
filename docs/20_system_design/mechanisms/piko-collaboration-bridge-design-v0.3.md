@@ -4,19 +4,16 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.3.1` |
+| Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.19` |
+| Last Modified Date | `2026-09-09` |
 | Template ID | `design.system-mechanism` |
+| Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
@@ -24,11 +21,11 @@
 | Canonical Path | `docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md` |
 | Supersedes | `docs/99_reference/design/agent-runtime-matrix-collaboration-design-v0.3.md` |
 
-> 本文件是已批准的 canonical CollaborationBridge mechanism prose。Piko v0.3 机器契约继续承担
-> 字段级 authority；Document Status 不触发 Runtime Activation。
+> 本文件是按 STD draft.21 对应模板重构的评审候选；上一批准版本仍是生效基线。
+> 字段级机器 authority 不变，Document Status 不触发 Runtime Activation。
 <!-- STD_DOCUMENT_COVER_END -->
 
-## 1. 目的、范围与上位输入
+## 1. 文档目的与机制摘要
 
 ### 1.1 目的
 
@@ -53,9 +50,34 @@ resolution、Element descriptor、close/archive/retention、lease/fencing 和 re
 不包含 Matrix homeserver/Element 的实现、用户登录、E2EE、Slinky Decision Dossier、
 Project/Plan authority，以及独立于 Agent Runtime 的第二通信服务。
 
-## 2. Ownership 与边界
+本机制跨越 Agent Runtime、durable store、Matrix Application Service、Element 与 Slinky Runtime。
+对外可观察行为是：稳定 IR identity、一个 Session 一个 private room、耐久收发、结构化 resolution、
+精确 ExternalLink 和可恢复 close/archive。本文冻结机制不变量与端到端语义，不冻结数据库产品、
+进程拓扑或 homeserver 实现。
 
-### 2.1 Authority 表
+## 2. Scope、Non-goals 与适用条件
+
+### 2.1 Scope
+
+覆盖 Operator transport profile、AS virtual user provisioning、IR binding、Session/room、membership、
+AS transaction ingress、durable inbox/outbox、reply obligation、resolution、Element descriptor、
+close/archive/retention、rename reconciliation、lease/fencing 与 restart recovery。
+
+### 2.2 Non-goals
+
+不实现 Matrix homeserver/Element、不代理用户登录、不复制 transcript、不创建 Slinky Decision Dossier、
+ParticipantActionRequest、Plan/IR/Artifact 决定，也不提供 E2EE、ManagedUser、普通 sync/poll、
+shared room/thread、iframe 或外部 bridge fallback。
+
+### 2.3 Preconditions 与 Activation Gate
+
+启用前必须完成 transport probe、AS registration/namespace、credential binding、retention policy、
+observer binding、机器契约 enum 一次性对齐、durable store/lease、真实 Matrix/Element recovery/security E2E。
+任一必需 gate 未关闭时 capability 与整体 runtime activation 均保持 false。
+
+## 3. Authority、参与方与责任边界
+
+### 3.1 Authority 表
 
 | 对象/决定 | Authority | Piko 行为 |
 |---|---|---|
@@ -69,7 +91,7 @@ Project/Plan authority，以及独立于 Agent Runtime 的第二通信服务。
 | Expert/PM Work、ParticipantActionRequest、用户 Decision | Slinky | Piko 只返回 exact refs 和建议 |
 | Element 用户 session | 用户/Matrix | Piko 仅返回 ExternalLink descriptor |
 
-### 2.2 单一路径约束
+### 3.2 单一路径约束
 
 ```text
 Slinky Runtime -> AgentRuntimeAdapter -> Run Coordinator
@@ -80,16 +102,23 @@ Pi 只能使用 normalized `CollaborationEvent` port；不能持有 Matrix token
 homeserver。禁止外部 bridge、Codex task、文件 outbox、普通 sync/poll、heartbeat、
 shared room/thread、ManagedUser 或其他 fallback。
 
-## 3. Current Baseline 与 Approved Delta
+| Participant/Subsystem | 负责 | 不负责 | Owned state/data | Provided interface | Consumed interface |
+|---|---|---|---|---|---|
+| Slinky Runtime | CollaborationContract、participant route、reply/close intent | room、delivery、transcript copy | Work/Attempt/IR authority | Run request/close intent | Piko Session/descriptor |
+| Piko CollaborationBridge | identity、room、membership、delivery、resolution outcome、archive execution | Plan/IR/用户决定 | binding/session/ledger | Admin/Binding/Session/Element APIs | Matrix AS/Element locator |
+| Matrix homeserver | room/event/AS transaction | Project/Agent authority | Matrix room/event state | Client-Server + AS APIs | AS registration |
+| Element | 用户自己的 Matrix session 展示 exact room | login proxy、第二 transcript | UI session | ExternalLink target | Matrix Client API |
 
-### 3.1 Current Baseline
+## 4. Current Baseline、Approved Delta 与演进状态
+
+### 4.1 Current Baseline
 
 - 已有 v0.3 中文设计、OpenAPI、Schema、error catalog、fixture 和本地 validator。
 - 文档 validator 已覆盖部分 Schema、participant set、filter、typed error 和 authority boundary。
 - 当前没有生产数据库、Application Service registration、homeserver integration、Element
   browser evidence、Pi collaboration hook 或 crash/failover execution evidence。
 
-### 3.2 已冻结设计
+### 4.2 已冻结设计
 
 1. 唯一 identity mode：`ApplicationServiceVirtualUser`。
 2. `(client_id, project_id, ir_id)` 和 `matrix_user_id` 双重唯一。
@@ -100,14 +129,56 @@ shared room/thread、ManagedUser 或其他 fallback。
 7. strict Result 可选 structured resolution，必须保留少数立场和 Evidence。
 8. close 先停止发送/wakeup，再收敛 delivery，最后 archive/retention。
 
-### 3.3 Open Gates
+### 4.3 Open Gates
 
 具体 homeserver/AS 版本、Probe checklist、retention catalog、room reconciliation timeout、
 Element route 编码、transport capacity/SLO 尚未冻结；这些内容不能由实现自行猜测。
 
-## 4. 设计概览与主流程
+## 5. Context 与端到端边界
 
-### 4.1 内部构建块
+```mermaid
+flowchart LR
+    S[Slinky Runtime] -->|CollaborationContract| P[Piko Agent Runtime]
+    P --> B[CollaborationBridge]
+    B --> D[(Durable binding/session/message ledger)]
+    B <-->|AS transaction / Client API| M[Matrix homeserver]
+    U[User] -->|own Matrix session| E[Element Web]
+    E -->|exact room| M
+    P -->|summary + descriptor, no transcript| S
+```
+
+信任边界位于 Slinky→Piko API、Piko Secret boundary、Piko→Matrix AS/Client API 和用户→Element
+session。Project authority 不跨入 Matrix；Matrix message 是 communication Evidence，不是 Project truth。
+
+## 6. 机制不变量与系统级约束
+
+| Invariant ID | Statement | Owner | Enforcement | Violation result |
+|---|---|---|---|---|
+| CB-INV-001 | `project_id + ir_id` 与 `matrix_user_id` 双向唯一，rename 不换 identity | Piko | DB unique + reconciliation | typed conflict / RecoveryRequired |
+| CB-INV-002 | 一个 CollaborationSession 独占一个 non-encrypted private room | Piko | atomic create + room policy probe | fail closed |
+| CB-INV-003 | route 使用 `ir_ref + matrix_user_id + session_id`，不使用 display name | Piko | resolver validation | unroutable blocker |
+| CB-INV-004 | AS txn/event 与 outbound txn 去重，确认前 obligation 已耐久落盘 | Piko | transaction ledger | retry same txn |
+| CB-INV-005 | close 同 key/digest 重放返回记录结果，不因随后 Closed 改义 | Piko | idempotency ledger | IdempotencyConflict |
+| CB-INV-006 | transcript/Secret/token/device key/checkpoint 不进入 Slinky DTO | Piko | schema + response filter | security failure |
+| CB-INV-007 | explicit user constraint 不被多数票覆盖 | Slinky/Piko boundary | strict resolution schema | NeedsParticipantDecision |
+
+## 7. 参与组件与协作拓扑
+
+| 构建块 | 职责 | 输入/输出 | 持久状态 | 禁止事项 |
+|---|---|---|---|---|
+| Profile Manager | singleton PUT/GET/Probe、version/readiness | Operator commands | profile/version/etag/audit | 接收 token 内容、Probe 产生副作用 |
+| IR Binding Manager | virtual user intent、stable MXID、display reconciliation | exact IR/display profile | binding/version/mapping/obligation | display name routing、随机 suffix |
+| Contract Validator | participant/route/observer/reply/deadline/policy 完整性 | CollaborationContract | validation evidence | 从 transcript 推断 contract |
+| Session Coordinator | Session 状态、room mapping、close/archive | Run/close intent | Session/version/obligations | 独立 create endpoint、participant mutation |
+| Room Provisioner | private room、exact membership/state verification | stable provisioning intent | room outcome/mapping | shared room/thread、federation、encryption |
+| AS Transaction Ingress | transaction auth、event normalize/dedup | homeserver push txn | txn/event ledger/checkpoint | commit 前 ACK、普通 sync |
+| Outbox Sender | stable Matrix txn send/retry | durable message obligation | outbox/txn outcome | response loss 后换 txn id |
+| Delivery Processor | route/reply/deadline、Pi wakeup | normalized event | inbox/delivery/reply ledger | 显示名称 routing、丢弃 backpressure item |
+| Resolution Gateway | strict resolution validation/persistence | Team outcome | resolution/result reference | 多数票/last-message authority |
+| Element Projector | exact room locator 和 participant display | Session query | 无第二 transcript | token URL、iframe、login proxy |
+| Recovery Worker | rename/membership/delivery/close/retention reconcile | open obligations | lease/fencing/checkpoint | 无 owner 时推进状态 |
+
+### 7.1 内部构建块
 
 ```mermaid
 flowchart TB
@@ -127,36 +198,9 @@ flowchart TB
     RS --> DB
 ```
 
-### 4.2 Run 与 room 建立主流程
+## 8. 输入、输出与公共对象
 
-1. Run admission 验证 CollaborationContract、transport profile/version、retention policy、
-   participant Binding、observer binding、route/reply/deadline references。
-2. Run identity、Attempt index、Session、room provisioning intent 和初始 delivery obligation
-   在同一 Piko durable transaction 中建立。
-3. commit 后 Room Provisioner 用稳定 provisioning key 请求 homeserver。
-4. room 创建/响应丢失时恢复同一 intent，不能创建第二 room。
-5. 创建后读取 room state，验证 private、`m.federate=false`、无 encryption、exact membership。
-6. 全部验证完成后 Session 才进入 Active，Pi participant 才允许发送/接收协作事件。
-
-## 5. 内部分解与依赖
-
-| 构建块 | 职责 | 输入/输出 | 持久状态 | 禁止事项 |
-|---|---|---|---|---|
-| Profile Manager | singleton PUT/GET/Probe、version/readiness | Operator commands | profile/version/etag/audit | 接收 token 内容、Probe 产生副作用 |
-| IR Binding Manager | virtual user intent、stable MXID、display reconciliation | exact IR/display profile | binding/version/mapping/obligation | display name routing、随机 suffix |
-| Contract Validator | participant/route/observer/reply/deadline/policy 完整性 | CollaborationContract | validation evidence | 从 transcript 推断 contract |
-| Session Coordinator | Session 状态、room mapping、close/archive | Run/close intent | Session/version/obligations | 独立 create endpoint、participant mutation |
-| Room Provisioner | private room、exact membership/state verification | stable provisioning intent | room outcome/mapping | shared room/thread、federation、encryption |
-| AS Transaction Ingress | transaction auth、event normalize/dedup | homeserver push txn | txn/event ledger/checkpoint | commit 前 ACK、普通 sync |
-| Outbox Sender | stable Matrix txn send/retry | durable message obligation | outbox/txn outcome | response loss 后换 txn id |
-| Delivery Processor | route/reply/deadline、Pi wakeup | normalized event | inbox/delivery/reply ledger | 显示名称 routing、丢弃 backpressure item |
-| Resolution Gateway | strict resolution validation/persistence | Team outcome | resolution/result reference | 多数票/last-message authority |
-| Element Projector | exact room locator 和 participant display | Session query | 无第二 transcript | token URL、iframe、login proxy |
-| Recovery Worker | rename/membership/delivery/close/retention reconcile | open obligations | lease/fencing/checkpoint | 无 owner 时推进状态 |
-
-## 6. 接口与契约
-
-### 6.1 Operator API
+### 8.1 Operator API
 
 - `PUT/GET /operator/matrix-transport-profile`
 - `POST /operator/matrix-transport-profile:probe`
@@ -165,7 +209,7 @@ flowchart TB
 `Idempotency-Key`。Request 只携带 `credential_binding_ref`，registration、AS token 和
 exclusive namespace 留在 Piko Secret boundary。
 
-### 6.2 IR binding API
+### 8.2 IR binding API
 
 ```text
 PUT/GET /projects/{project_id}/ir-communication-bindings/{ir_id}
@@ -174,7 +218,7 @@ PUT/GET /projects/{project_id}/ir-communication-bindings/{ir_id}
 公开 status 只有 `Active|Suspended`。内部 Provisioning/ReconciliationRequired 通过
 operation outcome、blocking reason 和 readiness 表达，不扩展外部枚举。v0.3 不提供 delete。
 
-### 6.3 Session/Element API
+### 8.3 Session/Element API
 
 - Session 不单独创建；`POST /runs` 的 CollaborationContract 原子建立 intent。
 - `GET /projects/{project_id}/collaboration-sessions`
@@ -183,9 +227,17 @@ operation outcome、blocking reason 和 readiness 表达，不扩展外部枚举
 
 字段、required、enum、conditional rule 和错误码以机器契约为准。本文不复制 Schema。
 
-## 7. 数据、状态与生命周期
+| Object/Artifact | Producer | Consumer | Schema authority | Lifecycle | Persistence | Authority |
+|---|---|---|---|---|---|---|
+| MatrixTransportProfile | Operator/Piko | Bridge | v0.3 OpenAPI/Schema | singleton versioned | durable, Secret by ref | Piko Operator |
+| IRCommunicationBinding | Slinky via Runtime | Bridge | v0.3 OpenAPI/Schema | Active/Suspended | durable | Piko mapping; IR ref by Slinky |
+| CollaborationSessionSummary | Bridge | Slinky View | v0.3 machine contract | paged/filterable | projection | Piko |
+| CollaborationResolutionSummary | Agent Team/Piko | Slinky Runtime | strict Result schema | terminal/updated outcome | Result Evidence | Team outcome only |
+| ElementConversationDescriptor | Bridge | Slinky/User | v0.3 machine contract | point-in-time locator | derived | Piko locator |
 
-### 7.1 持久记录与唯一约束
+## 9. 状态模型与生命周期
+
+### 9.1 持久记录与唯一约束
 
 | Record | 关键 identity | 不变式 |
 |---|---|---|
@@ -203,7 +255,7 @@ operation outcome、blocking reason 和 readiness 表达，不扩展外部枚举
 | Rename/membership/archive obligation | stable obligation id | 完成或人工 reconcile 前保留 |
 | Writer lease | scope + fencing token | stale writer 不得 ACK/send/advance version |
 
-### 7.2 Stable MXID 派生
+### 9.2 Stable MXID 派生
 
 ```text
 input = RFC8785_JCS({
@@ -219,7 +271,7 @@ mxid = "@" + localpart + ":" + verified_matrix_server_name
 完整 256-bit digest 不截断。homeserver name 来自 Probe 结果；display name、room title、alias
 均不参与派生或 routing。碰撞返回 `MatrixIdentityCollision`，不能随机重试或切换算法。
 
-### 7.3 内部生命周期与外部状态映射
+### 9.3 内部生命周期与外部状态映射
 
 ```text
 Provisioning -> Active <-> WaitingForReply -> Closing -> Closed
@@ -261,9 +313,27 @@ Provisioning -> Active <-> WaitingForReply -> Closing -> Closed
 的 `Unavailable` 属于 view/source 可见性语义；标准 source-unavailable 路径仍返回 typed 503，
 不能代替 SessionSummary 的 `RecoveryRequired`。
 
-## 8. 控制流、并发与时序
+Canonical state 是 Piko durable binding/session/message ledger；Matrix room/event 是外部通信事实；
+list、descriptor 和 operations view 是无 Secret projection。cache 或 Element UI 状态不得反向覆盖 canonical state。
 
-### 8.1 AS transaction ingress
+## 10. 正常端到端运行流程
+
+### 10.1 Run 与 room 建立
+
+#### 10.1.1 Run 与 room 建立主流程
+
+1. Run admission 验证 CollaborationContract、transport profile/version、retention policy、
+   participant Binding、observer binding、route/reply/deadline references。
+2. Run identity、Attempt index、Session、room provisioning intent 和初始 delivery obligation
+   在同一 Piko durable transaction 中建立。
+3. commit 后 Room Provisioner 用稳定 provisioning key 请求 homeserver。
+4. room 创建/响应丢失时恢复同一 intent，不能创建第二 room。
+5. 创建后读取 room state，验证 private、`m.federate=false`、无 encryption、exact membership。
+6. 全部验证完成后 Session 才进入 Active，Pi participant 才允许发送/接收协作事件。
+
+### 10.2 AS 入站与出站
+
+#### 10.2.1 AS transaction ingress
 
 ```mermaid
 sequenceDiagram
@@ -286,7 +356,7 @@ sequenceDiagram
 commit 前不确认 homeserver。重复 transaction/event 命中 ledger 后返回已有结果，不建立第二
 delivery obligation。
 
-### 8.2 出站发送
+#### 10.2.2 出站发送
 
 ```mermaid
 sequenceDiagram
@@ -308,7 +378,12 @@ sequenceDiagram
     end
 ```
 
-### 8.3 多 room cursor
+每一步以 correlation/session/event/txn identity 写入 audit；timeout 不改变 obligation identity。入站只在
+event、dedup 与 delivery obligation 原子落盘后 ACK；出站 retry 复用同一 Matrix `txn_id`。
+
+## 11. 分支、并发、排序与资源仲裁
+
+### 11.1 多 room cursor
 
 过滤顺序为 authorization 后再应用 `status + ir_id + work_execution_id + agent_run_id`
 逻辑 AND。排序固定：
@@ -321,7 +396,7 @@ opaque signed cursor 绑定 Client、Project、filter digest、snapshot upper bo
 expiry。跨 scope/filter、篡改或过期 cursor 返回 typed error，不回退第一页。同一 snapshot
 内的并行更新不造成重复/跳项；snapshot 后新增 Session 由新查询看到。
 
-### 8.4 Close
+### 11.2 Close
 
 close 要求 current ETag + Idempotency-Key。进入 Closing 后停止新的业务 admission、业务消息
 创建和 Agent wakeup；这不停止关闭 intent 前已经确认并持久化的 inbox/outbox/reply obligation。
@@ -339,9 +414,13 @@ namespace/key/digest 与首次响应语义必须原子记录：同一 namespace/
 close 请求，并通过既有 authorization/version 检查后，才记录并返回 `AlreadyClosed`。所有恢复
 复用原 Session、room、archive execution reference 和 obligation identity，不建立第二恢复机制。
 
-## 9. 失败、恢复与可观测性
+一个 Session 内按 durable sequence/order key 排序，不同 Session 可并行；writer lease/fencing 阻止旧实例
+继续写入。分页 cursor 绑定 project、filter 和稳定排序 snapshot，不能跨过滤条件复用。Closing 只阻断
+新业务 admission，已经确认的 inbox/outbox obligation 继续 drain。
 
-### 9.1 Restart 顺序
+## 12. 失败模型、部分失败与恢复
+
+### 12.1 Restart 顺序
 
 1. 获取新的 writer lease/fencing token；
 2. 校验 profile、credential binding、schema version；
@@ -355,29 +434,41 @@ close 请求，并通过既有 authorization/version 检查后，才记录并返
 checkpoint 损坏、ledger 不一致或 writer ownership 不可证明时停止受影响 scope，公开
 `CollaborationStateInconsistent` 或相应 blocker，不做 best-effort 推进。
 
-### 9.2 Rename recovery
+### 12.2 Rename recovery
 
 `display_profile_version` 只单调增加。Piko 先写 rename obligation，再更新 Matrix profile；
 失败时 Binding 保留相同 MXID、room、membership 和 history，并暴露阻塞。credential rotation
 同样不得改变 identity/session/room。
 
-### 9.3 Observability
+### 12.3 Observability
 
 最低指标：AS transaction accepted/replayed/rejected、event dedup、inbox/outbox backlog、
 oldest obligation age、send retry、membership drift、rename lag、Session state count、close/archive
 lag、cursor rejection、lease fencing rejection 和 descriptor unavailable。日志只记录脱敏 identity
 reference，不含 AS token、credential、message body 或用户登录材料。
 
-## 10. 资源、容量、性能与限制
+| Failure ID | Failure point | Detection | System effect | Retry/Recovery | Data treatment | Terminal state |
+|---|---|---|---|---|---|---|
+| CB-F-001 | AS transaction 重复 | txn/event ledger hit | 无重复 wakeup | 返回既有 ACK | 保留 ledger | 原状态 |
+| CB-F-002 | outbound 响应丢失 | timeout + txn ledger | outcome unknown | 同 txn_id 查询/重放 | obligation 不删除 | Active/RecoveryRequired |
+| CB-F-003 | close 部分失败 | pending count/blocker | 不提前 archive | restart 继续原 obligation | 精确 blocker | RecoveryRequired |
+| CB-F-004 | writer failover | lease expiry/fence | 旧 writer 禁写 | 新 writer replay durable work | 单一 canonical ledger | 原状态 |
+| CB-F-005 | descriptor source 不可用 | Matrix/Element probe | 不返回伪链接 | typed unavailable | 不复制 transcript | Unavailable projection |
 
-- worker 数量可以水平扩展，但每个 transport/session write scope 必须有一个有效 fencing owner。
-- inbox/outbox 超出容量时使用 durable backpressure；不能 ACK 后丢消息或切换临时文件路径。
-- cursor snapshot storage/expiry、reply deadline、membership reconciliation timeout、archive SLO
-  和 retention duration 尚待冻结。
-- Element link generation 是纯 projection，不缓存 transcript。
-- 当前没有 homeserver throughput、room count、events/s、wake latency 或 failover RTO 实测。
+## 13. 配置、模式、兼容性与回退
 
-## 11. 安全与隔离
+| Config/Mode | Owner | Allowed values | Default | Scope | Change effect | Validation |
+|---|---|---|---|---|---|---|
+| identity mode | Piko Operator | ApplicationServiceVirtualUser | required | transport profile | provisioning policy | profile PUT/Probe |
+| room topology | Piko Operator | ExclusiveRoom | required | project sessions | one room/session | contract + E2E |
+| encryption policy | Piko Operator | Forbidden | required | all v0.3 rooms | reject encrypted room | room-state probe |
+| federation policy | Piko Operator | Forbidden | required | all v0.3 rooms | reject federated config | homeserver policy probe |
+| open mode | Contract | ExternalLink | required | descriptor | exact Element route | schema + security test |
+
+版本不匹配、unsupported policy 或 unavailable dependency 均 fail closed。V0.3 没有兼容 alias、普通 sync、
+ManagedUser、E2EE、iframe、shared room/thread、外部 bridge 或 runtime fallback。
+
+## 14. 安全、隐私、Secret 与隔离
 
 1. homeserver/Element URL 仅 HTTPS；禁止 loopback、link-local、未批准 redirect 和 DNS
    rebinding 到受限地址。
@@ -392,32 +483,41 @@ reference，不含 AS token、credential、message body 或用户登录材料。
 7. structured resolution 不可携带或执行 Expert/PM Work、ParticipantActionRequest、用户
    Decision、Plan change 或 Artifact acceptance。
 
-## 12. 实现映射与变更范围
+## 15. 可观测性、审计与运行证据
 
-### 12.1 当前设计资产
+### 15.1 Observability
 
-| 资产 | 路径 | 角色 |
-|---|---|---|
-| OpenAPI | `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml` | operation/header/response authority |
-| JSON Schema | `interfaces/schemas/agent-runtime-matrix-v0.3.schema.json` | DTO/conditional constraint authority |
-| Error catalog | `interfaces/error-codes/error-blocker-catalog-v0.3.json` | typed error/blocker authority |
-| Fixture | `interfaces/vectors/v0.3/collaboration-decision-fixtures.json` | 正负 machine evidence |
-| Validator | `tests/contract/validate_v03_contract.py` | 文档期校验入口 |
+最低指标：AS transaction accepted/replayed/rejected、event dedup、inbox/outbox backlog、
+oldest obligation age、send retry、membership drift、rename lag、Session state count、close/archive
+lag、cursor rejection、lease fencing rejection 和 descriptor unavailable。日志只记录脱敏 identity
+reference，不含 AS token、credential、message body 或用户登录材料。
 
-### 12.2 目标 module 边界
+| Signal/Artifact | Writer | Consumer | Identity fields | Retention | Alert/Gate use |
+|---|---|---|---|---|---|
+| AS transaction ledger | Bridge | recovery/operator | project/session/txn/event | policy-bound | duplicate/replay gate |
+| durable inbox/outbox | Bridge | worker/recovery | session/obligation/txn | until settled + audit | pending/blocker alerts |
+| binding/rename audit | Bridge | operator/Slinky read model | project/ir/matrix user/version | audit policy | drift/security gate |
+| close/archive result | Bridge | Slinky Runtime | session/run/work/attempt/key | retention policy | close gate |
 
-未来代码应在唯一 Agent Runtime 内形成 `profile`、`identity-binding`、`session`、
-`matrix-as-ingress`、`delivery`、`resolution`、`element-projection`、`recovery` 和
-`persistence` modules。具体语言/目录尚未冻结，当前不创建占位实现。
+## 16. 性能、容量、资源与技术预算
 
-### 12.3 禁止变更范围
+- worker 数量可以水平扩展，但每个 transport/session write scope 必须有一个有效 fencing owner。
+- inbox/outbox 超出容量时使用 durable backpressure；不能 ACK 后丢消息或切换临时文件路径。
+- cursor snapshot storage/expiry、reply deadline、membership reconciliation timeout、archive SLO
+  和 retention duration 尚待冻结。
+- Element link generation 是纯 projection，不缓存 transcript。
+- 当前没有 homeserver throughput、room count、events/s、wake latency 或 failover RTO 实测。
 
-- 不增加 Session create endpoint、participant mutation、普通 sync 或第二 bridge。
-- 不以兼容为名保留 ManagedUser、shared room/thread、E2EE、iframe 或文件 outbox。
-- 不读取其他项目仓库作为运行时 config/contract source。
-- 不把本地 Matrix-Codex 项目通信桥接器当作 Piko product implementation。
+当前没有 production measured throughput/latency。room/session 数、transaction rate、backlog、retention
+storage、lease failover time 和 descriptor latency 必须在部署选型后给出 workload、scope、单位和 evidence level。
 
-## 13. Verification、测试义务与证据
+## 17. Deployment、故障域与环境差异
+
+Bridge 与 Agent Runtime 同一产品边界部署，但 API worker、delivery worker、durable store、Matrix homeserver、
+Element Web 和 secret provider 是独立故障域。开发环境可使用受控 non-federated homeserver；测试/生产
+必须验证同一 AS namespace、retention 与 access policy。数据库/HA/RPO/RTO 尚未冻结，属于 Open Gate。
+
+## 18. Verification、Test 与 Traceability
 
 | Requirement | Design element | Verification method | Evidence | Status |
 |---|---|---|---|---|
@@ -430,19 +530,46 @@ reference，不含 AS token、credential、message body 或用户登录材料。
 | delivery/recovery | §8、§9 | txn/event/message dedup、lease/failover | V03-E2E-096 规划 | Open Gate |
 | V03-E2E-093..099 | 全文 | controlled homeserver + Piko runtime E2E | 尚未执行 | Open Gate |
 
-## 14. Review Checklist、未决项与 Gate
+| Requirement/Invariant | Scenario | Test level | Oracle | Evidence | Status |
+|---|---|---|---|---|---|
+| CB-INV-001/003 | rename、同名 IR、exact route | Contract/E2E | identity/room/history 不变且无串线 | V03-E2E-094/097 | static candidate |
+| CB-INV-002/006 | exact ExternalLink、encrypted/iframe/token rejection | Security/E2E | fail closed、无 Secret/transcript | V03-E2E-096/099 | static candidate |
+| CB-INV-004 | txn/event/outbox restart recovery | Recovery | 重放新增副作用为 0 | V03-E2E-096 | not run on homeserver |
+| CB-INV-005 | close K replay 与新 request | Contract/Recovery | K 返回记录语义；新请求才可 AlreadyClosed | V03-E2E-095 | static candidate |
+| CB-INV-007 | minority position / user decision | Contract/E2E | 全员立场保留，Piko 不越权落地 | V03-E2E-098 | static candidate |
 
-### 14.1 Review checklist
+## 19. Rollout、Migration、Rollback 与 Decommission
 
-- [x] authority、Current Baseline、已冻结 delta 和未决实现项已分开；
-- [x] 构建块、数据记录、状态机、主流程、失败恢复和安全边界已展开；
-- [x] 多 room、resolution、Element route 和 fail-closed 精确契约已保留；
-- [x] 机器文件继续是字段级 authority，fixture 未转写为 Markdown；
-- [x] 未保留 ManagedUser/sync/shared room/E2EE/iframe/external bridge fallback；
-- [ ] Slinky 对结构化迁移及原 ID traceability 完成 Review；
-- [ ] homeserver/AS/Pi integration 和 V03-E2E-093..099 有真实 Evidence。
+### 19.1 当前设计资产
 
-### 14.2 Open Gates
+| 资产 | 路径 | 角色 |
+|---|---|---|
+| OpenAPI | `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml` | operation/header/response authority |
+| JSON Schema | `interfaces/schemas/agent-runtime-matrix-v0.3.schema.json` | DTO/conditional constraint authority |
+| Error catalog | `interfaces/error-codes/error-blocker-catalog-v0.3.json` | typed error/blocker authority |
+| Fixture | `interfaces/vectors/v0.3/collaboration-decision-fixtures.json` | 正负 machine evidence |
+| Validator | `tests/contract/validate_v03_contract.py` | 文档期校验入口 |
+
+### 19.2 目标 module 边界
+
+未来代码应在唯一 Agent Runtime 内形成 `profile`、`identity-binding`、`session`、
+`matrix-as-ingress`、`delivery`、`resolution`、`element-projection`、`recovery` 和
+`persistence` modules。具体语言/目录尚未冻结，当前不创建占位实现。
+
+### 19.3 禁止变更范围
+
+- 不增加 Session create endpoint、participant mutation、普通 sync 或第二 bridge。
+- 不以兼容为名保留 ManagedUser、shared room/thread、E2EE、iframe 或文件 outbox。
+- 不读取其他项目仓库作为运行时 config/contract source。
+- 不把本地 Matrix-Codex 项目通信桥接器当作 Piko product implementation。
+
+切换点是内建 CollaborationBridge 达到 activation gate 后作为唯一通信路径启用；外部 bridge、poll、
+heartbeat、普通 sync 和 shared-room/thread 不得与其并存。回滚只允许暂停该 capability 并保留 durable
+obligation/recovery data，不恢复旧路径。migration/decommission evidence 必须包含配置扫描和 E2E。
+
+## 20. 风险、Open Questions 与外部依赖
+
+### 20.1 Open Gates
 
 - OG-CB-001：Operator retention policy catalog Schema、duration 和 enforcement evidence。
 - OG-CB-002：Matrix homeserver/Application Service version 与 Probe checklist。
@@ -453,9 +580,31 @@ reference，不含 AS token、credential、message body 或用户登录材料。
 - OG-CB-006：cursor signing key rotation、snapshot storage/expiry、transport capacity/SLO。
 - OG-CB-007：Pi AgentSession collaboration hook capture。
 
-### 14.3 Activation Gate
+| ID | Type | Description | Owner | Needed evidence/decision | Blocking gate |
+|---|---|---|---|---|---|
+| CB-RISK-001 | Contract | SessionSummary/CloseResult enum 尚未一次性对齐 | Piko/Slinky | machine diff + generated type tests | OG-CB-006 |
+| CB-RISK-002 | Implementation | durable store/lease/retention 未实现 | Piko | ADR + crash tests | OG-CB-001/004 |
+| CB-RISK-003 | Dependency | AS namespace/homeserver/Element policy 未实测 | Operator/Piko | probe + E2E | OG-CB-002/003 |
+| CB-RISK-004 | Evidence | 当前多数测试为 static fixture | Piko | Matrix/Element/Pi runtime evidence | OG-CB-004/005 |
+
+## 21. Review Checklist 与批准记录
+
+### 21.1 Review checklist
+
+- [x] authority、Current Baseline、已冻结 delta 和未决实现项已分开；
+- [x] 构建块、数据记录、状态机、主流程、失败恢复和安全边界已展开；
+- [x] 多 room、resolution、Element route 和 fail-closed 精确契约已保留；
+- [x] 机器文件继续是字段级 authority，fixture 未转写为 Markdown；
+- [x] 未保留 ManagedUser/sync/shared room/E2EE/iframe/external bridge fallback；
+- [ ] Slinky 对结构化迁移及原 ID traceability 完成 Review；
+- [ ] homeserver/AS/Pi integration 和 V03-E2E-093..099 有真实 Evidence。
+
+### 21.2 Activation Gate
 
 只有 Profile/Binding/Session API、AS transaction、durable inbox/outbox、三层 dedup、writer
 lease/fencing、rename/close/archive/retention、Element ExternalLink、structured resolution 和
 V03-E2E-093..099 均在 immutable implementation commit 上通过后，CollaborationBridge 才能
 标记为可运行。STD 迁移本身不满足 activation。
+
+本 `0.3.1` 版本仅是 STD draft.21 结构升级候选。reviewer、review commit、决定、条件与生效范围
+将在评审闭环后记录；在此之前上一批准版本仍是生效基线，不触发 RAG 重建或 Runtime Activation。

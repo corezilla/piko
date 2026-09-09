@@ -15,8 +15,8 @@
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.19` |
 | Template ID | `management.project-plan` |
+| Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
@@ -48,7 +48,7 @@
 | DIR-01 input state | clean；MR-01、CP-01、PUB-01 已提交并推送 |
 | input tree | `80c3db41ab43a84a9165200215b00838e45dcaee` |
 | tracked-index SHA-256 | `ad4961da2cdf518307413e4710b471b6afca4b73232ee90c23e228fb5128b26a` |
-| STD commit/tag | `eeaf9bf33012928e3e74a9ca30e87d717690d343` / `std-v0.1.0-draft.19` |
+| STD source revision/tag | `274ef0a67eda080baa0063ae27ede7ee129aa32a` / none（项目采用 `0.1.0-draft.21`） |
 | profile/domains | `software`; `management`, `systems`, `software` |
 
 不得 reset、clean、checkout 覆盖或重建候选；任何增量先确认路径与 diff，只修改本项目。

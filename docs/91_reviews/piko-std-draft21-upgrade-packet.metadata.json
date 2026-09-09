@@ -1,14 +1,14 @@
 {
   "project": "piko",
   "authority": "piko",
-  "document_id": "piko-std-publication-packet",
+  "document_id": "piko-std-draft21-upgrade-packet",
   "document_type": "review.packet",
-  "document_version": "0.1.0-draft.1",
-  "title": "Piko STD Publication and RAG Review Packet",
-  "document_owner": "Piko Publication/RAG Owner",
+  "document_version": "0.1.0",
+  "title": "Piko STD draft.21 升级 Review Packet",
+  "document_owner": "Piko Project Owner",
   "authors": ["corezilla"],
   "source_repository": "corezilla/piko",
-  "source_path": "docs/91_reviews/piko-std-publication-packet.md",
+  "source_path": "docs/91_reviews/piko-std-draft21-upgrade-packet.md",
   "template_id": "review.packet",
   "template_version": "0.1.0",
   "template_sha256": "4d34f7a142662d889e5c6de7d98cf441944bb11ae31cf1b6837e96bbc7e472c5",
@@ -20,8 +20,8 @@
   "status": "review",
   "visibility": "project",
   "reviewed_commit": null,
-  "parent_document_id": "piko-std-canonical-promotion-packet",
+  "parent_document_id": null,
   "supersedes": null,
-  "created_at": "2026-09-08",
-  "last_modified_at": "2026-09-08"
+  "created_at": "2026-09-09",
+  "last_modified_at": "2026-09-09"
 }

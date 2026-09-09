@@ -15,8 +15,8 @@
 | Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-08` |
-| STD Version | `0.1.0-draft.19` |
 | Template ID | `management.tailoring` |
+| Template Version | `0.1.0` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |
@@ -84,7 +84,8 @@ activation gate。
 
 当前 Document Status 为 `Approved`。STD 来源已锁定到完整 commit
 `eeaf9bf33012928e3e74a9ca30e87d717690d343` 与 annotated tag
-`std-v0.1.0-draft.19`。MR-01、CP-01 与 PUB-01 已分别提交；DIR-01 只进行目录 relocation 与引用
+当前项目 adoption 已升级为 `0.1.0-draft.21`，source revision 为
+`274ef0a67eda080baa0063ae27ede7ee129aa32a`。MR-01、CP-01 与 PUB-01 已分别提交；DIR-01 只进行目录 relocation 与引用
 修复，后续用独立 PUB-02 重新绑定新 canonical commit。Runtime Activation 不随文档状态改变。
 
 重新评审触发条件：STD immutable commit/tag、模板或 Schema version 变化、Piko
