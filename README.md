@@ -8,6 +8,16 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 本项目采用 STD `0.1.0-draft.21`，由 `docs/std.lock.json` 锁定。STD 升级只在用户明确要求时
 执行；单份文档只跟踪其 `Template ID`、独立 `Template Version` 和模板 SHA-256。
 
+`docs/20_system_design/piko-agent-runtime-design-v0.3.md` 正在按已发布的
+`std-v0.1.0-draft.26` 中 `design.system` 4.0.0 单独重写，状态仍为 In Review。
+该候选同时记录用户提供的 Slinky 单 Agent 轻量任务接口提案及其与现行重型机器契约的冲突；
+尚未批准替换 OpenAPI/Schema，也未建立并行接口。
+这是定向设计候选，不改变本项目 draft.21 的正式 STD lock、其他文档的模板来源、
+已发布文档快照或 Runtime Activation。候选来源证据见
+`docs/91_reviews/piko-system-design-std26-source-manifest.json`，语义缺口与验证范围见
+`docs/91_reviews/piko-system-design-std26-review-packet.md`；项目级采用、文档批准及
+RAG 更新须分别评审。
+
 当前中文评审材料：
 
 - `docs/std.lock.json`
