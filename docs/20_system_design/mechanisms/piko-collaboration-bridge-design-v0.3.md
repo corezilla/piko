@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -89,7 +89,13 @@ receipt；deadline前event出现可对同key/body做CAS重评。admission顺序�
 client-task/dispatch冲突→request deadline→binding projection lease/version/status→trigger fact。同key
 改instruction、deadline或trigger都先409，不得返回原202。deadline已到且无Run时统一
 422 DeadlineExpired，即使trigger仍缺失或binding同时失效；迟到event不能使过期请求被受理。拒绝记录
-至少保留至`max(deadline_at,accepted_at)+7d`；decision到期只允许状态重评，不删除key→digest binding。
+至少保留至`max(request.deadline_at,decision_first_created_at)+7d`；首次decision时间由Piko durable clock写入且
+重评/重启不得推进。decision到期只允许状态重评，不删除key→digest binding。
+
+合法重评不是对旧404的原地“升级”捷径：同一serializable transaction必须锁定decision version，再检查
+ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace/tool/capacity，并原子写Run、索引、
+snapshot、claim和原202。两个不同key曾暂拒同一client_task_id时，并发重评只能一个unique/CAS winner建立Run，
+loser返回ClientTaskConflict；无第二dispatch intent或claim。
 已受理Run不因event后来redact/不可读重做admission。
 
 ## 5. AS ingress、消息Envelope与路由
@@ -166,7 +172,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.3`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.4`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

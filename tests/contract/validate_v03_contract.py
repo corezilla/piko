@@ -51,10 +51,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.3"
-assert openapi["info"]["version"] == "0.3.0-finalization.3"
-assert fixtures["fixture_version"] == "0.3.0-finalization.3"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.3"
+assert schema["x-contract-version"] == "0.3.0-finalization.4"
+assert openapi["info"]["version"] == "0.3.0-finalization.4"
+assert fixtures["fixture_version"] == "0.3.0-finalization.4"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.4"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -123,6 +123,18 @@ for case_id in ("same-key-changed-instruction", "same-key-changed-deadline", "sa
     assert semantics[case_id]["expected_error"] == "IdempotencyConflict"
     assert semantics[case_id]["original_202_returned"] is False
 assert semantics["trigger-rejection-decision-expired-digest-retained"]["same_key_changed_body"] == "409 IdempotencyConflict"
+assert semantics["trigger-rejection-decision-expired-digest-retained"]["digest_binding_retained_through"] == "max(request.deadline_at,decision_first_created_at)+7d"
+assert semantics["trigger-rejection-decision-expired-digest-retained"]["reevaluation_advances_first_created_at"] is False
+for case_id in (
+    "two-keys-same-task-same-dispatch-concurrent-reevaluation",
+    "two-keys-same-task-different-dispatch-concurrent-reevaluation",
+):
+    assert semantics[case_id]["loser_error"] == "ClientTaskConflict"
+    assert semantics[case_id]["new_run_count"] == 1
+    assert semantics[case_id]["new_dispatch_intent_count"] == 1
+    assert semantics[case_id]["new_claim_count"] == 1
+    assert "ClientTaskIndex" in semantics[case_id]["transaction_rechecks"]
+    assert "TriggerDispatchIndex" in semantics[case_id]["transaction_rechecks"]
 assert semantics["cancel-receipt-not-release"]["execution_released"] is False
 assert semantics["release-with-isolated-unknown-obligation"]["session_close_allowed"] is False
 assert semantics["per-binding-left-human-stays"]["human_membership"] == "Joined"
@@ -135,7 +147,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.3", "communication_trigger", "execution_released", "7d"):
+for required in ("0.3.0-finalization.4", "communication_trigger", "execution_released", "decision_first_created_at"):
     assert required in contract_text or required in field_text, required
 
 print(

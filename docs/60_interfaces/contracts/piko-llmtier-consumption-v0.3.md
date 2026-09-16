@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-finalization.3` |
+| Document Version | `0.3.0-finalization.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -95,7 +95,8 @@ GET、Response GET不增加model_calls。只有Piko Tool Broker可执行工具�
 
 Piko自动模型调用恢复期限最多24h；LLMTier resolved terminal去重/Invocation/canonical Response窗口
 至少168h，从`resolved_terminal_at`起算。活动或Unknown义务不能因168h计时自动删除。Piko Run自身
-`max(deadline_at,accepted_at)+7d`保留是另一窗口，不改变LLMTier M2-C。
+Piko已受理Run的`max(request.deadline_at,Run.accepted_at)+7d`与pre-admission rejection的
+`max(request.deadline_at,decision_first_created_at)+7d`是Piko任务窗口，不改变LLMTier M2-C。
 
 本文件确认Piko的设计消费；不声明真实SDK capture、production实现或runtime activation。对
 `0.3-finalization-candidate.1` 的最终字节级绑定仍需LLMTier通过Matrix提供实际OpenAPI机器正文；Piko将

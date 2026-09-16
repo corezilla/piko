@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.3` |
+| Package Version | `0.3.0-finalization.4` |
 | Status | Review；runtime activation=false |
 | Authority | Piko |
 | Request | `S-20260916-191ab7c8184c` |
@@ -15,6 +15,10 @@
 Piko-owned跨系统字段或行为没有遗留到联调再决定。四项Run API、全部请求/响应/错误、ClientTaskIndex、
 7天恢复、404/410、workspace/tool/agent/session binding、identity provisioning、invite核验、revoke/drain、
 communication trigger、产品消息send/receipt/event/ingress、release/strict close组合和旧wire删除版本均已定义。
+Pre-admission rejection使用不可变`decision_first_created_at`，保留至
+`max(request.deadline_at,decision_first_created_at)+7d`；合法重评在同一serializable事务重新检查
+ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace/tool/capacity，并以unique/CAS保证
+两个不同key暂拒同一task后并发重评最多产生一个Run/intent/claim。
 
 LLMTier语义消费固定为Amendment 8：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
@@ -24,7 +28,7 @@ Chat/SSE/fallback。LLMTier `0.3-finalization-candidate.1`目标OpenAPI SHA-256
 
 ## 2. 一次性退役
 
-从 `0.3.0-finalization.3` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
+从 `0.3.0-finalization.4` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
 `runs:by-attempt`、manual reconcile、Run SSE、Piko Session list/element-view/:close、原子建房
 `collaboration_contract`及旧嵌套`bindings`。不提供alias、转换器、双写或runtime fallback。
 
@@ -40,7 +44,7 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 
 ## 5. 验证摘要
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；16 Schema case、28 semantic case、13 path、31 error。
+- `python3 tests/contract/validate_v03_contract.py`：exit 0；16 Schema case、30 semantic case、13 path、31 error。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
 - Piko-owned跨系统语义无“实现时再确认”；唯一外部输入是LLMTier target OpenAPI机器正文，用于复算
   已知hash与差异审查，明确留在baseline binding gate，未转移到联调。

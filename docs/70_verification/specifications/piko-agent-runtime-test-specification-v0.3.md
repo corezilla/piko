@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -147,7 +147,7 @@ scope，不能读取其他真实项目数据。
 |---|---|---|---|---|
 | PIKO-V03-FIN-001 | Contract | 顶层agent/session/version四种组合及旧嵌套bindings | 全null与仅agent通过；session缺agent/version失败；匹配三项通过；旧嵌套拒绝 | static fixture |
 | PIKO-V03-FIN-002 | Idempotency | 同key/body；同key分别改instruction/deadline/trigger；换key同client_task | 仅相同digest AcceptedRun返回原202；三种改body均409且不重查当前binding；换key同task 409；只创建一个Run | static + DB fault待联调 |
-| PIKO-V03-FIN-003 | Trigger | ingress晚到、decision expiry、重启、deadline与binding同时失败 | 404为RetryableRejection非receipt；deadline前晚到原key可CAS受理；decision expiry不遗忘digest；deadline后统一422且迟到event不能复活 | static + Matrix联调 |
+| PIKO-V03-FIN-003 | Trigger | ingress晚到、decision expiry、重启、deadline与binding同时失败 | 404为RetryableRejection非receipt；`decision_first_created_at`首次写入后重评/重启不推进；保留至`max(request.deadline_at,decision_first_created_at)+7d`；deadline前晚到原key可CAS受理；decision expiry不遗忘digest；deadline后统一422且迟到event不能复活 | static + Matrix联调 |
 | PIKO-V03-FIN-004 | Trigger fanout | 同event派两个Agent/Run；同key重放；异key同task；同dispatch改tuple | 仅显式不同dispatch+task合法；同key原回执；同task换dispatch及同dispatch改tuple均409 | static + Matrix联调 |
 | PIKO-V03-FIN-005 | Revoke | projection lease过期、revoke/admission CAS竞争 | 过期fail closed；revoke先胜拒绝admission；admission先胜的既有Run被fence且不能取新权限 | fault/E2E |
 | PIKO-V03-FIN-006 | Release | cancel accepted、unknown writer、quarantine | 前两者不release；完整进程/tool/writer/wakeup/quarantine证据才true；隔离ref仍令drain RecoveryRequired | fault/E2E |
@@ -156,6 +156,7 @@ scope，不能读取其他真实项目数据。
 | PIKO-V03-FIN-009 | Message | send request→receipt→event/ingress、Topic/SID/RID、recipient/reply/attachment/native message | event ID/time仅Matrix后置；exact route；同SID异body/跨Topic reply/非法附件拒绝；native message不dispatch | contract + Matrix联调 |
 | PIKO-V03-FIN-010 | Removal | 生成OpenAPI/client | 无heavy fields、Session list/element/:close、reconcile/SSE path | static validator |
 | PIKO-V03-FIN-011 | Model deadline | task、request、catalog effective三种deadline先到及late success | task→DeadlineExceeded；单调用→ExecutionError detail；全部停止新业务；late success仅Evidence | static + LLMTier联调 |
+| PIKO-V03-FIN-012 | Rejection re-admission race | 两个不同key已保存同一client_task_id的RetryableRejection，分别使用相同或不同dispatch tuple并发重评 | 重评事务重新核对ClientTaskIndex、完整dispatch tuple、deadline、projection/权限/model/workspace/tool/capacity；unique/CAS最多一个Run/intent/claim，loser为ClientTaskConflict | static + DB fault待联调 |
 
 Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
 不得倒推修改A类wire或启用旧兼容路径。

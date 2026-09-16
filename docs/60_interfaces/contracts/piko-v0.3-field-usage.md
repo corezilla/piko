@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.3` |
+| Document Version | `0.3.0-finalization.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -26,7 +26,7 @@
 > `interfaces/schemas/agent-runtime-v0.3.schema.json`；runtime activation=false。Slinky、LLMTier
 > 各自生产字段仍由其机器契约授权。
 
-通用规则：Bearer credential 产生 canonical `client_id`，不允许 body 自报替代；所有查询先认证并检查 Client 可见性；mutation 使用 `Idempotency-Key`，body 以 RFC8785 JCS UTF-8 SHA-256 进入 digest。无默认值的 required 字段不得省略；显式 nullable 字段必须发送 null。Run 去重、Result 与 ClientTaskIndex 至少保留至 `max(deadline_at, accepted_at)+7d`；活动或未知义务不因该时间到达删除。
+通用规则：Bearer credential 产生 canonical `client_id`，不允许 body 自报替代；所有查询先认证并检查 Client 可见性；mutation 使用 `Idempotency-Key`，body 以 RFC8785 JCS UTF-8 SHA-256 进入 digest。无默认值的 required 字段不得省略；显式 nullable 字段必须发送 null。已受理Run的去重、Result与ClientTaskIndex至少保留至`max(request.deadline_at,Run.accepted_at)+7d`；未受理pre-admission rejection/key→digest binding至少保留至`max(request.deadline_at,decision_first_created_at)+7d`。后者的首次decision时间由Piko durable clock首次写入且不可因重评/重启推进；活动或未知义务不因窗口到达删除。
 
 Run POST 的精确读取顺序是：认证与当前Client可见性→请求大小/JSON基础解析→JCS digest→key record读取→
 digest比较。不同digest必为409；相同digest且`AcceptedRun`才返回原202，且不重做当前Session/deadline/
@@ -170,7 +170,12 @@ TriggerDispatchIndex完整值为`client_task_id+session_binding_ref+trigger_even
 显式新dispatch+task才可建立另一Run，Piko retry不生成dispatch。trigger暂缺时404但保存
 `RetryableRejection`及digest，不生成202 receipt；deadline前event出现可CAS重评，deadline到达统一422并
 保留terminal decision。可重评decision到期也不遗忘key→digest binding，至少保留至
-`max(deadline_at,accepted_at)+7d`；迟到event永不受理该请求。
+`max(request.deadline_at,decision_first_created_at)+7d`；`decision_first_created_at`首次写入后不可变，迟到event永不受理该请求。
+
+重评与首次admission共享同一serializable transaction边界：锁定原decision version后，重新检查
+ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace/tool/capacity，并用unique constraints
+原子写Run、索引、snapshot、claim和原202。两个不同key先后保存同一client_task_id的RetryableRejection时，
+并发重评最多一个事务建立Run；另一事务固定返回ClientTaskConflict，不创建第二dispatch intent/claim。
 
 ## 6. Release、drain、membership 与 Session close组合
 

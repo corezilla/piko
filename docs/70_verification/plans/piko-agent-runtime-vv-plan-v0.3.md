@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -135,7 +135,7 @@ homeserver、crash E2E、security isolation 和 performance 均为 Open Gate。
 
 ## 11. Finalization A/B/C 关闭规则
 
-- A（跨系统设计）以 `0.3.0-finalization.3` OpenAPI/Schema/error/field table/fixtures 完整且三方review为关闭；
+- A（跨系统设计）以当前唯一finalization OpenAPI/Schema/error/field table/fixtures完整且三方review为关闭；
   不能把字段、错误、去重scope、retention、release或旧接口删除转移到联调决定。
 - B（Piko内部下游设计）包括DB/HA/DDL、worker/Pi hook、sandbox和metrics；评审确认不改变A即可独立推进。
 - C（联调验证）包括真实LLMTier deadline/recovery、Matrix/Element、Pi、Tool/Workspace、crash/failover、

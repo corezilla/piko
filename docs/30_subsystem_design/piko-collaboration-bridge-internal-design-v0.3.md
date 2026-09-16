@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -57,11 +57,17 @@ Revoke事务原子写：operation receipt、binding version/status、new-admissi
 ClientTaskConflict。相同Matrix event只有Slinky显式新dispatch+client_task_id时可用于另一Agent/Run；
 Piko ingress/retry从不生成dispatch。
 
-ingress暂未出现时不预占Run/ClientTaskIndex，但保存RetryableRejection digest/decision并返回可恢复404；调用方保留
-原key/body。若event在deadline前到达，同请求以record-version CAS重评；若deadline已到且无Run，统一
-DeadlineExpired，优先于trigger/binding失败。迟到event不使原请求复活。decision至少保留至
-`max(deadline_at,accepted_at)+7d`。decision到期不删除key→digest binding；重启恢复同一record/version，
-不伪造event。
+ingress暂未出现时不预占Run/ClientTaskIndex，但保存RetryableRejection digest/decision与不可变
+`decision_first_created_at`并返回可恢复404；调用方保留原key/body。若event在deadline前到达，同请求以
+record-version CAS重评；若deadline已到且无Run，统一DeadlineExpired，优先于trigger/binding失败。迟到event
+不使原请求复活。decision至少保留至`max(request.deadline_at,decision_first_created_at)+7d`。
+`decision_first_created_at`由Piko durable clock首次写入，重评/重启不得推进；decision到期不删除key→digest
+binding，重启恢复同一record/version/首次时间，不伪造event。
+
+CAS重评在一个serializable transaction内重新读取并锁定ClientTaskIndex与TriggerDispatchIndex，校验完整tuple、
+当前projection lease/version/status、权限、exact model、workspace/tool和capacity，再以unique constraints原子写
+Run、索引、snapshot、claim与原202。两个不同key的暂拒record指向同一client_task_id时，最多一个winner；
+loser返回ClientTaskConflict且不产生第二Run/dispatch intent/claim。
 
 ## 4. Wakeup与writer fencing
 

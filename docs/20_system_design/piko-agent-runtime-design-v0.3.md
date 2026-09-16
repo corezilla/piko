@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -46,6 +46,7 @@ Document Status、评审结论和 Runtime Activation 是三个独立 Gate，当�
 | `0.4.0-draft.4` | `2026-09-16` | 冻结轻量Run、通信绑定、LLMTier deadline与finalization.1候选 | 待评审 |
 | `0.4.0-draft.5` | `2026-09-16` | 修正deadline停止策略、顶层binding、dispatch tuple、产品消息wire及release/drain边界 | 待评审 |
 | `0.4.0-draft.6` | `2026-09-16` | 固定digest-before-receipt与RetryableRejection保留顺序，记录LLMTier目标hash状态 | 待评审 |
+| `0.4.0-draft.7` | `2026-09-16` | 固定pre-admission decision首次时间/保留公式与多key并发重评唯一性事务 | 待评审 |
 
 ## 目录、表目录与图目录
 
@@ -236,6 +237,11 @@ RetryableRejection按其CAS重评条件处理，不能当成receipt。这样，�
 `client_task_id` 唯一性、未来 `deadline_at`、模型等级、workspace/tool/agent binding、相对路径、
 limits、容量和依赖检查。已存在同 client_task_id 但 key 不同，返回 ClientTaskConflict。
 
+合法RetryableRejection重评必须与首次admission使用相同serializable事务守卫：锁定原decision version并重新
+检查ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace/tool/capacity，随后以unique
+constraints原子写Run、索引、snapshot、claim和原202。两个不同key曾暂拒同一client_task_id时，并发重评
+最多一个winner创建Run；loser返回ClientTaskConflict，不能产生第二dispatch intent或claim。
+
 `instruction` 是任务内容，不是权限来源；read/write paths 必须在实际工具操作时再次验证，符号
 链接解析后也不能超出 workspace 与授权目录。绑定在首次受理时解析并固定实际版本。成功在单个
 durable 事务中写 idempotency record、原始 202 回执、request digest、ClientTaskIndex、Run、资源
@@ -389,8 +395,10 @@ dispatch oracle 必须绑定故障点：首次 Backend dispatch 已证实时总�
 Invocation durable record 已落盘而尚未 dispatch 时，原 Invocation 可从 0 合法推进到最多 1，
 replay 不建额外 intent；dispatch 前拒绝/取消则最终为 0。不能把“已持久化”当“已调用一次”。
 Tool/Workspace/Matrix 的未知结果保留各自原 obligation，按正式机制对账。过载阻断新
-admission 并保留 backlog，阈值尚待选型。轻量任务去重/结果保留提案是
-`max(deadline_at, accepted_at)+7 天`，不得与 LLMTier 的 `W=168h` 混为同一计时起点；
+admission 并保留 backlog，阈值尚待选型。已受理轻量任务去重/结果保留是
+`max(request.deadline_at, Run.accepted_at)+7 天`；未受理pre-admission rejection/key→digest binding是
+`max(request.deadline_at, decision_first_created_at)+7 天`，首次decision时间由Piko durable clock写入且重评/
+重启不可推进。两者不得与 LLMTier 的 `W=168h` 混为同一计时起点；
 窗口、隐私、超期 410/404 和活动义务不可删除需要 Piko 单独确认。
 
 ### 6.4 模式切换与状态迁移
@@ -414,7 +422,7 @@ RunView 还须给出 `state_version`、accepted/started/finished 时间、`resul
 RecoveryRequired 必须提供 reason_code、unresolved_refs 与 Wait/OperatorAction 建议。状态或释放事实
 改变时版本单调；任何对外可见 progress 或 recovery 内容变化也必须递增 `state_version`。
 `recoverable_until` 在运行中不能缩短。这些字段已由 `agent-runtime-v0.3.schema.json` 的
-`0.3.0-finalization.3` 候选冻结；实现证据仍为 NOT_RUN。
+`0.3.0-finalization.4` 候选冻结；实现证据仍为 NOT_RUN。
 
 ## 7. 硬件实现方案
 
@@ -544,7 +552,7 @@ backlog 计算；
 
 | 边界 | Piko 用途 | 字段 authority | 失败行为 |
 |---|---|---|---|
-| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.3` | auth、idempotency、scope、path/limit、RecoveryRequired |
+| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.4` | auth、idempotency、scope、path/limit、RecoveryRequired |
 | Slinky→Piko 通信控制 | Profile、Agent identity、Session binding projection、revoke、drain | Piko V0.3 OpenAPI/Schema；Slinky拥有Session/Topic/View/close | version/mismatch/revoking/recovery |
 | Piko→LLMTier | Responses non-stream、Models、Invocation/Response GET | LLMTier Piko-facing contract | 202 active、terminal typed error、UnknownOutcome |
 | Piko↔Matrix | AS push txn、membership/room/send txn | Matrix AS/Client API + Piko binding | replay、membership/recovery blocker |
@@ -633,7 +641,8 @@ AS token、device key、checkpoint 或未授权 transcript；指标 label 不用
 
 预算取决于并发 Run × 单 AgentSession/模型/工具调用上限，加上 Run/Result/obligation 与可选
 Matrix inbox/outbox retention。LLMTier M2-C `W=168h`、`M=24h`、Piko `D=24h` 是模型调用恢复约束；
-轻量任务的 `max(deadline_at, accepted_at)+7 天` 是已定义的Piko恢复下限，与LLMTier窗口分离。
+轻量任务已受理Run使用`max(request.deadline_at,Run.accepted_at)+7天`；pre-admission rejection使用
+`max(request.deadline_at,decision_first_created_at)+7天`。两者都是Piko恢复下限，与LLMTier窗口分离。
 这些时间都不是吞吐实测。缺少 workload、DB/worker 拓扑和消息率，不能给可发布 p95、最大并发
 或磁盘容量。
 

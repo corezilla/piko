@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.4` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.3`)；runtime activation=false。
+> (`0.3.0-finalization.4`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.3` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.4` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
@@ -114,22 +114,35 @@ if record:
     if record.kind == TerminalRejection: return record.original_error
     if deadline_reached(body): return cas_terminal_422(record)
     if not record.reevaluation_condition_met: return record.original_error
-    return cas_reevaluate_same_record(record, body)
+    return cas_reevaluate_same_record_and_admit(record, body)
 check_client_task_and_dispatch_conflicts()
 if deadline_reached(body): return persist_terminal_422_with_digest()
 check_mutable_admission_inputs_and_commit_once()
 ```
 
+`cas_reevaluate_same_record_and_admit`不是只更新decision状态。它在一个serializable durable transaction中
+锁定并比较原`decision_version`，再次比较digest/deadline，并重新检查`ClientTaskIndex`、完整不可变
+`TriggerDispatchIndex` tuple、当前projection version/status/lease、权限交集、exact model、workspace/tool可见性
+与当前capacity。随后同一事务用unique constraints/CAS至多一次写入Run、两个索引、binding snapshot、可选
+RunCommunicationAttachment、resource claim和原202 receipt；任一索引已经由另一个key/事务占用即返回对应
+`ClientTaskConflict`或`CommunicationTriggerMismatch`，不得建立第二Run、dispatch intent或claim。服务重启后仍从
+原decision record/version执行同一事务。
+
 trigger暂未到时返回404 CommunicationTriggerNotFound，但持久化
-`key,digest,decision_kind=RetryableRejection,decision_version,valid_until,ingress_observed_version`，不创建
+`key,digest,decision_kind=RetryableRejection,decision_version,decision_first_created_at,valid_until,ingress_observed_version`，不创建
 Run/claim，也不产生`original_202`。相同key异digest始终409；deadline前且ingress版本前进时允许用
 同key/body重评，CAS仅一个winner建立Run；deadline到达后decision转为terminal 422 DeadlineExpired。
 即使可重评decision本身到期，key→digest binding/tombstone仍保留至
-`max(deadline_at,accepted_at)+7d`，不能遗忘digest后允许同key变body。服务重启不遗忘record或版本。
+`max(request.deadline_at,decision_first_created_at)+7d`。`decision_first_created_at`由Piko durable clock在首次
+写入该pre-admission decision时生成且不可变，重评、decision状态转换和服务重启均不得推进；不能遗忘digest后
+允许同key变body。服务重启不遗忘record、首次时间或版本。
 
 成功在一个durable transaction中写原回执、Run、ClientTaskIndex、binding snapshot、可选RunCommunicationAttachment和资源claim；commit前无Pi、LLMTier、Tool或Matrix side effect。`(client_id,client_task_id)`唯一；换key冲突。
 
-无run_id丢响应重放原POST。Run记录、去重记录和Result至少保留至`max(deadline_at,accepted_at)+7d`；有到期tombstone返回410，否则不可见返回404。活动、Stopping、RecoveryRequired或未知外部义务不得因窗口到达删除。
+无run_id丢响应重放原POST。已受理Run记录、去重记录、ClientTaskIndex和Result至少保留至
+`max(request.deadline_at,Run.accepted_at)+7d`；pre-admission rejection record/key→digest binding至少保留至
+`max(request.deadline_at,decision_first_created_at)+7d`。有到期tombstone返回410，否则不可见返回404。
+活动、Stopping、RecoveryRequired或未知外部义务不得因窗口到达删除。
 
 ## 5. Workspace、Tool、Agent 与模型 binding
 
