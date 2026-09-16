@@ -3,7 +3,7 @@
   "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
   "title": "Piko Agent Runtime V0.3 定型契约",
   "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
-  "x-contract-version": "0.3.0-finalization.7",
+  "x-contract-version": "0.3.0-finalization.8",
   "$defs": {
     "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
     "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},
@@ -299,15 +299,23 @@
     },
     "ContentReferenceView": {
       "type":"object","additionalProperties":false,
-      "required":["content_ref","attachment_id","project_ref","session_binding_ref","binding_version","media_type","size_bytes","sha256","status","created_at","unbound_expires_at","retained_until","etag"],
+      "required":["content_ref","attachment_id","project_ref","session_binding_ref","binding_version","media_type","size_bytes","sha256","status","created_at","unbound_expires_at","retained_until","redacted_at","bytes_deleted_at","tombstone_until","etag"],
       "properties":{
         "content_ref":{"$ref":"#/$defs/OpaqueRef"},"attachment_id":{"$ref":"#/$defs/Identifier"},"project_ref":{"$ref":"#/$defs/OpaqueRef"},
         "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},
         "media_type":{"type":"string","minLength":1,"maxLength":255},"size_bytes":{"type":"integer","minimum":0,"maximum":67108864},
-        "sha256":{"$ref":"#/$defs/Digest"},"status":{"enum":["Uploaded","Bound","Expired"]},
+        "sha256":{"$ref":"#/$defs/Digest"},"status":{"enum":["Uploaded","Bound","Redacted","ExpiredTombstone"]},
         "created_at":{"$ref":"#/$defs/Timestamp"},"unbound_expires_at":{"$ref":"#/$defs/Timestamp"},"retained_until":{"$ref":"#/$defs/Timestamp"},
+        "redacted_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
+        "bytes_deleted_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
+        "tombstone_until":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
         "etag":{"type":"string","minLength":1}
-      }
+      },
+      "allOf":[
+        {"if":{"properties":{"status":{"const":"Redacted"}}},"then":{"properties":{"redacted_at":{"$ref":"#/$defs/Timestamp"}}}},
+        {"if":{"properties":{"status":{"const":"ExpiredTombstone"}}},"then":{"properties":{"bytes_deleted_at":{"$ref":"#/$defs/Timestamp"},"tombstone_until":{"$ref":"#/$defs/Timestamp"}}}},
+        {"if":{"properties":{"status":{"enum":["Uploaded","Bound"]}}},"then":{"properties":{"bytes_deleted_at":{"type":"null"},"tombstone_until":{"type":"null"}}}}
+      ]
     },
     "MessageSendRequest": {
       "type":"object","additionalProperties":false,

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.4.0-draft.7` |
+| Document Version | `0.4.0-draft.8` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -31,6 +31,8 @@ Finalization.6保留四个跨字段Schema门禁，并要求OpenAPI三个配置PU
 机器声明404 NotFound；负例必须证明不创建资源。OpenAPI仍须逐操作
 暴露auth、410、ETag与配置PUT条件矩阵；合成Matrix raw event必须证明唯一namespaced codec、reply映射、
 unknown/native分类与附件边界。真实homeserver/Element显示与AS回流仍是C类联调证据，不改变A类字段。
+附件静态验证还必须复算domain-separated digest golden vector，证明不同multipart表示同摘要、metadata/content
+变化冲突；并覆盖撤权/redaction/过期优先于304，以及blocker推迟实际删除与30天半开tombstone边界。
 
 ## 1. 目标、范围与 V&V authority
 

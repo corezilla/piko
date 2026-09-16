@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.7` |
+| Document Version | `0.4.0-draft.8` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -121,9 +121,13 @@ receipt。扩展缺失为Unclassified，扩展存在但version/body/sender/room/
 
 附件内容复用同一communication provider：Slinky backend先以exact project/session binding上传受控内容，
 Piko校验声明大小、SHA-256与实际bytes并生成opaque content_ref；content_ref只能CAS绑定一个logical message。
+上传digest使用domain prefix、JCS metadata长度前缀、metadata UTF-8和实际content SHA-256原始32字节后再做
+SHA-256；multipart表示不影响逻辑摘要。同key的摘要冲突在声明/实际完整性检查前返回409。
 用户读取必须经exact message/SID/attachment路径，由Slinky先核对当前Project/Session授权，再由Piko核对
 调用Client的`content:read:delegated` scope、当前room membership和消息绑定；浏览器不持有Piko credential，
-也不存在content_ref直查、临时URL或Client级内容列表。
+也不存在content_ref直查、临时URL或Client级内容列表。读取先做当前授权、成员、exact link和内容生命周期检查，
+最后才评估ETag；redaction为410，实际删除后从`bytes_deleted_at`起30天返回410，精确窗口终点起404。
+pending、RecoveryRequired或unknown义务只会推迟实际删除，不能提前启动tombstone。
 
 `ProductMatrixRoomMessageEvent`只验证Piko从homeserver真实事件抽取的六字段受控投影，不验证整个raw event。
 raw event可包含`unsigned`等标准外层字段，但必须是非state的`m.room.message`；Piko先核对exact sender/room，
@@ -191,7 +195,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.7`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain、产品消息control与受控附件content操作；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.8`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain、产品消息control与受控附件content操作；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

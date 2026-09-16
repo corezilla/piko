@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-agent-runtime-design-v0.3", "document_type": "design.system",
-  "document_version": "0.4.0-draft.10", "title": "Piko Agent Runtime 总体系统设计",
+  "document_version": "0.4.0-draft.11", "title": "Piko Agent Runtime 总体系统设计",
   "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/20_system_design/piko-agent-runtime-design-v0.3.md",
   "template_id": "design.system", "template_version": "4.0.0",

@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.7` |
+| Package Version | `0.3.0-finalization.8` |
 | Status | Review；runtime activation=false |
 | Authority | Piko |
 | Request | `S-20260916-191ab7c8184c` |
@@ -30,6 +30,10 @@ Finalization.7关闭Element消费的两项A类缺口：同一provider增加受�
 message/SID/attachment读取，要求Slinky当前授权、Piko delegated scope及viewer当前room membership同时成立；
 不提供content_ref直查、URL/token或Client级列表。另将`ProductMatrixRoomMessageEvent`固定为六字段受控投影，
 raw homeserver event允许`unsigned`等标准外层字段，但非message state event及sender/room不一致一律拒绝。
+Finalization.8精确冻结附件摘要、retention和条件读取：logical digest使用domain prefix、uint64 metadata
+长度、JCS metadata UTF-8与actual content SHA-256原始32字节再哈希；同key异digest 409优先于完整性422。
+tombstone只从实际`bytes_deleted_at`起算30天，blocker推迟删除；读取先核验当前授权/membership/link和
+redaction/retention，最后才判断ETag，因此撤权/410/404不能被304覆盖。
 
 LLMTier语义消费固定为Amendment 8：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
@@ -39,7 +43,7 @@ Chat/SSE/fallback。LLMTier `0.3-finalization-candidate.1`目标OpenAPI SHA-256
 
 ## 2. 一次性退役
 
-从 `0.3.0-finalization.7` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
+从 `0.3.0-finalization.8` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
 `runs:by-attempt`、manual reconcile、Run SSE、Piko Session list/element-view/:close、原子建房
 `collaboration_contract`及旧嵌套`bindings`。不提供alias、转换器、双写或runtime fallback。
 
@@ -55,11 +59,13 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 
 ## 5. 验证摘要
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；29 Schema case、50 semantic case、15 path、37 error。
+- `python3 tests/contract/validate_v03_contract.py`：exit 0；31 Schema case、57 semantic case、15 path、39 error。
 - 四个消费者反例均被Schema拒绝；raw Matrix root/reply正例与reply/version负例通过；配置PUT create/update/
   缺头/双头/wildcard/stale oracle均由validator核验。
 - 附件上传/读取、大小与摘要、单消息绑定、参与者授权、保留/tombstone以及raw event投影、sender/room/state
   负例均由validator核验；真实homeserver与浏览器访问仍为C类联调证据。
+- 附件摘要golden vector由validator按domain-separated preimage重算；撤权/redaction/过期+匹配ETag和
+  actual-deletion起算的半开30天tombstone边界均有静态oracle。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
 - Piko-owned跨系统语义无“实现时再确认”；唯一外部输入是LLMTier target OpenAPI机器正文，用于复算
   已知hash与差异审查，明确留在baseline binding gate，未转移到联调。

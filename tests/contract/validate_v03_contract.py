@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import struct
 from pathlib import Path
 
 import yaml
@@ -51,10 +53,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.7"
-assert openapi["info"]["version"] == "0.3.0-finalization.7"
-assert fixtures["fixture_version"] == "0.3.0-finalization.7"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.7"
+assert schema["x-contract-version"] == "0.3.0-finalization.8"
+assert openapi["info"]["version"] == "0.3.0-finalization.8"
+assert fixtures["fixture_version"] == "0.3.0-finalization.8"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.8"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -133,7 +135,7 @@ required_errors = {
     "MessageNotDispatchEligible",
     "InvalidPreconditionCombination", "PreconditionRequired",
     "ContentTooLarge", "ContentIntegrityMismatch", "ContentAlreadyBound",
-    "ContentViewerNotAuthorized",
+    "ContentViewerNotAuthorized", "ContentRedacted", "ContentExpired",
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
@@ -182,6 +184,25 @@ assert semantics["content-single-message-binding-race"]["loser_error"] == "Conte
 assert semantics["content-read-authorized"]["browser_has_piko_credential"] is False
 assert semantics["content-read-viewer-not-member"]["expected_status"] == 403
 assert semantics["content-retention"]["unknown_obligation_deleted"] is False
+assert semantics["content-retention"]["tombstone_clock_started"] is False
+assert semantics["content-upload-conflict-precedes-integrity"]["expected_error"] == "IdempotencyConflict"
+assert semantics["content-upload-conflict-precedes-integrity"]["integrity_error_returned"] is False
+assert semantics["content-read-viewer-not-member"]["not_modified_returned"] is False
+assert semantics["content-read-redacted-with-matching-etag"]["expected_error"] == "ContentRedacted"
+assert semantics["content-read-expired-with-matching-etag"]["expected_error"] == "ContentExpired"
+assert semantics["content-read-at-tombstone-boundary"]["expected_status"] == 404
+assert semantics["content-read-authorized-matching-etag"]["expected_status"] == 304
+assert semantics["content-retention-after-blocker-clears"]["at_boundary"]["status"] == 404
+
+golden = semantics["content-upload-digest-golden"]
+metadata_bytes = golden["canonical_metadata_utf8"].encode("utf-8")
+content_bytes = bytes.fromhex(golden["content_hex"])
+content_hash = hashlib.sha256(content_bytes).digest()
+preimage = b"piko-content-upload-digest-v1\x00" + struct.pack(">Q", len(metadata_bytes)) + metadata_bytes + content_hash
+assert len(metadata_bytes) == golden["canonical_metadata_length"]
+assert content_hash.hex() == golden["actual_content_sha256_hex"]
+assert preimage.hex() == golden["combined_preimage_hex"]
+assert hashlib.sha256(preimage).hexdigest() == golden["logical_digest"]
 
 assert "bindings" not in request_properties
 for required in ("agent_binding_ref", "session_binding_ref", "expected_session_binding_version"):
@@ -189,7 +210,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.7", "communication_trigger", "execution_released", "decision_first_created_at"):
+for required in ("0.3.0-finalization.8", "communication_trigger", "execution_released", "decision_first_created_at"):
     assert required in contract_text or required in field_text, required
 
 print(

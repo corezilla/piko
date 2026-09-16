@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.7` |
+| Document Version | `0.4.0-draft.8` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.7`)；runtime activation=false。
+> (`0.3.0-finalization.8`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.7` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.8` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
@@ -53,12 +53,25 @@ V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、
 | Revoke | POST binding `:revoke` | 202 receipt | operation/key/version |
 | Drain | GET binding `/drain` | 200/304 DrainView | Piko evidence projection |
 | Send message | POST binding `/messages` | 202 MessageSendReceipt | Client+endpoint+key；SID index |
-| Upload attachment | POST binding `/contents` | 201 ContentReferenceView | multipart；metadata+actual hash digest；single-message bind |
+| Upload attachment | POST binding `/contents` | 201 ContentReferenceView | multipart；domain-separated metadata/content digest；single-message bind |
 | Message status | GET binding `/messages/{sid}` | 200/304 receipt | Client+binding+SID |
 | Read attachment | GET binding `/messages/{sid}/attachments/{attachment_id}` | 200/304 bytes | Slinky backend delegated read；exact linkage+viewer membership |
 | Ingress fact | GET binding `/ingress-events/{matrix_event_id}` | 200/304 IngressEventView | exact event；无副作用 |
 
 没有团队API、手工reconcile API、任务级聊天历史 API、content列表/content_ref直查、临时下载URL或第五个 Run mutation。
+
+附件上传的logical digest固定为
+`lowercase-hex(SHA-256(ASCII("piko-content-upload-digest-v1") || 0x00 || uint64_be(len(M)) || M || H))`，
+其中`M`是RFC8785 JCS(metadata)的UTF-8字节，`H`是实际content bytes的SHA-256原始32字节。
+multipart boundary、part header、filename和content-transfer encoding不参与。基础framing/size检查后先计算并比较
+既有key digest：异digest返回409，即使新请求的声明hash也不匹配；同digest重放原决定；ledger miss才校验
+declared/actual size/hash并以422持久拒绝。
+
+附件条件读取固定先检查当前认证、delegated scope、Slinky授权引用和Matrix membership，再检查exact linkage/可见性，
+再检查redaction与bytes retention，最后才判断`If-None-Match`。所以撤权+匹配ETag仍为403，redaction+匹配
+ETag为410 `ContentRedacted`，实际删除后的30天半开tombstone窗口为410 `ContentExpired`，窗口终点及之后为404；
+只有仍可读且ETag匹配才返回304。retention eligibility不会启动tombstone：pending、RecoveryRequired或unknown义务
+会推迟实际删除，`bytes_deleted_at`写入时才计算`tombstone_until=bytes_deleted_at+30d`。
 
 ## 3. Run 状态与结果
 

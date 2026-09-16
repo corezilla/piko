@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.7` |
+| Document Version | `0.4.0-draft.8` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -33,7 +33,7 @@
 | SessionProjectionStore | Slinky binding/version/lease | exact session/room/agent/status/valid_until | 不取得Session authority；Active且lease有效才admit |
 | ApplicationServiceIngress | AS transaction | txn/event/dedup/delivery obligation/checkpoint | 原子落盘后ACK；checkpoint私有 |
 | MatrixEventProjector | raw homeserver event + binding | raw evidence ref、六字段受控投影 | 非state message、exact sender/room；产品content严格校验 |
-| ContentStore | multipart metadata+bytes | content ref、digest、bytes、binding CAS、tombstone | 64MiB单项；exact message读取；无URL/token |
+| ContentStore | multipart metadata+bytes | domain-separated digest、bytes、binding CAS、redaction、actual-deletion tombstone | 64MiB单项；exact message读取；无URL/token |
 | TriggerResolver | Run request + ingress event | consumption key ledger | exact room/identity/boundary；不猜最新消息 |
 | RunAttachmentStore | admitted Run + projection | immutable route snapshot、wakeup epoch/status | 同Run唯一attachment；epoch单调 |
 | RevocationCoordinator | operation/version/key | revoke receipt、fence generation | 新wakeup/admission/权限获取同时阻断 |
@@ -59,7 +59,8 @@ ACL快照与当前authorization交集，hash/size不符不得发送或分类为v
 
 配置PUT的事务分支只接受一个条件头：`If-None-Match:*`创建或exact strong `If-Match`更新。条件组合在读取/
 写入前判定；更新CAS失败412，成功的200/201与新strong ETag在同一事务提交。GET先做credential/scope，
-再读record/tombstone和If-None-Match，避免通过304/404/410泄露资源存在。
+再检查current授权/membership、exact link、redaction和actual-deletion tombstone，最后才比较If-None-Match，
+避免通过304/404/410泄露资源存在。tombstone时钟只从`bytes_deleted_at`开始，blocker未清零不删除bytes。
 
 Revoke事务原子写：operation receipt、binding version/status、new-admission fence、permission-acquisition fence、wakeup epoch fence。Matrix membership请求在事务后异步，不能回滚本地撤权。
 

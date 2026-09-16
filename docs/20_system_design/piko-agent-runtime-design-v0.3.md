@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0-draft.10` |
+| Document Version | `0.4.0-draft.11` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -50,6 +50,7 @@ Document Status、评审结论和 Runtime Activation 是三个独立 Gate，当�
 | `0.4.0-draft.8` | `2026-09-16` | 收紧状态组合Schema、HTTP条件请求矩阵及唯一Matrix codec | 待评审 |
 | `0.4.0-draft.9` | `2026-09-16` | 补齐三个配置PUT更新不存在资源的404机器分支 | 待评审 |
 | `0.4.0-draft.10` | `2026-09-16` | 冻结受控附件上传/参与者读取以及raw Matrix event到六字段投影边界 | 待评审 |
+| `0.4.0-draft.11` | `2026-09-16` | 固定附件domain-separated digest、实际删除起算的30天tombstone及鉴权先于ETag | 待评审 |
 
 ## 目录、表目录与图目录
 
@@ -425,7 +426,7 @@ RunView 还须给出 `state_version`、accepted/started/finished 时间、`resul
 RecoveryRequired 必须提供 reason_code、unresolved_refs 与 Wait/OperatorAction 建议。状态或释放事实
 改变时版本单调；任何对外可见 progress 或 recovery 内容变化也必须递增 `state_version`。
 `recoverable_until` 在运行中不能缩短。这些字段已由 `agent-runtime-v0.3.schema.json` 的
-`0.3.0-finalization.7` 候选冻结；实现证据仍为 NOT_RUN。
+`0.3.0-finalization.8` 候选冻结；实现证据仍为 NOT_RUN。
 
 ## 7. 硬件实现方案
 
@@ -555,7 +556,7 @@ backlog 计算；
 
 | 边界 | Piko 用途 | 字段 authority | 失败行为 |
 |---|---|---|---|
-| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.7` | auth、idempotency、scope、path/limit、RecoveryRequired |
+| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.8` | auth、idempotency、scope、path/limit、RecoveryRequired |
 | Slinky→Piko 通信控制 | Profile、Agent identity、Session binding projection、revoke、drain | Piko V0.3 OpenAPI/Schema；Slinky拥有Session/Topic/View/close | version/mismatch/revoking/recovery |
 | Piko→LLMTier | Responses non-stream、Models、Invocation/Response GET | LLMTier Piko-facing contract | 202 active、terminal typed error、UnknownOutcome |
 | Piko↔Matrix | AS push txn、membership/room/send txn | Matrix AS/Client API + Piko binding | replay、membership/recovery blocker |

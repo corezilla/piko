@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.7` |
+| Document Version | `0.3.0-finalization.8` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -181,12 +181,12 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 
 | 字段/事实 | 生产/authority | 使用 | 范围/格式 | 冲突、恢复与保留 |
 |---|---|---|---|---|
-| upload metadata | Slinky backend | 创建受控content_ref | attachment_id、expected binding version、media_type、size≤64MiB、sha256；全部required | multipart boundary不入digest；JCS(metadata)+actual hash入digest；同key同digest原201，异digest409 |
+| upload metadata | Slinky backend | 创建受控content_ref | attachment_id、expected binding version、media_type、size≤64MiB、sha256；全部required | 令M=RFC8785 JCS(metadata) UTF-8、H=SHA-256(content bytes)原始32字节、P=ASCII(`piko-content-upload-digest-v1`)后接`00`、L=uint64 big-endian len(M)；wire digest=`lowercase-hex(SHA-256(P||L||M||H))`。boundary/part header/filename/content-transfer encoding不入摘要；同key异digest 409优先于声明/实际不符422 |
 | content bytes | Slinky backend / Piko content store | 待发送附件 | multipart binary；实际≤64MiB | actual size/hash与metadata不符422 ContentIntegrityMismatch；超限413 ContentTooLarge |
-| ContentReferenceView | Piko | MessageAttachment来源 | content_ref、scope、binding version、media/size/hash/status/times/etag | 仅exact binding可见；未绑定24h；相同content_ref只允许CAS绑定一个logical message，loser409 ContentAlreadyBound |
+| ContentReferenceView | Piko | MessageAttachment来源 | content_ref、scope、binding version、media/size/hash、status、created/unbound/retained/redacted/deleted/tombstone times、etag；nullable时间显式null | 仅exact binding可见；未绑定24h；相同content_ref只允许CAS绑定一个logical message，loser409 ContentAlreadyBound |
 | message attachment link | Piko outbox transaction | 将content_ref固定到SID/attachment_id | exact Project+Session binding+SID+attachment | metadata逐项相等才受理；成功后至少保留message accepted_at+7d；未知delivery义务不得删除 |
-| attachment GET route | Piko | Slinky backend代理当前用户读取 | exact binding+SID+attachment_id；无content_ref直查/list | Client需content:read:delegated；还需viewer MXID、authorization ref、exact linkage及room当前membership；失败403/404/503 |
-| content tombstone | Piko retention | 防过期误恢复 | bytes到期后30d | tombstone期410；之后或不可见404；长期副本由Slinky授权artifact/backup保存 |
+| attachment GET route | Piko | Slinky backend代理当前用户读取 | exact binding+SID+attachment_id；无content_ref直查/list | 固定先后：认证401→delegated/current授权/current membership 403→exact linkage/visibility 404→redaction/retention 410/404→ETag 304。匹配ETag不得覆盖前置失败 |
+| content tombstone | Piko retention | 防过期误恢复 | eligibility为未绑定created_at+24h或已绑定accepted_at+7d minimum；blocker推迟实际删除；`tombstone_until=bytes_deleted_at+30d` | 只有实际删除才写bytes_deleted_at并启动半开窗口；`[deleted,until)`为410 ContentExpired，精确until起404；redaction为410 ContentRedacted；长期副本由Slinky授权artifact/backup保存 |
 
 浏览器不取得Piko credential、content_ref读取权或临时URL。Slinky必须先验证当前Project permission与Session
 membership，再由backend调用；Piko独立核对exact Matrix room membership。`X-Piko-Viewer-Authorization-Ref`

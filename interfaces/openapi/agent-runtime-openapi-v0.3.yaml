@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.7
+  version: 0.3.0-finalization.8
   description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1
@@ -300,7 +300,14 @@ paths:
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/contents:
     post:
       operationId: createBoundMessageContent
-      description: 上传单个待发送附件到同一communication provider。multipart boundary不进入digest；digest为JCS(metadata)+实际content SHA-256。相同key/digest返回原201；content_ref只能原子绑定一个logical message。
+      description: >-
+        上传单个待发送附件到同一communication provider。令M为RFC8785 JCS(metadata)的UTF-8字节，
+        H为SHA-256(content bytes)的原始32字节，P为ASCII("piko-content-upload-digest-v1")后接0x00，
+        L为uint64 big-endian的len(M)；logical digest为lowercase-hex(SHA-256(P || L || M || H))。
+        multipart boundary、part headers、filename和content-transfer encoding不进入logical digest。
+        服务端完成基础framing/size检查后先计算digest并比较既有key record：异digest固定409；同digest重放原决定；
+        仅ledger miss再校验metadata声明的size/hash与实际字节，不一致为持久化的422且不创建content_ref。
+        content_ref只能原子绑定一个logical message。
       parameters:
         - $ref: '#/components/parameters/ProjectRef'
         - $ref: '#/components/parameters/SessionBindingRef'
@@ -356,7 +363,13 @@ paths:
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}/attachments/{attachment_id}:
     get:
       operationId: getBoundMessageAttachmentContent
-      description: 仅供已认证Slinky backend代理用户读取exact message attachment；浏览器不持有Piko credential。服务端同时校验Client content:read:delegated scope、exact project/session/message/attachment linkage、Slinky当前授权决定引用及viewer在exact Matrix room的当前membership；不提供content_ref直查或Client级列表。
+      description: >-
+        仅供已认证Slinky backend代理用户读取exact message attachment；浏览器不持有Piko credential。
+        条件读取顺序固定为认证→delegated scope/Slinky当前授权/viewer当前room membership→exact linkage/可见性
+        →redaction与bytes retention状态→If-None-Match。匹配ETag不得越过撤权、关联失效、redaction或过期；
+        撤权返回403 ContentViewerNotAuthorized，redaction返回410 ContentRedacted，bytes已删除且仍在30d tombstone窗口
+        返回410 ContentExpired，窗口终点及之后返回404。只有当前仍可读且ETag匹配才返回304。
+        不提供content_ref直查或Client级列表。
       parameters:
         - $ref: '#/components/parameters/ProjectRef'
         - $ref: '#/components/parameters/SessionBindingRef'
