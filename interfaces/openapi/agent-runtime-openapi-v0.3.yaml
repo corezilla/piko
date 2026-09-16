@@ -1,0 +1,314 @@
+openapi: 3.1.0
+info:
+  title: Piko Agent Runtime V0.3 定型 API
+  version: 0.3.0-finalization.2
+  description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
+servers:
+  - url: https://piko.example/agent-runtime/v1
+security:
+  - bearerAuth: []
+paths:
+  /runs:
+    post:
+      operationId: createRun
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentTaskRequest'}
+      responses:
+        '202':
+          description: Run、ClientTaskIndex、原回执、绑定快照和资源 claim 已原子持久化。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/RetryableError'}
+        '503': {$ref: '#/components/responses/Error'}
+  /runs/{run_id}:
+    get:
+      operationId: getRun
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 当前 RunView；跨 Client 与不存在统一 404。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
+  /runs/{run_id}/result:
+    get:
+      operationId: getRunResult
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 不可变 AgentResult。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentResult'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
+        '500': {$ref: '#/components/responses/Error'}
+  /runs/{run_id}:cancel:
+    post:
+      operationId: cancelRun
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelRequest'}}}
+      responses:
+        '202':
+          description: 取消意图已持久化；不是停止或 execution release 证明。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelReceipt'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /operator/matrix-transport-profile:
+    get:
+      operationId: getMatrixTransportProfile
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 无 Secret 的 singleton transport profile readiness。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: putMatrixTransportProfile
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfMatchOptional'
+        - $ref: '#/components/parameters/IfNoneMatchOptional'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfileRequest'}}}
+      responses:
+        '200':
+          description: 已更新；credential 仅以 binding ref 表达。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
+        '201':
+          description: 已创建。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+  /operator/matrix-transport-profile:probe:
+    post:
+      operationId: probeMatrixTransportProfile
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: 只读 probe；不得创建 identity、room、Session 或推进 checkpoint。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProbeResult'}}}
+        '503': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/agent-communication-bindings/{agent_binding_ref}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectRef'
+      - $ref: '#/components/parameters/AgentBindingRef'
+    get:
+      operationId: getAgentCommunicationIdentityBinding
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 稳定 Agent Matrix identity binding；无 Secret。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: putAgentCommunicationIdentityBinding
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfMatchOptional'
+        - $ref: '#/components/parameters/IfNoneMatchOptional'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBindingRequest'}}}
+      responses:
+        '200':
+          description: 已更新 display/status；稳定 MXID 不变。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
+        '201':
+          description: 已 provision 稳定 ApplicationServiceVirtualUser。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectRef'
+      - $ref: '#/components/parameters/SessionBindingRef'
+    get:
+      operationId: getSessionAgentBindingProjection
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Slinky-authoritative SessionAgentBinding 的 Piko 核验投影。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: putSessionAgentBindingProjection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfMatchOptional'
+        - $ref: '#/components/parameters/IfNoneMatchOptional'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjectionRequest'}}}
+      responses:
+        '200':
+          description: 已核验并更新投影。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
+        '201':
+          description: 已核验 membership 并创建投影。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:revoke:
+    post:
+      operationId: revokeSessionAgentBinding
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RevokeBindingCommand'}}}
+      responses:
+        '202':
+          description: Piko 本地 fencing 已提交或恢复原 operation；membership 可继续异步收敛。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RevokeBindingReceipt'}}}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/drain:
+    get:
+      operationId: getSessionAgentBindingDrain
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Piko-owned inbox/outbox、writer/wakeup fence 与 membership evidence。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/DrainView'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages:
+    post:
+      operationId: submitBoundAgentMessage
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendRequest'}}}
+      responses:
+        '202':
+          description: Outbox command 已持久化；sender/room 从 exact SessionAgentBindingProjection 派生，尚不保证 Matrix 已接收。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendReceipt'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}:
+    get:
+      operationId: getBoundAgentMessage
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/Sid'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: 当前固定 send receipt；Sent 后才出现 Matrix event ID/server timestamp。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendReceipt'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}:
+    get:
+      operationId: getBoundIngressEvent
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/MatrixEventId'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Piko AS ingress ledger 中的 exact Matrix event fact；只有 dispatch_eligible=true 可用于 communication_trigger。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/IngressEventView'}}}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '404': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  parameters:
+    RunId: {name: run_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    ProjectRef: {name: project_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    AgentBindingRef: {name: agent_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    SessionBindingRef: {name: session_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    Sid: {name: sid, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}}
+    MatrixEventId: {name: matrix_event_id, in: path, required: true, description: URL-encoded Matrix event ID, schema: {type: string, minLength: 2, maxLength: 255, pattern: '^\$'}}
+    RequestId: {name: X-Request-ID, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 255}}
+    IfMatchOptional: {name: If-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+    IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+    IfNoneMatch: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+  headers:
+    ETag: {required: true, schema: {type: string, minLength: 1}}
+    RetryAfter: {required: true, schema: {type: integer, minimum: 0}}
+  responses:
+    Error:
+      description: Typed error。
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    RetryableError:
+      description: 当前未受理；调用方保留原 key 并按 Retry-After 重试。
+      headers: {Retry-After: {$ref: '#/components/headers/RetryAfter'}}
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    NotModified: {description: Not modified.}

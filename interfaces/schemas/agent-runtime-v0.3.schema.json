@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
+  "title": "Piko Agent Runtime V0.3 定型契约",
+  "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
+  "x-contract-version": "0.3.0-finalization.2",
+  "$defs": {
+    "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
+    "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},
+    "Timestamp": {"type":"string","format":"date-time","pattern":"Z$"},
+    "Digest": {"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "RelativePath": {"type":"string","minLength":1,"maxLength":4096,"pattern":"^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\u0000).+$"},
+    "CommunicationTrigger": {
+      "type":["object","null"],"additionalProperties":false,
+      "required":["provider","dispatch_ref","trigger_event_id"],
+      "properties":{
+        "provider":{"const":"SlinkyRuntime"},
+        "dispatch_ref":{"$ref":"#/$defs/Identifier"},
+        "trigger_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"}
+      }
+    },
+    "Permissions": {
+      "type":"object","additionalProperties":false,
+      "required":["read_paths","write_paths","tool_profile_ref"],
+      "properties":{
+        "read_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},
+        "write_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},
+        "tool_profile_ref":{"$ref":"#/$defs/OpaqueRef"}
+      }
+    },
+    "RunLimits": {
+      "type":"object","additionalProperties":false,
+      "required":["deadline_at","max_model_calls","max_tool_calls","stop_grace_seconds"],
+      "properties":{
+        "deadline_at":{"$ref":"#/$defs/Timestamp"},
+        "max_model_calls":{"type":"integer","minimum":1,"maximum":100000},
+        "max_tool_calls":{"type":"integer","minimum":0,"maximum":100000},
+        "stop_grace_seconds":{"type":"integer","minimum":1,"maximum":3600}
+      }
+    },
+    "AgentTaskRequest": {
+      "type":"object","additionalProperties":false,
+      "required":["client_task_id","instruction","workspace_ref","service_level_id","agent_binding_ref","session_binding_ref","expected_session_binding_version","communication_trigger","permissions","limits","output_paths"],
+      "properties":{
+        "client_task_id":{"$ref":"#/$defs/Identifier"},
+        "instruction":{"type":"string","minLength":1,"maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
+        "workspace_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "service_level_id":{"type":"string","minLength":1,"maxLength":128,"x-exact-case":true},
+        "agent_binding_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
+        "session_binding_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
+        "expected_session_binding_version":{"type":["integer","null"],"minimum":1},
+        "communication_trigger":{"$ref":"#/$defs/CommunicationTrigger"},
+        "permissions":{"$ref":"#/$defs/Permissions"},
+        "limits":{"$ref":"#/$defs/RunLimits"},
+        "output_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}}
+      },
+      "allOf":[
+        {"if":{"properties":{"session_binding_ref":{"type":"null"}}},"then":{"properties":{"expected_session_binding_version":{"type":"null"}}}},
+        {"if":{"properties":{"session_binding_ref":{"type":"string"}}},"then":{"properties":{"agent_binding_ref":{"type":"string"},"expected_session_binding_version":{"type":"integer","minimum":1}}}},
+        {"if":{"properties":{"communication_trigger":{"type":"object"}}},"then":{"properties":{"session_binding_ref":{"type":"string"}}}}
+      ]
+    },
+    "Progress": {
+      "type":["object","null"],"additionalProperties":false,
+      "required":["message","observed_at"],
+      "properties":{"message":{"type":"string","maxLength":4096,"x-authoritative-length-unit":"utf8_bytes"},"observed_at":{"$ref":"#/$defs/Timestamp"}}
+    },
+    "Recovery": {
+      "type":["object","null"],"additionalProperties":false,
+      "required":["reason_code","unresolved_refs","suggested_action"],
+      "properties":{
+        "reason_code":{"type":"string","minLength":1,"maxLength":128},
+        "unresolved_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "suggested_action":{"enum":["Wait","OperatorAction"]}
+      }
+    },
+    "ExecutionReleaseEvidence": {
+      "type":"object","additionalProperties":false,
+      "required":["agent_fence_ref","tool_termination_or_isolation_refs","workspace_writer_fence_ref","wakeup_fence_ref","external_obligation_status","external_obligation_refs","isolation_boundary_ref","released_at"],
+      "properties":{
+        "agent_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "tool_termination_or_isolation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "workspace_writer_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "wakeup_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "external_obligation_status":{"enum":["Terminal","Isolated","Unknown"]},
+        "external_obligation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "isolation_boundary_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
+        "released_at":{"$ref":"#/$defs/Timestamp"}
+      },
+      "allOf":[
+        {"if":{"properties":{"external_obligation_status":{"const":"Terminal"}}},"then":{"properties":{"isolation_boundary_ref":{"type":"null"}}}},
+        {"if":{"properties":{"external_obligation_status":{"const":"Isolated"}}},"then":{"properties":{"isolation_boundary_ref":{"type":"string"},"external_obligation_refs":{"minItems":1}}}},
+        {"if":{"properties":{"external_obligation_status":{"const":"Unknown"}}},"then":{"properties":{"external_obligation_refs":{"minItems":1}}}}
+      ]
+    },
+    "RunCommunicationAttachment": {
+      "type":["object","null"],"additionalProperties":false,
+      "required":["attachment_id","agent_binding_ref","session_binding_ref","resolved_session_binding_version","session_id","room_id","agent_identity_ref","communication_trigger","wakeup_epoch","attached_at","status"],
+      "properties":{
+        "attachment_id":{"$ref":"#/$defs/OpaqueRef"},
+        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "resolved_session_binding_version":{"type":"integer","minimum":1},
+        "session_id":{"$ref":"#/$defs/OpaqueRef"},
+        "room_id":{"type":"string","minLength":1,"maxLength":255},
+        "agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "communication_trigger":{"$ref":"#/$defs/CommunicationTrigger"},
+        "wakeup_epoch":{"type":"integer","minimum":1},
+        "attached_at":{"$ref":"#/$defs/Timestamp"},
+        "revoked_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
+        "status":{"enum":["Attached","Fenced","Released"]}
+      }
+    },
+    "RunView": {
+      "type":"object","additionalProperties":false,
+      "required":["run_id","client_task_id","state","state_version","accepted_at","started_at","finished_at","result_available","execution_released","release_evidence","progress","recovery","recoverable_until","resolved_bindings_ref","communication_attachment"],
+      "properties":{
+        "run_id":{"$ref":"#/$defs/OpaqueRef"},
+        "client_task_id":{"$ref":"#/$defs/Identifier"},
+        "state":{"enum":["Queued","Running","Stopping","RecoveryRequired","Completed","Failed","Cancelled"]},
+        "state_version":{"type":"integer","minimum":1},
+        "accepted_at":{"$ref":"#/$defs/Timestamp"},
+        "started_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
+        "finished_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
+        "result_available":{"type":"boolean"},
+        "execution_released":{"type":"boolean"},
+        "release_evidence":{"oneOf":[{"$ref":"#/$defs/ExecutionReleaseEvidence"},{"type":"null"}]},
+        "progress":{"$ref":"#/$defs/Progress"},
+        "recovery":{"$ref":"#/$defs/Recovery"},
+        "recoverable_until":{"$ref":"#/$defs/Timestamp"},
+        "resolved_bindings_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "communication_attachment":{"$ref":"#/$defs/RunCommunicationAttachment"}
+      },
+      "allOf":[
+        {"if":{"properties":{"state":{"const":"RecoveryRequired"}}},"then":{"properties":{"recovery":{"type":"object"}}}},
+        {"if":{"properties":{"execution_released":{"const":true}}},"then":{"properties":{"release_evidence":{"type":"object"}}}},
+        {"if":{"properties":{"state":{"enum":["Completed","Failed","Cancelled"]}}},"then":{"properties":{"result_available":{"const":true}}}},
+        {"if":{"properties":{"state":{"enum":["Queued","Running","Stopping","RecoveryRequired"]}}},"then":{"properties":{"result_available":{"const":false}}}}
+      ]
+    },
+    "OutputFile": {
+      "type":"object","additionalProperties":false,"required":["path","sha256","size_bytes"],
+      "properties":{"path":{"$ref":"#/$defs/RelativePath"},"sha256":{"$ref":"#/$defs/Digest"},"size_bytes":{"type":"integer","minimum":0}}
+    },
+    "Usage": {
+      "type":"object","additionalProperties":false,"required":["model_calls","tool_calls","input_tokens","output_tokens","cost","currency"],
+      "properties":{
+        "model_calls":{"type":"integer","minimum":0},"tool_calls":{"type":"integer","minimum":0},
+        "input_tokens":{"type":["integer","null"],"minimum":0},"output_tokens":{"type":["integer","null"],"minimum":0},
+        "cost":{"type":["string","null"],"pattern":"^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,12})?$"},
+        "currency":{"type":["string","null"],"pattern":"^[A-Z]{3}$"}
+      },
+      "allOf":[
+        {"if":{"properties":{"cost":{"type":"null"}}},"then":{"properties":{"currency":{"type":"null"}}}},
+        {"if":{"properties":{"cost":{"type":"string"}}},"then":{"properties":{"currency":{"type":"string"}}}}
+      ]
+    },
+    "AgentResult": {
+      "type":"object","additionalProperties":false,
+      "required":["run_id","client_task_id","state","reason_code","detail_reason_code","summary","outputs","usage","execution_log_ref","finished_at"],
+      "properties":{
+        "run_id":{"$ref":"#/$defs/OpaqueRef"},"client_task_id":{"$ref":"#/$defs/Identifier"},
+        "state":{"enum":["Completed","Failed","Cancelled"]},
+        "reason_code":{"enum":["AgentFinished","ExecutionError","DeadlineExceeded","ModelCallLimit","ToolCallLimit","UserCancelled"]},
+        "detail_reason_code":{"enum":[null,"AgentExecutionError","DependencyExecutionError","ModelRequestDeadlineExceeded","ServiceEffectiveDeadlineExceeded","TaskDeadlineExceeded"]},
+        "summary":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
+        "outputs":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/OutputFile"}},
+        "usage":{"$ref":"#/$defs/Usage"},
+        "execution_log_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
+        "finished_at":{"$ref":"#/$defs/Timestamp"}
+      },
+      "allOf":[
+        {"if":{"properties":{"state":{"const":"Completed"}}},"then":{"properties":{"reason_code":{"const":"AgentFinished"},"detail_reason_code":{"type":"null"}}}},
+        {"if":{"properties":{"state":{"const":"Cancelled"}}},"then":{"properties":{"reason_code":{"const":"UserCancelled"},"detail_reason_code":{"type":"null"}}}},
+        {"if":{"properties":{"reason_code":{"const":"ExecutionError"}}},"then":{"properties":{"detail_reason_code":{"enum":["AgentExecutionError","DependencyExecutionError","ModelRequestDeadlineExceeded","ServiceEffectiveDeadlineExceeded"]}}}},
+        {"if":{"properties":{"reason_code":{"const":"DeadlineExceeded"}}},"then":{"properties":{"detail_reason_code":{"const":"TaskDeadlineExceeded"}}}}
+      ]
+    },
+    "CancelRequest": {
+      "type":"object","additionalProperties":false,"required":["reason"],
+      "properties":{"reason":{"type":"string","minLength":1,"maxLength":4096,"x-authoritative-length-unit":"utf8_bytes"}}
+    },
+    "CancelReceipt": {
+      "type":"object","additionalProperties":false,"required":["run_id","command_id","accepted_at","outcome"],
+      "properties":{"run_id":{"$ref":"#/$defs/OpaqueRef"},"command_id":{"$ref":"#/$defs/OpaqueRef"},"accepted_at":{"$ref":"#/$defs/Timestamp"},"outcome":{"enum":["StopRequested","AlreadyTerminal"]}}
+    },
+    "MatrixTransportProfile": {
+      "type":"object","additionalProperties":false,
+      "required":["profile_id","profile_version","matrix_homeserver_url","element_web_base_url","identity_provisioning_mode","credential_binding_ref","room_topology","encryption_policy","federation_policy","enabled","status"],
+      "properties":{
+        "profile_id":{"$ref":"#/$defs/OpaqueRef"},"profile_version":{"type":"integer","minimum":1},
+        "matrix_homeserver_url":{"type":"string","format":"uri","pattern":"^https://"},"element_web_base_url":{"type":"string","format":"uri","pattern":"^https://"},
+        "identity_provisioning_mode":{"const":"ApplicationServiceVirtualUser"},"credential_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "room_topology":{"const":"SlinkyManagedExclusiveRoom"},"encryption_policy":{"const":"Forbidden"},"federation_policy":{"const":"Forbidden"},
+        "enabled":{"type":"boolean"},"status":{"enum":["Ready","Degraded","NotReady","Disabled"]}
+      }
+    },
+    "MatrixTransportProfileRequest": {
+      "type":"object","additionalProperties":false,
+      "required":["matrix_homeserver_url","element_web_base_url","identity_provisioning_mode","credential_binding_ref","room_topology","encryption_policy","federation_policy","enabled"],
+      "properties":{
+        "matrix_homeserver_url":{"type":"string","format":"uri","pattern":"^https://"},"element_web_base_url":{"type":"string","format":"uri","pattern":"^https://"},
+        "identity_provisioning_mode":{"const":"ApplicationServiceVirtualUser"},"credential_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "room_topology":{"const":"SlinkyManagedExclusiveRoom"},"encryption_policy":{"const":"Forbidden"},"federation_policy":{"const":"Forbidden"},
+        "enabled":{"type":"boolean"}
+      }
+    },
+    "MatrixTransportProbeResult": {
+      "type":"object","additionalProperties":false,
+      "required":["profile_id","profile_version","status","homeserver_reachable","as_registration_valid","credential_binding_resolved","observed_at"],
+      "properties":{
+        "profile_id":{"$ref":"#/$defs/OpaqueRef"},"profile_version":{"type":"integer","minimum":1},
+        "status":{"enum":["Ready","Degraded","NotReady","Disabled"]},"homeserver_reachable":{"type":"boolean"},
+        "as_registration_valid":{"type":"boolean"},"credential_binding_resolved":{"type":"boolean"},"observed_at":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "AgentCommunicationIdentityBinding": {
+      "type":"object","additionalProperties":false,
+      "required":["agent_binding_ref","binding_version","client_id","project_ref","agent_identity_ref","matrix_user_id","display_name","display_profile_version","transport_profile_ref","status","etag","created_at","updated_at"],
+      "properties":{
+        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},
+        "client_id":{"$ref":"#/$defs/OpaqueRef"},"project_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "matrix_user_id":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},"display_name":{"type":"string","minLength":1,"maxLength":255},"display_profile_version":{"type":"integer","minimum":1},
+        "transport_profile_ref":{"$ref":"#/$defs/OpaqueRef"},"status":{"enum":["Active","Suspended","RecoveryRequired"]},
+        "etag":{"type":"string","minLength":1},"created_at":{"$ref":"#/$defs/Timestamp"},"updated_at":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "AgentCommunicationIdentityBindingRequest": {
+      "type":"object","additionalProperties":false,
+      "required":["agent_identity_ref","display_name","display_profile_version","transport_profile_ref","desired_status"],
+      "properties":{
+        "agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"display_name":{"type":"string","minLength":1,"maxLength":255},
+        "display_profile_version":{"type":"integer","minimum":1},"transport_profile_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "desired_status":{"enum":["Active","Suspended"]}
+      }
+    },
+    "SessionAgentBindingProjection": {
+      "type":"object","additionalProperties":false,
+      "required":["session_binding_ref","binding_version","client_id","project_ref","session_id","room_id","agent_binding_ref","agent_identity_ref","matrix_user_id","status","authorized_at","authorization_valid_until","updated_at"],
+      "properties":{
+        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},"client_id":{"$ref":"#/$defs/OpaqueRef"},
+        "project_ref":{"$ref":"#/$defs/OpaqueRef"},"session_id":{"$ref":"#/$defs/OpaqueRef"},"room_id":{"type":"string","minLength":1,"maxLength":255},
+        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"matrix_user_id":{"type":"string","pattern":"^@","maxLength":255},
+        "status":{"enum":["Provisioning","Active","Revoking","Revoked","RecoveryRequired"]},
+        "authorized_at":{"$ref":"#/$defs/Timestamp"},"authorization_valid_until":{"$ref":"#/$defs/Timestamp"},"updated_at":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "SessionAgentBindingProjectionRequest": {
+      "type":"object","additionalProperties":false,
+      "required":["binding_version","session_id","room_id","agent_binding_ref","agent_identity_ref","matrix_user_id","desired_status","authorized_at","authorization_valid_until"],
+      "properties":{
+        "binding_version":{"type":"integer","minimum":1},"session_id":{"$ref":"#/$defs/OpaqueRef"},"room_id":{"type":"string","minLength":1,"maxLength":255},
+        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"matrix_user_id":{"type":"string","pattern":"^@","maxLength":255},
+        "desired_status":{"enum":["Provisioning","Active","Revoking","Revoked"]},"authorized_at":{"$ref":"#/$defs/Timestamp"},"authorization_valid_until":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "RevokeBindingCommand": {
+      "type":"object","additionalProperties":false,"required":["operation_id","expected_binding_version","reason_code","requested_at"],
+      "properties":{"operation_id":{"$ref":"#/$defs/Identifier"},"expected_binding_version":{"type":"integer","minimum":1},"reason_code":{"type":"string","minLength":1,"maxLength":128},"requested_at":{"$ref":"#/$defs/Timestamp"}}
+    },
+    "RevokeBindingReceipt": {
+      "type":"object","additionalProperties":false,"required":["operation_id","session_binding_ref","recorded_binding_version","outcome","wakeup_fenced","new_admission_fenced","permission_acquisition_fenced","membership_status","observed_at"],
+      "properties":{
+        "operation_id":{"$ref":"#/$defs/Identifier"},"session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"recorded_binding_version":{"type":"integer","minimum":1},
+        "outcome":{"enum":["Revoking","Revoked","AlreadyRevoked","RecoveryRequired"]},
+        "wakeup_fenced":{"type":"boolean"},"new_admission_fenced":{"type":"boolean"},"permission_acquisition_fenced":{"type":"boolean"},
+        "membership_status":{"enum":["Joined","RevocationRequested","Left","Unknown"]},"observed_at":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "DrainView": {
+      "type":"object","additionalProperties":false,
+      "required":["session_binding_ref","binding_version","status","pending_inbox_count","pending_outbox_count","unresolved_refs","isolated_external_obligation_refs","last_accepted_event_id","writer_fence_evidence_ref","wakeup_fence_evidence_ref","authorization_fence_evidence_ref","membership_status","membership_evidence_ref","observed_at"],
+      "properties":{
+        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},"status":{"enum":["Draining","Drained","RecoveryRequired"]},
+        "pending_inbox_count":{"type":"integer","minimum":0},"pending_outbox_count":{"type":"integer","minimum":0},"unresolved_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "isolated_external_obligation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "last_accepted_event_id":{"type":["string","null"]},"writer_fence_evidence_ref":{"type":["string","null"]},"wakeup_fence_evidence_ref":{"type":["string","null"]},"authorization_fence_evidence_ref":{"type":["string","null"]},
+        "membership_status":{"enum":["Joined","RevocationRequested","Left","Unknown"]},"membership_evidence_ref":{"type":["string","null"]},
+        "observed_at":{"$ref":"#/$defs/Timestamp"}
+      },
+      "allOf":[
+        {"if":{"properties":{"status":{"const":"Drained"}}},"then":{"properties":{"pending_inbox_count":{"const":0},"pending_outbox_count":{"const":0},"unresolved_refs":{"maxItems":0},"isolated_external_obligation_refs":{"maxItems":0},"writer_fence_evidence_ref":{"type":"string"},"wakeup_fence_evidence_ref":{"type":"string"},"authorization_fence_evidence_ref":{"type":"string"}}}}
+      ]
+    },
+    "MessageAttachment": {
+      "type":"object","additionalProperties":false,"required":["attachment_id","media_type","size_bytes","sha256","content_ref"],
+      "properties":{"attachment_id":{"$ref":"#/$defs/Identifier"},"media_type":{"type":"string","minLength":1,"maxLength":255},"size_bytes":{"type":"integer","minimum":0,"maximum":67108864},"sha256":{"$ref":"#/$defs/Digest"},"content_ref":{"$ref":"#/$defs/OpaqueRef"}}
+    },
+    "MessageSendRequest": {
+      "type":"object","additionalProperties":false,
+      "required":["envelope_version","topic_id","sid","rid","recipient_identity_refs","message_type","body","attachments"],
+      "properties":{
+        "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
+        "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},
+        "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "message_type":{"enum":["Request","Answer","Notice"]},"body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
+        "attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456}
+      }
+    },
+    "MessageSendReceipt": {
+      "type":"object","additionalProperties":false,
+      "required":["sid","outbox_id","status","accepted_at","matrix_event_id","matrix_origin_server_ts"],
+      "properties":{
+        "sid":{"$ref":"#/$defs/Identifier"},"outbox_id":{"$ref":"#/$defs/OpaqueRef"},"status":{"enum":["Queued","Sent","Failed","RecoveryRequired"]},
+        "accepted_at":{"$ref":"#/$defs/Timestamp"},"matrix_event_id":{"type":["string","null"],"pattern":"^\\$"},"matrix_origin_server_ts":{"type":["integer","null"],"minimum":0}
+      }
+    },
+    "MessageEventView": {
+      "type":"object","additionalProperties":false,
+      "required":["envelope_version","topic_id","sid","rid","sender_identity_ref","recipient_identity_refs","message_type","body","attachments","matrix_room_id","matrix_event_id","matrix_origin_server_ts","piko_ingested_at"],
+      "properties":{
+        "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
+        "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},"sender_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
+        "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+        "message_type":{"enum":["Request","Answer","Notice"]},"body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
+        "attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456},
+        "matrix_room_id":{"type":"string","minLength":1,"maxLength":255},"matrix_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},
+        "matrix_origin_server_ts":{"type":"integer","minimum":0},"piko_ingested_at":{"$ref":"#/$defs/Timestamp"}
+      }
+    },
+    "IngressEventView": {
+      "type":"object","additionalProperties":false,
+      "required":["matrix_room_id","matrix_event_id","matrix_sender","matrix_origin_server_ts","piko_ingested_at","classification_status","dispatch_eligible","envelope"],
+      "properties":{
+        "matrix_room_id":{"type":"string","minLength":1,"maxLength":255},"matrix_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},
+        "matrix_sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},"matrix_origin_server_ts":{"type":"integer","minimum":0},"piko_ingested_at":{"$ref":"#/$defs/Timestamp"},
+        "classification_status":{"enum":["ProductEnvelopeValid","UnclassifiedNativeMessage","Rejected"]},"dispatch_eligible":{"type":"boolean"},
+        "envelope":{"oneOf":[{"$ref":"#/$defs/MessageEventView"},{"type":"null"}]}
+      }
+    },
+    "ErrorDetail": {
+      "type":"object","additionalProperties":false,"required":["code","message","request_id","retryable"],
+      "properties":{"code":{"type":"string","minLength":1,"maxLength":128},"message":{"type":"string","maxLength":2048},"request_id":{"$ref":"#/$defs/OpaqueRef"},"retryable":{"type":"boolean"},"details":{"type":"object","additionalProperties":true}}
+    },
+    "ErrorEnvelope": {"type":"object","additionalProperties":false,"required":["error"],"properties":{"error":{"$ref":"#/$defs/ErrorDetail"}}}
+  }
+}

@@ -4,17 +4,17 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.4.0-draft.2` |
+| Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
 | Authors | corezilla |
 | Reviewer | User / Piko Project Owner |
 | Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-07` |
+| Approval Date | none |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-16` |
 | Template ID | `assurance.vv-plan` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
@@ -132,3 +132,11 @@ server ledger extract、artifact SHA-256、environment fingerprint、case tracea
 
 当前可用证据仅包括文档/Schema validator、fixtures、Pi/OpenAI mock capture；production route、
 homeserver、crash E2E、security isolation 和 performance 均为 Open Gate。
+
+## 11. Finalization A/B/C 关闭规则
+
+- A（跨系统设计）以 `0.3.0-finalization.2` OpenAPI/Schema/error/field table/fixtures 完整且三方review为关闭；
+  不能把字段、错误、去重scope、retention、release或旧接口删除转移到联调决定。
+- B（Piko内部下游设计）包括DB/HA/DDL、worker/Pi hook、sandbox和metrics；评审确认不改变A即可独立推进。
+- C（联调验证）包括真实LLMTier deadline/recovery、Matrix/Element、Pi、Tool/Workspace、crash/failover、
+  Secret与性能证据。失败保持runtime_activation=false，不启用v0.2/heavy或旧Session owner回退。

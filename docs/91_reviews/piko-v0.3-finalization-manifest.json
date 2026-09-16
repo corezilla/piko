@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "package_id": "piko-v0.3-finalization",
+  "package_version": "0.3.0-finalization.2",
+  "status": "review",
+  "runtime_activation": false,
+  "generated_at": "2026-09-16",
+  "artifacts": [
+    {"path":"README.md","sha256":"12f1c16625ea54795b7f80e9feb3f1c1a557f49e377122978da2e0cf11d69678"},
+    {"path":"docs/20_system_design/piko-agent-runtime-design-v0.3.md","sha256":"24838a92e565925f27c690fe0d721510b230277606f14aa8a7e0ee6ba30ff4a2"},
+    {"path":"docs/20_system_design/piko-agent-runtime-design-v0.3.metadata.json","sha256":"9e1604af7908406dc72b3b75b163c553a31b63c2a061b5ca2d9e63a39d003b32"},
+    {"path":"docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md","sha256":"09fbc4121ae68b12462481c19965e54e30025bf46e86a845b3032c80e56a53cd"},
+    {"path":"docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.metadata.json","sha256":"1941cbe53dbed0f377ede500be114b1408a8c1500acbd220323e922b91ae517b"},
+    {"path":"docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md","sha256":"387a6ab77557d1880f980ece45e1e3bc8a1a698fa7e28ffd9b65381dbb824295"},
+    {"path":"docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.metadata.json","sha256":"e1f31fe9494e34bf066b8e0f9669f776a99853cd3d9df2edc8c2196ad13198c9"},
+    {"path":"docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md","sha256":"3109149dc6c20429e13a022a8d72aec7059b9e313962d428056e58b3702c7fee"},
+    {"path":"docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.metadata.json","sha256":"a4c8cd2737ca521edb95943a5e20b97e86954ae3d459c213d862be4265b9d34c"},
+    {"path":"docs/60_interfaces/contracts/piko-v0.3-field-usage.md","sha256":"80049b63b591860b627f018a2135623f6635e3cfa942848fc6e4414212158c4a"},
+    {"path":"docs/60_interfaces/contracts/piko-v0.3-field-usage.metadata.json","sha256":"5db591190b9455615e1566398979f8b3004930ac5512e717c51899e5f5540830"},
+    {"path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md","sha256":"e04f00a0c463c81a8857bc581e104842b3db26c8c44b7403fe259162599fe818"},
+    {"path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.metadata.json","sha256":"24bbef9b2968a6fde4da67863c5c957496e7497966590f2337ed218dda254dce"},
+    {"path":"interfaces/openapi/agent-runtime-openapi-v0.3.yaml","sha256":"109c580760954bd112004a7b6e319f6ec4f3aaec3aa4459e657178f0031453c1"},
+    {"path":"interfaces/schemas/agent-runtime-v0.3.schema.json","sha256":"5a819d89aba17b5d5534a0995ff9d1c2fa968442bc258b45229e50e6926f6742"},
+    {"path":"interfaces/error-codes/error-blocker-catalog-v0.3.json","sha256":"451db426d89bf709af6426eff1f1e7bd8cd5645aa4e79bad243bd3d7b8aeaf64"},
+    {"path":"interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json","sha256":"9f2bdddbeeb7d19ad35930d74d1cdafa22a035786aaf017fddabbf2b5a6b0965"},
+    {"path":"docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md","sha256":"da041835119299304ccbc16a570bf3d32848e1387809d0e219c11d80ba14fef2"},
+    {"path":"docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.metadata.json","sha256":"4bce3412972961e3dda6514a061fc20079d55f316c972fcf2f6fc9a1d951e70d"},
+    {"path":"docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md","sha256":"90348bc4139dc999e23a68dc12be28f973d717ae9d15088064c89e8680e4cf3a"},
+    {"path":"docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.metadata.json","sha256":"10903fe0c21dcc6bafee40cff9e9289221fa3f81c2917c85e7661a735bd2f59d"},
+    {"path":"tests/contract/validate_v03_contract.py","sha256":"f184f59a2f45142ab01cf868a925d446053b8501ea42531bed8a0d9b9edcec87"},
+    {"path":"docs/91_reviews/piko-v0.3-finalization-review-packet.md","sha256":"94a13bb02fcebc35e89c0d70681db0add74588691129c15000c57b4f9c9ee010"}
+  ],
+  "validation": {
+    "contract_validator": "PASS: 16 schema cases, 24 semantic cases, 13 paths, 31 errors",
+    "draft_2020_12_schema": "PASS",
+    "interface_json_and_openapi_yaml_parse": "PASS",
+    "locked_std_source_hashes": "PARTIAL: 7 of 8 selected metadata match draft.21 source manifest; design.system 4.0.0 is an explicit STD migration mismatch",
+    "git_diff_check": "PASS_WITH_CODEX_FALLBACK_GIT"
+  },
+  "cross_system_design_pending": [
+    "LLMTier 0.3-finalization-candidate.1 machine artifact SHA-256 for byte-level consumer baseline binding"
+  ],
+  "downstream_internal_design": ["durable DB/HA/DDL","worker scheduling implementation","Pi hook implementation","workspace/tool sandbox implementation"],
+  "integration_evidence": ["real LLMTier capture","Matrix/Element/Application Service E2E","crash/failover","security and retention enforcement","performance/RPO/RTO"]
+}

@@ -4,17 +4,17 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.4.0-draft.2` |
+| Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
 | Authors | corezilla |
 | Reviewer | User / Piko Project Owner |
 | Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-07` |
+| Approval Date | none |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-16` |
 | Template ID | `assurance.test-specification` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
@@ -140,3 +140,22 @@ token、credential、device material 不进入默认 evidence；需要时只存 
 测试账号/room/database 使用隔离 namespace；结束后按 retention policy 清理，但不能删除失败审计。
 并发和 recovery 测试固定 seed/clock/fault point。跨 Client/Project 测试必须由 harness 创建 synthetic
 scope，不能读取其他真实项目数据。
+
+## 11. V0.3 finalization 追加 Case Matrix
+
+| Case ID | 类别 | 前置/刺激 | Oracle | Evidence 层级 |
+|---|---|---|---|---|
+| PIKO-V03-FIN-001 | Contract | 顶层agent/session/version四种组合及旧嵌套bindings | 全null与仅agent通过；session缺agent/version失败；匹配三项通过；旧嵌套拒绝 | static fixture |
+| PIKO-V03-FIN-002 | Idempotency | 同key/body、异digest、换key同client_task | 原202/409/409；只创建一个Run | static + DB fault待联调 |
+| PIKO-V03-FIN-003 | Trigger | ingress晚到、deadline与binding同时失败 | deadline前晚到原key可CAS受理；deadline后统一422且迟到event不能复活；拒绝decision保留7d | static + Matrix联调 |
+| PIKO-V03-FIN-004 | Trigger fanout | 同event派两个Agent/Run；同key重放；异key同task；同dispatch改tuple | 仅显式不同dispatch+task合法；同key原回执；同task换dispatch及同dispatch改tuple均409 | static + Matrix联调 |
+| PIKO-V03-FIN-005 | Revoke | projection lease过期、revoke/admission CAS竞争 | 过期fail closed；revoke先胜拒绝admission；admission先胜的既有Run被fence且不能取新权限 | fault/E2E |
+| PIKO-V03-FIN-006 | Release | cancel accepted、unknown writer、quarantine | 前两者不release；完整进程/tool/writer/wakeup/quarantine证据才true；隔离ref仍令drain RecoveryRequired | fault/E2E |
+| PIKO-V03-FIN-007 | Strict close | per-binding membership、零Agent房、human仍Joined、Topic/Archive组合 | human无需Left；仅Piko drain与全部Slinky guard满足可Closed；Tier Seat不由通信状态推断 | contract + E2E |
+| PIKO-V03-FIN-008 | Retention | 7d到期、tombstone、active/unknown | tombstone 410；不可见404；active/unknown不删除 | clock/fault |
+| PIKO-V03-FIN-009 | Message | send request→receipt→event/ingress、Topic/SID/RID、recipient/reply/attachment/native message | event ID/time仅Matrix后置；exact route；同SID异body/跨Topic reply/非法附件拒绝；native message不dispatch | contract + Matrix联调 |
+| PIKO-V03-FIN-010 | Removal | 生成OpenAPI/client | 无heavy fields、Session list/element/:close、reconcile/SSE path | static validator |
+| PIKO-V03-FIN-011 | Model deadline | task、request、catalog effective三种deadline先到及late success | task→DeadlineExceeded；单调用→ExecutionError detail；全部停止新业务；late success仅Evidence | static + LLMTier联调 |
+
+Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
+不得倒推修改A类wire或启用旧兼容路径。

@@ -8,10 +8,12 @@ Piko 是为 Slinky v0.3 设计的独立智能体运行时服务。本仓库目�
 本项目采用 STD `0.1.0-draft.21`，由 `docs/std.lock.json` 锁定。STD 升级只在用户明确要求时
 执行；单份文档只跟踪其 `Template ID`、独立 `Template Version` 和模板 SHA-256。
 
-`docs/20_system_design/piko-agent-runtime-design-v0.3.md` 正在按已发布的
-`std-v0.1.0-draft.26` 中 `design.system` 4.0.0 单独重写，状态仍为 In Review。
-该候选同时记录用户提供的 Slinky 单 Agent 轻量任务接口提案及其与现行重型机器契约的冲突；
-尚未批准替换 OpenAPI/Schema，也未建立并行接口。
+`docs/20_system_design/piko-agent-runtime-design-v0.3.md` 按 `design.system` 4.0.0 形成
+V0.3 finalization review candidate，状态仍为 In Review。该候选已经把 Slinky 单 Agent 轻量任务
+要求、Piko communication provider 和 LLMTier Scope B 消费规则合并为唯一设计路径；
+`interfaces/openapi/agent-runtime-openapi-v0.3.yaml` 与配套 Schema/error/fixture 是唯一字段级候选。
+旧 v0.2 heavy payload、Piko-owned Session directory/element-view/:close、`collaboration_contract`、
+reconcile 与 Run SSE 在 `0.3.0-finalization.2` 一次性退役，不建立并行接口或 fallback。
 这是定向设计候选，不改变本项目 draft.21 的正式 STD lock、其他文档的模板来源、
 已发布文档快照或 Runtime Activation。候选来源证据见
 `docs/91_reviews/piko-system-design-std26-source-manifest.json`，语义缺口与验证范围见
@@ -32,22 +34,25 @@ RAG 更新须分别评审。
 - `docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md`
 - `docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md`
 - `docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md`
+- `docs/60_interfaces/contracts/piko-v0.3-field-usage.md`
+- `docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md`
 - `docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md`
 - `docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md`
 - `docs/91_reviews/piko-std-migration-review-packet.md`
 - `docs/91_reviews/piko-std-migration-review-packet.review-decision.json`
 - `docs/91_reviews/piko-std-draft21-upgrade-packet.md`（本次结构升级评审候选）
-- `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml`
-- `interfaces/schemas/agent-runtime-matrix-v0.3.schema.json`
+- `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
+- `interfaces/schemas/agent-runtime-v0.3.schema.json`
 - `interfaces/error-codes/error-blocker-catalog-v0.3.json`
-- `interfaces/vectors/v0.3/collaboration-decision-fixtures.json`
+- `interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`
 - `tests/contract/validate_v03_contract.py`
-- `interfaces/openapi/agent-runtime-openapi-v0.2.yaml`
-- `interfaces/schemas/agent-runtime-v0.2.schema.json`
-- `interfaces/error-codes/error-blocker-catalog-v0.2.json`
+- `interfaces/openapi/agent-runtime-openapi-v0.2.yaml`（historical/superseded）
+- `interfaces/schemas/agent-runtime-v0.2.schema.json`（historical/superseded）
+- `interfaces/error-codes/error-blocker-catalog-v0.2.json`（historical/superseded）
 
-上述 v0.3 文件是 Matrix/Element 增量设计输入，v0.2 文件是其 Agent Runtime 基础机器契约。
-后续需要重新设计与编码的 open item 在对应设计、契约和 V&V 文档中管理，不属于 STD 迁移阶段。
+上述 v0.3 文件共同组成 finalization candidate；v0.2 文件只作 provenance，不再是基础机器契约。
+跨系统字段与行为归入 A 类并在联调前冻结；DB/HA/DDL/worker/Pi/sandbox 是 B 类内部下游设计；
+真实依赖、crash、安全、性能证据是 C 类联调/激活门禁。B/C 不得修改 A 类 wire。
 被 canonical 文档取代的旧工作树副本已经删除；必要历史通过 Git 与迁移 evidence 查询。
 
 `piko-*` 文档的内容由 MR-01 immutable candidate commit

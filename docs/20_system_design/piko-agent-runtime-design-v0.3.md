@@ -4,14 +4,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0-draft.3` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-15` |
+| Last Modified Date | `2026-09-16` |
 | Template ID | `design.system` |
 | Template Version | `4.0.0` |
 | Template Conformance | `tailored` |
@@ -43,6 +43,8 @@ Document Status、评审结论和 Runtime Activation 是三个独立 Gate，当�
 | `0.4.0-draft.1` | `2026-09-15` | 按系统模板 4.0.0 重组用途、功能、流程、数据/接口与验收 | 待评审 |
 | `0.4.0-draft.2` | `2026-09-15` | 纳入 Slinky 轻量单 Agent 任务提案，显式标出旧契约替换 Gate | 待评审 |
 | `0.4.0-draft.3` | `2026-09-15` | 修正幂等重放顺序、输出冻结、调用计数及状态转换评审问题 | 待评审 |
+| `0.4.0-draft.4` | `2026-09-16` | 冻结轻量Run、通信绑定、LLMTier deadline与finalization.1候选 | 待评审 |
+| `0.4.0-draft.5` | `2026-09-16` | 修正deadline停止策略、顶层binding、dispatch tuple、产品消息wire及release/drain边界 | 待评审 |
 
 ## 目录、表目录与图目录
 
@@ -63,9 +65,9 @@ Slinky 负责装配 instruction、工作目录、模型等级、权限和限制�
 Piko 是独立软件服务；轻量任务范围包含四项 Run API、admission、单 AgentSession、Pi/LLMTier/
 Tool/Workspace adapters、durable state、可选通信绑定和只读状态/审计。Piko 不接受 participant IR
 列表、不组建 Team、不解析 STD/Context Manifest，也不判断 Stage/Gate/Artifact 接受。
-已有内建 CollaborationBridge 作为独立通信机制保留设计，但其任务绑定方式必须从旧
-`collaboration_contract` 原子建 Session 修订为提案中的可选 `agent_binding_ref`，在接口对齐前
-不得按任一冲突解释激活。CollaborationBridge 详细协议由
+已有内建 CollaborationBridge 收敛为 Piko communication provider；旧
+`collaboration_contract` 原子建 Session 已由 `agent_binding_ref`、`session_binding_ref`、version 与
+可选 `communication_trigger` 一次性替换。CollaborationBridge 详细协议由
 `docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md` 负责，内部实现由
 `docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md` 负责。
 Slinky 保有 Project/Plan/IR/Team/STD/Prompt/Artifact/Acceptance authority；LLMTier 保有 Registry、
@@ -75,9 +77,8 @@ provider 与最终 admission；Matrix/Element 保有通信与用户会话事实�
 
 | 来源 | 用途与 authority |
 |---|---|
-| `interfaces/openapi/agent-runtime-openapi-v0.2.yaml` 与 v0.2 Schema/error catalog | 现行重型 Run API 字段与错误；待一次性替换 |
-| `interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml` 与 v0.3 Schema/error/fixture | 现行 Matrix/Element 增量；任务绑定方式待对齐 |
-| Slinky `slinky-piko-task-interface-proposal` 0.1.0-draft.1（2026-09-15） | 轻量单 Agent API 输入，尚不是 Piko 机器契约 |
+| `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`、v0.3 Schema/error/fixture | V0.3 finalization唯一机器候选；旧v0.2/heavy及旧Matrix Session-owner surface已删除 |
+| Slinky `slinky-piko-task-interface-proposal` 0.1.0-draft.1（2026-09-15） | 轻量单 Agent需求输入；已由Piko finalization机器候选承接 |
 | `docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md` | 契约边界与机器文件索引 |
 | `docs/10_requirements/piko-requirements-traceability-v0.3.md` | Requirement/Contract/Test 追踪 |
 | `docs/70_verification/` | V&V 和 case/oracle，不是运行结果 |
@@ -98,7 +99,7 @@ provider 与最终 admission；Matrix/Element 保有通信与用户会话事实�
 | Baseline | 范围 | 实现 | 验证 |
 |---|---|---|---|
 | `P-CURRENT-01` | 当前仓库文档、机器契约、validator、mock capture | 静态 artifact 存在；生产服务未实现 | 静态校验可复现；真实依赖 `NOT_RUN` |
-| `P-LITE-CANDIDATE` | Slinky 轻量单 Agent `/runs` 替换方向与既有 LLMTier Scope B | Proposed | 新机器契约/运行证据 `NOT_RUN` |
+| `P-LITE-CANDIDATE` | 单 Agent `/runs`、communication provider与LLMTier Scope B | Design-defined candidate | 机器契约/静态fixture已定义；运行证据 `NOT_RUN` |
 
 所有下述图默认是 `P-LITE-CANDIDATE / Target / Proposed / NOT_RUN`。文档批准不证明吞吐、延迟、HA、
 Matrix 或 LLMTier 真实运行；mock capture、估算和 Verified 必须分开。
@@ -138,20 +139,21 @@ flowchart LR
     R --> P[Single Agent / Pi Adapter]
     P -->|non-stream Responses| L[LLMTier]
     P -->|controlled action| W[Workspace / Tool]
-    R -.->|optional agent_binding_ref| C[CollaborationBridge]
+    R -.->|optional agent + session binding + trigger| C[CollaborationBridge]
     C -->|AS txn / room send| M[Matrix]
     R -->|RunView / AgentResult| S
 ```
 
-*FIG-2-1｜轻量候选主路径；`P-LITE-CANDIDATE / Target / Proposed / NOT_RUN`。实线是单任务必需
-逻辑交接，虚线是尚待契约对齐的可选通信绑定；外部系统各保留自己的 authority。*
+*FIG-2-1｜轻量定型主路径；`P-LITE-FINALIZATION / Target / Proposed / NOT_RUN`。实线是单任务必需
+逻辑交接，虚线是已由 V0.3 机器契约冻结、但尚未实现验证的可选通信绑定；外部系统各保留自己的 authority。*
 
 系统由 Run API/Admission、Run Coordinator、单 Agent Supervisor、受限 adapters、Durable State、
 可选通信绑定和只读 Operations/Audit 组成。关键取舍是单一 Pi path、先落盘后外呼，以及固定绑定
 快照而不是从 instruction 提升权限。提案保留 `/agent-runtime/v1/runs` 路径，但要一次性替换旧
 Request/Result/Run 状态机器定义；旧团队字段、Result version/reconcile 和任务级 SSE 不作为
-兼容分支。CollaborationBridge 的独立 Matrix/Element 能力是否以及如何由 `agent_binding_ref` 关联
-单任务，仍需一次性契约决定。仓库当前只有文档、契约、validator 和局部 mock；无生产 API/DB/
+兼容分支。`agent_binding_ref` 保持稳定身份含义；可选 `session_binding_ref + expected version` 表达
+Slinky 授权的 exact Session/room，`communication_trigger` 表达可信调度事实，Piko 原子生成单 Run
+attachment。仓库当前只有文档、契约、validator 和局部 mock；无生产 API/DB/
 homeserver/真实 Pi/LLMTier E2E，Runtime Activation 为 false。
 
 ## 3. 产品应用与设计目标
@@ -160,18 +162,18 @@ homeserver/真实 Pi/LLMTier E2E，Runtime Activation 为 false。
 
 Slinky 负责把需求转为 IR/Work、装配 Prompt/STD 材料并组织多次单 Agent 任务；LLMTier 负责
 模型服务最终 admission 和 provider routing。Piko 只负责一次任务的执行安全与结果事实。
-轻量提案是新的接口输入，尚未与 Piko 现行重型机器契约合并；不能把设计候选写成已运行能力。
+轻量接口已经形成唯一V0.3 finalization机器候选并一次性取代旧重型wire；它仍不是已运行能力。
 
 ### 3.2 用户与使用场景
 
 | 场景 | 触发/前提 | 结果或失败出口 | 验证承接 |
 |---|---|---|---|
-| 正常执行 | Slinky 提交 instruction/workspace/model/permissions/limits | 一个 Run/Agent、状态与不可变 AgentResult；检查不合格不受理 | 新轻量 Contract Test 待定义 |
-| 并发重复 | 同 Client/key/body 重复或换 key 复用 client_task_id | 前者同一受理回执，后者冲突；不建第二 Run | 旧 V03-E2E-086/087 需重映射 |
-| 丢响应/重启 | Piko 或 LLMTier 已可能受理原操作 | 原 POST/key 与 durable obligation 恢复；未知不盲重派 | LT-R-001；新 Run recovery case 待定义 |
-| 取消/到限 | 单向 cancel 或三类硬限制触发 | 停止新业务，收口后才确定终态/释放；不明则 RecoveryRequired | 新停止/释放 case 待定义 |
+| 正常执行 | Slinky 提交 instruction/workspace/model/permissions/limits | 一个 Run/Agent、状态与不可变 AgentResult；检查不合格不受理 | PIKO-V03-FIN-001 + Schema fixture |
+| 并发重复 | 同 Client/key/body 重复或换 key 复用 client_task_id | 前者同一受理回执，后者冲突；不建第二 Run | PIKO-V03-FIN-002 |
+| 丢响应/重启 | Piko 或 LLMTier 已可能受理原操作 | 原 POST/key 与 durable obligation 恢复；未知不盲重派 | LT-R-001、PIKO-V03-FIN-002/003 |
+| 取消/到限 | 单向 cancel 或三类硬限制触发 | 停止新业务，收口后才确定终态/释放；不明则 RecoveryRequired | PIKO-V03-FIN-006/008 |
 | 多 Agent 工作 | Slinky 分别派发作者、Reviewer、专家任务 | Piko 不聚合 Team 结论或判业务接受 | 旧 V03-E2E-097..099 需按通信机制重分配 |
-| 资源不足 | 绑定、容量或依赖条件不满足 | typed reject/backpressure，不部分启动或降级模型 | 新负向 Contract Test 待定义 |
+| 资源不足 | 绑定、容量或依赖条件不满足 | typed reject/backpressure，不部分启动或降级模型 | error catalog + negative fixtures |
 
 ### 3.3 应用环境与系统边界
 
@@ -220,7 +222,7 @@ flowchart LR
 | 取消 | Client+run_id+key→持久停止意图→202 原回执 | Proposed / NOT_RUN | 同 key 不变；不以计时器伪造 Cancelled/释放 |
 | 单 Agent 执行 | 固定 Pi/workspace/tool/model binding→受限执行 | Proposed / NOT_RUN | 无团队组建、Provider-direct、Chat/SSE 或权限提升 |
 | 外部恢复 | 原 task/key、LLMTier Invocation、Tool obligation→查询/对账 | Planned / mock partial | 未知进入 RecoveryRequired，不建立第二操作 |
-| 可选通信 | `agent_binding_ref`→已授权配置与任务唤醒边界 | Contract open / NOT_RUN | 不把旧 `collaboration_contract` 保留为并行 Run 入口 |
+| 可选通信 | agent identity + exact Session binding + trigger→Run attachment/wakeup fence | Finalization candidate / NOT_RUN | 不把旧 `collaboration_contract` 保留为并行 Run 入口 |
 
 ### 4.2 功能详细说明
 
@@ -255,11 +257,11 @@ Invocation/Response GET 或工具结果查询复用原 logical_operation_id/key/
 非写入清理仍可使 Completed 与 `execution_released=false` 并存，但不能包含任何可能改变 Result
 所引用输出的任务写入。缺失的预期输出不伪造，由 Slinky 检验内容和接受。
 
-旧 AR-001..007 与 V03-E2E-085..099 是当前重型契约的正式追踪 ID，不在本提案中复用为新字段
-定义。团队的全员立场、分歧决议与用户 Decision 由 Slinky 多次任务及其业务记录承接；Piko
-轻量 AgentResult 只含单任务总结和产物事实。若保留独立 Matrix CollaborationBridge，内部
-`ir_ref + matrix_user_id + CollaborationSession` 路由、exclusive room、ExternalLink、close/drain/
-rename 约束仍有效，但任务入口如何仅凭 `agent_binding_ref` 关联必须先修订机制与机器契约。
+旧 AR-001..007 与 V03-E2E-085..099 保留为 provenance，不作为新字段定义。团队的全员立场、分歧
+决议与用户 Decision 由 Slinky 多次任务及其业务记录承接；Piko 轻量 AgentResult 只含单任务总结
+和产物事实。通信采用两层绑定：Piko拥有稳定 Agent identity；Slinky拥有Session/room授权，Piko
+保存核验投影并为每个Run生成attachment。Slinky提供目录、Element descriptor与业务close；Piko
+只提供identity、AS ingress/delivery、revoke/drain/release evidence。
 
 ### 4.3 需求追溯
 
@@ -332,7 +334,7 @@ sequenceDiagram
     participant R as Run Coordinator
     participant P as Single Agent/Pi
     participant L as LLMTier
-    S->>A: POST /runs + client_task_id + instruction + bindings + limits + key
+    S->>A: POST /runs + task/instruction + top-level binding refs + limits + key
     A->>A: auth/schema/JCS digest/unique task/path/limits
     A->>D: atomic Run + task index + binding snapshot + occupancy
     D-->>A: committed Run + original 202 receipt
@@ -409,7 +411,8 @@ RunView 还须给出 `state_version`、accepted/started/finished 时间、`resul
 `progress`、`recovery`、`recoverable_until` 和无 Secret 的 `resolved_bindings_ref`。progress 只作诊断；
 RecoveryRequired 必须提供 reason_code、unresolved_refs 与 Wait/OperatorAction 建议。状态或释放事实
 改变时版本单调；任何对外可见 progress 或 recovery 内容变化也必须递增 `state_version`。
-`recoverable_until` 在运行中不能缩短。这些仍是提案字段，待 Schema 冻结。
+`recoverable_until` 在运行中不能缩短。这些字段已由 `agent-runtime-v0.3.schema.json` 的
+`0.3.0-finalization.2` 候选冻结；实现证据仍为 NOT_RUN。
 
 ## 7. 硬件实现方案
 
@@ -491,9 +494,10 @@ Team 分歧、Expert/PM Work、用户 Decision、Plan change 与 Artifact accept
 
 任务查询按 authenticated `client_id + run_id` scope；`client_task_id` 是该 Client 下的唯一业务关联，
 Piko 不解析其 IR/Work/Stage 含义。`resolved_bindings_ref` 指向固定配置版本；`execution_log_ref`
-只指向授权执行记录，不强制暴露逐步推理。独立 Bridge 仍使用 `ir_ref + matrix_user_id +
-collaboration_session_id` 路由，不凭 display name；Element descriptor 无 Secret，多 room list 不含
-message body。若一个 Run 使用通信绑定，Run 与 Session 的 exact 关联字段须在契约 Gate 明确。
+只指向授权执行记录，不强制暴露逐步推理。通信route使用`session_binding_ref + room_id +
+agent_identity_ref + binding_version`，不凭display name。Slinky拥有Project Session/Topic目录和
+Element descriptor；Piko不返回多room目录或transcript。Run使用通信时由
+`RunCommunicationAttachment`固定exact关联、trigger与wakeup epoch。
 
 ### 10.3 状态表、缓存与持久化
 
@@ -503,7 +507,7 @@ flowchart LR
     R --> E[Run state/version/progress]
     R --> O[LogicalOperation / CounterReservation / RecoveryObligation]
     R --> X[Fenced OutputGeneration + immutable AgentResult]
-    R -.-> C[optional CommunicationBinding ref]
+    R -.-> C[optional AgentIdentity + SessionBinding + RunAttachment]
     C --> M[separate Matrix Session / txn / inbox / outbox ledger]
 ```
 
@@ -519,7 +523,8 @@ ClientTaskIndex 保证
 状态版本单调；AgentResult 与其 OutputGeneration 一经发布不可改写，后续写入只能进入新一代且
 不得由旧 Run 发起。RecoveryObligation
 在结果可证明前不删除，活动/未知 Run 不因保留期到达而删。独立 Matrix ledger 仍有 AS txn/event
-dedup、outbound txn、Session-room、rename audit 与私有 delivery checkpoint。
+dedup、outbound txn、identity/session projection、rename audit 与私有 delivery checkpoint；Slinky的
+Session-room authority不复制成Piko目录。
 缓存和只读 projection 可滞后，不能覆写 canonical ledger。
 
 ### 10.4 容量与带宽计算
@@ -536,8 +541,8 @@ backlog 计算；
 
 | 边界 | Piko 用途 | 字段 authority | 失败行为 |
 |---|---|---|---|
-| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Slinky 提案；待 Piko OpenAPI/Schema 一次替换 | auth、idempotency、scope、path/limit、RecoveryRequired |
-| Slinky→Piko 独立通信 | Profile/Binding/Session list/element-view/close | 现行 v0.3 Matrix OpenAPI；任务关联待修订 | conflict、encrypted/source unavailable |
+| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.2` | auth、idempotency、scope、path/limit、RecoveryRequired |
+| Slinky→Piko 通信控制 | Profile、Agent identity、Session binding projection、revoke、drain | Piko V0.3 OpenAPI/Schema；Slinky拥有Session/Topic/View/close | version/mismatch/revoking/recovery |
 | Piko→LLMTier | Responses non-stream、Models、Invocation/Response GET | LLMTier Piko-facing contract | 202 active、terminal typed error、UnknownOutcome |
 | Piko↔Matrix | AS push txn、membership/room/send txn | Matrix AS/Client API + Piko binding | replay、membership/recovery blocker |
 | Piko→Workspace/Tool | exact lease/binding/capability/approval | materialized descriptor 待对齐 | path/egress/approval fail closed |
@@ -550,11 +555,14 @@ Embeddings 属 Knowledge/Memory consumer，不形成 Piko Agent generation 旁�
 Tool/Workspace 只能按物化 scope 操作，不能 Provider-direct 或扩大 root/shell/network 权限。
 
 轻量提交字段为 `client_task_id`、`instruction`、`workspace_ref`、exact `service_level_id`、
-可空 `agent_binding_ref`、`permissions`（read_paths/write_paths/tool_profile_ref）、`limits`
-（deadline_at/max_model_calls/max_tool_calls/stop_grace_seconds）与 `output_paths`。提案要求未知字段
+三个顶层必填且可空键`agent_binding_ref/session_binding_ref/expected_session_binding_version`、可空
+`communication_trigger`、`permissions`
+（read_paths/write_paths/tool_profile_ref）、`limits`
+（deadline_at/max_model_calls/max_tool_calls/stop_grace_seconds）与 `output_paths`。契约要求未知字段
 拒绝、instruction 最多 256 KiB UTF-8、路径单项 4096 bytes、每数组最多 256 项、ID 1–128
-ASCII 字符；这些数值在机器 Schema 落地前为提案约束，不写成已实现检查。Model/tool calls
-只计新 logical operation，幂等恢复不重复计数。
+ASCII 字符；这些数值已落入机器Schema但仍不写成已实现检查。Model/tool calls
+只计新 logical operation，幂等恢复不重复计数。旧嵌套`bindings`字段按unknown field拒绝，不保留
+兼容解析。
 `deadline_at` 必须是未来的 UTC RFC3339 `Z` 时间；max_model_calls 为 1–100000，max_tool_calls
 为 0–100000，stop_grace_seconds 为 1–3600。Piko 若无法强制任何一个硬限制必须拒绝受理，
 不能静默忽略。费用/token 作为结果统计，提案不授予模糊费用预算的执行权。
@@ -570,22 +578,25 @@ ModelCallLimit、ToolCallLimit、UserCancelled；summary 可为空但不得代�
 usage 的 model/tool calls 为实际非负计数，未知 token/cost 保持 null 而不是 0；输出文件缺失不
 伪造记录。可见错误沿提案区分 InvalidRequest、IdempotencyConflict、ClientTaskConflict、
 RunNotTerminal、UnsupportedServiceLevel、UnsupportedLimit、DeadlineExpired、CapacityUnavailable、
-DependencyUnavailable、ResultUnavailable 与 Gone；精确 HTTP/Schema 待一次性机器契约批准。
+DependencyUnavailable、ResultUnavailable 与 Gone；精确 HTTP/Schema 已由V0.3 OpenAPI、Schema和error catalog定义。
 
-独立 Operator singleton MatrixTransportProfile 管理 homeserver、Element base URL、AS credential
-binding 与允许 origin；registration/token 本体留在 Secret boundary。IRCommunicationBinding 以
-`If-None-Match:*` 创建或 `If-Match:<etag>` 更新，mutation 带 Idempotency-Key；rename 只单调更新
-display profile，不换 MXID、room/history。Session list 支持多 room cursor/exact filter；close 显式
-进入 Closing，停止新业务发送/wakeup，但已确认 inbox/outbox 继续 drain。部分失败进入
-RecoveryRequired。同 namespace/key/digest close 重放返回原响应语义，不因随后 Closed 变 AlreadyClosed。
-它们不是轻量任务的第五项必需 API；`agent_binding_ref` 与这些配置的解析关系待契约决定。
+模型调用的request/catalog effective deadline任一先于task deadline到达时，本Run固定为
+Failed/ExecutionError并记录ModelRequestDeadlineExceeded或ServiceEffectiveDeadlineExceeded，停止新的
+Agent/模型/工具步骤；task deadline本身对应Failed/DeadlineExceeded/TaskDeadlineExceeded。晚到模型成功
+只作Evidence，不恢复Run。Operator singleton MatrixTransportProfile 管理homeserver、Element base URL和AS credential binding；
+registration/token留在Secret boundary。Piko `AgentCommunicationIdentityBinding`拥有稳定MXID；
+Slinky `SessionAgentBinding`由Piko保存带version/lease的核验投影。Piko提供幂等revoke、只读drain以及
+exact binding的消息send/status/ingress fact操作，不提供Session list、
+Element view或业务`:close`。rename只更新display profile，不换MXID/room/history。四项Run API仍是
+唯一任务路径；通信控制不创建Run、Session、Topic或Slinky业务状态。发送前payload不含Matrix event/time；
+Matrix受理后由Piko事件投影补齐。普通Matrix消息不自动变Run，只有Slinky显式dispatch可提交trigger。
 
 ### 11.4 观测、调试与维护接口
 
 Operations/Audit 只读投影 scoped readiness、RunView、pending obligation 与关联标识，不形成第二
 mutation path。提案不要求任务级 Event/SSE 或手工 reconcile API；旧相应 endpoint 必须在一次性
 契约修订中决定去留，不能静默保留为 fallback。内部恢复只依据远端权威结果和原 key/txn。
-补偿/调试/数据导出入口未冻结，不为填模板新增管理员后门；现行字段仍以 `interfaces/` 为准。
+V0.3不提供补偿、手工reconcile或任务事件导出入口；如未来需要须走新版本评审，不得作为隐藏管理员后门。现行字段以 `interfaces/` 为准。
 
 ## 12. 可靠性、维护与升级
 
@@ -619,7 +630,7 @@ AS token、device key、checkpoint 或未授权 transcript；指标 label 不用
 
 预算取决于并发 Run × 单 AgentSession/模型/工具调用上限，加上 Run/Result/obligation 与可选
 Matrix inbox/outbox retention。LLMTier M2-C `W=168h`、`M=24h`、Piko `D=24h` 是模型调用恢复约束；
-轻量任务的建议 `max(deadline_at, accepted_at)+7 天` 是另一条待定保留约束。
+轻量任务的 `max(deadline_at, accepted_at)+7 天` 是已定义的Piko恢复下限，与LLMTier窗口分离。
 这些时间都不是吞吐实测。缺少 workload、DB/worker 拓扑和消息率，不能给可发布 p95、最大并发
 或磁盘容量。
 
@@ -648,8 +659,8 @@ LLMTier ledger 或受控 Backend 证明，不能只数客户端 POST。RunView/R
 
 ### 14.2 测试数据源、自检与环回
 
-现行 v0.2/v0.3 Schema/error/fixture 是旧契约 L2 基线；轻量提案尚无 Piko 新 Schema/fixture，
-必须新增单一路径的正负契约测试。受控 LLMTier、DB crash/restart、Tool/Workspace sandbox 和
+V0.3 finalization OpenAPI/Schema/error/fixture 是新的L2设计基线；旧v0.2与Matrix增量文件仅作
+superseded provenance，不装载为current contract。受控 LLMTier、DB crash/restart、Tool/Workspace sandbox 和
 pinned Pi 是任务 L3 前提；可选通信绑定再加 Matrix AS/homeserver、Element browser。要在同一
 logical request 的持久化/外呼边界注入超时、重复、取消与重启，检查 ledger/remote/输出三方一致。
 当前没有生产自检/环回接口，不新增虚构入口。
@@ -663,7 +674,7 @@ logical request 的持久化/外呼边界注入超时、重复、取消与重启
 | 不可变 Result | §4/§10–11 | 输出写入口先关闭并 fencing；已准许写完成后从稳定 generation 计算 hash/size；manifest+Result 原子提交；未知 writer 只得 RecoveryRequired；终态后旧 writer 不能改 generation；Completed+未释放只容许非输出清理 | 新 Schema/fixture NOT_RUN |
 | 权限/限制 | §4/§8/§15 | 路径/符号链接逃逸、未知字段；调用前原子占额度+intent；占用前/后及 dispatch 前/后 crash；同 logical_operation_id 恢复不重复计数；无额度无 intent/dispatch；不可对账 Tool 丢响应进入 RecoveryRequired | 新安全/运行测试 NOT_RUN |
 | 恢复/保留 | §6.3/§10/§13 | 原 POST 无 ID；LT-R-001 0/1 dispatch；7 天建议值与未知义务不可删除 | 旧 mock partial；新任务测试 NOT_RUN |
-| 通信绑定 | §1/§8/§11 | 无绑定不建 Session；有绑定 exact 解析/停止旧唤醒 | Gate 未对齐；V03-E2E-093..099 须重分配 |
+| 通信绑定 | §1/§8/§11 | 四种binding组合、trigger ingress延迟/缺失、同event多Agent、wakeup epoch、revoke/drain/release矩阵 | static fixtures；运行 NOT_RUN |
 
 现行 `docs/70_verification/` 只对旧机器契约承担详细 case/oracle authority；轻量新 case 在
 OpenAPI/Schema 与 V&V 一次性修订后才能编号。旧 V03-E2E ID 不删除或假称已覆盖新接口；
@@ -682,8 +693,8 @@ Tool/Matrix，以及用户→Element。模型、Tool、Matrix 内容都是不可
 Bearer credential 是 Client identity authority；`X-Request-ID` 不能替代身份或幂等 key。
 run_id 查询先检查 Client 再判断存在，跨 Client 与不存在统一 404。任务的有效权限是 Client
 workspace binding、read/write paths、tool profile 与运行期实际路径检查的交集；instruction 不授予
-权限。`agent_binding_ref` 若存在，须单独验证 Client 可用性。独立 Matrix route 仍由 exact IR
-ref/MXID/Session 决定，同名不合并。
+权限。binding若存在须验证Client可用性；Session route由exact Session binding、MXID、room、version
+决定，同名不合并。body中的`provider=SlinkyRuntime`不授予caller身份。
 
 ### 15.3 密钥、凭据与敏感数据
 
@@ -734,9 +745,9 @@ descriptor unavailable；每项保留脱敏 request/expected error/audit。安�
 
 | 决定 | Authority/来源 | 本文落实 | 状态 |
 |---|---|---|---|
-| Slinky 保有 Project/IR/Team/STD/Prompt/Acceptance；Piko 仅执行单任务 | Slinky 轻量提案 | §1–6/§10–11 | 候选替换方向；Piko 契约未对齐 |
+| Slinky 保有 Project/IR/Team/STD/Prompt/Acceptance；Piko 仅执行单任务 | Slinky 轻量提案 | §1–6/§10–11 | V0.3 finalization candidate已对齐 |
 | LLMTier Registry exact-case、Scope B | Slinky/LLMTier | §4/§6/§11 | 冻结方向；adapter 实测开放 |
-| Matrix AS virtual user、exclusive room、ExternalLink | 现行 Slinky/Piko 通信契约 | §1/§8/§11 与机制设计 | 独立机制方向保留；与轻量任务绑定待决 |
+| Matrix AS virtual user；Slinky拥有room/Topic/View/close | 生命周期评审 | §1/§8/§11 与机制设计 | binding/trigger/revoke/drain已定型候选 |
 | 先持久化再外呼、原 key/txn recovery | Piko 设计 | §6/§10/§12 | 目标方案；DB/HA ADR 开放 |
 
 新重大选型必须单列 ADR；本文不追溯伪造旧 ADR，也不将作者建议变成外部决定。
@@ -745,19 +756,16 @@ descriptor unavailable；每项保留脱敏 request/expected error/audit。安�
 
 | ID | 影响 | Owner/关闭条件 |
 |---|---|---|
-| `PIKO-LITE-B01` | 旧 AgentTaskRequest/AgentTaskResult/Run 状态与新单 Agent 四 API 冲突；同 path 不可双 wire | Piko Owner 一次性批准 OpenAPI/Schema/error/fixture 与旧字段/测试 ID disposition |
-| `PIKO-LITE-B02` | `workspace_ref`、`tool_profile_ref`、`agent_binding_ref` 与现行 Profile/Slot/Workspace binding 形式未对齐 | Piko 明确唯一绑定解析/固定版本/授权字段，不添平行配置系统 |
-| `PIKO-LITE-B03` | 调用计数、到限状态、停止宽限、输出 fencing 与 execution_released 已有目标语义，但尚无可执行实现和故障证据 | Piko/依赖方实现 CounterReservation、取消、旧唤醒/写入隔离并通过 fault tests；不能忽略任何限制 |
-| `PIKO-LITE-B04` | JCS/body ledger 命中顺序与 client_task_id 唯一已有目标语义；`max(deadline_at, accepted_at)+7 天` 保留仍与现行 Attempt/Result/retention 不同 | Piko 冻结唯一存储/隐私/到期/超期行为及存量 Run 迁移方案，并验证 ledger hit/miss 顺序 |
-| `PIKO-LITE-B05` | 可选通信绑定不能沿用旧 POST 内 `collaboration_contract` 原子 Session 创建；Bridge 任务关联与 Team Evidence 责任未定义 | Piko/Slinky 决定 exact `agent_binding_ref` 关联、结束唤醒、Session/Resolution 旧字段去向；无并行接口 |
-| `PIKO-CON-B01` | Session/close machine enum、filter、error、fixture、生成类型未一次性对齐；冲突 wire 禁止激活 | Piko/Slinky，单一 contract review |
+| `PIKO-FIN-R01` | V0.3 finalization machine package尚待Slinky/llmtier定向review | 三方确认字段/消费；差异只修改唯一candidate，不保留旧wire |
+| `PIKO-IMPL-G01` | 调用计数、停止、输出fencing、trigger/revoke/drain尚无运行证据 | Piko实现并通过fault/security/E2E；不能忽略限制 |
+| `PIKO-IMPL-G02` | DB/HA/retention物理实现和migration未定 | Piko内部ADR/DDL；不得改变已冻结外部语义 |
 | `OG-AR-001` | DB/migration/single-writer/HA/RPO/RTO 未选型 | Piko，ADR + fault injection |
 | `OG-AR-002` | Pi hook/pinned SDK 真实 capture 缺失 | Piko，adapter matrix |
 | `OG-AR-003` | Workspace/Tool descriptor 与受控 profile 未冻结 | Piko/Owner，接口与安全测试 |
-| `OG-AR-004` | 轻量任务 Result/去重与独立 Session retention、cursor expiry 未闭合 | Piko/Operator，唯一 catalog + recovery test |
+| `OG-AR-004` | 7天语义已冻结但存储/隐私执行证据未完成 | Piko/Operator，retention enforcement + recovery test |
 | `OG-AR-005` | workload、容量、backpressure、deployment/SLO 未测定 | Piko/Operator，预算与测量 |
-| `OG-CB-001..007` | Matrix retention/AS/route/timeout/Element/Pi hook | 机制设计 §20 与 V03-E2E-093..099 |
+| `OG-CB-001..007` | Matrix/Element/AS真实能力与故障恢复未验证 | V03 communication E2E；只影响activation，不改wire |
 
 旧 `OG-AR-006` 仍引用过时模板来源，现从系统运行 Gate 中移除；模板 hash、候选 Review 与
-promotion 由项目 lock/source manifest/review packet 管理。本文可供轻量方案可实现性评审，
-但不能据此生成相互冲突的 runtime types、提交两套 endpoint 行为或声明现有 Contract 已替换。
+promotion 由项目 lock/source manifest/review packet 管理。本文与V0.3 OpenAPI/Schema/字段使用表形成
+唯一finalization candidate；旧v0.2/heavy与旧Matrix Session owner文件只作provenance，不生成runtime types。
