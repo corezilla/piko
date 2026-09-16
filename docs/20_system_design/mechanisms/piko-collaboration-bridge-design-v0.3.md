@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -111,6 +111,14 @@ RID必须指向同Topic既有SID；同SID异body冲突。recipient至少一个�
 归类为UnclassifiedNativeMessage，不自动创建Run。当前AgentTeams Topic/SID/RID bridge格式只是协作
 基础设施，产品接入不自动继承。
 
+唯一codec仍走同一outbox/AS：Matrix type固定`m.room.message`，`content.msgtype=m.text`，`content.body`
+逐字节复制产品body，namespaced `content.io.piko.agent.message`承载version/topic/SID/RID、Piko派生的
+sender identity、精确recipients、type和受控附件元数据。rid非空时必须用
+`m.relates_to.m.in_reply_to.event_id`指向Piko SID索引解析出的同room/topic event；rid为空禁止relation。
+V0.3不使用Matrix thread/edit作为产品路由。外层sender/room/event/time由homeserver提供；Matrix受理后才写
+receipt。扩展缺失为Unclassified，扩展存在但version/body/sender/room/reply/attachment不一致为Rejected；两者
+都不可dispatch。content_ref只能由Piko在当前Client/Session/参与者ACL下解析，Matrix不携带URL/token/bytes。
+
 Slinky通过既有Piko communication-control路径POST binding消息、GET exact message receipt和GET exact
 ingress event fact；Piko ingress不直接创建Run。Slinky判断Topic/Action/授权后通过唯一Run API提交
 trigger。未归类、迟到、撤权后、恢复导入或Archived Topic事件只作Evidence，不唤醒旧Run。
@@ -172,7 +180,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.4`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.5`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

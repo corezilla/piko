@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -157,6 +157,9 @@ scope，不能读取其他真实项目数据。
 | PIKO-V03-FIN-010 | Removal | 生成OpenAPI/client | 无heavy fields、Session list/element/:close、reconcile/SSE path | static validator |
 | PIKO-V03-FIN-011 | Model deadline | task、request、catalog effective三种deadline先到及late success | task→DeadlineExceeded；单调用→ExecutionError detail；全部停止新业务；late success仅Evidence | static + LLMTier联调 |
 | PIKO-V03-FIN-012 | Rejection re-admission race | 两个不同key已保存同一client_task_id的RetryableRejection，分别使用相同或不同dispatch tuple并发重评 | 重评事务重新核对ClientTaskIndex、完整dispatch tuple、deadline、projection/权限/model/workspace/tool/capacity；unique/CAS最多一个Run/intent/claim，loser为ClientTaskConflict | static + DB fault待联调 |
+| PIKO-V03-FIN-013 | Conditional Schema | 构造Unclassified+eligible、Sent缺event、Queued带event、Failed+AgentFinished | 四项均Schema拒绝；合法Product/Sent/Queued/AgentResult组合通过 | static fixture |
+| PIKO-V03-FIN-014 | HTTP matrix | createRun tombstone；所有GET auth；三个配置PUT create/update/缺头/双头/wildcard/stale | 410；401/403；201/200带ETag；428/400/400/412，GET 200带ETag及304 | OpenAPI static |
+| PIKO-V03-FIN-015 | Matrix codec | root/reply raw event、普通native、未知version、body/sender/room/reply/attachment不一致 | 唯一m.room.message+namespaced扩展；Matrix生成event/time；普通消息Unclassified，其余畸形Rejected，全部不可dispatch | Schema fixture + Matrix联调 |
 
 Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
 不得倒推修改A类wire或启用旧兼容路径。

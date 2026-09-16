@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-finalization.4` |
+| Document Version | `0.3.0-finalization.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |

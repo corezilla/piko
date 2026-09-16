@@ -1,11 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "catalog_version": "agent-runtime-errors/v0.3-finalization.4",
+  "catalog_version": "agent-runtime-errors/v0.3-finalization.5",
   "status": "review",
   "runtime_activation": false,
   "errors": [
     {"code":"InvalidRequest","http_status":400,"retryable":false,"when":"JSON、未知字段、类型、大小或路径语法非法"},
     {"code":"InvalidBindingCombination","http_status":400,"retryable":false,"when":"session/version/agent 或 communication_trigger 组合非法"},
+    {"code":"InvalidPreconditionCombination","http_status":400,"retryable":false,"when":"配置 PUT 同时发送 If-Match/If-None-Match，或使用 wildcard/weak If-Match、非 * If-None-Match"},
     {"code":"Unauthorized","http_status":401,"retryable":false,"when":"Bearer credential 缺失或无效"},
     {"code":"ScopeDenied","http_status":403,"retryable":false,"when":"Client 无 workspace、tool、path 或 binding 权限"},
     {"code":"NotFound","http_status":404,"retryable":false,"when":"Run 不存在或跨 Client，不可枚举"},
@@ -25,6 +26,7 @@
     {"code":"UnsupportedMessageVersion","http_status":400,"retryable":false,"when":"envelope_version 或 message_type 不受 V0.3 支持"},
     {"code":"MessageNotDispatchEligible","http_status":409,"retryable":false,"when":"普通原生 Matrix 消息、Rejected event 或边界外 event 被用于 communication_trigger"},
     {"code":"ResourceVersionMismatch","http_status":412,"retryable":true,"when":"expected Session binding version 或 ETag 过期"},
+    {"code":"PreconditionRequired","http_status":428,"retryable":false,"when":"配置 PUT 未提供 create 所需 If-None-Match:* 或 update 所需 exact strong If-Match"},
     {"code":"UnsupportedServiceLevel","http_status":422,"retryable":false,"when":"exact-case service_level_id 不可见或不支持"},
     {"code":"UnsupportedLimit","http_status":422,"retryable":false,"when":"Piko 无法强制请求的硬限制"},
     {"code":"DeadlineExpired","http_status":422,"retryable":false,"when":"首次受理时 deadline_at 已到；ledger 命中仍返回原回执"},
@@ -44,6 +46,8 @@
     "dispatch_binding": "(client,dispatch_ref) 不可变绑定 client_task_id+session_binding_ref+trigger_event_id+agent_binding_ref；任何组成变化为 CommunicationTriggerMismatch；同 task 换 dispatch 为 ClientTaskConflict",
     "no_fallback": "不得换 key、模型等级、identity、room、endpoint 或工具路径绕过错误",
     "retention": "已受理Run去重、ClientTaskIndex与Result至少保留到max(request.deadline_at,Run.accepted_at)+7d；pre-admission rejection/key→digest binding至少保留到max(request.deadline_at,decision_first_created_at)+7d；活动或未知义务不得因时间到达删除",
+    "conditional_put": "create仅If-None-Match:*并返回201+ETag；update仅exact strong If-Match并返回200+ETag；两者缺失428，两者并存或非法validator 400，stale/资源已存在412，update资源不存在404",
+    "matrix_codec": "唯一Matrix编码为type=m.room.message、content.msgtype=m.text、content.body与HTTP body逐字节一致、content.io.piko.agent.message承载namespaced字段；Matrix生成event_id/origin_server_ts。普通消息Unclassified且不可dispatch，畸形扩展Rejected且不可dispatch",
     "secret_boundary": "API、日志、Result、MessageEnvelope 与 Evidence 不含 credential、AS token、device key、delivery checkpoint 或自动登录材料"
   }
 }

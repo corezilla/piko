@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.4` |
+| Document Version | `0.3.0-finalization.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -42,7 +42,8 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | Idempotency-Key | Slinky logical command | submit/cancel/binding mutation 去重 | 1–255 string；mutation required | Client+endpoint scope；逻辑命令内 immutable | namespace 一部分，不在 body digest；同 key 异 digest 409；至少保留至资源 recovery window |
 | X-Request-ID | Slinky HTTP caller | 单次 HTTP correlation | 1–256 string；required | 单次调用；重放可不同 | 不用于去重、恢复或授权；日志脱敏保留 |
 | If-None-Match | caller/cache | read cache；create `*` | string；按 operation optional | resource scope | 不入 command digest；错误 412 |
-| If-Match | Slinky/Operator | binding/profile update 并发 | strong ETag；update required | resource version immutable | stale 412 ResourceVersionMismatch |
+| If-Match | Slinky/Operator | binding/profile update 并发 | update仅exact strong ETag；create禁止；weak/wildcard禁止 | resource version immutable | stale 412；非法组合400；缺少条件428 |
+| If-None-Match | Slinky/Operator | create防覆盖或GET缓存 | PUT create仅`*`；GET可用exact ETag | representation version | create已存在412；与If-Match并存400；GET匹配304 |
 | run_id | Piko admission | GET/cancel/result route | opaque path string；required | Client scope；immutable | 跨 Client/不存在统一 404；tombstone 过期 410 |
 | project_ref | Slinky authority | identity/session binding scope | opaque path string；required | Client+Project；immutable association | Client 不可见统一 404 |
 
@@ -160,6 +161,25 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | accepted_at / piko_ingested_at | Piko durable clock | 本地审计 | UTC | 非Matrix时间 | 不冒充created_at；重启保持原值 |
 | classification_status | Piko codec+binding verifier | ingress分类 | ProductEnvelopeValid/UnclassifiedNativeMessage/Rejected | event immutable | 仅ProductEnvelopeValid可继续判dispatch |
 | dispatch_eligible | Piko ingress verifier | Slinky调度前置 | boolean | exact event/version/boundary | false不能用于trigger，返回409 MessageNotDispatchEligible |
+
+### 5.1 唯一 Matrix codec 字段映射
+
+| Matrix字段 | 生产/authority | 产品映射与使用 | 缺失/冲突行为 |
+|---|---|---|---|
+| event.type | Piko sender / Matrix | 固定`m.room.message` | 其他type不属于产品消息；Rejected或其它Matrix分类，不dispatch |
+| content.msgtype | Piko codec | 固定`m.text`，供Element原生显示 | 非m.text且存在产品扩展为Rejected |
+| content.body | HTTP MessageSendRequest.body | 逐UTF-8字节相同；Matrix/Element显示正文 | 与outbox canonical body不一致为Rejected |
+| content.io.piko.agent.message | Piko codec | 唯一namespaced扩展；包含version/topic/sid/rid/derived sender/ref recipients/type/attachments | 缺失为UnclassifiedNativeMessage；未知version或畸形为Rejected |
+| content.m.relates_to.m.in_reply_to.event_id | Piko SID索引 | 仅rid非空时存在；解析到同room/topic且对应rid | rid为空却存在、rid非空却缺失、跨room/topic均Rejected |
+| event.sender / room_id | homeserver + exact projection | 与derived MXID/room逐项核验；不信content自报 | 不匹配Rejected；不按display name路由 |
+| event.event_id / origin_server_ts | homeserver | Sent/ingress事实；发送前不存在 | caller预填不被接受；lost response由outbox txn恢复 |
+| attachment content_ref | Piko content store | 当前Client+Session+sender/recipient ACL解析；复核media/size/hash；Matrix仅保留元数据ref | 不可见、hash/size不符422；不生成URL/token，不从Matrix取得额外权限 |
+
+`ProductEnvelopeValid`机器上恒有`dispatch_eligible=true`及非null envelope；
+UnclassifiedNativeMessage/Rejected恒为false且envelope=null。Queued/Failed/RecoveryRequired receipt恒无Matrix
+event/time；只有Sent同时具有两项。AgentResult状态组合固定：Completed仅AgentFinished/null，Cancelled仅
+UserCancelled/null，Failed仅ExecutionError/DeadlineExceeded/ModelCallLimit/ToolCallLimit；ExecutionError必须
+有四个明确detail之一，DeadlineExceeded必须TaskDeadlineExceeded，两种limit的detail为null。
 
 `MessageSendRequest`不含sender/room/event/time；202只证明outbox command已落盘。`MessageSendReceipt`在Queued时
 Matrix字段为null，Sent后填Matrix事实。普通原生`m.room.message`保存为UnclassifiedNativeMessage且

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -47,6 +47,17 @@ RunCommunicationAttachment、完整dispatch tuple/trigger consumption key、reso
 admission与revoke以同一projection record做CAS；commit前无Pi/LLMTier/Tool/Matrix外呼。
 
 AS ingress事务原子写：transaction ledger、event record、event-id dedup、delivery obligation和delivery checkpoint；提交后才ACK homeserver。Outbound在首次发送前持久化stable txn_id，retry不生成新txn。
+
+Outbound codec在稳定txn持久化后生成`m.room.message`：顶层`msgtype=m.text`、body逐字节复制，
+`io.piko.agent.message`扩展由outbox canonical request与exact projection生成；event_id/server timestamp字段只在
+homeserver响应后写入。Reply先由SID索引解析父Matrix event并校验同room/topic，再生成唯一
+`m.in_reply_to`；不生成thread/edit关系。Ingress先校验外层sender/room，再校验extension/body/reply/附件元数据；
+缺extension归Unclassified，存在但非法归Rejected，均写ledger但不产生dispatch资格。附件解析使用content store
+ACL快照与当前authorization交集，hash/size不符不得发送或分类为valid。
+
+配置PUT的事务分支只接受一个条件头：`If-None-Match:*`创建或exact strong `If-Match`更新。条件组合在读取/
+写入前判定；更新CAS失败412，成功的200/201与新strong ETag在同一事务提交。GET先做credential/scope，
+再读record/tombstone和If-None-Match，避免通过304/404/410泄露资源存在。
 
 Revoke事务原子写：operation receipt、binding version/status、new-admission fence、permission-acquisition fence、wakeup epoch fence。Matrix membership请求在事务后异步，不能回滚本地撤权。
 

@@ -13,7 +13,7 @@ V0.3 finalization review candidate，状态仍为 In Review。该候选已经把
 要求、Piko communication provider 和 LLMTier Scope B 消费规则合并为唯一设计路径；
 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` 与配套 Schema/error/fixture 是唯一字段级候选。
 旧 v0.2 heavy payload、Piko-owned Session directory/element-view/:close、`collaboration_contract`、
-reconcile 与 Run SSE 在 `0.3.0-finalization.4` 一次性退役，不建立并行接口或 fallback。
+reconcile 与 Run SSE 在 `0.3.0-finalization.5` 一次性退役，不建立并行接口或 fallback。
 这是定向设计候选，不改变本项目 draft.21 的正式 STD lock、其他文档的模板来源、
 已发布文档快照或 Runtime Activation。候选来源证据见
 `docs/91_reviews/piko-system-design-std26-source-manifest.json`，语义缺口与验证范围见

@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-collaboration-bridge-design-v0.3", "document_type": "design.system-mechanism",
-  "document_version": "0.4.0-draft.4", "title": "Piko Communication Provider 端到端机制设计",
+  "document_version": "0.4.0-draft.5", "title": "Piko Communication Provider 端到端机制设计",
   "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md",
   "template_id": "design.system-mechanism", "template_version": "0.1.0",

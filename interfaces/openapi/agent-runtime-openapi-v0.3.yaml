@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.4
+  version: 0.3.0-finalization.5
   description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1
@@ -28,6 +28,7 @@ paths:
         '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
         '412': {$ref: '#/components/responses/Error'}
         '422': {$ref: '#/components/responses/Error'}
         '429': {$ref: '#/components/responses/RetryableError'}
@@ -45,6 +46,8 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '410': {$ref: '#/components/responses/Error'}
   /runs/{run_id}/result:
@@ -60,6 +63,8 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentResult'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         '410': {$ref: '#/components/responses/Error'}
@@ -79,8 +84,11 @@ paths:
           description: 取消意图已持久化；不是停止或 execution release 证明。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelReceipt'}}}
         '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
   /operator/matrix-transport-profile:
     get:
       operationId: getMatrixTransportProfile
@@ -90,11 +98,15 @@ paths:
       responses:
         '200':
           description: 无 Secret 的 singleton transport profile readiness。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
     put:
       operationId: putMatrixTransportProfile
+      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非 * 的 If-None-Match 或 wildcard/weak If-Match 为 400；stale/已存在为 412。'
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
@@ -106,12 +118,18 @@ paths:
       responses:
         '200':
           description: 已更新；credential 仅以 binding ref 表达。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
         '201':
           description: 已创建。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         '412': {$ref: '#/components/responses/Error'}
+        '428': {$ref: '#/components/responses/Error'}
   /operator/matrix-transport-profile:probe:
     post:
       operationId: probeMatrixTransportProfile
@@ -122,6 +140,8 @@ paths:
         '200':
           description: 只读 probe；不得创建 identity、room、Session 或推进 checkpoint。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProbeResult'}}}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/agent-communication-bindings/{agent_binding_ref}:
     parameters:
@@ -138,9 +158,12 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
     put:
       operationId: putAgentCommunicationIdentityBinding
+      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非法 wildcard/weak 值为 400；stale/已存在为 412。'
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
@@ -152,12 +175,18 @@ paths:
       responses:
         '200':
           description: 已更新 display/status；稳定 MXID 不变。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
         '201':
           description: 已 provision 稳定 ApplicationServiceVirtualUser。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         '412': {$ref: '#/components/responses/Error'}
+        '428': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:
     parameters:
@@ -174,9 +203,12 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
     put:
       operationId: putSessionAgentBindingProjection
+      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非法 wildcard/weak 值为 400；stale/已存在为 412。'
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
@@ -188,13 +220,19 @@ paths:
       responses:
         '200':
           description: 已核验并更新投影。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
         '201':
           description: 已核验 membership 并创建投影。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         '412': {$ref: '#/components/responses/Error'}
         '422': {$ref: '#/components/responses/Error'}
+        '428': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:revoke:
     post:
       operationId: revokeSessionAgentBinding
@@ -210,6 +248,9 @@ paths:
         '202':
           description: Piko 本地 fencing 已提交或恢复原 operation；membership 可继续异步收敛。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RevokeBindingReceipt'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         '412': {$ref: '#/components/responses/Error'}
@@ -227,6 +268,8 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/DrainView'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages:
     post:
@@ -266,6 +309,8 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendReceipt'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '410': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}:
@@ -283,6 +328,8 @@ paths:
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/IngressEventView'}}}
         '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '410': {$ref: '#/components/responses/Error'}
 components:
@@ -297,8 +344,8 @@ components:
     MatrixEventId: {name: matrix_event_id, in: path, required: true, description: URL-encoded Matrix event ID, schema: {type: string, minLength: 2, maxLength: 255, pattern: '^\$'}}
     RequestId: {name: X-Request-ID, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 255}}
-    IfMatchOptional: {name: If-Match, in: header, required: false, schema: {type: string, minLength: 1}}
-    IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+    IfMatchOptional: {name: If-Match, in: header, required: false, description: Update branch only; one exact strong ETag, wildcard and weak validators forbidden., schema: {type: string, pattern: '^"[^"\\r\\n]+"$'}}
+    IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, description: Create branch only; the sole accepted value is `*`., schema: {type: string, const: '*'}}
     IfNoneMatch: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
   headers:
     ETag: {required: true, schema: {type: string, minLength: 1}}

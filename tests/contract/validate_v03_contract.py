@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import yaml
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -51,10 +51,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.4"
-assert openapi["info"]["version"] == "0.3.0-finalization.4"
-assert fixtures["fixture_version"] == "0.3.0-finalization.4"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.4"
+assert schema["x-contract-version"] == "0.3.0-finalization.5"
+assert openapi["info"]["version"] == "0.3.0-finalization.5"
+assert fixtures["fixture_version"] == "0.3.0-finalization.5"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.5"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -68,7 +68,7 @@ for case in fixtures["schema_cases"]:
         "$defs": schema["$defs"],
         "$ref": f"#/$defs/{case['schema']}",
     }
-    failures = list(Draft202012Validator(definition).iter_errors(case["value"]))
+    failures = list(Draft202012Validator(definition, format_checker=FormatChecker()).iter_errors(case["value"]))
     if case["valid"] and failures:
         raise AssertionError(f"{case['id']} expected valid: {failures[0].message}")
     if not case["valid"] and not failures:
@@ -87,6 +87,28 @@ expected_paths = {
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}",
 }
 assert set(openapi["paths"]) == expected_paths
+
+assert "410" in openapi["paths"]["/runs"]["post"]["responses"]
+for path, operations in openapi["paths"].items():
+    for method, operation in operations.items():
+        if method == "parameters" or method not in {"get", "post", "put", "delete", "patch"}:
+            continue
+        responses = operation["responses"]
+        assert "401" in responses, (path, method, "401")
+        assert "403" in responses, (path, method, "403")
+        if method == "get" and "200" in responses:
+            assert "ETag" in responses["200"].get("headers", {}), (path, "ETag")
+
+for path in (
+    "/operator/matrix-transport-profile",
+    "/projects/{project_ref}/agent-communication-bindings/{agent_binding_ref}",
+    "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}",
+):
+    responses = openapi["paths"][path]["put"]["responses"]
+    for status in ("200", "201"):
+        assert "ETag" in responses[status]["headers"], (path, status, "ETag")
+    for status in ("400", "401", "403", "409", "412", "428"):
+        assert status in responses, (path, status)
 
 for retired in fixtures["retired_contract_assertions"]["removed_paths"]:
     assert retired not in openapi["paths"], retired
@@ -107,6 +129,7 @@ required_errors = {
     "ResultUnavailable", "Gone", "MessageIdConflict", "ReplyTopicMismatch",
     "MessageRecipientInvalid", "MessageAttachmentInvalid", "UnsupportedMessageVersion",
     "MessageNotDispatchEligible",
+    "InvalidPreconditionCombination", "PreconditionRequired",
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
@@ -140,6 +163,10 @@ assert semantics["release-with-isolated-unknown-obligation"]["session_close_allo
 assert semantics["per-binding-left-human-stays"]["human_membership"] == "Joined"
 assert semantics["model-request-deadline-before-task"]["new_agent_steps"] == 0
 assert semantics["service-effective-deadline-before-request"]["late_success"] == "EvidenceOnly"
+assert semantics["put-precondition-missing"]["expected_status"] == 428
+assert semantics["put-precondition-both"]["expected_error"] == "InvalidPreconditionCombination"
+assert semantics["matrix-native-without-extension"]["dispatch_eligible"] is False
+assert semantics["matrix-malformed-product-extension"]["classification_status"] == "Rejected"
 
 assert "bindings" not in request_properties
 for required in ("agent_binding_ref", "session_binding_ref", "expected_session_binding_version"):
@@ -147,7 +174,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.4", "communication_trigger", "execution_released", "decision_first_created_at"):
+for required in ("0.3.0-finalization.5", "communication_trigger", "execution_released", "decision_first_created_at"):
     assert required in contract_text or required in field_text, required
 
 print(

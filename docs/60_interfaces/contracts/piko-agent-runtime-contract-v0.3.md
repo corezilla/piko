@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.4`)；runtime activation=false。
+> (`0.3.0-finalization.5`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.4` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.5` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
@@ -180,6 +180,26 @@ IngressEventView从Matrix `event.sender/room_id/event_id/origin_server_ts`和Pik
 无authority。合法产品event为ProductEnvelopeValid且`dispatch_eligible=true`；普通原生Matrix消息记录为
 UnclassifiedNativeMessage、`dispatch_eligible=false`，不自动创建dispatch或Run；Rejected同样不可调度。
 当前AgentTeams bridge格式只是协作基础设施，不自动成为产品协议。
+
+唯一产品Matrix codec使用 `type=m.room.message`，便于Element原生显示，但必须带namespaced
+`content.io.piko.agent.message`；普通没有该扩展的 `m.room.message` 仍是UnclassifiedNativeMessage。
+`content.msgtype=m.text`，`content.body`与HTTP `body`逐UTF-8字节一致；namespaced对象只承载
+`envelope_version/topic_id/sid/rid/sender_identity_ref/recipient_identity_refs/message_type/attachments`。
+Piko从Active projection派生sender identity，外层`event.sender/room_id`是Matrix事实；任一不匹配均Rejected。
+`matrix_event_id/origin_server_ts`只由homeserver在受理后产生，发送前payload禁止携带。
+
+`rid=null`时禁止`m.relates_to`；`rid`非空时必须存在唯一
+`m.relates_to.m.in_reply_to.event_id`，且Piko SID索引证明该event与rid属于同room/topic。V0.3不使用
+`m.thread`或`m.replace`；未知version、扩展畸形、body/identity/room/reply不一致均Rejected、不可dispatch。
+附件只把`attachment_id/media_type/size_bytes/sha256/content_ref`放入扩展；发送前Piko用当前Client、Session、
+sender与recipient授权在既有content store解析content_ref并复核size/hash。Matrix不含下载URL、token或字节；
+Slinky/Element只显示经Piko核验的元数据，正文读取仍走该content store既有授权边界。
+
+配置PUT使用唯一条件矩阵：create仅`If-None-Match:*`→201+ETag；update仅exact strong
+`If-Match:"etag"`→200+ETag；两者缺失428 PreconditionRequired；两者同时、weak/wildcard If-Match或
+非`*` If-None-Match为400 InvalidPreconditionCombination；stale/update-existing冲突为412，update缺失资源404。
+所有GET先做401/403鉴权再处理404/410/304；所有200 GET及配置PUT 200/201返回强ETag。createRun在已知
+去重tombstone过期时返回410 Gone。
 
 ## 7. Revoke、drain、release 与 Session close
 

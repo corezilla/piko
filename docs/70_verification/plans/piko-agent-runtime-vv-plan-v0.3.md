@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.4.0-draft.4` |
+| Document Version | `0.4.0-draft.5` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -26,6 +26,10 @@
 
 > 本计划不构成 production test report 或 Runtime Activation authority。
 <!-- STD_DOCUMENT_COVER_END -->
+
+Finalization.5新增静态门禁：四个跨字段反例必须由Draft 2020-12 Schema拒绝；OpenAPI必须逐操作
+暴露auth、410、ETag与配置PUT条件矩阵；合成Matrix raw event必须证明唯一namespaced codec、reply映射、
+unknown/native分类与附件边界。真实homeserver/Element显示与AS回流仍是C类联调证据，不改变A类字段。
 
 ## 1. 目标、范围与 V&V authority
 

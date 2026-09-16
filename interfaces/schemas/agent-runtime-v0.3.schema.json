@@ -3,7 +3,7 @@
   "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
   "title": "Piko Agent Runtime V0.3 定型契约",
   "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
-  "x-contract-version": "0.3.0-finalization.4",
+  "x-contract-version": "0.3.0-finalization.5",
   "$defs": {
     "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
     "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},
@@ -172,8 +172,10 @@
       "allOf":[
         {"if":{"properties":{"state":{"const":"Completed"}}},"then":{"properties":{"reason_code":{"const":"AgentFinished"},"detail_reason_code":{"type":"null"}}}},
         {"if":{"properties":{"state":{"const":"Cancelled"}}},"then":{"properties":{"reason_code":{"const":"UserCancelled"},"detail_reason_code":{"type":"null"}}}},
+        {"if":{"properties":{"state":{"const":"Failed"}}},"then":{"properties":{"reason_code":{"enum":["ExecutionError","DeadlineExceeded","ModelCallLimit","ToolCallLimit"]}}}},
         {"if":{"properties":{"reason_code":{"const":"ExecutionError"}}},"then":{"properties":{"detail_reason_code":{"enum":["AgentExecutionError","DependencyExecutionError","ModelRequestDeadlineExceeded","ServiceEffectiveDeadlineExceeded"]}}}},
-        {"if":{"properties":{"reason_code":{"const":"DeadlineExceeded"}}},"then":{"properties":{"detail_reason_code":{"const":"TaskDeadlineExceeded"}}}}
+        {"if":{"properties":{"reason_code":{"const":"DeadlineExceeded"}}},"then":{"properties":{"detail_reason_code":{"const":"TaskDeadlineExceeded"}}}},
+        {"if":{"properties":{"reason_code":{"enum":["ModelCallLimit","ToolCallLimit"]}}},"then":{"properties":{"detail_reason_code":{"type":"null"}}}}
       ]
     },
     "CancelRequest": {
@@ -303,7 +305,11 @@
       "properties":{
         "sid":{"$ref":"#/$defs/Identifier"},"outbox_id":{"$ref":"#/$defs/OpaqueRef"},"status":{"enum":["Queued","Sent","Failed","RecoveryRequired"]},
         "accepted_at":{"$ref":"#/$defs/Timestamp"},"matrix_event_id":{"type":["string","null"],"pattern":"^\\$"},"matrix_origin_server_ts":{"type":["integer","null"],"minimum":0}
-      }
+      },
+      "allOf":[
+        {"if":{"properties":{"status":{"const":"Sent"}}},"then":{"properties":{"matrix_event_id":{"type":"string","pattern":"^\\$"},"matrix_origin_server_ts":{"type":"integer","minimum":0}}}},
+        {"if":{"properties":{"status":{"enum":["Queued","Failed","RecoveryRequired"]}}},"then":{"properties":{"matrix_event_id":{"type":"null"},"matrix_origin_server_ts":{"type":"null"}}}}
+      ]
     },
     "MessageEventView": {
       "type":"object","additionalProperties":false,
@@ -326,6 +332,45 @@
         "matrix_sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},"matrix_origin_server_ts":{"type":"integer","minimum":0},"piko_ingested_at":{"$ref":"#/$defs/Timestamp"},
         "classification_status":{"enum":["ProductEnvelopeValid","UnclassifiedNativeMessage","Rejected"]},"dispatch_eligible":{"type":"boolean"},
         "envelope":{"oneOf":[{"$ref":"#/$defs/MessageEventView"},{"type":"null"}]}
+      },
+      "allOf":[
+        {"if":{"properties":{"classification_status":{"const":"ProductEnvelopeValid"}}},"then":{"properties":{"dispatch_eligible":{"const":true},"envelope":{"$ref":"#/$defs/MessageEventView"}}}},
+        {"if":{"properties":{"classification_status":{"enum":["UnclassifiedNativeMessage","Rejected"]}}},"then":{"properties":{"dispatch_eligible":{"const":false},"envelope":{"type":"null"}}}}
+      ]
+    },
+    "ProductMatrixMessageContent": {
+      "type":"object","additionalProperties":false,
+      "required":["msgtype","body","io.piko.agent.message"],
+      "properties":{
+        "msgtype":{"const":"m.text"},
+        "body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
+        "io.piko.agent.message":{
+          "type":"object","additionalProperties":false,
+          "required":["envelope_version","topic_id","sid","rid","sender_identity_ref","recipient_identity_refs","message_type","attachments"],
+          "properties":{
+            "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
+            "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},"sender_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
+            "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
+            "message_type":{"enum":["Request","Answer","Notice"]},"attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456}
+          }
+        },
+        "m.relates_to":{
+          "type":"object","additionalProperties":false,"required":["m.in_reply_to"],
+          "properties":{"m.in_reply_to":{"type":"object","additionalProperties":false,"required":["event_id"],"properties":{"event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"}}}}
+        }
+      },
+      "allOf":[
+        {"if":{"properties":{"io.piko.agent.message":{"properties":{"rid":{"type":"string"}}}}},"then":{"required":["m.relates_to"]}},
+        {"if":{"properties":{"io.piko.agent.message":{"properties":{"rid":{"type":"null"}}}}},"then":{"not":{"required":["m.relates_to"]}}}
+      ]
+    },
+    "ProductMatrixRoomMessageEvent": {
+      "type":"object","additionalProperties":false,
+      "required":["type","room_id","event_id","sender","origin_server_ts","content"],
+      "properties":{
+        "type":{"const":"m.room.message"},"room_id":{"type":"string","minLength":1,"maxLength":255},
+        "event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},"sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},
+        "origin_server_ts":{"type":"integer","minimum":0},"content":{"$ref":"#/$defs/ProductMatrixMessageContent"}
       }
     },
     "ErrorDetail": {
