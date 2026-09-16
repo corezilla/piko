@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-agent-runtime-contract-v0.3", "document_type": "contracts.specification",
-  "document_version": "0.4.0-draft.9", "title": "Piko Agent Runtime V0.3 契约说明",
+  "document_version": "0.4.0-draft.10", "title": "Piko Agent Runtime V0.3 契约说明",
   "document_owner": "Piko Contract Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md",
   "template_id": "contracts.specification", "template_version": "0.1.0",

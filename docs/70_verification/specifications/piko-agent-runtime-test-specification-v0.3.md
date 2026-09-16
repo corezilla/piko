@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.9` |
+| Document Version | `0.4.0-draft.10` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -168,6 +168,8 @@ scope，不能读取其他真实项目数据。
 | PIKO-V03-FIN-021 | Execution claim recovery | 202响应丢失、同key重放、重启、claim查询Unknown、release但drain/Tier未知 | Run+claim原子；不重复claim；Unknown fail closed；release事实互不替代 | semantic fixture + DB fault待联调 |
 | PIKO-V03-FIN-022 | Trusted input evidence | safe path、range并集/重复、空文件、metadata-only、changed/unmediated、不可审计profile、Unknown执行 | 仅broker可产生；Complete仅记录器完整；缺失/不可信不通过；路径不可由task注入 | Schema/semantic fixture + sandbox待联调 |
 | PIKO-V03-FIN-023 | Evidence publication/retention | writer fence、generation、artifact/digest、Result发布各故障点；窗口内/外读取 | 固定顺序且原子Result；失败不造Complete；bytes至少至max(deadline,published)+7d，长期接管归Slinky | semantic fixture + storage fault待联调 |
+| PIKO-V03-FIN-024 | Capacity POST precondition | If-None-Match匹配、不匹配、`*`、非法weak/list，且检查valid_until | 匹配/`*`为412；不匹配200完整snapshot；非法400；从不304且不延长期限；其他GET 304不变 | OpenAPI + semantic fixture static |
+| PIKO-V03-FIN-025 | Evidence single output authority | FullContent缺digest/空range/非法range/gap、Complete含Changed；Required Result证据缺失/重复/path/hash/size/document generation不一致 | 可表达组合由Schema拒绝；range与覆盖由semantic validator拒绝；证据只在outputs恰出现一次并与JCS bytes及Result generation一致 | Schema + semantic fixture static |
 
 Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
 不得倒推修改A类wire或启用旧兼容路径。

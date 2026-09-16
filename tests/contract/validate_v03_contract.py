@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 import hashlib
 import struct
+import copy
+import re
 from pathlib import Path
 
 import yaml
@@ -53,10 +55,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.9"
-assert openapi["info"]["version"] == "0.3.0-finalization.9"
-assert fixtures["fixture_version"] == "0.3.0-finalization.9"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.9"
+assert schema["x-contract-version"] == "0.3.0-finalization.10"
+assert openapi["info"]["version"] == "0.3.0-finalization.10"
+assert fixtures["fixture_version"] == "0.3.0-finalization.10"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.10"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -94,15 +96,20 @@ expected_paths = {
 assert set(openapi["paths"]) == expected_paths
 
 capacity_operation = openapi["paths"]["/execution-capacity/snapshots:query"]["post"]
-assert any(p.get("$ref") == "#/components/parameters/IfNoneMatch" for p in capacity_operation["parameters"])
-assert "304" in capacity_operation["responses"]
+assert any(p.get("$ref") == "#/components/parameters/CapacityIfNoneMatch" for p in capacity_operation["parameters"])
+assert "304" not in capacity_operation["responses"]
+assert "412" in capacity_operation["responses"]
+assert capacity_operation["responses"]["412"]["$ref"] == "#/components/responses/CapacitySnapshotPreconditionFailed"
 selector_schema = schema["$defs"]["ExecutionRequirementSelector"]
 assert "quantity" in selector_schema["required"]
 assert selector_schema["properties"]["quantity"]["const"] == 1
 constraint_schema = schema["$defs"]["ExecutionCapacityConstraintFact"]
 assert "shortfall_for_next_unit" in constraint_schema["required"]
-evidence_path = schema["$defs"]["InputAccessEvidenceRef"]["properties"]["path"]["oneOf"][0]["pattern"]
-assert evidence_path.startswith("^\\.piko/evidence/input-access/v1/")
+assert "InputAccessEvidenceRef" not in schema["$defs"]
+assert "input_access_evidence" not in schema["$defs"]["AgentResult"]["properties"]
+required_evidence_rule = schema["$defs"]["AgentTaskRequest"]["allOf"][-1]
+assert required_evidence_rule["if"]["properties"]["input_evidence_requirement"]["const"] == "Required"
+assert required_evidence_rule["then"]["properties"]["output_paths"]["maxItems"] == 255
 
 assert "410" in openapi["paths"]["/runs"]["post"]["responses"]
 for path, operations in openapi["paths"].items():
@@ -149,7 +156,7 @@ required_errors = {
     "ContentTooLarge", "ContentIntegrityMismatch", "ContentAlreadyBound",
     "ContentViewerNotAuthorized", "ContentRedacted", "ContentExpired",
     "ExecutionClassUnsupported", "InputEvidenceUnsupported",
-    "CapacitySnapshotUnavailable", "InputEvidencePublicationFailed",
+    "CapacitySnapshotUnavailable", "CapacitySnapshotPreconditionFailed", "InputEvidencePublicationFailed",
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
@@ -216,6 +223,11 @@ assert semantics["capacity-restart-recovery"]["post_restart_claim_count"] == 1
 assert semantics["capacity-isolated-release-drain-open"]["session_close_allowed"] is False
 assert semantics["capacity-snapshot-expired"]["feasible"] is False
 assert semantics["capacity-snapshot-cross-client"]["expected_status"] == 404
+assert semantics["capacity-post-if-none-match-current"]["expected_status"] == 412
+assert semantics["capacity-post-if-none-match-current"]["not_modified_returned"] is False
+assert semantics["capacity-post-if-none-match-current"]["valid_until_extended"] is False
+assert semantics["capacity-post-if-none-match-stale"]["expected_status"] == 200
+assert semantics["capacity-post-if-none-match-stale"]["full_snapshot_returned"] is True
 assert semantics["input-evidence-safe-path"]["client_task_id_used_in_path"] is False
 assert semantics["input-evidence-range-merge"]["canonical_ranges"] == [[0, 30], [40, 50]]
 assert semantics["input-evidence-range-merge"]["covered_bytes"] == 40
@@ -228,6 +240,87 @@ assert semantics["input-evidence-unknown-execution"]["fake_complete_created"] is
 assert semantics["input-evidence-publication-order"]["result_visible_before_last_step"] is False
 assert semantics["input-evidence-publication-failure"]["result_available"] is False
 assert semantics["input-evidence-availability-window"]["result_queryability_alone_sufficient"] is False
+
+
+def canonical_evidence_bytes(document: dict) -> bytes:
+    """The fixture subset has only JSON types whose sorted compact form is RFC8785-stable."""
+    return json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def canonical_ranges(raw_ranges: list[list[int]], size_bytes: int) -> list[list[int]] | None:
+    if any(start < 0 or start >= end or end > size_bytes for start, end in raw_ranges):
+        return None
+    merged: list[list[int]] = []
+    for start, end in sorted(raw_ranges):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return merged
+
+
+invalid_range = semantics["input-evidence-invalid-range-order"]
+assert canonical_ranges(invalid_range["observed_ranges"], invalid_range["size_bytes"]) is None
+assert invalid_range["expected_valid"] is False
+full_gap = semantics["input-evidence-full-content-gap"]
+merged_gap = canonical_ranges(full_gap["observed_ranges"], full_gap["size_bytes"])
+assert merged_gap != [[0, full_gap["size_bytes"]]]
+assert full_gap["expected_valid"] is False
+
+schema_cases = {case["id"]: case["value"] for case in fixtures["schema_cases"]}
+evidence_path_pattern = re.compile(r"^\.piko/evidence/input-access/v1/[0-9a-f]{64}/[1-9][0-9]*\.json$")
+
+
+def evidence_output_link_is_valid(case: dict) -> bool:
+    result = copy.deepcopy(schema_cases[case["result_schema_case_id"]])
+    document = copy.deepcopy(schema_cases[case["evidence_schema_case_id"]])
+    mutation = case["mutation"]
+    if mutation == "missing_output":
+        result["outputs"] = []
+    elif mutation == "duplicate_output":
+        result["outputs"].append(copy.deepcopy(result["outputs"][0]))
+    elif mutation == "wrong_path_generation":
+        result["outputs"][0]["path"] = result["outputs"][0]["path"].replace("/1.json", "/2.json")
+    elif mutation == "wrong_hash":
+        result["outputs"][0]["sha256"] = "0" * 64
+    elif mutation == "wrong_size":
+        result["outputs"][0]["size_bytes"] += 1
+    elif mutation == "wrong_document_generation":
+        document["result_generation"] += 1
+    elif mutation != "none":
+        raise AssertionError(mutation)
+
+    evidence_outputs = [item for item in result["outputs"] if evidence_path_pattern.fullmatch(item["path"])]
+    if case["input_evidence_requirement"] != "Required":
+        return not evidence_outputs
+    if len(evidence_outputs) != 1:
+        return False
+    output = evidence_outputs[0]
+    client_id = semantics["input-evidence-safe-path"]["client_id"]
+    token = hashlib.sha256(f"{client_id}\0{result['run_id']}".encode("utf-8")).hexdigest()
+    expected_path = f".piko/evidence/input-access/v1/{token}/{result['result_generation']}.json"
+    evidence_bytes = canonical_evidence_bytes(document)
+    return (
+        output["path"] == expected_path
+        and output["sha256"] == hashlib.sha256(evidence_bytes).hexdigest()
+        and output["size_bytes"] == len(evidence_bytes)
+        and document["run_id"] == result["run_id"]
+        and document["client_task_id"] == result["client_task_id"]
+        and document["result_generation"] == result["result_generation"]
+    )
+
+
+for case_id in (
+    "input-evidence-output-link-positive",
+    "input-evidence-output-link-missing",
+    "input-evidence-output-link-duplicate",
+    "input-evidence-output-link-wrong-path-generation",
+    "input-evidence-output-link-wrong-hash",
+    "input-evidence-output-link-wrong-size",
+    "input-evidence-output-link-wrong-document-generation",
+):
+    case = semantics[case_id]
+    assert evidence_output_link_is_valid(case) is case["expected_valid"], case_id
 
 path_case = semantics["input-evidence-safe-path"]
 scope_token = hashlib.sha256(f"{path_case['client_id']}\0{path_case['run_id']}".encode("utf-8")).hexdigest()
@@ -250,7 +343,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.9", "communication_trigger", "execution_released", "decision_first_created_at", "piko_concurrent_agent_run", "PikoTrustedInputBroker"):
+for required in ("0.3.0-finalization.10", "communication_trigger", "execution_released", "decision_first_created_at", "piko_concurrent_agent_run", "PikoTrustedInputBroker"):
     assert required in contract_text or required in field_text, required
 
 print(

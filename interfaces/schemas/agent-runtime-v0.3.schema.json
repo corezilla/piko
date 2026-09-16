@@ -3,7 +3,7 @@
   "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
   "title": "Piko Agent Runtime V0.3 定型契约",
   "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
-  "x-contract-version": "0.3.0-finalization.9",
+  "x-contract-version": "0.3.0-finalization.10",
   "$defs": {
     "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
     "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},
@@ -156,7 +156,8 @@
       "allOf":[
         {"if":{"properties":{"session_binding_ref":{"type":"null"}}},"then":{"properties":{"expected_session_binding_version":{"type":"null"}}}},
         {"if":{"properties":{"session_binding_ref":{"type":"string"}}},"then":{"properties":{"agent_binding_ref":{"type":"string"},"expected_session_binding_version":{"type":"integer","minimum":1}}}},
-        {"if":{"properties":{"communication_trigger":{"type":"object"}}},"then":{"properties":{"session_binding_ref":{"type":"string"}}}}
+        {"if":{"properties":{"communication_trigger":{"type":"object"}}},"then":{"properties":{"session_binding_ref":{"type":"string"}}}},
+        {"if":{"properties":{"input_evidence_requirement":{"const":"Required"}}},"then":{"properties":{"output_paths":{"maxItems":255}}}}
       ]
     },
     "Progress": {
@@ -260,7 +261,9 @@
       },
       "allOf":[
         {"if":{"properties":{"coverage":{"const":"MetadataOnly"}}},"then":{"properties":{"observed_ranges":{"maxItems":0}}}},
-        {"if":{"properties":{"coverage":{"const":"ChangedDuringRead"}}},"then":{"properties":{"post_read_object_version":{"type":"string"}}}},
+        {"if":{"properties":{"coverage":{"const":"FullContent"}}},"then":{"properties":{"content_sha256":{"type":"string"}}}},
+        {"if":{"properties":{"coverage":{"const":"FullContent"},"size_bytes":{"minimum":1}},"required":["coverage","size_bytes"]},"then":{"properties":{"observed_ranges":{"minItems":1}}}},
+        {"if":{"properties":{"coverage":{"const":"ChangedDuringRead"}}},"then":{"properties":{"post_read_object_version":{"type":"string"},"post_read_sha256":{"type":"string"}}}},
         {"if":{"properties":{"coverage":{"enum":["FullContent","ByteRanges","MetadataOnly"]}}},"then":{"properties":{"post_read_object_version":{"type":"null"},"post_read_sha256":{"type":"null"}}}}
       ]
     },
@@ -275,22 +278,9 @@
         "gap_reason_codes":{"type":"array","uniqueItems":true,"items":{"enum":["RecorderFailure","UnmediatedAccessDetected","UnknownExecution","ObjectChangedDuringRead"]}}
       },
       "allOf":[
-        {"if":{"properties":{"recorder_status":{"const":"Complete"}}},"then":{"properties":{"gap_reason_codes":{"maxItems":0}}}},
-        {"if":{"properties":{"recorder_status":{"const":"Partial"}}},"then":{"properties":{"gap_reason_codes":{"minItems":1}}}}
-      ]
-    },
-    "InputAccessEvidenceRef": {
-      "type":"object","additionalProperties":false,
-      "required":["status","producer","evidence_version","path","sha256","size_bytes","generated_at","available_until"],
-      "properties":{
-        "status":{"enum":["Complete","Partial","Unavailable","Unknown"]},"producer":{"const":"PikoTrustedInputBroker"},
-        "evidence_version":{"const":"piko-input-access-evidence/v1"},"path":{"oneOf":[{"type":"string","pattern":"^\\.piko/evidence/input-access/v1/[0-9a-f]{64}/[1-9][0-9]*\\.json$"},{"type":"null"}]},
-        "sha256":{"oneOf":[{"$ref":"#/$defs/Digest"},{"type":"null"}]},"size_bytes":{"type":["integer","null"],"minimum":0},
-        "generated_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},"available_until":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"enum":["Complete","Partial"]}}},"then":{"properties":{"path":{"type":"string"},"sha256":{"type":"string"},"size_bytes":{"type":"integer"},"generated_at":{"type":"string"},"available_until":{"type":"string"}}}},
-        {"if":{"properties":{"status":{"enum":["Unavailable","Unknown"]}}},"then":{"properties":{"path":{"type":"null"},"sha256":{"type":"null"},"size_bytes":{"type":"null"},"generated_at":{"type":"null"},"available_until":{"type":"null"}}}}
+        {"if":{"properties":{"recorder_status":{"const":"Complete"}}},"then":{"properties":{"gap_reason_codes":{"maxItems":0},"observations":{"not":{"contains":{"properties":{"coverage":{"const":"ChangedDuringRead"}},"required":["coverage"]}}}}}},
+        {"if":{"properties":{"recorder_status":{"const":"Partial"}}},"then":{"properties":{"gap_reason_codes":{"minItems":1}}}},
+        {"if":{"properties":{"observations":{"contains":{"properties":{"coverage":{"const":"ChangedDuringRead"}},"required":["coverage"]}}},"required":["observations"]},"then":{"properties":{"recorder_status":{"const":"Partial"},"gap_reason_codes":{"contains":{"const":"ObjectChangedDuringRead"}}}}}
       ]
     },
     "Usage": {
@@ -308,7 +298,7 @@
     },
     "AgentResult": {
       "type":"object","additionalProperties":false,
-      "required":["run_id","client_task_id","state","reason_code","detail_reason_code","summary","outputs","usage","input_access_evidence","execution_log_ref","finished_at","result_generation","published_at"],
+      "required":["run_id","client_task_id","state","reason_code","detail_reason_code","summary","outputs","usage","execution_log_ref","finished_at","result_generation","published_at"],
       "properties":{
         "run_id":{"$ref":"#/$defs/OpaqueRef"},"client_task_id":{"$ref":"#/$defs/Identifier"},
         "state":{"enum":["Completed","Failed","Cancelled"]},
@@ -317,7 +307,6 @@
         "summary":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
         "outputs":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/OutputFile"}},
         "usage":{"$ref":"#/$defs/Usage"},
-        "input_access_evidence":{"$ref":"#/$defs/InputAccessEvidenceRef"},
         "execution_log_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
         "finished_at":{"$ref":"#/$defs/Timestamp"},"result_generation":{"type":"integer","minimum":1},"published_at":{"$ref":"#/$defs/Timestamp"}
       },

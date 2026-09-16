@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.9` |
+| Document Version | `0.3.0-finalization.10` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -72,7 +72,7 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | limits.max_tool_calls | Slinky | 新逻辑 tool operation 上限 | integer 0–100000；required | Run immutable | 入 digest；结果查询不计数；到限 Failed/ToolCallLimit |
 | limits.stop_grace_seconds | Slinky | 停止/对账宽限 | integer 1–3600；required | Run immutable | 入 digest；不授予新业务步骤；耗尽且未知→RecoveryRequired |
 | input_evidence_requirement | Slinky | 是否要求可信材料读取证据 | Required\|NotRequired；required | Run immutable | 入digest；Required时resolved tool profile必须支持PikoTrustedInputBroker，否则422 InputEvidenceUnsupported且不创建Run |
-| output_paths | Slinky | 预期输出提示与结果核对 | unique relative path[]，0–256；required | Run immutable | 入 digest；不扩大 write_paths；缺失不伪造 Result |
+| output_paths | Slinky | 预期业务输出提示与结果核对 | unique relative path[]；NotRequired 0–256，Required 0–255；required | Run immutable | 入 digest；系统证据artifact不在此声明且不扩大 write_paths；缺失不伪造 Result |
 
 四种唯一请求形状（其余必填字段相同，示例省略值不表示可省略）：
 
@@ -122,17 +122,18 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | CancelReceipt.command_id/accepted_at/outcome | Piko | 固定取消回执 | opaque/time/StopRequested|AlreadyTerminal | immutable | 同key返回原回执；StopRequested不是停止/release证据 |
 | AgentResult.state/reason_code/detail_reason_code | Piko terminal ledger | 执行结论 | strict enum；全部required | immutable | task deadline=`Failed/DeadlineExceeded/TaskDeadlineExceeded`；caller/catalog先到=`Failed/ExecutionError/ModelRequestDeadlineExceeded|ServiceEffectiveDeadlineExceeded`；晚到成功仅Evidence |
 | AgentResult.summary | Agent，经Piko封装 | 最终答复 | UTF-8 0–256KiB | immutable | 不作安全/接受判据 |
-| AgentResult.outputs | Piko稳定generation测量 | 文件清单 | path/hash/size，≤256 | immutable | Piko计算；文件后续变化不改历史Result |
+| AgentResult.outputs | Piko稳定generation测量 | 业务输出与唯一可信证据artifact清单 | path/hash/size，≤256 | immutable | Required任务恰有一个固定`.piko/evidence/.../<result_generation>.json`；无第二引用；文件后续变化不改历史Result |
 | AgentResult.usage | Piko counters + LLMTier observations | 计量 | calls非负；tokens nullable；cost decimal nullable+currency | immutable | unknown为null非0；恢复不重复计数 |
-| AgentResult.input_access_evidence | PikoTrustedInputBroker | 引用可信读取证据bytes | status Complete/Partial/Unavailable/Unknown、producer/version、path/hash/size/generated/available；全部required/null显式 | 与result_generation原子发布 | Complete只表示recorder无gap；不表示Slinky材料清单覆盖/模型理解；Required且无法发布时Run保持RecoveryRequired |
 | AgentResult.result_generation/published_at | Piko Result ledger | 稳定输出与证据发布世代 | positive integer + UTC；required | immutable | writer fence、evidence、outputs完成后才原子可见 |
 | execution_log_ref | Piko | 授权日志引用 | opaque|null | immutable | 不要求chain-of-thought；无凭据 |
 
 ### 3.1 ExecutionCapacitySnapshot 与逐Run claim
 
 唯一观察操作为只读`POST /agent-runtime/v1/execution-capacity/snapshots:query`。使用POST仅承载最多256个
-异构selector；它没有Idempotency-Key、不写reservation/claim/Run/dispatch intent，响应200带强ETag，
-`If-None-Match`匹配同一有效representation可得304；认证/授权及scope检查先于ETag。
+异构selector；它没有Idempotency-Key、不写reservation/claim/Run/dispatch intent，响应200带强ETag。
+可选`If-None-Match`只接受exact strong ETag或`*`：匹配返回412
+`CapacitySnapshotPreconditionFailed`，不匹配返回200完整snapshot；POST不返回304且ETag不延长`valid_until`。
+Slinky正常刷新不发送条件头；认证/授权及scope检查先于条件判断。
 
 | 字段 | 生产/authority | 消费用途 | 精确定义 | 异常/保留 |
 |---|---|---|---|---|
@@ -158,17 +159,26 @@ snapshot只是非预留预测；只有每个原`client_task_id/key`提交均得�
 `client_task_id`拼路径；`.piko/**`是system-only保留前缀，Agent/shell/普通writer不可写，也不扩大write_paths。
 
 证据document逐对象记录relative path、object_version、content hash/size、coverage、规范化ranges、read count和
-观测时间。同一object_version+hash的ranges按start排序并合并重叠/相邻范围，重复读取不增加covered bytes；
-空文件实际读取为`FullContent,size=0,ranges=[],read_event_count>=1`。MetadataOnly不等于内容覆盖；
-ChangedDuringRead记录前后version/hash并令recorder Partial；broker旁路、recorder failure、Unknown execution均写gap，
+观测时间。同一object_version+hash的ranges按start排序并合并重叠/相邻范围，重复读取不增加covered bytes。
+FullContent必须有digest；非空文件规范range并集恰覆盖`[0,size)`，每段满足
+`0 <= start < end_exclusive <= size`；空文件实际读取为
+`FullContent,size=0,ranges=[],read_event_count>=1`。MetadataOnly不等于内容覆盖；ChangedDuringRead记录前后
+version/hash并强制`Partial + ObjectChangedDuringRead`，Complete不得包含该观察；broker旁路、recorder failure、Unknown execution均写gap，
 不得产生虚假Complete。Complete只证明记录器从start到close无gap；Slinky仍以自己的必需材料版本/hash/range集合判定。
 
-发布顺序固定为Agent writer fence→Tool writer终止/隔离→trusted recorder close→证据bytes fsync+hash→outputs
-generation快照→AgentResult generation与ETag原子发布。任一步失败时`result_available=false`且Run进入
+证据document以RFC8785 JCS UTF-8形成bytes。发布顺序固定为Agent writer fence→Tool writer终止/隔离→
+trusted recorder close→证据bytes fsync+hash→把该artifact纳入outputs generation快照→AgentResult generation
+与ETag原子发布。任一步失败时`result_available=false`且Run进入
 RecoveryRequired；Unknown execution的evidence为Unknown且不发布终态Result。证据bytes通过原workspace/artifact
 授权读取模式按Result给出的path/hash/size取得，不新增Piko下载endpoint或第二通道；至少保留到
 `max(request.deadline_at,result.published_at)+7d`。Slinky须在窗口内核验并接管长期Artifact，Result仍可查询不等于
 证据bytes仍可读。
+
+Required任务只从`AgentResult.outputs`发现证据：必须且只能有一个固定系统路径artifact，path中的generation、
+OutputFile hash/size与证据bytes、document中的run_id/client_task_id/result_generation全部一致。缺失、重复、
+不同path/hash/size/generation均阻止terminal Result发布。`input_access_evidence`字段从唯一机器Schema删除，避免
+第二引用；NotRequired任务不得生成伪证据artifact。系统artifact不属于请求`output_paths`且不扩大write_paths；
+Result总上限256，因此Required请求的业务`output_paths`最多255项。
 
 ## 4. Identity、Session binding、revoke 与 drain
 

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.9` |
+| Document Version | `0.4.0-draft.10` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.9`)；runtime activation=false。
+> (`0.3.0-finalization.10`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -44,7 +44,7 @@ V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、
 | Operation | Method/path | 成功 | Idempotency/版本 |
 |---|---|---|---|
 | Submit | POST `/agent-runtime/v1/runs` | 202 RunView | Client+endpoint+key；JCS body digest |
-| Execution capacity | POST `/agent-runtime/v1/execution-capacity/snapshots:query` | 200 ExecutionCapacitySnapshot | 只读、Client-scoped、ETag；不预留 |
+| Execution capacity | POST `/agent-runtime/v1/execution-capacity/snapshots:query` | 200 ExecutionCapacitySnapshot | 只读、Client-scoped、非预留；If-None-Match匹配为412而非304 |
 | Status/recovery | GET `/runs/{run_id}` | 200/304 RunView | Client scope+ETag |
 | Result | GET `/runs/{run_id}/result` | 200/304 AgentResult | immutable ETag；非终态409 |
 | Cancel | POST `/runs/{run_id}:cancel` | 202 CancelReceipt | 独立key；原回执固定 |
@@ -188,6 +188,11 @@ Snapshot 是非预留可行性，不创建 Run、claim、dispatch 或等待队�
 业务事实。claim Unknown、snapshot 过期/越权或 query 依赖不可用均不得按0或可用处理。claim release、
 Run `execution_released`、communication drain、外部 Unknown obligation 与 LLMTier Seat release 是相互独立的事实。
 
+该POST的可选`If-None-Match`只接受一个exact strong ETag或`*`。当前representation匹配（或`*`且存在）
+返回412 `CapacitySnapshotPreconditionFailed`；不匹配返回200完整snapshot。POST绝不返回304，条件判断不
+延长`valid_until`。Slinky正常刷新不发送条件头，并对每个200重新核对Client scope、selectors和有效期；
+其他GET的合法304不受影响。
+
 ### 5.2 可信材料读取证据
 
 请求中的 `input_evidence_requirement` 必须显式为 `Required` 或 `NotRequired`。Required 只可搭配
@@ -196,8 +201,11 @@ admission 前可判定为 `Auditable` 的 tool profile；否则422 `InputEvidenc
 stdout、summary、普通 writer 和 `execution_log_ref` 不能生成或补写可信读取事实。
 
 Broker 对每次成功读取记录 workspace-relative path、对象版本、读取前后 SHA-256/size、coverage、
-byte ranges 与 observed_at。同一对象版本/hash下重叠或相邻range取并集，重复读取不累加；空文件只有真实
-read事件才可记 FullContent；stat/list/metadata是MetadataOnly；读取中版本/hash变化为ChangedDuringRead；
+byte ranges 与 observed_at。同一对象版本/hash下重叠或相邻range取并集，重复读取不累加。FullContent必须
+有content digest；非空文件规范range并集恰覆盖`[0,size)`且每段满足
+`0 <= start < end_exclusive <= size`；空文件只有真实read event才可用空ranges记FullContent。
+stat/list/metadata是MetadataOnly；读取中版本/hash变化为ChangedDuringRead并强制
+`Partial + ObjectChangedDuringRead`，Complete不得包含该观察；
 绕过broker的读取是Unmediated且不能产生Complete。Piko不判断哪些材料“应该被读”，也不证明模型理解；
 Slinky用自己的冻结材料清单核对证据，缺失或不可信即不通过覆盖接受。
 
@@ -205,12 +213,19 @@ Slinky用自己的冻结材料清单核对证据，缺失或不可信即不通�
 `.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json`，其中
 `run_scope_token=lowercase-hex(SHA-256(UTF8(client_id)||0x00||UTF8(run_id)))`。该系统前缀只能由
 Piko evidence producer写入，不扩大 request `write_paths`，不能由任意 `client_task_id` 派生路径。
-发布顺序固定为：fence Agent/tool/workspace writer → 固定output generation → 原子生成证据 bytes 和
-digest → 发布 immutable AgentResult（包含 `input_access_evidence`、`result_generation`、`published_at`）。
+证据document按RFC8785 JCS UTF-8编码。发布顺序固定为：fence Agent/tool/workspace writer → 固定output
+generation → 原子生成证据bytes和digest → 将同一证据artifact纳入outputs快照 → 发布immutable AgentResult
+（包含`result_generation`、`published_at`）。
 任何阶段失败返回500 `InputEvidencePublicationFailed`，保持原义务/RecoveryRequired，不制造Complete。
 Unknown执行不得发布虚假Complete。
 
-AgentResult只携带证据artifact的path/sha256/size/status与producer引用；消费者仍通过原workspace/artifact
+`AgentResult`不再有`input_access_evidence`第二引用。Required任务的`outputs`必须且只能包含一个匹配
+`.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json`的系统OutputFile；path世代、
+SHA-256和size必须与证据bytes一致，document的run/task/generation也必须与Result一致。缺失、重复、不同
+path/hash/size/generation均fail closed且不得发布terminal Result；NotRequired任务不得伪造该系统artifact。
+该系统artifact不在请求`output_paths`中声明且不扩大write_paths；因为Result总上限为256，Required任务的
+业务`output_paths`上限为255，给唯一系统artifact保留一个位置。
+消费者仍通过原workspace/artifact
 授权读取模式取得bytes，不新增日志读取或第二证据通道。证据bytes至少可读至
 `max(request.deadline_at,result.published_at)+7d`；Result可查询不等于bytes可读。Slinky应在该窗口内验证并
 接管长期Artifact，窗口内ACL/对象版本/散列失败即不接受，窗口后不得绕过授权恢复内容。

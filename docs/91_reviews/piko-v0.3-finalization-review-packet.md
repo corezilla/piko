@@ -46,6 +46,12 @@ DF-14以`PikoTrustedInputBroker`为唯一可信producer，冻结对象版本/has
 `max(request.deadline_at,result.published_at)+7d`的bytes窗口。Complete只表示记录器完整，不证明Slinky
 所需材料集合覆盖或模型理解；Agent自述、stdout、普通日志和execution_log_ref均不构成覆盖证据。
 
+Finalization.10落实Slinky独立机器复审的三项修订：容量snapshot仍使用唯一POST，但If-None-Match匹配
+改为RFC 9110一致的412，未匹配200完整snapshot且从不304；MaterialReadObservation Schema要求
+FullContent digest、非空range，并禁止Complete包含ChangedDuringRead，跨字段range/完整覆盖由可执行semantic
+oracle检查；读取证据只通过既有`AgentResult.outputs`中固定路径的唯一artifact发现，删除第二
+`input_access_evidence`引用，并对缺失、重复、path/hash/size/document generation不一致全部fail closed。
+
 LLMTier语义消费固定为candidate.2：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
 Chat/SSE/fallback。当前LLMTier目标已更新为`0.3-finalization-candidate.2`，commit
@@ -73,7 +79,7 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 
 ## 5. 验证摘要
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；36 Schema case、77 semantic case、16 path、43 error。
+- `python3 tests/contract/validate_v03_contract.py`：exit 0；39 Schema case、88 semantic case、16 path、44 error。
 - 四个消费者反例均被Schema拒绝；raw Matrix root/reply正例与reply/version负例通过；配置PUT create/update/
   缺头/双头/wildcard/stale oracle均由validator核验。
 - 附件上传/读取、大小与摘要、单消息绑定、参与者授权、保留/tombstone以及raw event投影、sender/room/state
@@ -81,11 +87,12 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 - 附件摘要golden vector由validator按domain-separated preimage重算；撤权/redaction/过期+匹配ETag和
   actual-deletion起算的半开30天tombstone边界均有静态oracle。
 - DF-13 fixture覆盖shared pool不重复计数、snapshot竞争、N participant部分受理、202丢响应、claim Unknown、
-  restart、release/drain/Tier独立及过期/越权；DF-14覆盖安全路径、range并集、空文件、metadata-only、
-  changed/unmediated、profile能力、Unknown执行、发布故障与证据窗口。
+  restart、release/drain/Tier独立、过期/越权及POST条件头412/200边界；DF-14覆盖安全路径、range并集、
+  FullContent digest/完整覆盖、空文件、metadata-only、changed/unmediated、profile能力、Unknown执行、发布故障、
+  单一outputs artifact linkage与证据窗口。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
 - Piko-owned DF-13/14字段与语义无“实现时再确认”；LLMTier candidate.2机器正文的baseline binding已关闭。
-  Slinky对finalization.9 DF-13/14机器包的独立消费复审仍是跨方设计门禁，不由Piko自验替代。
+  Slinky对finalization.10三项修订的独立复验仍是跨方设计门禁，不由Piko自验替代。
 - 仅用项目内`docs/std.lock.json`与`docs/std-source-manifest.json`核验8个本包metadata：7个template hash
   与锁定draft.21一致；`design.system`文档已采用4.0.0/hash `ec2800...`，与lock内旧hash `96d14...`
   不一致，明确列为STD迁移项。未跨仓读取、未擅自升级项目STD lock，也不宣称全部STD校验通过。

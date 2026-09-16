@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0-draft.12` |
+| Document Version | `0.4.0-draft.13` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -52,6 +52,7 @@ Document Status、评审结论和 Runtime Activation 是三个独立 Gate，当�
 | `0.4.0-draft.10` | `2026-09-16` | 冻结受控附件上传/参与者读取以及raw Matrix event到六字段投影边界 | 待评审 |
 | `0.4.0-draft.11` | `2026-09-16` | 固定附件domain-separated digest、实际删除起算的30天tombstone及鉴权先于ETag | 待评审 |
 | `0.4.0-draft.12` | `2026-09-16` | 冻结Client-scoped执行容量快照/逐Run claim与可信材料读取证据 | 待评审 |
+| `0.4.0-draft.13` | `2026-09-16` | 修正容量POST条件请求语义，强化读取覆盖约束并统一由AgentResult.outputs发现证据artifact | 待评审 |
 
 ## 目录、表目录与图目录
 
@@ -427,7 +428,7 @@ RunView 还须给出 `state_version`、accepted/started/finished 时间、`resul
 RecoveryRequired 必须提供 reason_code、unresolved_refs 与 Wait/OperatorAction 建议。状态或释放事实
 改变时版本单调；任何对外可见 progress 或 recovery 内容变化也必须递增 `state_version`。
 `recoverable_until` 在运行中不能缩短。这些字段已由 `agent-runtime-v0.3.schema.json` 的
-`0.3.0-finalization.9` 候选冻结；实现证据仍为 NOT_RUN。
+`0.3.0-finalization.10` 候选冻结；实现证据仍为 NOT_RUN。
 
 ## 7. 硬件实现方案
 
@@ -513,8 +514,11 @@ Team 分歧、Expert/PM Work、用户 Decision、Plan change 与 Artifact accept
 Context/Manifest清单核对，缺失则拒绝覆盖接受。
 
 证据使用受保护的`.piko/evidence/input-access/v1/`前缀和由`client_id+run_id`散列派生的scope token，
-不接受`client_task_id`直接形成路径，也不扩大Agent write_paths。Result发布前依次fence writer、固定输出
-generation、原子发布证据artifact及digest，最后发布不可变AgentResult；失败或Unknown执行保持
+不接受`client_task_id`直接形成路径，也不扩大Agent write_paths。证据document使用RFC8785 JCS UTF-8，
+FullContent的规范range并集必须精确覆盖对象。Result发布前依次fence writer、固定输出generation、原子发布
+证据artifact及digest、把同一artifact纳入`AgentResult.outputs`，最后发布不可变AgentResult；不再存在独立
+`input_access_evidence`引用。Required任务缺失、重复或path/hash/size/generation不一致均失败；读取中变化
+必须Partial且带`ObjectChangedDuringRead`。失败或Unknown执行保持
 RecoveryRequired，不制造Complete。证据bytes通过原workspace/artifact授权读取并至少保留至
 `max(request.deadline_at,result.published_at)+7d`，长期接管由Slinky负责。
 
@@ -579,7 +583,7 @@ backlog 计算；资源不足 typed backpressure 并保留已确认 obligation�
 
 | 边界 | Piko 用途 | 字段 authority | 失败行为 |
 |---|---|---|---|
-| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel、capacity snapshot query | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.9` | auth、idempotency、scope、path/limit、capacity/RecoveryRequired |
+| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel、capacity snapshot query | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.10` | auth、idempotency、scope、path/limit、capacity/RecoveryRequired |
 | Slinky→Piko 通信控制 | Profile、Agent identity、Session binding projection、revoke、drain | Piko V0.3 OpenAPI/Schema；Slinky拥有Session/Topic/View/close | version/mismatch/revoking/recovery |
 | Piko→LLMTier | Responses non-stream、Models、Invocation/Response GET | LLMTier Piko-facing contract | 202 active、terminal typed error、UnknownOutcome |
 | Piko↔Matrix | AS push txn、membership/room/send txn | Matrix AS/Client API + Piko binding | replay、membership/recovery blocker |

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.9
+  version: 0.3.0-finalization.10
   description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1
@@ -40,10 +40,12 @@ paths:
         Client-scoped只读、非预留容量查询。请求以与Run相同的workspace/service level/agent/tool profile及
         input evidence requirement解析execution class；响应一次返回全部resolved classes及direct/shared/client
         constraints。此操作不创建claim、Run、reservation或dispatch intent；ETag标识响应representation，
-        valid_until之后或Partial/Unknown必须fail closed。只有POST /runs能执行admission并原子分配claim。
+        valid_until之后或Partial/Unknown必须fail closed。可选If-None-Match只接受一个exact strong ETag或`*`：
+        当前representation匹配（`*`在存在时必匹配）返回412，未匹配仍返回200完整新snapshot；POST绝不返回304，
+        ETag判断也不延长valid_until。Slinky正常刷新不发送条件头。只有POST /runs能执行admission并原子分配claim。
       parameters:
         - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
+        - $ref: '#/components/parameters/CapacityIfNoneMatch'
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ExecutionCapacityQuery'}}}
@@ -52,11 +54,11 @@ paths:
           description: 当前非预留snapshot；不得解释为N-Run admission保证。
           headers: {ETag: {$ref: '#/components/headers/ETag'}}
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ExecutionCapacitySnapshot'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
         '400': {$ref: '#/components/responses/Error'}
         '401': {$ref: '#/components/responses/Error'}
         '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/CapacitySnapshotPreconditionFailed'}
         '422': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
   /runs/{run_id}:
@@ -457,6 +459,7 @@ components:
     IfMatchOptional: {name: If-Match, in: header, required: false, description: Update branch only; one exact strong ETag, wildcard and weak validators forbidden., schema: {type: string, pattern: '^"[^"\\r\\n]+"$'}}
     IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, description: Create branch only; the sole accepted value is `*`., schema: {type: string, const: '*'}}
     IfNoneMatch: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+    CapacityIfNoneMatch: {name: If-None-Match, in: header, required: false, description: POST capacity query precondition; one exact strong ETag or `*`. Match returns 412 CapacitySnapshotPreconditionFailed, non-match returns 200 full snapshot; 304 is forbidden., schema: {type: string, pattern: '^(\*|"[^"\r\n]+")$'}}
     ViewerMatrixUserId: {name: X-Piko-Viewer-Matrix-User-ID, in: header, required: true, description: Slinky在当前project/session权限检查后提供的exact用户MXID；Piko还核对exact room当前membership。, schema: {type: string, minLength: 3, maxLength: 255, pattern: '^@'}}
     ViewerAuthorizationRef: {name: X-Piko-Viewer-Authorization-Ref, in: header, required: true, description: Slinky当前授权决定的非Secret审计引用；不能单独授予权限。, schema: {type: string, minLength: 1, maxLength: 256}}
   headers:
@@ -466,6 +469,9 @@ components:
     ContentLength: {required: true, schema: {type: integer, minimum: 0, maximum: 67108864}}
     ContentMediaType: {required: true, description: Exact media_type persisted with the upload metadata., schema: {type: string, minLength: 1, maxLength: 255}}
   responses:
+    CapacitySnapshotPreconditionFailed:
+      description: POST capacity query precondition matched; typed code is CapacitySnapshotPreconditionFailed and the caller must issue an unconditional query for a full snapshot.
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     Error:
       description: Typed error。
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
