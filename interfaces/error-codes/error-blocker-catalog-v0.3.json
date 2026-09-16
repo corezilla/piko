@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "catalog_version": "agent-runtime-errors/v0.3-finalization.5",
+  "catalog_version": "agent-runtime-errors/v0.3-finalization.6",
   "status": "review",
   "runtime_activation": false,
   "errors": [

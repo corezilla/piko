@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.5` |
+| Package Version | `0.3.0-finalization.6` |
 | Status | Review；runtime activation=false |
 | Authority | Piko |
 | Request | `S-20260916-191ab7c8184c` |
@@ -24,6 +24,8 @@ Finalization.5关闭机器一致性复审三项：Schema用条件约束拒绝Unc
 事实、Queued提前带Matrix事实及Failed+AgentFinished；13项HTTP operation补齐401/403、createRun 410、
 GET/PUT ETag及配置PUT唯一create/update前置条件矩阵；产品消息唯一编码为
 `m.room.message + content.io.piko.agent.message`，并冻结body/reply/sender/room/附件与分类规则。
+Finalization.6补齐三个配置PUT在exact strong If-Match更新目标不存在时的机器404 NotFound响应，并增加
+`put-precondition-update-missing-resource`负例，明确不得隐式创建资源；其余finalization.5语义不变。
 
 LLMTier语义消费固定为Amendment 8：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
@@ -33,7 +35,7 @@ Chat/SSE/fallback。LLMTier `0.3-finalization-candidate.1`目标OpenAPI SHA-256
 
 ## 2. 一次性退役
 
-从 `0.3.0-finalization.5` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
+从 `0.3.0-finalization.6` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
 `runs:by-attempt`、manual reconcile、Run SSE、Piko Session list/element-view/:close、原子建房
 `collaboration_contract`及旧嵌套`bindings`。不提供alias、转换器、双写或runtime fallback。
 
@@ -49,7 +51,7 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 
 ## 5. 验证摘要
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；25 Schema case、39 semantic case、13 path、33 error。
+- `python3 tests/contract/validate_v03_contract.py`：exit 0；25 Schema case、40 semantic case、13 path、33 error。
 - 四个消费者反例均被Schema拒绝；raw Matrix root/reply正例与reply/version负例通过；配置PUT create/update/
   缺头/双头/wildcard/stale oracle均由validator核验。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。

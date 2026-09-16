@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.5` |
+| Document Version | `0.3.0-finalization.6` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |

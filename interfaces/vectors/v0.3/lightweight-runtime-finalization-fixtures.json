@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3.0-finalization.5",
+  "fixture_version": "0.3.0-finalization.6",
   "schema_cases": [
     {"id":"run-no-agent-no-session-positive","schema":"AgentTaskRequest","valid":true,"value":{"client_task_id":"task-1","instruction":"检查","workspace_ref":"ws-1","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":["docs"],"write_paths":[],"tool_profile_ref":"tools-readonly-v1"},"limits":{"deadline_at":"2026-09-16T20:00:00Z","max_model_calls":10,"max_tool_calls":20,"stop_grace_seconds":60},"output_paths":[]}},
     {"id":"run-agent-only-positive","schema":"AgentTaskRequest","valid":true,"value":{"client_task_id":"task-2","instruction":"检查","workspace_ref":"ws-1","service_level_id":"Junior","agent_binding_ref":"agent-1","session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":["docs"],"write_paths":[],"tool_profile_ref":"tools-readonly-v1"},"limits":{"deadline_at":"2026-09-16T20:00:00Z","max_model_calls":10,"max_tool_calls":20,"stop_grace_seconds":60},"output_paths":[]}},
@@ -63,6 +63,7 @@
     {"id":"put-precondition-both","headers":{"If-Match":"\"etag-v7\"","If-None-Match":"*"},"expected_status":400,"expected_error":"InvalidPreconditionCombination"},
     {"id":"put-precondition-wildcard-update","headers":{"If-Match":"*"},"expected_status":400,"expected_error":"InvalidPreconditionCombination"},
     {"id":"put-precondition-stale","headers":{"If-Match":"\"etag-v6\""},"resource_exists":true,"etag_matches":false,"expected_status":412,"expected_error":"ResourceVersionMismatch"},
+    {"id":"put-precondition-update-missing-resource","applies_to":["putMatrixTransportProfile","putAgentCommunicationIdentityBinding","putSessionAgentBindingProjection"],"headers":{"If-Match":"\"etag-v1\""},"resource_exists":false,"expected_status":404,"expected_error":"NotFound","created":false},
     {"id":"matrix-native-without-extension","matrix_type":"m.room.message","has_product_extension":false,"classification_status":"UnclassifiedNativeMessage","dispatch_eligible":false},
     {"id":"matrix-malformed-product-extension","matrix_type":"m.room.message","extension_error":"body_or_sender_or_room_or_reply_or_attachment_mismatch","classification_status":"Rejected","dispatch_eligible":false},
     {"id":"matrix-codec-sender-room-authority","sender_source":"outer_event.sender","room_source":"outer_event.room_id","content_sender_must_match_projection":true,"event_id_and_origin_ts_source":"homeserver","pre_send_event_facts":null},

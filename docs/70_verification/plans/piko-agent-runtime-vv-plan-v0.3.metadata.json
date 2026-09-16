@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-agent-runtime-vv-plan-v0.3", "document_type": "assurance.vv-plan",
-  "document_version": "0.4.0-draft.5", "title": "Piko Agent Runtime v0.3 验证与确认计划",
+  "document_version": "0.4.0-draft.6", "title": "Piko Agent Runtime v0.3 验证与确认计划",
   "document_owner": "Piko Verification Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md",
   "template_id": "assurance.vv-plan", "template_version": "0.1.0",

@@ -51,10 +51,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.5"
-assert openapi["info"]["version"] == "0.3.0-finalization.5"
-assert fixtures["fixture_version"] == "0.3.0-finalization.5"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.5"
+assert schema["x-contract-version"] == "0.3.0-finalization.6"
+assert openapi["info"]["version"] == "0.3.0-finalization.6"
+assert fixtures["fixture_version"] == "0.3.0-finalization.6"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.6"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -107,7 +107,7 @@ for path in (
     responses = openapi["paths"][path]["put"]["responses"]
     for status in ("200", "201"):
         assert "ETag" in responses[status]["headers"], (path, status, "ETag")
-    for status in ("400", "401", "403", "409", "412", "428"):
+    for status in ("400", "401", "403", "404", "409", "412", "428"):
         assert status in responses, (path, status)
 
 for retired in fixtures["retired_contract_assertions"]["removed_paths"]:
@@ -165,6 +165,8 @@ assert semantics["model-request-deadline-before-task"]["new_agent_steps"] == 0
 assert semantics["service-effective-deadline-before-request"]["late_success"] == "EvidenceOnly"
 assert semantics["put-precondition-missing"]["expected_status"] == 428
 assert semantics["put-precondition-both"]["expected_error"] == "InvalidPreconditionCombination"
+assert semantics["put-precondition-update-missing-resource"]["expected_status"] == 404
+assert semantics["put-precondition-update-missing-resource"]["created"] is False
 assert semantics["matrix-native-without-extension"]["dispatch_eligible"] is False
 assert semantics["matrix-malformed-product-extension"]["classification_status"] == "Rejected"
 
@@ -174,7 +176,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.5", "communication_trigger", "execution_released", "decision_first_created_at"):
+for required in ("0.3.0-finalization.6", "communication_trigger", "execution_released", "decision_first_created_at"):
     assert required in contract_text or required in field_text, required
 
 print(

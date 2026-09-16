@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.5` |
+| Document Version | `0.4.0-draft.6` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -180,7 +180,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.5`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.6`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.5` |
+| Document Version | `0.4.0-draft.6` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |

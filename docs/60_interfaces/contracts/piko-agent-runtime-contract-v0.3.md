@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.5` |
+| Document Version | `0.4.0-draft.6` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.5`)；runtime activation=false。
+> (`0.3.0-finalization.6`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.5` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.6` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
