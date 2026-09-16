@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |

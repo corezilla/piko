@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -160,6 +160,8 @@ scope，不能读取其他真实项目数据。
 | PIKO-V03-FIN-013 | Conditional Schema | 构造Unclassified+eligible、Sent缺event、Queued带event、Failed+AgentFinished | 四项均Schema拒绝；合法Product/Sent/Queued/AgentResult组合通过 | static fixture |
 | PIKO-V03-FIN-014 | HTTP matrix | createRun tombstone；所有GET auth；三个配置PUT create/update/缺头/双头/wildcard/stale/update目标不存在 | 410；401/403；201/200带ETag；428/400/400/412/404，update missing不创建资源，GET 200带ETag及304 | OpenAPI static |
 | PIKO-V03-FIN-015 | Matrix codec | root/reply raw event、普通native、未知version、body/sender/room/reply/attachment不一致 | 唯一m.room.message+namespaced扩展；Matrix生成event/time；普通消息Unclassified，其余畸形Rejected，全部不可dispatch | Schema fixture + Matrix联调 |
+| PIKO-V03-FIN-016 | Attachment content | 上传同key重放、大小/hash不符、并发绑定、参与者读取、到期 | 同digest原201；异digest/第二消息绑定409；完整性422；超限413；非当前成员403；pending义务阻止清理，tombstone期410 | static fixture + Matrix联调 |
+| PIKO-V03-FIN-017 | Raw event projection | 带unsigned的raw message、sender/room篡改、state event | raw外层扩展允许但只抽取六字段；sender/room不一致及state event拒绝且不可dispatch | Schema fixture + Matrix联调 |
 
 Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
 不得倒推修改A类wire或启用旧兼容路径。

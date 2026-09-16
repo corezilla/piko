@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -119,6 +119,17 @@ V0.3不使用Matrix thread/edit作为产品路由。外层sender/room/event/time
 receipt。扩展缺失为Unclassified，扩展存在但version/body/sender/room/reply/attachment不一致为Rejected；两者
 都不可dispatch。content_ref只能由Piko在当前Client/Session/参与者ACL下解析，Matrix不携带URL/token/bytes。
 
+附件内容复用同一communication provider：Slinky backend先以exact project/session binding上传受控内容，
+Piko校验声明大小、SHA-256与实际bytes并生成opaque content_ref；content_ref只能CAS绑定一个logical message。
+用户读取必须经exact message/SID/attachment路径，由Slinky先核对当前Project/Session授权，再由Piko核对
+调用Client的`content:read:delegated` scope、当前room membership和消息绑定；浏览器不持有Piko credential，
+也不存在content_ref直查、临时URL或Client级内容列表。
+
+`ProductMatrixRoomMessageEvent`只验证Piko从homeserver真实事件抽取的六字段受控投影，不验证整个raw event。
+raw event可包含`unsigned`等标准外层字段，但必须是非state的`m.room.message`；Piko先核对exact sender/room，
+再严格验证产品扩展并抽取投影。额外外层字段不授予权限、不复制进产品投影；sender/room不匹配或state event
+均为Rejected且不可dispatch。
+
 Slinky通过既有Piko communication-control路径POST binding消息、GET exact message receipt和GET exact
 ingress event fact；Piko ingress不直接创建Run。Slinky判断Topic/Action/授权后通过唯一Run API提交
 trigger。未归类、迟到、撤权后、恢复导入或Archived Topic事件只作Evidence，不唤醒旧Run。
@@ -180,7 +191,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.6`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.7`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain、产品消息control与受控附件content操作；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.6
+  version: 0.3.0-finalization.7
   description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1
@@ -297,6 +297,43 @@ paths:
         '412': {$ref: '#/components/responses/Error'}
         '422': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/contents:
+    post:
+      operationId: createBoundMessageContent
+      description: 上传单个待发送附件到同一communication provider。multipart boundary不进入digest；digest为JCS(metadata)+实际content SHA-256。相同key/digest返回原201；content_ref只能原子绑定一个logical message。
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [metadata, content]
+              properties:
+                metadata: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ContentUploadMetadata'}
+                content: {type: string, format: binary}
+            encoding:
+              metadata: {contentType: application/json}
+              content: {contentType: application/octet-stream}
+      responses:
+        '201':
+          description: 内容字节、摘要、scope及原回执已原子持久化；尚未绑定消息。
+          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ContentReferenceView'}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}:
     get:
       operationId: getBoundAgentMessage
@@ -316,6 +353,36 @@ paths:
         '403': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '410': {$ref: '#/components/responses/Error'}
+  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}/attachments/{attachment_id}:
+    get:
+      operationId: getBoundMessageAttachmentContent
+      description: 仅供已认证Slinky backend代理用户读取exact message attachment；浏览器不持有Piko credential。服务端同时校验Client content:read:delegated scope、exact project/session/message/attachment linkage、Slinky当前授权决定引用及viewer在exact Matrix room的当前membership；不提供content_ref直查或Client级列表。
+      parameters:
+        - $ref: '#/components/parameters/ProjectRef'
+        - $ref: '#/components/parameters/SessionBindingRef'
+        - $ref: '#/components/parameters/Sid'
+        - $ref: '#/components/parameters/AttachmentId'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/ViewerMatrixUserId'
+        - $ref: '#/components/parameters/ViewerAuthorizationRef'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Exact attachment bytes；不返回临时URL、token或其它内容引用。
+          headers:
+            ETag: {$ref: '#/components/headers/ETag'}
+            X-Content-SHA256: {$ref: '#/components/headers/ContentSHA256'}
+            Content-Length: {$ref: '#/components/headers/ContentLength'}
+            Content-Type: {$ref: '#/components/headers/ContentMediaType'}
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        '304': {$ref: '#/components/responses/NotModified'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '410': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
   /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}:
     get:
       operationId: getBoundIngressEvent
@@ -343,6 +410,7 @@ components:
     ProjectRef: {name: project_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
     AgentBindingRef: {name: agent_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
     SessionBindingRef: {name: session_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+    AttachmentId: {name: attachment_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}}
     Sid: {name: sid, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}}
     MatrixEventId: {name: matrix_event_id, in: path, required: true, description: URL-encoded Matrix event ID, schema: {type: string, minLength: 2, maxLength: 255, pattern: '^\$'}}
     RequestId: {name: X-Request-ID, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
@@ -350,9 +418,14 @@ components:
     IfMatchOptional: {name: If-Match, in: header, required: false, description: Update branch only; one exact strong ETag, wildcard and weak validators forbidden., schema: {type: string, pattern: '^"[^"\\r\\n]+"$'}}
     IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, description: Create branch only; the sole accepted value is `*`., schema: {type: string, const: '*'}}
     IfNoneMatch: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
+    ViewerMatrixUserId: {name: X-Piko-Viewer-Matrix-User-ID, in: header, required: true, description: Slinky在当前project/session权限检查后提供的exact用户MXID；Piko还核对exact room当前membership。, schema: {type: string, minLength: 3, maxLength: 255, pattern: '^@'}}
+    ViewerAuthorizationRef: {name: X-Piko-Viewer-Authorization-Ref, in: header, required: true, description: Slinky当前授权决定的非Secret审计引用；不能单独授予权限。, schema: {type: string, minLength: 1, maxLength: 256}}
   headers:
     ETag: {required: true, schema: {type: string, minLength: 1}}
     RetryAfter: {required: true, schema: {type: integer, minimum: 0}}
+    ContentSHA256: {required: true, schema: {type: string, pattern: '^[a-f0-9]{64}$'}}
+    ContentLength: {required: true, schema: {type: integer, minimum: 0, maximum: 67108864}}
+    ContentMediaType: {required: true, description: Exact media_type persisted with the upload metadata., schema: {type: string, minLength: 1, maxLength: 255}}
   responses:
     Error:
       description: Typed error。

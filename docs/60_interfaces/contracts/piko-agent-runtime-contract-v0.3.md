@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.6`)；runtime activation=false。
+> (`0.3.0-finalization.7`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.6` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.7` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
@@ -53,10 +53,12 @@ V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、
 | Revoke | POST binding `:revoke` | 202 receipt | operation/key/version |
 | Drain | GET binding `/drain` | 200/304 DrainView | Piko evidence projection |
 | Send message | POST binding `/messages` | 202 MessageSendReceipt | Client+endpoint+key；SID index |
+| Upload attachment | POST binding `/contents` | 201 ContentReferenceView | multipart；metadata+actual hash digest；single-message bind |
 | Message status | GET binding `/messages/{sid}` | 200/304 receipt | Client+binding+SID |
+| Read attachment | GET binding `/messages/{sid}/attachments/{attachment_id}` | 200/304 bytes | Slinky backend delegated read；exact linkage+viewer membership |
 | Ingress fact | GET binding `/ingress-events/{matrix_event_id}` | 200/304 IngressEventView | exact event；无副作用 |
 
-没有团队API、手工reconcile API、任务级聊天历史 API 或第五个 Run mutation。
+没有团队API、手工reconcile API、任务级聊天历史 API、content列表/content_ref直查、临时下载URL或第五个 Run mutation。
 
 ## 3. Run 状态与结果
 
@@ -193,7 +195,21 @@ Piko从Active projection派生sender identity，外层`event.sender/room_id`是M
 `m.thread`或`m.replace`；未知version、扩展畸形、body/identity/room/reply不一致均Rejected、不可dispatch。
 附件只把`attachment_id/media_type/size_bytes/sha256/content_ref`放入扩展；发送前Piko用当前Client、Session、
 sender与recipient授权在既有content store解析content_ref并复核size/hash。Matrix不含下载URL、token或字节；
-Slinky/Element只显示经Piko核验的元数据，正文读取仍走该content store既有授权边界。
+Slinky/Element只显示经Piko核验的元数据。附件先由Slinky backend使用Client credential上传到同一binding
+`/contents`；multipart的metadata与实际字节hash组成幂等digest，单项最大64MiB。content_ref只能CAS绑定一个
+logical message，MessageAttachment的media/size/hash必须逐项相等。
+
+用户读取不由浏览器直连Piko：Slinky backend先验证当前Project/Session权限，再以
+`content:read:delegated` scope调用exact message attachment GET，同时传viewer exact MXID与非Secret
+authorization decision ref；Piko复核project/session/message/attachment不可变link及viewer在exact room的当前
+membership。任一失败403/404；依赖不可用503，不降级为仅Bearer读取。未绑定上传24h到期；绑定后至少保留到
+message accepted_at+7d，pending/RecoveryRequired/未知delivery义务不得删除；到期tombstone 30d返回410，
+之后404。长期项目历史由Slinky在授权边界内复制至其artifact/backup store，Piko不提供transcript/backup服务。
+
+`ProductMatrixRoomMessageEvent`只验证从真实homeserver event抽取的六字段受控投影，不是原始事件本身。
+原始`RawMatrixRoomMessageEvent`可含`unsigned`及其它外层标准字段，但必须是非state的`m.room.message`；
+`state_key`存在即拒绝。抽取前仍核验真实type/room/sender/event/time和严格content；外层额外字段不授予权限，
+也不能使畸形扩展通过。sender/room与exact projection不一致时分类Rejected。
 
 配置PUT使用唯一条件矩阵：create仅`If-None-Match:*`→201+ETag；update仅exact strong
 `If-Match:"etag"`→200+ETag；两者缺失428 PreconditionRequired；两者同时、weak/wildcard If-Match或

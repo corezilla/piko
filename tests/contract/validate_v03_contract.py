@@ -51,10 +51,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.6"
-assert openapi["info"]["version"] == "0.3.0-finalization.6"
-assert fixtures["fixture_version"] == "0.3.0-finalization.6"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.6"
+assert schema["x-contract-version"] == "0.3.0-finalization.7"
+assert openapi["info"]["version"] == "0.3.0-finalization.7"
+assert fixtures["fixture_version"] == "0.3.0-finalization.7"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.7"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -83,7 +83,9 @@ expected_paths = {
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}:revoke",
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/drain",
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages",
+    "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/contents",
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}",
+    "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}/attachments/{attachment_id}",
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}",
 }
 assert set(openapi["paths"]) == expected_paths
@@ -130,6 +132,8 @@ required_errors = {
     "MessageRecipientInvalid", "MessageAttachmentInvalid", "UnsupportedMessageVersion",
     "MessageNotDispatchEligible",
     "InvalidPreconditionCombination", "PreconditionRequired",
+    "ContentTooLarge", "ContentIntegrityMismatch", "ContentAlreadyBound",
+    "ContentViewerNotAuthorized",
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
@@ -169,6 +173,15 @@ assert semantics["put-precondition-update-missing-resource"]["expected_status"] 
 assert semantics["put-precondition-update-missing-resource"]["created"] is False
 assert semantics["matrix-native-without-extension"]["dispatch_eligible"] is False
 assert semantics["matrix-malformed-product-extension"]["classification_status"] == "Rejected"
+assert semantics["matrix-raw-to-controlled-projection-with-unsigned"]["dispatch_eligible"] is True
+assert semantics["matrix-raw-sender-mismatch"]["classification_status"] == "Rejected"
+assert semantics["matrix-raw-room-mismatch"]["classification_status"] == "Rejected"
+assert semantics["content-upload-integrity-mismatch"]["content_ref_created"] is False
+assert semantics["content-upload-too-large"]["expected_status"] == 413
+assert semantics["content-single-message-binding-race"]["loser_error"] == "ContentAlreadyBound"
+assert semantics["content-read-authorized"]["browser_has_piko_credential"] is False
+assert semantics["content-read-viewer-not-member"]["expected_status"] == 403
+assert semantics["content-retention"]["unknown_obligation_deleted"] is False
 
 assert "bindings" not in request_properties
 for required in ("agent_binding_ref", "session_binding_ref", "expected_session_binding_version"):
@@ -176,7 +189,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.6", "communication_trigger", "execution_released", "decision_first_created_at"):
+for required in ("0.3.0-finalization.7", "communication_trigger", "execution_released", "decision_first_created_at"):
     assert required in contract_text or required in field_text, required
 
 print(

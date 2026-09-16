@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.6` |
+| Document Version | `0.3.0-finalization.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -46,6 +46,8 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | If-None-Match | Slinky/Operator | create防覆盖或GET缓存 | PUT create仅`*`；GET可用exact ETag | representation version | create已存在412；与If-Match并存400；GET匹配304 |
 | run_id | Piko admission | GET/cancel/result route | opaque path string；required | Client scope；immutable | 跨 Client/不存在统一 404；tombstone 过期 410 |
 | project_ref | Slinky authority | identity/session binding scope | opaque path string；required | Client+Project；immutable association | Client 不可见统一 404 |
+| X-Piko-Viewer-Matrix-User-ID | Slinky backend经当前用户会话 | attachment viewer identity | exact MXID；attachment GET required | exact Project+Session+room request | Piko复核room当前membership；浏览器不可自报直连；失败403 |
+| X-Piko-Viewer-Authorization-Ref | Slinky authorization ledger | 当前Project/Session访问决定审计 | opaque non-Secret；attachment GET required | 单次授权决定/version | 本身不授予权限；Piko同时要求delegated scope、exact linkage和membership |
 
 ## 2. AgentTaskRequest
 
@@ -174,6 +176,29 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | event.sender / room_id | homeserver + exact projection | 与derived MXID/room逐项核验；不信content自报 | 不匹配Rejected；不按display name路由 |
 | event.event_id / origin_server_ts | homeserver | Sent/ingress事实；发送前不存在 | caller预填不被接受；lost response由outbox txn恢复 |
 | attachment content_ref | Piko content store | 当前Client+Session+sender/recipient ACL解析；复核media/size/hash；Matrix仅保留元数据ref | 不可见、hash/size不符422；不生成URL/token，不从Matrix取得额外权限 |
+
+### 5.2 Attachment upload、binding、read 与 retention
+
+| 字段/事实 | 生产/authority | 使用 | 范围/格式 | 冲突、恢复与保留 |
+|---|---|---|---|---|
+| upload metadata | Slinky backend | 创建受控content_ref | attachment_id、expected binding version、media_type、size≤64MiB、sha256；全部required | multipart boundary不入digest；JCS(metadata)+actual hash入digest；同key同digest原201，异digest409 |
+| content bytes | Slinky backend / Piko content store | 待发送附件 | multipart binary；实际≤64MiB | actual size/hash与metadata不符422 ContentIntegrityMismatch；超限413 ContentTooLarge |
+| ContentReferenceView | Piko | MessageAttachment来源 | content_ref、scope、binding version、media/size/hash/status/times/etag | 仅exact binding可见；未绑定24h；相同content_ref只允许CAS绑定一个logical message，loser409 ContentAlreadyBound |
+| message attachment link | Piko outbox transaction | 将content_ref固定到SID/attachment_id | exact Project+Session binding+SID+attachment | metadata逐项相等才受理；成功后至少保留message accepted_at+7d；未知delivery义务不得删除 |
+| attachment GET route | Piko | Slinky backend代理当前用户读取 | exact binding+SID+attachment_id；无content_ref直查/list | Client需content:read:delegated；还需viewer MXID、authorization ref、exact linkage及room当前membership；失败403/404/503 |
+| content tombstone | Piko retention | 防过期误恢复 | bytes到期后30d | tombstone期410；之后或不可见404；长期副本由Slinky授权artifact/backup保存 |
+
+浏览器不取得Piko credential、content_ref读取权或临时URL。Slinky必须先验证当前Project permission与Session
+membership，再由backend调用；Piko独立核对exact Matrix room membership。`X-Piko-Viewer-Authorization-Ref`
+只用于绑定Slinky授权证据和审计，不能单独覆盖scope/link/membership失败。
+
+### 5.3 Raw Matrix event 与六字段受控投影
+
+`RawMatrixRoomMessageEvent`是AS收到的原始输入：允许`unsigned`等外层标准字段，但禁止`state_key`且
+type必须`m.room.message`；严格content仍完整验证。Piko随后抽取
+`type/room_id/event_id/sender/origin_server_ts/content`形成additionalProperties=false的
+`ProductMatrixRoomMessageEvent`。因此原始extra不参与权限判断，但也不被复制到产品投影。sender/room必须与
+exact binding核验；修改任一项为Rejected。原生无扩展消息为Unclassified，state event不进入产品消息消费。
 
 `ProductEnvelopeValid`机器上恒有`dispatch_eligible=true`及非null envelope；
 UnclassifiedNativeMessage/Rejected恒为false且envelope=null。Queued/Failed/RecoveryRequired receipt恒无Matrix

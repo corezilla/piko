@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.6` |
+| Document Version | `0.4.0-draft.7` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -32,6 +32,8 @@
 | IdentityProvisioner | client/project/agent/display | stable identity map、rename ledger | stable MXID；display不参与route |
 | SessionProjectionStore | Slinky binding/version/lease | exact session/room/agent/status/valid_until | 不取得Session authority；Active且lease有效才admit |
 | ApplicationServiceIngress | AS transaction | txn/event/dedup/delivery obligation/checkpoint | 原子落盘后ACK；checkpoint私有 |
+| MatrixEventProjector | raw homeserver event + binding | raw evidence ref、六字段受控投影 | 非state message、exact sender/room；产品content严格校验 |
+| ContentStore | multipart metadata+bytes | content ref、digest、bytes、binding CAS、tombstone | 64MiB单项；exact message读取；无URL/token |
 | TriggerResolver | Run request + ingress event | consumption key ledger | exact room/identity/boundary；不猜最新消息 |
 | RunAttachmentStore | admitted Run + projection | immutable route snapshot、wakeup epoch/status | 同Run唯一attachment；epoch单调 |
 | RevocationCoordinator | operation/version/key | revoke receipt、fence generation | 新wakeup/admission/权限获取同时阻断 |
