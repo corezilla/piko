@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-agent-runtime-test-specification-v0.3", "document_type": "assurance.test-specification",
-  "document_version": "0.4.0-draft.2", "title": "Piko Agent Runtime v0.3 测试规格",
+  "document_version": "0.4.0-draft.3", "title": "Piko Agent Runtime v0.3 测试规格",
   "document_owner": "Piko Verification Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md",
   "template_id": "assurance.test-specification", "template_version": "0.1.0",

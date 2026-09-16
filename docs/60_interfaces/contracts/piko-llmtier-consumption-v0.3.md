@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-finalization.2` |
+| Document Version | `0.3.0-finalization.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -24,8 +24,11 @@
 
 > 已完成语义审查的 Consumer baseline 为 LLMTier OpenAPI `0.3-candidate-amendment-8`、review commit
 > `60959c2f59e6b3ef0bae18ba4caa1eda3ae97bf4`。目标升级版本为
-> `0.3-finalization-candidate.1`；其机器工件 SHA-256 尚待 LLMTier 通过 Matrix 提供，因此本文件不把旧
-> amendment-8 确认冒充为新包字节级签署。runtime activation=false。
+> `0.3-finalization-candidate.1`、commit `a4dd5d2b1465b6643f4bf3c2c051bbd061366e50`，其OpenAPI
+> 目标SHA-256为`5b3ceb7593b06c3401af25031a08d15a3c230063bae06b45b1ba779c7d25df3f`。
+> 这些值由Slinky消息`S-20260916-8b8805ad1d84`转交，来源为LLMTier
+> `L-20260916-847f93ed9cb0`；Piko未取得目标机器工件字节，尚未独立复算或完成差异审查。因此状态是
+> “目标hash已知、机器内容待提供”，不是字节级消费签署。runtime activation=false。
 
 ## 1. 唯一消费面
 
@@ -95,5 +98,6 @@ Piko自动模型调用恢复期限最多24h；LLMTier resolved terminal去重/In
 `max(deadline_at,accepted_at)+7d`保留是另一窗口，不改变LLMTier M2-C。
 
 本文件确认Piko的设计消费；不声明真实SDK capture、production实现或runtime activation。对
-`0.3-finalization-candidate.1` 的最终字节级绑定还需要唯一输入：LLMTier machine artifact SHA-256。
-收到后只更新基线证据，不重新打开上述语义，也不保留并行解释。
+`0.3-finalization-candidate.1` 的最终字节级绑定仍需LLMTier通过Matrix提供实际OpenAPI机器正文；Piko将
+复算上述SHA-256并做字段差异审查。工件到齐后只关闭baseline evidence gate，不重新打开上述语义，也不
+保留并行解释。

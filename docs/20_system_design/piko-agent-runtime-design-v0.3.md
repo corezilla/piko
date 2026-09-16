@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0-draft.5` |
+| Document Version | `0.4.0-draft.6` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -45,6 +45,7 @@ Document Status、评审结论和 Runtime Activation 是三个独立 Gate，当�
 | `0.4.0-draft.3` | `2026-09-15` | 修正幂等重放顺序、输出冻结、调用计数及状态转换评审问题 | 待评审 |
 | `0.4.0-draft.4` | `2026-09-16` | 冻结轻量Run、通信绑定、LLMTier deadline与finalization.1候选 | 待评审 |
 | `0.4.0-draft.5` | `2026-09-16` | 修正deadline停止策略、顶层binding、dispatch tuple、产品消息wire及release/drain边界 | 待评审 |
+| `0.4.0-draft.6` | `2026-09-16` | 固定digest-before-receipt与RetryableRejection保留顺序，记录LLMTier目标hash状态 | 待评审 |
 
 ## 目录、表目录与图目录
 
@@ -228,8 +229,9 @@ flowchart LR
 
 提交校验分两段，顺序是契约的一部分：先认证 Client、限制请求字节数、解析 JSON、取得
 `Idempotency-Key` 并计算 RFC8785 JCS body digest，再查询 durable idempotency ledger。
-若同 namespace/key 已存在，同 digest 立即返回首次记录的 202 回执，不重新检查当前 deadline、
-binding readiness、容量或队列；不同 digest 返回 IdempotencyConflict。这样，原任务过期、配置变化
+若同 namespace/key 已存在，先比较digest；不同 digest 返回 IdempotencyConflict。相同digest且记录为
+AcceptedRun才返回首次记录的 202 回执，不重新检查当前 deadline、binding readiness、容量或队列；
+RetryableRejection按其CAS重评条件处理，不能当成receipt。这样，原任务过期、配置变化
 或当前过载都不能把已受理重放误当首次请求。只有 ledger 未命中时，才执行未知字段/Schema、
 `client_task_id` 唯一性、未来 `deadline_at`、模型等级、workspace/tool/agent binding、相对路径、
 limits、容量和依赖检查。已存在同 client_task_id 但 key 不同，返回 ClientTaskConflict。
@@ -412,7 +414,7 @@ RunView 还须给出 `state_version`、accepted/started/finished 时间、`resul
 RecoveryRequired 必须提供 reason_code、unresolved_refs 与 Wait/OperatorAction 建议。状态或释放事实
 改变时版本单调；任何对外可见 progress 或 recovery 内容变化也必须递增 `state_version`。
 `recoverable_until` 在运行中不能缩短。这些字段已由 `agent-runtime-v0.3.schema.json` 的
-`0.3.0-finalization.2` 候选冻结；实现证据仍为 NOT_RUN。
+`0.3.0-finalization.3` 候选冻结；实现证据仍为 NOT_RUN。
 
 ## 7. 硬件实现方案
 
@@ -515,8 +517,9 @@ flowchart LR
 不是允许跨事务拆分的写入操作。字段/唯一键以机器契约与待定 DB migration 为准。*
 
 提交去重 namespace 为 authenticated Client + endpoint + Idempotency-Key；digest 为 RFC8785 JCS
-原 body 的 SHA-256。认证、载荷上限、JSON parse 和 digest 后先查 ledger：同 key/同 digest 重放
-首次保存的 202 回执，不执行新的 deadline/binding/capacity admission；不同 digest 冲突。
+原 body 的 SHA-256。认证、载荷上限、JSON parse 和 digest 后先查 ledger：先比较digest；不同digest
+冲突，只有同digest AcceptedRun才重放首次保存的202，不执行新的deadline/binding/capacity admission；
+RetryableRejection不是receipt且只能按原record CAS重评。
 ClientTaskIndex 保证
 `(client_id,client_task_id)` 至多一个 Run，换 key 不得重复创建。取消命令拥有自己的 key/原回执。
 模型/工具调用计数以 durable CounterReservation 和稳定 logical_operation_id 为准；恢复不重复占用。
@@ -541,7 +544,7 @@ backlog 计算；
 
 | 边界 | Piko 用途 | 字段 authority | 失败行为 |
 |---|---|---|---|
-| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.2` | auth、idempotency、scope、path/limit、RecoveryRequired |
+| Slinky→Piko 轻量 Run | POST runs、GET RunView、GET result、POST cancel | Piko V0.3 OpenAPI/Schema `0.3.0-finalization.3` | auth、idempotency、scope、path/limit、RecoveryRequired |
 | Slinky→Piko 通信控制 | Profile、Agent identity、Session binding projection、revoke、drain | Piko V0.3 OpenAPI/Schema；Slinky拥有Session/Topic/View/close | version/mismatch/revoking/recovery |
 | Piko→LLMTier | Responses non-stream、Models、Invocation/Response GET | LLMTier Piko-facing contract | 202 active、terminal typed error、UnknownOutcome |
 | Piko↔Matrix | AS push txn、membership/room/send txn | Matrix AS/Client API + Piko binding | replay、membership/recovery blocker |

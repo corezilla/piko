@@ -1,7 +1,7 @@
 {
   "project": "piko", "authority": "piko",
   "document_id": "piko-collaboration-bridge-internal-design-v0.3", "document_type": "design.definition",
-  "document_version": "0.4.0-draft.2", "title": "Piko Communication Provider 内部定义",
+  "document_version": "0.4.0-draft.3", "title": "Piko Communication Provider 内部定义",
   "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
   "source_repository": "corezilla/piko", "source_path": "docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md",
   "template_id": "design.definition", "template_version": "0.1.0",

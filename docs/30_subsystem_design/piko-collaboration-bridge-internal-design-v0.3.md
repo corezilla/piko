@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-internal-design-v0.3` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -40,8 +40,9 @@
 
 ## 2. 事务边界
 
-Run admission按credential visibility、existing receipt、conflict、deadline、projection lease/version/status、trigger
-fact顺序检查，再原子写：IdempotencyRecord、ClientTaskIndex、Run、resolved binding snapshot、可选
+Run admission按credential visibility、基础解析/JCS digest、key record lookup、digest compare、record kind、
+task/dispatch conflict、deadline、projection lease/version/status、trigger fact顺序检查。只有相同digest的
+AcceptedRun可直接返回existing receipt；RetryableRejection不是receipt。随后原子写：IdempotencyRecord、ClientTaskIndex、Run、resolved binding snapshot、可选
 RunCommunicationAttachment、完整dispatch tuple/trigger consumption key、resource claim和原202 receipt。
 admission与revoke以同一projection record做CAS；commit前无Pi/LLMTier/Tool/Matrix外呼。
 
@@ -56,10 +57,11 @@ Revoke事务原子写：operation receipt、binding version/status、new-admissi
 ClientTaskConflict。相同Matrix event只有Slinky显式新dispatch+client_task_id时可用于另一Agent/Run；
 Piko ingress/retry从不生成dispatch。
 
-ingress暂未出现时不预占Run/ClientTaskIndex，但保存rejection digest/decision并返回可恢复404；调用方保留
+ingress暂未出现时不预占Run/ClientTaskIndex，但保存RetryableRejection digest/decision并返回可恢复404；调用方保留
 原key/body。若event在deadline前到达，同请求以record-version CAS重评；若deadline已到且无Run，统一
 DeadlineExpired，优先于trigger/binding失败。迟到event不使原请求复活。decision至少保留至
-`max(deadline_at,accepted_at)+7d`，不伪造event。
+`max(deadline_at,accepted_at)+7d`。decision到期不删除key→digest binding；重启恢复同一record/version，
+不伪造event。
 
 ## 4. Wakeup与writer fencing
 

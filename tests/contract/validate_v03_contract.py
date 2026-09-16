@@ -51,6 +51,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
+assert schema["x-contract-version"] == "0.3.0-finalization.3"
+assert openapi["info"]["version"] == "0.3.0-finalization.3"
+assert fixtures["fixture_version"] == "0.3.0-finalization.3"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.3"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -106,6 +110,8 @@ required_errors = {
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
+assert "先比较digest" in errors["rules"]["authorization_before_replay"]
+assert "不产生202 receipt" in errors["rules"]["retryable_rejection"]
 
 semantics = {case["id"]: case for case in fixtures["semantic_cases"]}
 assert semantics["same-event-two-agents"]["expected"] == "two legal Runs with two explicit dispatch/task pairs"
@@ -113,6 +119,10 @@ assert semantics["same-event-same-agent-two-explicit-tasks"]["expected"] == "two
 assert semantics["same-dispatch-changed-event-session-or-agent"]["expected_error"] == "CommunicationTriggerMismatch"
 assert semantics["same-task-new-dispatch"]["expected_error"] == "ClientTaskConflict"
 assert semantics["trigger-deadline-wins"]["expected_error"] == "DeadlineExpired"
+for case_id in ("same-key-changed-instruction", "same-key-changed-deadline", "same-key-changed-trigger"):
+    assert semantics[case_id]["expected_error"] == "IdempotencyConflict"
+    assert semantics[case_id]["original_202_returned"] is False
+assert semantics["trigger-rejection-decision-expired-digest-retained"]["same_key_changed_body"] == "409 IdempotencyConflict"
 assert semantics["cancel-receipt-not-release"]["execution_released"] is False
 assert semantics["release-with-isolated-unknown-obligation"]["session_close_allowed"] is False
 assert semantics["per-binding-left-human-stays"]["human_membership"] == "Joined"
@@ -125,7 +135,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.2", "communication_trigger", "execution_released", "7d"):
+for required in ("0.3.0-finalization.3", "communication_trigger", "execution_released", "7d"):
     assert required in contract_text or required in field_text, required
 
 print(

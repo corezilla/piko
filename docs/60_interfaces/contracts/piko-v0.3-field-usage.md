@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.2` |
+| Document Version | `0.3.0-finalization.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -27,6 +27,12 @@
 > 各自生产字段仍由其机器契约授权。
 
 通用规则：Bearer credential 产生 canonical `client_id`，不允许 body 自报替代；所有查询先认证并检查 Client 可见性；mutation 使用 `Idempotency-Key`，body 以 RFC8785 JCS UTF-8 SHA-256 进入 digest。无默认值的 required 字段不得省略；显式 nullable 字段必须发送 null。Run 去重、Result 与 ClientTaskIndex 至少保留至 `max(deadline_at, accepted_at)+7d`；活动或未知义务不因该时间到达删除。
+
+Run POST 的精确读取顺序是：认证与当前Client可见性→请求大小/JSON基础解析→JCS digest→key record读取→
+digest比较。不同digest必为409；相同digest且`AcceptedRun`才返回原202，且不重做当前Session/deadline/
+capacity admission。临时trigger 404是`RetryableRejection`，不是receipt；相同digest且deadline未到、
+ingress version前进时才CAS重评。decision到期不删除key→digest binding，至少保留到7天窗口结束。
+因此同key分别修改instruction、limits.deadline_at或communication_trigger都返回409且绝不返回原202。
 
 ## 1. HTTP header 与路径
 
@@ -58,7 +64,7 @@
 | permissions.read_paths | Slinky在 workspace授权内选择 | 文件读取 guard | unique relative path[]，0–256；required | Run immutable | 入 digest；每次操作解析 symlink 后复检；越界403 |
 | permissions.write_paths | Slinky在 workspace授权内选择 | create/modify/delete guard | unique relative path[]，0–256；required | Run immutable | 入 digest；空=只读；release 后 writer fence 禁写 |
 | permissions.tool_profile_ref | Piko预配置，Slinky选择 | shell/network/process/tool权限 | opaque；required | Client scope；受理固定版本 | 入 digest；instruction不能扩大；不可见403/404 |
-| limits.deadline_at | Slinky | task queue+execution+wait 截止 | RFC3339 UTC Z；required；首次必须未来 | Run immutable，不可延长 | 入 digest；ledger miss 且过期422；ledger hit仍返回原回执 |
+| limits.deadline_at | Slinky | task queue+execution+wait 截止 | RFC3339 UTC Z；required；首次必须未来 | Run immutable，不可延长 | 入 digest；同key改deadline先409；相同digest AcceptedRun才返回原回执；无Run且过期422 |
 | limits.max_model_calls | Slinky | 新逻辑 LLMTier invocation 上限 | integer 1–100000；required | Run immutable | 入 digest；恢复/GET不重复计数；到限 Failed/ModelCallLimit |
 | limits.max_tool_calls | Slinky | 新逻辑 tool operation 上限 | integer 0–100000；required | Run immutable | 入 digest；结果查询不计数；到限 Failed/ToolCallLimit |
 | limits.stop_grace_seconds | Slinky | 停止/对账宽限 | integer 1–3600；required | Run immutable | 入 digest；不授予新业务步骤；耗尽且未知→RecoveryRequired |
@@ -161,8 +167,10 @@ dispatch_eligible=false；不自动发Run。Slinky可GET exact ingress fact，�
 
 TriggerDispatchIndex完整值为`client_task_id+session_binding_ref+trigger_event_id+agent_binding_ref`。
 同dispatch变更任一值为409 CommunicationTriggerMismatch；同task换dispatch为409 ClientTaskConflict；同event只有Slinky
-显式新dispatch+task才可建立另一Run，Piko retry不生成dispatch。trigger暂缺时404但保存rejection digest；
-deadline前event出现可CAS重评，deadline到达统一422并保留decision至deadline+7d，迟到event永不受理该请求。
+显式新dispatch+task才可建立另一Run，Piko retry不生成dispatch。trigger暂缺时404但保存
+`RetryableRejection`及digest，不生成202 receipt；deadline前event出现可CAS重评，deadline到达统一422并
+保留terminal decision。可重评decision到期也不遗忘key→digest binding，至少保留至
+`max(deadline_at,accepted_at)+7d`；迟到event永不受理该请求。
 
 ## 6. Release、drain、membership 与 Session close组合
 

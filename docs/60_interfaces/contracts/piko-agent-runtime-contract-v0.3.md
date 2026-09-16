@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -23,7 +23,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.2`)；runtime activation=false。
+> (`0.3.0-finalization.3`)；runtime activation=false。
 
 ## 1. Authority 与范围
 
@@ -37,7 +37,7 @@
 4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
 5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.2` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.3` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
 
 ## 2. API Catalog
 
@@ -92,9 +92,40 @@ model/tool limit分别使用`ModelCallLimit`、`ToolCallLimit`。只有用户取
 
 ## 4. Admission、幂等与保留
 
-处理顺序固定：认证→Client可见性与请求大小/JSON可解析→计算JCS digest→读取idempotency/admission-decision ledger。命中已受理相同key/digest返回原202；不同digest 409。仅ledger miss或可重评的rejection才继续；顺序为ClientTaskIndex→deadline→exact model→workspace/tool/agent/session projection→trigger→权限/limits→容量。deadline已到统一422 DeadlineExpired，即使binding同时失效或trigger尚未到；迟到ingress不能使过期请求被受理。
+处理顺序固定：认证→Client可见性与请求大小/JSON基础解析→计算JCS digest→读取
+idempotency/admission-decision ledger。读取到任何key记录都必须先比较digest：不同digest立即409；只有
+digest相同且记录类型为`AcceptedRun`才返回原202。该原回执不因当前deadline、Session撤权、projection
+过期或容量变化而改写。`RetryableRejection`不是受理回执；仅在相同digest、deadline未到且其明确
+re-evaluation condition成立时用record-version CAS重评。ledger miss或合法重评才继续：
+ClientTaskIndex/dispatch冲突→deadline→exact model→workspace/tool/agent/session projection→trigger→
+权限/limits→容量。deadline已到统一422 DeadlineExpired，即使binding同时失效或trigger尚未到；迟到
+ingress不能使过期请求被受理。
 
-trigger暂未到时返回404 CommunicationTriggerNotFound，但持久化`key,digest,decision_version,valid_until,ingress_observed_version`，不创建Run/claim。相同key异digest仍409；deadline前且ingress版本前进时允许用同key/body重评，CAS仅一个winner建立Run；deadline到达后decision转为terminal 422并保留到deadline+7d。服务重启不遗忘decision。
+规范伪代码：
+
+```text
+authenticate_and_authorize_current_client()
+body = parse_and_basic_validate_json()
+digest = sha256(rfc8785_jcs(body))
+record = lookup(client_id, endpoint, idempotency_key)
+if record:
+    if digest != record.digest: return 409 IdempotencyConflict
+    if record.kind == AcceptedRun: return record.original_202
+    if record.kind == TerminalRejection: return record.original_error
+    if deadline_reached(body): return cas_terminal_422(record)
+    if not record.reevaluation_condition_met: return record.original_error
+    return cas_reevaluate_same_record(record, body)
+check_client_task_and_dispatch_conflicts()
+if deadline_reached(body): return persist_terminal_422_with_digest()
+check_mutable_admission_inputs_and_commit_once()
+```
+
+trigger暂未到时返回404 CommunicationTriggerNotFound，但持久化
+`key,digest,decision_kind=RetryableRejection,decision_version,valid_until,ingress_observed_version`，不创建
+Run/claim，也不产生`original_202`。相同key异digest始终409；deadline前且ingress版本前进时允许用
+同key/body重评，CAS仅一个winner建立Run；deadline到达后decision转为terminal 422 DeadlineExpired。
+即使可重评decision本身到期，key→digest binding/tombstone仍保留至
+`max(deadline_at,accepted_at)+7d`，不能遗忘digest后允许同key变body。服务重启不遗忘record或版本。
 
 成功在一个durable transaction中写原回执、Run、ClientTaskIndex、binding snapshot、可选RunCommunicationAttachment和资源claim；commit前无Pi、LLMTier、Tool或Matrix side effect。`(client_id,client_task_id)`唯一；换key冲突。
 

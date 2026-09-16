@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -146,8 +146,8 @@ scope，不能读取其他真实项目数据。
 | Case ID | 类别 | 前置/刺激 | Oracle | Evidence 层级 |
 |---|---|---|---|---|
 | PIKO-V03-FIN-001 | Contract | 顶层agent/session/version四种组合及旧嵌套bindings | 全null与仅agent通过；session缺agent/version失败；匹配三项通过；旧嵌套拒绝 | static fixture |
-| PIKO-V03-FIN-002 | Idempotency | 同key/body、异digest、换key同client_task | 原202/409/409；只创建一个Run | static + DB fault待联调 |
-| PIKO-V03-FIN-003 | Trigger | ingress晚到、deadline与binding同时失败 | deadline前晚到原key可CAS受理；deadline后统一422且迟到event不能复活；拒绝decision保留7d | static + Matrix联调 |
+| PIKO-V03-FIN-002 | Idempotency | 同key/body；同key分别改instruction/deadline/trigger；换key同client_task | 仅相同digest AcceptedRun返回原202；三种改body均409且不重查当前binding；换key同task 409；只创建一个Run | static + DB fault待联调 |
+| PIKO-V03-FIN-003 | Trigger | ingress晚到、decision expiry、重启、deadline与binding同时失败 | 404为RetryableRejection非receipt；deadline前晚到原key可CAS受理；decision expiry不遗忘digest；deadline后统一422且迟到event不能复活 | static + Matrix联调 |
 | PIKO-V03-FIN-004 | Trigger fanout | 同event派两个Agent/Run；同key重放；异key同task；同dispatch改tuple | 仅显式不同dispatch+task合法；同key原回执；同task换dispatch及同dispatch改tuple均409 | static + Matrix联调 |
 | PIKO-V03-FIN-005 | Revoke | projection lease过期、revoke/admission CAS竞争 | 过期fail closed；revoke先胜拒绝admission；admission先胜的既有Run被fence且不能取新权限 | fault/E2E |
 | PIKO-V03-FIN-006 | Release | cancel accepted、unknown writer、quarantine | 前两者不release；完整进程/tool/writer/wakeup/quarantine证据才true；隔离ref仍令drain RecoveryRequired | fault/E2E |

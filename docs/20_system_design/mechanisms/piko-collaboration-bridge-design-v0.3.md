@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-collaboration-bridge-design-v0.3` |
-| Document Version | `0.4.0-draft.2` |
+| Document Version | `0.4.0-draft.3` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -80,14 +80,17 @@ Bearer认证的Slinky Client是caller authority；body provider只是Schema常�
 
 `dispatch_ref`不可变绑定完整tuple `client_task_id+session_binding_ref+trigger_event_id+agent_binding_ref`；
 消费键为`client+session_binding+event+agent identity+dispatch`。同dispatch更换tuple任一值返回409
-TriggerMismatch；同task换dispatch返回409 ClientTaskConflict。同一event只有Slinky显式创建新的
+CommunicationTriggerMismatch；同task换dispatch返回409 ClientTaskConflict。同一event只有Slinky显式创建新的
 dispatch+client_task_id时才可派给另一Agent/Run；Piko ingress/retry不能生成dispatch。
 
-ingress暂未到返回`CommunicationTriggerNotFound`并保存请求digest/拒绝decision；deadline前event出现可对
-同key/body做CAS重评。admission顺序固定为credential可见性→既有幂等回执→digest/client-task/dispatch
-冲突→request deadline→binding projection lease/version/status→trigger fact。deadline已到且无Run时统一
+ingress暂未到返回`CommunicationTriggerNotFound`并保存请求digest/`RetryableRejection`，不生成已受理
+receipt；deadline前event出现可对同key/body做CAS重评。admission顺序固定为credential可见性→基础解析
+与canonical digest→读取key record并先比较digest→相同digest的AcceptedRun原回执或rejection状态→
+client-task/dispatch冲突→request deadline→binding projection lease/version/status→trigger fact。同key
+改instruction、deadline或trigger都先409，不得返回原202。deadline已到且无Run时统一
 422 DeadlineExpired，即使trigger仍缺失或binding同时失效；迟到event不能使过期请求被受理。拒绝记录
-至少保留至`max(deadline_at,accepted_at)+7d`。已受理Run不因event后来redact/不可读重做admission。
+至少保留至`max(deadline_at,accepted_at)+7d`；decision到期只允许状态重评，不删除key→digest binding。
+已受理Run不因event后来redact/不可读重做admission。
 
 ## 5. AS ingress、消息Envelope与路由
 
@@ -163,7 +166,7 @@ Piko drain完成不关闭Session；Slinky strict close不能用timeout、cancel 
 
 ## 10. 接口迁移
 
-`0.3.0-finalization.2`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
+`0.3.0-finalization.3`保留Operator profile/probe、Agent identity、Session binding projection、revoke、drain与产品消息control；删除旧IRCommunicationBinding业务语义、Piko Session list、element-view、Session :close、POST Run collaboration_contract、嵌套bindings、Piko原子建房和Team resolution result。首个可激活V0.3从未包含旧接口，不设双活窗口。
 
 ## 11. Verification 与门禁
 

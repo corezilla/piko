@@ -3,7 +3,7 @@
   "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
   "title": "Piko Agent Runtime V0.3 定型契约",
   "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
-  "x-contract-version": "0.3.0-finalization.2",
+  "x-contract-version": "0.3.0-finalization.3",
   "$defs": {
     "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
     "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},

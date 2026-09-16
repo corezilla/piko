@@ -1,5 +1,5 @@
 {
-  "fixture_version": "0.3.0-finalization.2",
+  "fixture_version": "0.3.0-finalization.3",
   "schema_cases": [
     {"id":"run-no-agent-no-session-positive","schema":"AgentTaskRequest","valid":true,"value":{"client_task_id":"task-1","instruction":"检查","workspace_ref":"ws-1","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":["docs"],"write_paths":[],"tool_profile_ref":"tools-readonly-v1"},"limits":{"deadline_at":"2026-09-16T20:00:00Z","max_model_calls":10,"max_tool_calls":20,"stop_grace_seconds":60},"output_paths":[]}},
     {"id":"run-agent-only-positive","schema":"AgentTaskRequest","valid":true,"value":{"client_task_id":"task-2","instruction":"检查","workspace_ref":"ws-1","service_level_id":"Junior","agent_binding_ref":"agent-1","session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":["docs"],"write_paths":[],"tool_profile_ref":"tools-readonly-v1"},"limits":{"deadline_at":"2026-09-16T20:00:00Z","max_model_calls":10,"max_tool_calls":20,"stop_grace_seconds":60},"output_paths":[]}},
@@ -21,8 +21,12 @@
   "semantic_cases": [
     {"id":"same-key-same-digest-replay","expected":"original_202_receipt","new_run_count":0,"new_dispatch_count":0},
     {"id":"same-key-different-digest","expected_error":"IdempotencyConflict","new_run_count":0},
+    {"id":"same-key-changed-instruction","record_kind":"AcceptedRun","changed_field":"instruction","expected_error":"IdempotencyConflict","original_202_returned":false,"current_binding_rechecked":false},
+    {"id":"same-key-changed-deadline","record_kind":"AcceptedRun","changed_field":"limits.deadline_at","expected_error":"IdempotencyConflict","original_202_returned":false,"current_binding_rechecked":false},
+    {"id":"same-key-changed-trigger","record_kind":"AcceptedRun","changed_field":"communication_trigger","expected_error":"IdempotencyConflict","original_202_returned":false,"current_binding_rechecked":false},
     {"id":"new-key-same-client-task","expected_error":"ClientTaskConflict","new_run_count":0},
     {"id":"trigger-ingress-delayed","first":"404 CommunicationTriggerNotFound + durable rejection digest","retry":"same key/body after ingress version advances","expected":"one CAS winner accepts one Run","new_run_count":1},
+    {"id":"trigger-rejection-decision-expired-digest-retained","record_kind":"RetryableRejection","decision_expired":true,"same_key_changed_body":"409 IdempotencyConflict","digest_binding_retained_through":"max(deadline_at,accepted_at)+7d","new_run_count":0},
     {"id":"trigger-deadline-wins","conditions":["deadline reached","binding revoked","trigger missing"],"expected_error":"DeadlineExpired","decision":"terminal rejection retained through deadline+7d","late_ingress_accepts":false,"new_run_count":0},
     {"id":"trigger-four-concurrent-retries-after-ingress","expected":"one admission CAS winner, four callers receive same Run receipt","new_run_count":1},
     {"id":"same-dispatch-same-tuple-replay","tuple":"client+task+session+event+agent+dispatch","expected":"original decision/Run"},

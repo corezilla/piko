@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.2
+  version: 0.3.0-finalization.3
   description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "catalog_version": "agent-runtime-errors/v0.3-finalization.2",
+  "catalog_version": "agent-runtime-errors/v0.3-finalization.3",
   "status": "review",
   "runtime_activation": false,
   "errors": [
@@ -37,10 +37,10 @@
     {"code":"Gone","http_status":410,"retryable":false,"when":"已知 recovery/result tombstone 过期，停止自动恢复"}
   ],
   "rules": {
-    "authorization_before_replay": "每次请求先认证并确认当前 Client 可见性；通过后同 key/digest 返回原回执，不因后续 binding 撤权重做 admission",
+    "authorization_before_replay": "每次请求先认证并确认当前 Client 可见性，再做基础解析与canonical digest；读取key记录后先比较digest。不同digest 409；相同digest的AcceptedRun才返回原回执，不因后续binding撤权重做admission",
     "digest": "POST body 使用 RFC8785 JCS UTF-8 SHA-256；Idempotency-Key、authenticated Client 与 endpoint 组成 namespace",
-    "admission_order": "认证/可见性和请求可解析后，读取同 key decision；ledger miss 时 deadline 先于 mutable binding/trigger checks。deadline 到达固定 422 DeadlineExpired；不以 trigger 缺失推断永久不存在",
-    "retryable_rejection": "CommunicationTriggerNotFound 仍持久化 key/digest/decision_version/valid_until/ingress_observed_version；同 key 异 digest 冲突，ingress version 前进且 deadline 未到时仅一个 CAS winner 可重新评估",
+    "admission_order": "认证/可见性→基础解析/JCS digest→key record→digest compare→record kind；仅相同digest AcceptedRun返回原202。ledger miss或合法RetryableRejection重评时，task/dispatch conflict→deadline→mutable binding/trigger checks。deadline到达固定422 DeadlineExpired",
+    "retryable_rejection": "CommunicationTriggerNotFound 持久化 key/digest/decision_kind/decision_version/valid_until/ingress_observed_version但不产生202 receipt；同key异digest始终冲突，ingress version前进且deadline未到时仅一个CAS winner重评；decision到期不删除保留窗口内的key→digest binding",
     "dispatch_binding": "(client,dispatch_ref) 不可变绑定 client_task_id+session_binding_ref+trigger_event_id+agent_binding_ref；任何组成变化为 CommunicationTriggerMismatch；同 task 换 dispatch 为 ClientTaskConflict",
     "no_fallback": "不得换 key、模型等级、identity、room、endpoint 或工具路径绕过错误",
     "retention": "Run 去重与 Result 至少保留到 max(deadline_at,accepted_at)+7d；活动或未知义务不得因时间到达删除",
