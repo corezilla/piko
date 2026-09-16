@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.8` |
+| Package Version | `0.3.0-finalization.9` |
 | Status | Review；runtime activation=false |
 | Authority | Piko |
 | Request | `S-20260916-191ab7c8184c` |
@@ -35,15 +35,28 @@ Finalization.8精确冻结附件摘要、retention和条件读取：logical dige
 tombstone只从实际`bytes_deleted_at`起算30天，blocker推迟删除；读取先核验当前授权/membership/link和
 redaction/retention，最后才判断ETag，因此撤权/410/404不能被304覆盖。
 
+Finalization.9关闭用户批准的DF-13/14设计范围。DF-13提供只读、Client-scoped且非预留的
+ExecutionCapacitySnapshot；unit固定为`piko_concurrent_agent_run`，解析唯一execution class/version，
+同一snapshot返回direct、全部shared/overlapping constraints与quota，Unknown/Partial/过期fail closed。
+只有POST /runs受理事务可原子创建quantity=1的execution claim；Queued即Held，429/503无claim，重放和
+重启不重复。逐participant的202+Held claim齐备才是完整backing，部分受理不能冒充Team完整或回滚业务事实。
+
+DF-14以`PikoTrustedInputBroker`为唯一可信producer，冻结对象版本/hash/size/byte-range事实、安全派生的
+系统证据路径、writer fence→generation→证据artifact/digest→AgentResult原子发布顺序及至少
+`max(request.deadline_at,result.published_at)+7d`的bytes窗口。Complete只表示记录器完整，不证明Slinky
+所需材料集合覆盖或模型理解；Agent自述、stdout、普通日志和execution_log_ref均不构成覆盖证据。
+
 LLMTier语义消费固定为Amendment 8：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
-Chat/SSE/fallback。LLMTier `0.3-finalization-candidate.1`目标OpenAPI SHA-256
-`5b3ceb7593b06c3401af25031a08d15a3c230063bae06b45b1ba779c7d25df3f`已由Slinky转交；Piko尚未收到
-实际机器正文、未复算或做差异审查。状态明确为“目标hash已知、机器内容待提供”，不冒充字节级签署。
+Chat/SSE/fallback。当前LLMTier目标已更新为`0.3-finalization-candidate.2`，commit
+`57aacfa1fa58cf4e98370281b73d861572e59b53`、OpenAPI SHA-256
+`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。固定批次只提供这些标识，未携带
+OpenAPI/compatibility manifest/fixture机器字节，本项目也无其授权消费副本；Piko未复算或完成
+candidate.1→candidate.2差异审查。状态是“candidate.2目标标识已知、机器内容待Matrix交付”，不冒充签署。
 
 ## 2. 一次性退役
 
-从 `0.3.0-finalization.8` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
+从 `0.3.0-finalization.9` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
 `runs:by-attempt`、manual reconcile、Run SSE、Piko Session list/element-view/:close、原子建房
 `collaboration_contract`及旧嵌套`bindings`。不提供alias、转换器、双写或runtime fallback。
 
@@ -59,15 +72,18 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
 
 ## 5. 验证摘要
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；31 Schema case、57 semantic case、15 path、39 error。
+- `python3 tests/contract/validate_v03_contract.py`：exit 0；36 Schema case、77 semantic case、16 path、43 error。
 - 四个消费者反例均被Schema拒绝；raw Matrix root/reply正例与reply/version负例通过；配置PUT create/update/
   缺头/双头/wildcard/stale oracle均由validator核验。
 - 附件上传/读取、大小与摘要、单消息绑定、参与者授权、保留/tombstone以及raw event投影、sender/room/state
   负例均由validator核验；真实homeserver与浏览器访问仍为C类联调证据。
 - 附件摘要golden vector由validator按domain-separated preimage重算；撤权/redaction/过期+匹配ETag和
   actual-deletion起算的半开30天tombstone边界均有静态oracle。
+- DF-13 fixture覆盖shared pool不重复计数、snapshot竞争、N participant部分受理、202丢响应、claim Unknown、
+  restart、release/drain/Tier独立及过期/越权；DF-14覆盖安全路径、range并集、空文件、metadata-only、
+  changed/unmediated、profile能力、Unknown执行、发布故障与证据窗口。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
-- Piko-owned跨系统语义无“实现时再确认”；唯一外部输入是LLMTier target OpenAPI机器正文，用于复算
+- Piko-owned DF-13/14字段与语义无“实现时再确认”；唯一外部输入是LLMTier candidate.2机器正文，用于复算
   已知hash与差异审查，明确留在baseline binding gate，未转移到联调。
 - 仅用项目内`docs/std.lock.json`与`docs/std-source-manifest.json`核验8个本包metadata：7个template hash
   与锁定draft.21一致；`design.system`文档已采用4.0.0/hash `ec2800...`，与lock内旧hash `96d14...`

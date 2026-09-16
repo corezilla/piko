@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
-| Document Version | `0.3.0-finalization.8` |
+| Document Version | `0.3.0-finalization.9` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -71,24 +71,25 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | limits.max_model_calls | Slinky | 新逻辑 LLMTier invocation 上限 | integer 1–100000；required | Run immutable | 入 digest；恢复/GET不重复计数；到限 Failed/ModelCallLimit |
 | limits.max_tool_calls | Slinky | 新逻辑 tool operation 上限 | integer 0–100000；required | Run immutable | 入 digest；结果查询不计数；到限 Failed/ToolCallLimit |
 | limits.stop_grace_seconds | Slinky | 停止/对账宽限 | integer 1–3600；required | Run immutable | 入 digest；不授予新业务步骤；耗尽且未知→RecoveryRequired |
+| input_evidence_requirement | Slinky | 是否要求可信材料读取证据 | Required\|NotRequired；required | Run immutable | 入digest；Required时resolved tool profile必须支持PikoTrustedInputBroker，否则422 InputEvidenceUnsupported且不创建Run |
 | output_paths | Slinky | 预期输出提示与结果核对 | unique relative path[]，0–256；required | Run immutable | 入 digest；不扩大 write_paths；缺失不伪造 Result |
 
 四种唯一请求形状（其余必填字段相同，示例省略值不表示可省略）：
 
 ```json
-{"client_task_id":"t0","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"output_paths":[]}
+{"client_task_id":"t0","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"input_evidence_requirement":"Required","output_paths":[]}
 ```
 
 ```json
-{"client_task_id":"t1","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":"a1","session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"output_paths":[]}
+{"client_task_id":"t1","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":"a1","session_binding_ref":null,"expected_session_binding_version":null,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"input_evidence_requirement":"Required","output_paths":[]}
 ```
 
 ```json
-{"client_task_id":"t2","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":"a1","session_binding_ref":"sb1","expected_session_binding_version":7,"communication_trigger":{"provider":"SlinkyRuntime","dispatch_ref":"d1","trigger_event_id":"$e1"},"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"output_paths":[]}
+{"client_task_id":"t2","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":"a1","session_binding_ref":"sb1","expected_session_binding_version":7,"communication_trigger":{"provider":"SlinkyRuntime","dispatch_ref":"d1","trigger_event_id":"$e1"},"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"input_evidence_requirement":"Required","output_paths":[]}
 ```
 
 ```json
-{"client_task_id":"t3","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":"sb1","expected_session_binding_version":7,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"output_paths":[]}
+{"client_task_id":"t3","instruction":"x","workspace_ref":"w","service_level_id":"Junior","agent_binding_ref":null,"session_binding_ref":"sb1","expected_session_binding_version":7,"communication_trigger":null,"permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"tp"},"limits":{"deadline_at":"2026-09-17T00:00:00Z","max_model_calls":1,"max_tool_calls":0,"stop_grace_seconds":60},"input_evidence_requirement":"Required","output_paths":[]}
 ```
 
 前三例分别是无身份无房间、仅身份无房间、身份与Session匹配；第四例固定为400
@@ -106,6 +107,8 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | result_available | Piko | 是否可GET Result | boolean | 随状态一次变 true | 仅 Completed/Failed/Cancelled=true；否则409 |
 | execution_released | Piko release evidence | 判断旧任务能否再唤醒/写入 | boolean | false→true 单调 | 不由 cancel ack、Session close、membership标签或timeout推断 |
 | release_evidence | Piko fencing/obligation ledger | 精确证明资源释放或隔离 | object|null；execution_released=true时必填 | 写后immutable | 含agent/tool/writer/wakeup refs、external status/refs、isolation boundary、released_at；不代表Tier Seat释放 |
+| execution_claim | Piko admission ledger | Piko执行占用事实 | claim_id、unit=`piko_concurrent_agent_run`、quantity=1、class id/version、Held/Released/Unknown、version/times/evidence | Run受理时与Run/ClientTaskIndex原子创建；状态版本化 | Queued即Held；429/503无Run无claim；replay不重复；Unknown fail closed；释放不推导drain/Tier Seat |
+| input_evidence_capability | Piko resolved tool profile | 暴露本Run可信读取记录能力 | Auditable\|NotAuditable\|Unknown | admission snapshot | Required仅允许Auditable；Unknown/NotAuditable不产生Complete |
 | progress | Piko observation | 诊断 | null或 message≤4096B+time | 可变并递增state_version | 不作完成/接受判据 |
 | recovery | Piko obligation ledger | 未决原因/动作 | null或 reason+refs+Wait/OperatorAction | RecoveryRequired必填 | unresolved未清不得过期删除 |
 | recoverable_until | Piko retention policy | 自动恢复截止 | UTC | 运行中不得缩短 | 固定为 max(deadline,accepted)+7d 下限；活动/未知可超期延长 |
@@ -121,7 +124,51 @@ ingress version前进时才CAS重评。decision到期不删除key→digest bindi
 | AgentResult.summary | Agent，经Piko封装 | 最终答复 | UTF-8 0–256KiB | immutable | 不作安全/接受判据 |
 | AgentResult.outputs | Piko稳定generation测量 | 文件清单 | path/hash/size，≤256 | immutable | Piko计算；文件后续变化不改历史Result |
 | AgentResult.usage | Piko counters + LLMTier observations | 计量 | calls非负；tokens nullable；cost decimal nullable+currency | immutable | unknown为null非0；恢复不重复计数 |
+| AgentResult.input_access_evidence | PikoTrustedInputBroker | 引用可信读取证据bytes | status Complete/Partial/Unavailable/Unknown、producer/version、path/hash/size/generated/available；全部required/null显式 | 与result_generation原子发布 | Complete只表示recorder无gap；不表示Slinky材料清单覆盖/模型理解；Required且无法发布时Run保持RecoveryRequired |
+| AgentResult.result_generation/published_at | Piko Result ledger | 稳定输出与证据发布世代 | positive integer + UTC；required | immutable | writer fence、evidence、outputs完成后才原子可见 |
 | execution_log_ref | Piko | 授权日志引用 | opaque|null | immutable | 不要求chain-of-thought；无凭据 |
+
+### 3.1 ExecutionCapacitySnapshot 与逐Run claim
+
+唯一观察操作为只读`POST /agent-runtime/v1/execution-capacity/snapshots:query`。使用POST仅承载最多256个
+异构selector；它没有Idempotency-Key、不写reservation/claim/Run/dispatch intent，响应200带强ETag，
+`If-None-Match`匹配同一有效representation可得304；认证/授权及scope检查先于ETag。
+
+| 字段 | 生产/authority | 消费用途 | 精确定义 | 异常/保留 |
+|---|---|---|---|---|
+| selectors[] | Slinky | 描述每个participant的拟提交形状 | selector_id + quantity=1 + workspace_ref + exact service_level_id + nullable agent_binding_ref + tool_profile_ref + evidence requirement | 与Run相同Client可见性和解析；未知字段400，unsupported422 |
+| selector_resolutions | Piko Binding Resolver | selector→execution class | Resolved含stable execution_class_id和positive class_version；Unsupported/Unknown为null class并带reason | Unknown/unsupported不得规划为可用 |
+| snapshot identity/time | Piko Capacity Projector | 缓存与有效性 | snapshot_id/version、Client scope_ref、observed_at、valid_until、ETag | 过期fail closed；scope不可枚举，越权404 |
+| status/unit | Piko | 完整性和单位 | Complete/Partial/Unknown；unit恒为piko_concurrent_agent_run | Partial/Unknown不填0，不能用于完整backing |
+| execution_classes[] | Piko | class级当前事实 | class id/version、Known/Unknown、available/held/queued nullable、constraint_ids全集 | Unknown三个quantity均null；不跨class相加available |
+| constraint_facts[] | Piko | all-constraints可行性 | stable constraint_id、DirectClass/SharedWorkerPool/ClientQuota、覆盖class IDs、Known/Unknown、limit/held/available/shortfall_for_next_unit、blocking/reason | 每个participant quantity=1；按constraint覆盖的class需求求和并逐项比较；Unknown数值全null且阻塞；不泄露host/process |
+
+异构N个participant的可行性算法唯一为：先要求全部selector Resolved、snapshot Complete且未过期；再把每个
+participant的quantity=1按resolved class映射到每个`constraint_fact.execution_class_ids`，对每项constraint求
+demand合计，要求Known且`available_quantity>=demand`。不能把class available或重叠constraint available相加。
+snapshot只是非预留预测；只有每个原`client_task_id/key`提交均得到202且RunView内Held claim齐备，Slinky才可称
+完整Piko backing。部分202是真实事实，不自动补偿取消，也不回滚已执行业务。
+
+### 3.2 Input access evidence
+
+`input_evidence_requirement=Required`时，admission先核对resolved tool profile能强制所有workspace读取经过
+`PikoTrustedInputBroker`；不支持则422且不创建Run。证据保留路径固定为
+`.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json`，其中
+`run_scope_token=lowercase-hex(SHA-256(UTF8(canonical client_id)||0x00||UTF8(run_id)))`。不得使用
+`client_task_id`拼路径；`.piko/**`是system-only保留前缀，Agent/shell/普通writer不可写，也不扩大write_paths。
+
+证据document逐对象记录relative path、object_version、content hash/size、coverage、规范化ranges、read count和
+观测时间。同一object_version+hash的ranges按start排序并合并重叠/相邻范围，重复读取不增加covered bytes；
+空文件实际读取为`FullContent,size=0,ranges=[],read_event_count>=1`。MetadataOnly不等于内容覆盖；
+ChangedDuringRead记录前后version/hash并令recorder Partial；broker旁路、recorder failure、Unknown execution均写gap，
+不得产生虚假Complete。Complete只证明记录器从start到close无gap；Slinky仍以自己的必需材料版本/hash/range集合判定。
+
+发布顺序固定为Agent writer fence→Tool writer终止/隔离→trusted recorder close→证据bytes fsync+hash→outputs
+generation快照→AgentResult generation与ETag原子发布。任一步失败时`result_available=false`且Run进入
+RecoveryRequired；Unknown execution的evidence为Unknown且不发布终态Result。证据bytes通过原workspace/artifact
+授权读取模式按Result给出的path/hash/size取得，不新增Piko下载endpoint或第二通道；至少保留到
+`max(request.deadline_at,result.published_at)+7d`。Slinky须在窗口内核验并接管长期Artifact，Result仍可查询不等于
+证据bytes仍可读。
 
 ## 4. Identity、Session binding、revoke 与 drain
 
@@ -237,6 +284,6 @@ ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace
 
 ## 7. A/B/C边界
 
-- A（本轮冻结）：本表、V0.3 OpenAPI/Schema/error/fixtures、四Run API、binding/trigger/revoke/drain、消息映射、保留与旧接口删除。
+- A（本轮冻结）：本表、V0.3 OpenAPI/Schema/error/fixtures、四Run API、只读capacity snapshot/逐Run claim、可信input evidence、binding/trigger/revoke/drain、消息映射、保留与旧接口删除。
 - B（Piko内部下游设计）：DB/HA产品、表DDL、worker调度算法、Pi hook实现、workspace sandbox实现；不得改变A的wire和状态语义。
 - C（联调）：真实Pi/LLMTier/Matrix/Element、crash/failover、RPO/RTO、性能与Secret扫描证据；失败只能保持activation=false，不能回退旧wire。

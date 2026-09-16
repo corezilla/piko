@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "catalog_version": "agent-runtime-errors/v0.3-finalization.8",
+  "catalog_version": "agent-runtime-errors/v0.3-finalization.9",
   "status": "review",
   "runtime_activation": false,
   "errors": [
@@ -35,11 +35,15 @@
     {"code":"PreconditionRequired","http_status":428,"retryable":false,"when":"配置 PUT 未提供 create 所需 If-None-Match:* 或 update 所需 exact strong If-Match"},
     {"code":"UnsupportedServiceLevel","http_status":422,"retryable":false,"when":"exact-case service_level_id 不可见或不支持"},
     {"code":"UnsupportedLimit","http_status":422,"retryable":false,"when":"Piko 无法强制请求的硬限制"},
+    {"code":"ExecutionClassUnsupported","http_status":422,"retryable":false,"when":"workspace/service level/agent/tool/evidence requirement组合不能解析为当前Client可用execution class"},
+    {"code":"InputEvidenceUnsupported","http_status":422,"retryable":false,"when":"请求Required input evidence但resolved tool profile不是可信broker可审计profile"},
     {"code":"DeadlineExpired","http_status":422,"retryable":false,"when":"首次受理时 deadline_at 已到；ledger 命中仍返回原回执"},
     {"code":"EncryptedRoomNotSupported","http_status":422,"retryable":false,"when":"绑定 room 已加密"},
     {"code":"FederatedRoomNotSupported","http_status":422,"retryable":false,"when":"绑定 room 可联邦"},
     {"code":"CapacityUnavailable","http_status":429,"retryable":true,"when":"首次 Run 尚未受理且容量不足；须返回 Retry-After"},
     {"code":"DependencyUnavailable","http_status":503,"retryable":true,"when":"首次提交结果未知时必须用原 key 恢复"},
+    {"code":"CapacitySnapshotUnavailable","http_status":503,"retryable":true,"when":"无法形成带版本和有效期的Client-scoped容量snapshot；不得返回伪零"},
+    {"code":"InputEvidencePublicationFailed","http_status":500,"retryable":false,"when":"终态Result提交前无法冻结、摘要或发布可信input evidence；Run保持RecoveryRequired而非制造Result"},
     {"code":"ResultUnavailable","http_status":500,"retryable":false,"when":"终态 Result 记录缺失，不生成假结果"},
     {"code":"InternalError","http_status":500,"retryable":false,"when":"内部不变量破坏，保留原身份诊断"},
     {"code":"Gone","http_status":410,"retryable":false,"when":"已知 recovery/result tombstone 过期，停止自动恢复"}
@@ -56,6 +60,8 @@
     "matrix_codec": "唯一Matrix编码为type=m.room.message、content.msgtype=m.text、content.body与HTTP body逐字节一致、content.io.piko.agent.message承载namespaced字段；RawMatrixRoomMessageEvent允许unsigned等外层标准字段但禁止state_key，ProductMatrixRoomMessageEvent仅是抽取后的六字段受控投影；Matrix生成event_id/origin_server_ts。普通消息Unclassified且不可dispatch，畸形扩展Rejected且不可dispatch",
     "content_access": "上传logical digest固定为lowercase-hex(SHA-256(ASCII('piko-content-upload-digest-v1')||0x00||uint64_be(len(M))||M||H))，M=RFC8785 JCS(metadata) UTF-8，H=SHA-256(content bytes)原始32字节；multipart boundary/headers/filename不参与。基础framing/size后先比较key digest：异digest 409优先于declared/actual mismatch；同digest重放原决定；miss才校验声明并以422持久拒绝。读取固定按认证→delegated/current authorization/current membership→exact linkage/visibility→redaction/retention→ETag顺序；匹配ETag不得覆盖403/404/410；无content_ref直查、列表、URL或browser credential",
     "content_retention": "retention eligibility为未绑定created_at+24h或已绑定message.accepted_at+7d minimum；pending/RecoveryRequired/unknown义务推迟实际删除。bytes_deleted_at只在eligibility已到且blocker清零后写入；tombstone_until=bytes_deleted_at+30d，半开区间[bytes_deleted_at,tombstone_until)返回410 ContentExpired，精确tombstone_until起返回404。未实际删除前仍按授权与redaction状态返回200/304/410，tombstone时钟不得从eligibility起算；长期项目归档由Slinky复制到自身受限artifact/backup store",
+    "execution_capacity": "POST /execution-capacity/snapshots:query只读且不预留；selector按与Run相同的workspace/service level/agent/tool/evidence requirement解析不可变execution_class_id+version。unit固定piko_concurrent_agent_run且每Run quantity=1。snapshot必须包含direct、全部shared/overlapping pool及ClientQuota constraint facts；Unknown/Partial/expired fail closed，不能填0或相加各class available。仅POST /runs在Run/ClientTaskIndex/claim同一事务受理，Queued即Held；429/503未受理不创建claim，同key恢复不得重复claim",
+    "input_access_evidence": "input_evidence_requirement=Required时admission必须确认resolved tool profile支持PikoTrustedInputBroker，否则422。证据保留路径固定.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json，其中run_scope_token=lowercase-hex(SHA-256(UTF8(client_id)||0x00||UTF8(run_id)))；.piko/**为system-only且不扩大write_paths。Complete只表示recorder无gap，不表示Slinky所需材料覆盖或模型理解；同object_version+hash的ranges排序合并且重复读取不累加，空文件真实读取以read_event_count>=1且FullContent/ranges=[]表示；变化、旁路、recorder failure或Unknown execution不能伪造Complete。发布顺序为writer/wakeup fence→close recorder→发布证据bytes/hash→快照outputs→原子发布Result generation；bytes至少可读到max(request.deadline_at,result.published_at)+7d，长期接管由Slinky负责",
     "secret_boundary": "API、日志、Result、MessageEnvelope 与 Evidence 不含 credential、AS token、device key、delivery checkpoint 或自动登录材料"
   }
 }

@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-finalization.7` |
+| Document Version | `0.3.0-finalization.9` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -24,11 +24,13 @@
 
 > 已完成语义审查的 Consumer baseline 为 LLMTier OpenAPI `0.3-candidate-amendment-8`、review commit
 > `60959c2f59e6b3ef0bae18ba4caa1eda3ae97bf4`。目标升级版本为
-> `0.3-finalization-candidate.1`、commit `a4dd5d2b1465b6643f4bf3c2c051bbd061366e50`，其OpenAPI
-> 目标SHA-256为`5b3ceb7593b06c3401af25031a08d15a3c230063bae06b45b1ba779c7d25df3f`。
-> 这些值由Slinky消息`S-20260916-8b8805ad1d84`转交，来源为LLMTier
-> `L-20260916-847f93ed9cb0`；Piko未取得目标机器工件字节，尚未独立复算或完成差异审查。因此状态是
-> “目标hash已知、机器内容待提供”，不是字节级消费签署。runtime activation=false。
+> `0.3-finalization-candidate.2`、commit `57aacfa1fa58cf4e98370281b73d861572e59b53`，其OpenAPI
+> 目标SHA-256为`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。
+> 这些candidate.2值由Slinky消息`S-20260916-c0328409cfe1`提供；该固定批次没有携带OpenAPI、
+> compatibility manifest或相关fixture的机器字节，本项目也不存在其授权消费副本。Piko因此尚未能独立复算
+> candidate.2 SHA-256或执行candidate.1→candidate.2字段差异审查。状态是“目标版本/hash/commit已知、
+> candidate.2机器内容待Matrix交付”，不是字节级消费签署；candidate.1仅作历史目标，不再是当前绑定目标。
+> runtime activation=false。
 
 ## 1. 唯一消费面
 
@@ -99,6 +101,6 @@ Piko已受理Run的`max(request.deadline_at,Run.accepted_at)+7d`与pre-admission
 `max(request.deadline_at,decision_first_created_at)+7d`是Piko任务窗口，不改变LLMTier M2-C。
 
 本文件确认Piko的设计消费；不声明真实SDK capture、production实现或runtime activation。对
-`0.3-finalization-candidate.1` 的最终字节级绑定仍需LLMTier通过Matrix提供实际OpenAPI机器正文；Piko将
-复算上述SHA-256并做字段差异审查。工件到齐后只关闭baseline evidence gate，不重新打开上述语义，也不
-保留并行解释。
+`0.3-finalization-candidate.2` 的最终字节级绑定仍需通过本话题Matrix提供实际OpenAPI、compatibility
+manifest及定型相关fixture机器正文/可重组分段；Piko将复算上述SHA-256并做candidate.1→candidate.2字段
+差异审查。工件到齐后只关闭baseline evidence gate，不重新打开上述语义，也不保留并行解释。

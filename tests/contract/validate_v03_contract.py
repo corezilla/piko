@@ -53,10 +53,10 @@ fixtures = load_json(FIXTURE_PATH)
 openapi = yaml.safe_load(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 Draft202012Validator.check_schema(schema)
-assert schema["x-contract-version"] == "0.3.0-finalization.8"
-assert openapi["info"]["version"] == "0.3.0-finalization.8"
-assert fixtures["fixture_version"] == "0.3.0-finalization.8"
-assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.8"
+assert schema["x-contract-version"] == "0.3.0-finalization.9"
+assert openapi["info"]["version"] == "0.3.0-finalization.9"
+assert fixtures["fixture_version"] == "0.3.0-finalization.9"
+assert errors["catalog_version"] == "agent-runtime-errors/v0.3-finalization.9"
 
 for reference in walk_refs(openapi):
     target_path, separator, fragment = reference.partition("#")
@@ -79,6 +79,7 @@ for case in fixtures["schema_cases"]:
 
 expected_paths = {
     "/runs", "/runs/{run_id}", "/runs/{run_id}/result", "/runs/{run_id}:cancel",
+    "/execution-capacity/snapshots:query",
     "/operator/matrix-transport-profile", "/operator/matrix-transport-profile:probe",
     "/projects/{project_ref}/agent-communication-bindings/{agent_binding_ref}",
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}",
@@ -91,6 +92,17 @@ expected_paths = {
     "/projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}",
 }
 assert set(openapi["paths"]) == expected_paths
+
+capacity_operation = openapi["paths"]["/execution-capacity/snapshots:query"]["post"]
+assert any(p.get("$ref") == "#/components/parameters/IfNoneMatch" for p in capacity_operation["parameters"])
+assert "304" in capacity_operation["responses"]
+selector_schema = schema["$defs"]["ExecutionRequirementSelector"]
+assert "quantity" in selector_schema["required"]
+assert selector_schema["properties"]["quantity"]["const"] == 1
+constraint_schema = schema["$defs"]["ExecutionCapacityConstraintFact"]
+assert "shortfall_for_next_unit" in constraint_schema["required"]
+evidence_path = schema["$defs"]["InputAccessEvidenceRef"]["properties"]["path"]["oneOf"][0]["pattern"]
+assert evidence_path.startswith("^\\.piko/evidence/input-access/v1/")
 
 assert "410" in openapi["paths"]["/runs"]["post"]["responses"]
 for path, operations in openapi["paths"].items():
@@ -136,6 +148,8 @@ required_errors = {
     "InvalidPreconditionCombination", "PreconditionRequired",
     "ContentTooLarge", "ContentIntegrityMismatch", "ContentAlreadyBound",
     "ContentViewerNotAuthorized", "ContentRedacted", "ContentExpired",
+    "ExecutionClassUnsupported", "InputEvidenceUnsupported",
+    "CapacitySnapshotUnavailable", "InputEvidencePublicationFailed",
 }
 missing = required_errors - error_codes
 assert not missing, sorted(missing)
@@ -193,6 +207,32 @@ assert semantics["content-read-expired-with-matching-etag"]["expected_error"] ==
 assert semantics["content-read-at-tombstone-boundary"]["expected_status"] == 404
 assert semantics["content-read-authorized-matching-etag"]["expected_status"] == 304
 assert semantics["content-retention-after-blocker-clears"]["at_boundary"]["status"] == 404
+assert semantics["capacity-shared-pool-no-double-count"]["feasible"] is False
+assert semantics["capacity-snapshot-race"]["reservation_created_by_query"] is False
+assert semantics["capacity-three-participant-partial-admission"]["complete_team_backing"] is False
+assert semantics["capacity-run-202-response-lost"]["new_claim_count"] == 0
+assert semantics["capacity-claim-unknown"]["available_quantity_effect"] == "UnknownFailClosed"
+assert semantics["capacity-restart-recovery"]["post_restart_claim_count"] == 1
+assert semantics["capacity-isolated-release-drain-open"]["session_close_allowed"] is False
+assert semantics["capacity-snapshot-expired"]["feasible"] is False
+assert semantics["capacity-snapshot-cross-client"]["expected_status"] == 404
+assert semantics["input-evidence-safe-path"]["client_task_id_used_in_path"] is False
+assert semantics["input-evidence-range-merge"]["canonical_ranges"] == [[0, 30], [40, 50]]
+assert semantics["input-evidence-range-merge"]["covered_bytes"] == 40
+assert semantics["input-evidence-empty-file-read"]["actual_read"] is True
+assert semantics["input-evidence-metadata-only"]["recorder_status_may_be_complete"] is True
+assert semantics["input-evidence-object-changed"]["trusted_full_content"] is False
+assert semantics["input-evidence-unmediated-read"]["complete_allowed"] is False
+assert semantics["input-evidence-required-profile-unsupported"]["run_created"] is False
+assert semantics["input-evidence-unknown-execution"]["fake_complete_created"] is False
+assert semantics["input-evidence-publication-order"]["result_visible_before_last_step"] is False
+assert semantics["input-evidence-publication-failure"]["result_available"] is False
+assert semantics["input-evidence-availability-window"]["result_queryability_alone_sufficient"] is False
+
+path_case = semantics["input-evidence-safe-path"]
+scope_token = hashlib.sha256(f"{path_case['client_id']}\0{path_case['run_id']}".encode("utf-8")).hexdigest()
+assert scope_token == path_case["run_scope_token"]
+assert path_case["path"] == f".piko/evidence/input-access/v1/{scope_token}/{path_case['result_generation']}.json"
 
 golden = semantics["content-upload-digest-golden"]
 metadata_bytes = golden["canonical_metadata_utf8"].encode("utf-8")
@@ -210,7 +250,7 @@ for required in ("agent_binding_ref", "session_binding_ref", "expected_session_b
 
 contract_text = (ROOT / "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md").read_text(encoding="utf-8")
 field_text = (ROOT / "docs/60_interfaces/contracts/piko-v0.3-field-usage.md").read_text(encoding="utf-8")
-for required in ("0.3.0-finalization.8", "communication_trigger", "execution_released", "decision_first_created_at"):
+for required in ("0.3.0-finalization.9", "communication_trigger", "execution_released", "decision_first_created_at", "piko_concurrent_agent_run", "PikoTrustedInputBroker"):
     assert required in contract_text or required in field_text, required
 
 print(

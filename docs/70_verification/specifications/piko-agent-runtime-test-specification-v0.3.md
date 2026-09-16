@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.8` |
+| Document Version | `0.4.0-draft.9` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -66,7 +66,7 @@
 ## 4. 正常、边界、负向与并发场景
 
 正常路径覆盖 single/team success、room collaboration、structured Result 和 clean close。边界覆盖
-零/满 Slot、deadline、最大 participant/message metadata、null last_message_at 和最后一页 cursor。
+零/满 execution capacity、deadline、最大 participant/message metadata、null last_message_at 和最后一页 cursor。
 负向覆盖 schema/header mismatch、stale ETag、digest conflict、unknown model、encrypted room、
 unauthorized query 和 authority overflow。并发覆盖 duplicate Run、two writers、rename+send、
 close+inbound、page update 和 lease failover。
@@ -102,7 +102,7 @@ Invocation ID 的 202/terminal error，得到 ID 后才 GET。按故障点证据
 
 ## 6. 性能、容量、功耗或时序测试
 
-首版测量 admission latency、Run state write latency、Slot claim contention、AS transaction ACK、
+首版测量 admission latency、Run state write latency、execution claim contention、AS transaction ACK、
 inbox/outbox throughput、oldest backlog age、cursor page latency、recovery RTO 和 Element descriptor
 latency。阈值尚未冻结，因此当前只定义 measurement，不给 Pass 门限。
 
@@ -163,7 +163,11 @@ scope，不能读取其他真实项目数据。
 | PIKO-V03-FIN-016 | Attachment content | digest golden、不同multipart表示、同key冲突+完整性错、并发绑定、参与者读取、redaction、到期 | 复算domain-separated digest；boundary/header/filename不改摘要；异digest 409优先于422；第二消息绑定409；非当前成员403；redaction 410；pending义务推迟删除 | static fixture + Matrix联调 |
 | PIKO-V03-FIN-017 | Conditional attachment read | revoked/redacted/expired且ETag匹配；authorized available且匹配 | 403/410/410优先于304；仅仍可读返回304；精确tombstone_until返回404 | OpenAPI + fixture static |
 | PIKO-V03-FIN-018 | Attachment retention clock | eligibility已到但unknown blocker；blocker清零后实际删除；30d半开边界 | blocker期间bytes仍在且无tombstone；deleted时启动30d；边界前410，精确边界404 | clock fixture + fault injection |
-| PIKO-V03-FIN-017 | Raw event projection | 带unsigned的raw message、sender/room篡改、state event | raw外层扩展允许但只抽取六字段；sender/room不一致及state event拒绝且不可dispatch | Schema fixture + Matrix联调 |
+| PIKO-V03-FIN-019 | Raw event projection | 带unsigned的raw message、sender/room篡改、state event | raw外层扩展允许但只抽取六字段；sender/room不一致及state event拒绝且不可dispatch | Schema fixture + Matrix联调 |
+| PIKO-V03-FIN-020 | Execution capacity snapshot | shared pool覆盖多个class、Unknown/Partial/过期、跨Client、snapshot后竞争、N个participant部分受理 | unit固定；完整all-constraints；不重复求和；snapshot非预留；只有逐Run 202+Held claim构成完整backing | Schema/semantic fixture + DB fault待联调 |
+| PIKO-V03-FIN-021 | Execution claim recovery | 202响应丢失、同key重放、重启、claim查询Unknown、release但drain/Tier未知 | Run+claim原子；不重复claim；Unknown fail closed；release事实互不替代 | semantic fixture + DB fault待联调 |
+| PIKO-V03-FIN-022 | Trusted input evidence | safe path、range并集/重复、空文件、metadata-only、changed/unmediated、不可审计profile、Unknown执行 | 仅broker可产生；Complete仅记录器完整；缺失/不可信不通过；路径不可由task注入 | Schema/semantic fixture + sandbox待联调 |
+| PIKO-V03-FIN-023 | Evidence publication/retention | writer fence、generation、artifact/digest、Result发布各故障点；窗口内/外读取 | 固定顺序且原子Result；失败不造Complete；bytes至少至max(deadline,published)+7d，长期接管归Slinky | semantic fixture + storage fault待联调 |
 
 Static validator通过只代表候选自洽。Matrix、Pi、LLMTier、workspace/tool和crash evidence属于C类联调，
 不得倒推修改A类wire或启用旧兼容路径。

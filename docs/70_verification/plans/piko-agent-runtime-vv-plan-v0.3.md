@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-vv-plan-v0.3` |
-| Document Version | `0.4.0-draft.8` |
+| Document Version | `0.4.0-draft.9` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -68,6 +68,8 @@ configuration fingerprint、case/run ID 和时间。
 | durable inbox/outbox/dedup | 是 | 是 | 是 | 是 | Piko | transaction/txn replay trace |
 | structured resolution authority | 是 | 是 | 是 | 是 | Piko/Slinky | positive/negative Result fixture |
 | Client/Project/Secret isolation | 是 | 是 | 否 | 是 | Piko Security | negative corpus + redaction scan |
+| Piko execution capacity/claim | 是 | 是 | 否 | 是 | Piko/Slinky | snapshot/claim/partial-admission fixture + ledger evidence |
+| 可信材料读取覆盖 | 是 | 是 | 否 | 是 | Piko/Slinky | broker evidence artifact + consumer material-map check |
 
 ## 4. Validation 场景与用户目标
 
@@ -85,7 +87,7 @@ configuration fingerprint、case/run ID 和时间。
 - Subsystem：Agent Runtime、CollaborationBridge、LLMTier adapter。
 - Recovery：每个 durable boundary 前后 crash、response loss、writer failover。
 - Security：authz、enumeration、SSRF、path/symlink、egress、Secret、authority overflow。
-- Performance：Slot/admission、ledger/outbox、Matrix delivery 和 recovery backlog。
+- Performance：execution claim/admission、ledger/outbox、Matrix delivery 和 recovery backlog。
 - E2E：Slinky V03-E2E-085..099，controlled dependencies。
 - Acceptance：由 Slinky依据 Project/IR/Work目标决定，不由 Piko单方签署。
 
@@ -108,10 +110,18 @@ observable outcome。LLM 自报文本、transcript 和最后一条消息不是 o
 
 ## 8. 故障注入、恢复和非正常路径
 
-故障点覆盖 Run transaction、Slot claim、Pi process start/stop、LLMTier dispatch/response、Tool
+故障点覆盖 Run transaction、execution claim、capacity snapshot race、Pi process start/stop、LLMTier dispatch/response、Tool
 mutation、Workspace write、AS transaction commit/ACK、Matrix send、membership、rename、close、
 archive、checkpoint 和 lease handoff。恢复必须查询原 identity 并保留 obligation；不得生成新 key、
 txn、Run、Session 或 room 作为通用重试。
+
+DF-13 必须覆盖共享pool跨class不重复计数、snapshot后竞争、N个participant部分202、202响应丢失、
+claim Unknown、服务重启、execution release后drain仍未知、过期及跨Client。snapshot只证明非预留可行性；
+每个participant只有202及Held claim齐备才构成完整backing。
+
+DF-14 必须覆盖安全派生路径、同对象版本range并集、重复读取、空文件真实read、metadata-only、读取中变化、
+unmediated读取、不可审计profile、Unknown执行、证据发布故障及bytes窗口。Agent自述、stdout、权限声明、
+execution_log_ref或输出存在均不能替代可信broker事实；consumer所需材料集合仍由Slinky判定。
 
 Close 故障注入必须区分“禁止新业务 admission/send/wakeup”和“继续 drain 已确认 obligation”：
 在 Closing 前后、每条 inbox/outbox 完成前后、archive/retention commit 前后崩溃，恢复后都使用

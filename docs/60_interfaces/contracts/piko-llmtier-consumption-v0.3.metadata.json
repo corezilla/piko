@@ -1,6 +1,6 @@
 {
   "project":"piko","authority":"piko","document_id":"piko-llmtier-consumption-v0.3","document_type":"interfaces.control",
-  "document_version":"0.3.0-finalization.7","title":"Piko 对 LLMTier V0.3 的消费契约","document_owner":"Piko Adapter Owner",
+  "document_version":"0.3.0-finalization.9","title":"Piko 对 LLMTier V0.3 的消费契约","document_owner":"Piko Adapter Owner",
   "authors":["corezilla"],"source_repository":"corezilla/piko","source_path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md",
   "template_id":"interfaces.control","template_version":"0.1.0","template_sha256":"ed812fc7a7cd97f4484040690137c2be42c70f45cf03b5ec7d6dc3c66f5ef98d",
   "template_conformance":"tailored","tailoring_ref":"piko-std-tailoring-v0.1","migration_map_ref":null,
