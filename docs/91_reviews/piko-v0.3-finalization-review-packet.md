@@ -3,7 +3,7 @@
 | 字段 | 值 |
 |---|---|
 | Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.9` |
+| Package Version | `0.3.0-finalization.10` |
 | Status | Review；runtime activation=false |
 | Authority | Piko |
 | Request | `S-20260916-191ab7c8184c` |
@@ -46,13 +46,14 @@ DF-14以`PikoTrustedInputBroker`为唯一可信producer，冻结对象版本/has
 `max(request.deadline_at,result.published_at)+7d`的bytes窗口。Complete只表示记录器完整，不证明Slinky
 所需材料集合覆盖或模型理解；Agent自述、stdout、普通日志和execution_log_ref均不构成覆盖证据。
 
-LLMTier语义消费固定为Amendment 8：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
+LLMTier语义消费固定为candidate.2：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
 单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
 Chat/SSE/fallback。当前LLMTier目标已更新为`0.3-finalization-candidate.2`，commit
 `57aacfa1fa58cf4e98370281b73d861572e59b53`、OpenAPI SHA-256
-`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。固定批次只提供这些标识，未携带
-OpenAPI/compatibility manifest/fixture机器字节，本项目也无其授权消费副本；Piko未复算或完成
-candidate.1→candidate.2差异审查。状态是“candidate.2目标标识已知、机器内容待Matrix交付”，不冒充签署。
+`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。Piko从4个授权Matrix事件重组
+26192-byte归档并独立复算归档、内嵌manifest及8个成员；OpenAPI 570个本地引用可解析，机器字段与上述
+消费语义无冲突。Piko对该精确版本给出Consumer ACCEPTED；详见content-free消费证据JSON。该结论不证明
+真实SDK capture、production实现或runtime activation。
 
 ## 2. 一次性退役
 
@@ -83,8 +84,8 @@ RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire�
   restart、release/drain/Tier独立及过期/越权；DF-14覆盖安全路径、range并集、空文件、metadata-only、
   changed/unmediated、profile能力、Unknown执行、发布故障与证据窗口。
 - Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
-- Piko-owned DF-13/14字段与语义无“实现时再确认”；唯一外部输入是LLMTier candidate.2机器正文，用于复算
-  已知hash与差异审查，明确留在baseline binding gate，未转移到联调。
+- Piko-owned DF-13/14字段与语义无“实现时再确认”；LLMTier candidate.2机器正文的baseline binding已关闭。
+  Slinky对finalization.9 DF-13/14机器包的独立消费复审仍是跨方设计门禁，不由Piko自验替代。
 - 仅用项目内`docs/std.lock.json`与`docs/std-source-manifest.json`核验8个本包metadata：7个template hash
   与锁定draft.21一致；`design.system`文档已采用4.0.0/hash `ec2800...`，与lock内旧hash `96d14...`
   不一致，明确列为STD迁移项。未跨仓读取、未擅自升级项目STD lock，也不宣称全部STD校验通过。

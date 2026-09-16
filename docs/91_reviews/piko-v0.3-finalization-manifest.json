@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "package_id": "piko-v0.3-finalization",
-  "package_version": "0.3.0-finalization.9",
+  "package_version": "0.3.0-finalization.10",
   "status": "review",
   "runtime_activation": false,
   "generated_at": "2026-09-16",
@@ -52,11 +52,11 @@
     },
     {
       "path": "docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md",
-      "sha256": "ae791bc95602809271ed900972fb3dc5b4900bbcee3db6130a9866a60a685ce3"
+      "sha256": "e046c769e6e4e468e85887e8a74a6e879f15d2032f0329fd630e2fceafdce2f8"
     },
     {
       "path": "docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.metadata.json",
-      "sha256": "1b8d589c58e2b34cb9680a96605fcf464b0e47ce5bf0bc2d9a88a37e9a80dfa9"
+      "sha256": "c9c089037263e2c8c9e2df5b27413330ac461755d4a6ea5b91bebbc96e379e99"
     },
     {
       "path": "interfaces/openapi/agent-runtime-openapi-v0.3.yaml",
@@ -96,7 +96,11 @@
     },
     {
       "path": "docs/91_reviews/piko-v0.3-finalization-review-packet.md",
-      "sha256": "12b6cfa4a0c94a1bbcf8ff419d22c66eb0bb2393f630adbed34c8031fb42b8e3"
+      "sha256": "9db76b7d7ffe3a2de443b7f07c6b18d14f80ac184b27d4e7c548570bda886909"
+    },
+    {
+      "path": "docs/91_reviews/piko-llmtier-candidate2-consumption-evidence.json",
+      "sha256": "44872f1707f78b23a56e16c859ff265e6ce7dfe7c8a8f48db466c6548cc47e92"
     }
   ],
   "validation": {
@@ -107,7 +111,7 @@
     "git_diff_check": "PASS_WITH_CODEX_FALLBACK_GIT"
   },
   "cross_system_design_pending": [
-    "LLMTier 0.3-finalization-candidate.2 OpenAPI, compatibility manifest and finalization fixture bytes for independent SHA-256 recomputation and candidate.1-to-candidate.2 consumer diff review; target commit 57aacfa1fa58cf4e98370281b73d861572e59b53 and OpenAPI hash 67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9 are known"
+    "Slinky independent consumer review of Piko 0.3.0-finalization.9 DF-13/14 machine artifacts remains open; Piko provider self-validation does not replace that cross-system review"
   ],
   "downstream_internal_design": [
     "durable DB/HA/DDL",

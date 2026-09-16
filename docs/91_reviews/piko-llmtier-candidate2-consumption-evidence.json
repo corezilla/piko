@@ -1,0 +1,64 @@
+{
+  "schema_version": "piko-llmtier-consumer-evidence.v1",
+  "evidence_id": "piko-llmtier-candidate2-consumption-evidence",
+  "evidence_version": "0.3.0-finalization.10",
+  "status": "consumer_accepted",
+  "authority": "piko-consumer-review",
+  "runtime_activation": false,
+  "source": {
+    "topic_id": "T-9686005aaf91ab4e749fd6ce47c05004",
+    "index_message_id": "L-20260916-31c681e851fb",
+    "parts": [
+      {"message_id": "L-20260916-49dfae5c9b32", "event_id": "$KmmM5XIGOKB9-4PapddPoJLTAkc857ew8cxLKYqANXM"},
+      {"message_id": "L-20260916-209008dcaa8e", "event_id": "$GpFMYAw6woleqCuGjJKP3DTGjGodsc8evUwJJeVQ_O0"},
+      {"message_id": "L-20260916-bb1806e21cc4", "event_id": "$q3GoMbdm9O7IMoCjisMc5VSrEeHuZPDt6GfQ--tU_R0"},
+      {"message_id": "L-20260916-aa0ea8efe9e6", "event_id": "$kjxnrzxewsNr0aK6Vknhf_Edc6798xPyXUOrfN-YE9c"}
+    ]
+  },
+  "archive": {
+    "base64_char_count": 34924,
+    "decoded_size_bytes": 26192,
+    "sha256": "c55926cbdb40aa60b2f3d333fd0ba295e12e657aeb42b1992ebc832b94abf6fb",
+    "embedded_manifest_sha256": "325f562e1ff8de467eb399ce07b423859d80211ff24f8a52998609994629f2df"
+  },
+  "provider_baseline": {
+    "contract_version": "0.3-finalization-candidate.2",
+    "commit": "57aacfa1fa58cf4e98370281b73d861572e59b53",
+    "base_commit": "a4dd5d2b1465b6643f4bf3c2c051bbd061366e50",
+    "openapi_sha256": "67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9",
+    "compatibility_manifest_sha256": "8d03f9019b93e9cb54116e9f1f54ab45f2944e0ab7c984fad22bc2372a4a71ba"
+  },
+  "member_verification": {
+    "declared_member_count": 8,
+    "verified_member_count": 8,
+    "all_declared_sha256_and_size_match": true,
+    "openapi_local_ref_count": 570,
+    "all_openapi_local_refs_resolve": true
+  },
+  "consumer_review": {
+    "surfaces": [
+      "GET /v1/models",
+      "GET /v1/models/{service_level_id}",
+      "POST /v1/responses",
+      "GET /v1/invocations/{invocation_id}",
+      "GET /v1/responses/{response_id}"
+    ],
+    "confirmed": [
+      "non_stream_responses_only",
+      "exact_case_service_level_id",
+      "three_digit_utc_deadline_header_in_digest",
+      "digest_conflict_then_existing_invocation_then_deadline_then_cached_rejection_priority",
+      "no_id_original_post_replay",
+      "tool_loop_schema_and_piko_only_tool_execution",
+      "unknown_outcome_no_blind_redispatch",
+      "seat_release_requires_durable_release_evidence",
+      "runtime_activation_false"
+    ],
+    "conflicts": [],
+    "decision": "ACCEPTED"
+  },
+  "limitations": [
+    "Provider machine bytes remain LLMTier authority and are not copied into Piko authority.",
+    "This evidence is static consumer review, not SDK capture, production execution or runtime activation."
+  ]
+}

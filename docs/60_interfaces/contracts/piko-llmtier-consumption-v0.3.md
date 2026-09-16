@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-finalization.9` |
+| Document Version | `0.3.0-finalization.10` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -22,15 +22,15 @@
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
-> 已完成语义审查的 Consumer baseline 为 LLMTier OpenAPI `0.3-candidate-amendment-8`、review commit
-> `60959c2f59e6b3ef0bae18ba4caa1eda3ae97bf4`。目标升级版本为
-> `0.3-finalization-candidate.2`、commit `57aacfa1fa58cf4e98370281b73d861572e59b53`，其OpenAPI
-> 目标SHA-256为`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。
-> 这些candidate.2值由Slinky消息`S-20260916-c0328409cfe1`提供；该固定批次没有携带OpenAPI、
-> compatibility manifest或相关fixture的机器字节，本项目也不存在其授权消费副本。Piko因此尚未能独立复算
-> candidate.2 SHA-256或执行candidate.1→candidate.2字段差异审查。状态是“目标版本/hash/commit已知、
-> candidate.2机器内容待Matrix交付”，不是字节级消费签署；candidate.1仅作历史目标，不再是当前绑定目标。
-> runtime activation=false。
+> 当前唯一 Consumer baseline 为 LLMTier OpenAPI `0.3-finalization-candidate.2`、commit
+> `57aacfa1fa58cf4e98370281b73d861572e59b53`，OpenAPI SHA-256 为
+> `67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。Piko已从授权Matrix事件
+> `L-20260916-49dfae5c9b32`、`L-20260916-209008dcaa8e`、`L-20260916-bb1806e21cc4`、
+> `L-20260916-aa0ea8efe9e6`重组原始归档，独立复算归档、内嵌manifest及全部8个成员，并核对
+> Responses/Models/tool-loop、deadline/digest、408/429优先级、无ID恢复、terminal/Seat证据和
+> UnknownOutcome行为。未发现与本文件已冻结消费语义冲突，结论为Piko Consumer ACCEPTED。
+> 复算结果记录于`docs/91_reviews/piko-llmtier-candidate2-consumption-evidence.json`；该记录不是第二套
+> LLMTier authority，也不包含生产载荷。真实SDK capture与runtime activation仍为false。
 
 ## 1. 唯一消费面
 
@@ -100,7 +100,6 @@ Piko自动模型调用恢复期限最多24h；LLMTier resolved terminal去重/In
 Piko已受理Run的`max(request.deadline_at,Run.accepted_at)+7d`与pre-admission rejection的
 `max(request.deadline_at,decision_first_created_at)+7d`是Piko任务窗口，不改变LLMTier M2-C。
 
-本文件确认Piko的设计消费；不声明真实SDK capture、production实现或runtime activation。对
-`0.3-finalization-candidate.2` 的最终字节级绑定仍需通过本话题Matrix提供实际OpenAPI、compatibility
-manifest及定型相关fixture机器正文/可重组分段；Piko将复算上述SHA-256并做candidate.1→candidate.2字段
-差异审查。工件到齐后只关闭baseline evidence gate，不重新打开上述语义，也不保留并行解释。
+本文件确认Piko对`0.3-finalization-candidate.2`的设计消费与字节级baseline binding；不声明真实SDK
+capture、production实现或runtime activation。LLMTier机器字节仍由LLMTier拥有，Piko只保存content-free
+hash、来源事件和消费判定。后续发现缺陷须走显式contract review，不保留candidate.1或Amendment 8并行解释。
