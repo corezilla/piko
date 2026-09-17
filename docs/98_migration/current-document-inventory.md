@@ -10,6 +10,7 @@
 | `docs/10_requirements/piko-requirements-traceability-v0.3.md` | 当前需求追踪 |
 | `docs/20_system_design/piko-agent-runtime-design-v0.3.md` | `0.4.0` 总体设计 |
 | `docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md` | `0.1.0` Pi-first 内部设计 |
+| `docs/50_implementation_design/piko-runtime-implementation-design-v0.3.md` | `0.1.0` 实现级设计；SQLite/模块/配置/恢复 authority |
 | `docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md` | `0.4.0` 四项任务契约 |
 | `docs/60_interfaces/contracts/piko-v0.3-field-usage.md` | `0.3.0-simplified.5` 当前字段使用 |
 | `docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md` | `0.3.0-simplified.5`，固定Pi所需标准Responses SSE消费 |
@@ -17,6 +18,7 @@
 | `docs/80_operations/piko-runtime-release-and-operations-v0.3.md` | `0.1.0` 运维设计；NOT_BUILT |
 | `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` | `0.3.0-simplified.5` HTTP authority |
 | `interfaces/schemas/agent-runtime-v0.3.schema.json` | 数据 authority |
+| `interfaces/schemas/piko-runtime-config-v0.3.schema.json` | 实例配置 authority；只允许 Secret reference |
 
 ## Retired from current authority
 

@@ -1,0 +1,20 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-v0.3-implementation-design",
+  "packet_id": "piko-v0.3-implementation-design-review-packet",
+  "verdict": "ACCEPTED",
+  "document_status_before": "review",
+  "requested_document_status_after": "accepted",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": ["User / Piko Project Owner"],
+  "decided_at": "2026-09-17T15:48:40+08:00",
+  "decision_commit": "8b8e2d3b367af0db265520f3ac19915e6e6646dd",
+  "conditions": [
+    "Applies only to the three artifacts fixed by the implementation-design manifest at candidate commit 8b8e2d3b367af0db265520f3ac19915e6e6646dd.",
+    "The approved implementation design must preserve the 0.3.0-simplified.5 external contract and single-path Pi, Matrix, LLMTier, and SQLite design.",
+    "Any API, state-machine, Matrix boundary, Responses surface, Usage, or Memory-authority change requires a new design review and any applicable cross-project review.",
+    "Runtime Activation remains false; implementation, integration, security, recovery, retention, performance, and release evidence remain required."
+  ],
+  "rationale": "The User / Piko Project Owner directly approved the fixed implementation-design candidate and authorized document promotion without authorizing Runtime Activation."
+}

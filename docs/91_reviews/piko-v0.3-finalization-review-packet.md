@@ -78,4 +78,4 @@ Runtime Activation 是独立 Gate，本次未请求、未授权且保持 `false`
 
 治理决定记录：`docs/91_reviews/piko-v0.3-finalization-review-decision.json`。
 
-状态晋升并完成 STD/version inventory 勘误后的 manifest SHA-256 为 `cb0170a9e5c8a7921e4fc88e685a07a4067551318d36438dc1b9b96c626bd14d`，成员校验为 28/28。
+状态晋升、STD/version inventory 勘误并登记已批准实现设计后的 manifest SHA-256 为 `45af5ecfcb19c4da2606838773fe40a72110667a7b9db10cce1df349456f4941`，成员校验为 28/28。

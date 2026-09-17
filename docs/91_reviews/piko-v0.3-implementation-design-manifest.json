@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "package_id": "piko-v0.3-implementation-design",
-  "package_version": "0.1.0-draft.1",
-  "status": "review",
+  "package_version": "0.1.0",
+  "status": "accepted",
   "runtime_activation": false,
   "parent_baseline": "0.3.0-simplified.5",
   "parent_commit": "d40c98b56bb04a976da2ec9e0307e0f57fdd1fc6",
   "generated_at": "2026-09-17",
   "artifacts": [
-    {"path": "docs/50_implementation_design/piko-runtime-implementation-design-v0.3.md", "sha256": "2d4e943c059266004b6524b6a1b59227f859a5f6424f69e8a0f0a1373ba2e912"},
-    {"path": "docs/50_implementation_design/piko-runtime-implementation-design-v0.3.metadata.json", "sha256": "bc9ea60a98c148e7636f4c88569557003567d71fc4d12ff40352f30d3af81121"},
+    {"path": "docs/50_implementation_design/piko-runtime-implementation-design-v0.3.md", "sha256": "d19ca55dfaa007b2e90bebcd0463c33babfff058c0b2870b029e2c7cd16d7146"},
+    {"path": "docs/50_implementation_design/piko-runtime-implementation-design-v0.3.metadata.json", "sha256": "a38b0ae206e483a6ea64ee7bbaae941aa771482be75567659cb35628aa56f6cb"},
     {"path": "interfaces/schemas/piko-runtime-config-v0.3.schema.json", "sha256": "10fcd93f975aa78a81c2e9eb1330d0bf9f78b37958c86d419a35da8f5a0cb82a"}
   ]
 }

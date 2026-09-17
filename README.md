@@ -13,6 +13,7 @@ Piko 复用 Pi 的 session、上下文、compaction、tool loop、abort 和有�
 - `docs/10_requirements/piko-requirements-traceability-v0.3.md`
 - `docs/20_system_design/piko-agent-runtime-design-v0.3.md`
 - `docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md`
+- `docs/50_implementation_design/piko-runtime-implementation-design-v0.3.md`
 - `docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md`
 - `docs/60_interfaces/contracts/piko-v0.3-field-usage.md`
 - `docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md`
@@ -21,6 +22,7 @@ Piko 复用 Pi 的 session、上下文、compaction、tool loop、abort 和有�
 - `docs/80_operations/piko-runtime-release-and-operations-v0.3.md`
 - `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
 - `interfaces/schemas/agent-runtime-v0.3.schema.json`
+- `interfaces/schemas/piko-runtime-config-v0.3.schema.json`
 - `interfaces/error-codes/error-blocker-catalog-v0.3.json`
 - `interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`
 - `tests/contract/validate_v03_contract.py`

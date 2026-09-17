@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-tailoring-v0.1` |
-| Document Version | `0.1.2` |
+| Document Version | `0.1.3` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -31,7 +31,7 @@
 ## 1. 适用背景
 
 - 项目：`piko`
-- 生命周期阶段：v0.3 架构与接口契约评审，尚无 production implementation
+- 生命周期阶段：v0.3 架构、接口契约与实现级设计已批准，尚无 production implementation
 - 产品类型：software
 - 安全或业务关键性：跨项目 Agent Runtime；涉及 Secret、代码执行、外部模型调用和
   Matrix 身份，按高一致性与高隔离要求设计
@@ -44,7 +44,7 @@
 | `management.tailoring` | software | 是 | `piko-std-tailoring-v0.1.md` | Piko |
 | `design.system` | software/system | 是 | `piko-agent-runtime-design-v0.3.md` | Piko |
 | `design.system-mechanism` | software/cross-level | 否 | 当前没有经确认的自定义跨系统机制 | Piko |
-| `design.definition` | software/subsystem | 是 | `piko-agent-runtime-core-internal-design-v0.3.md` | Piko |
+| `design.definition` | software/subsystem/implementation-unit | 是 | `piko-agent-runtime-core-internal-design-v0.3.md`；`piko-runtime-implementation-design-v0.3.md` | Piko |
 | `contracts.specification` | software | 是 | `piko-agent-runtime-contract-v0.3.md` | Piko |
 | `requirements.traceability` | systems/software | 是 | `piko-requirements-traceability-v0.3.md` | Piko |
 | `assurance.vv-plan` | software | 是 | `piko-agent-runtime-vv-plan-v0.3.md` | Piko |

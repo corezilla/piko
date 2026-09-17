@@ -4,13 +4,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-implementation-design-review-packet` |
-| Document Version | `0.1.0-draft.1` |
-| Status | `In Review` |
+| Document Version | `0.1.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
 | Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `review.packet` |
@@ -37,7 +39,7 @@
 | parent approved commit | `d40c98b56bb04a976da2ec9e0307e0f57fdd1fc6` |
 | parent contract | `0.3.0-simplified.5` |
 | implementation package | `0.1.0-draft.1` |
-| manifest | `docs/91_reviews/piko-v0.3-implementation-design-manifest.json`；SHA-256 `81dea06382b2f030d69e298a91dc297da25018e4d646bd0a4ce082758e170ee7` |
+| manifest | `docs/91_reviews/piko-v0.3-implementation-design-manifest.json`；候选 SHA-256 `81dea06382b2f030d69e298a91dc297da25018e4d646bd0a4ce082758e170ee7` |
 | runtime activation | `false` |
 
 Manifest 固定三项输入：实现级设计 Markdown、metadata sidecar、运行配置 JSON Schema。
@@ -84,3 +86,12 @@ Matrix 和 LLMTier 证据属于实现/发布 Gate，不是本 packet 的批准�
 
 若上述边界与内部决定可接受，请由 User / Piko Project Owner 批准把实现级设计从
 `0.1.0-draft.1 / In Review` 晋升为 `0.1.0 / Approved`。该决定不得同时授权 Runtime Activation。
+
+## 8. 最终决定
+
+User / Piko Project Owner 于 2026-09-17 对 manifest 固定的候选给出 `ACCEPTED`，批准实现级设计
+晋升为 `0.1.0 / Approved`。决定只覆盖内部实现设计与配置约束，不修改 `0.3.0-simplified.5`
+外部契约，不批准生产实现、发布或 Runtime Activation。机器决定记录见
+`docs/91_reviews/piko-v0.3-implementation-design-review-packet.review-decision.json`。
+
+状态晋升后的 manifest SHA-256 为 `9b5a5f5dbc213c18ee8d8c5a568f513d1a2a68194d132c7f551cb5bda9410e59`，成员校验为 3/3。

@@ -4,13 +4,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-runtime-implementation-design-v0.3` |
-| Document Version | `0.1.0-draft.1` |
-| Status | `In Review` |
+| Document Version | `0.1.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Implementation Owner |
 | Authors | corezilla |
 | Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `design.definition` |
