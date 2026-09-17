@@ -4,7 +4,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-tailoring-v0.1` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -82,11 +82,10 @@ Element ExternalLink或自定义durable delivery不得借裁剪规则恢复。
 
 ## 5. Review 与生效
 
-当前修订的 Document Status 为 `Approved`；此前 `0.1.0`批准记录保留在Git历史。STD 来源仍锁定到完整 commit
-`eeaf9bf33012928e3e74a9ca30e87d717690d343` 与 annotated tag
-当前项目 adoption 已升级为 `0.1.0-draft.21`，source revision 为
-`274ef0a67eda080baa0063ae27ede7ee129aa32a`。MR-01、CP-01 与 PUB-01 已分别提交；DIR-01 只进行目录 relocation 与引用
-修复，后续用独立 PUB-02 重新绑定新 canonical commit。Runtime Activation 不随文档状态改变。
+当前修订的 Document Status 为 `Approved`；此前批准记录保留在 Git 历史。当前项目采用的 STD
+锁定为 `0.1.0-draft.21`、source revision
+`274ef0a67eda080baa0063ae27ede7ee129aa32a`，`source_tag=null`；不得从当前 STD checkout 推导或擅自升级。
+MR-01、CP-01、PUB-01、DIR-01 与 PUB-02 均已完成。Runtime Activation 不随文档状态改变。
 
 重新评审触发条件：STD immutable commit/tag、模板或 Schema version 变化、Piko
 authority/API/状态机变化、Pi/LLMTier/Matrix contract 变化、production topology 确定，或
