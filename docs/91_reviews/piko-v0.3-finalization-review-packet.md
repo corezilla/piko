@@ -4,7 +4,7 @@
 |---|---|
 | Package ID | `piko-v0.3-simplification` |
 | Package Version | `0.3.0-simplified.5` |
-| Status | Review；runtime activation=false |
+| Status | Approved；runtime activation=false |
 | Request | `S-20260917-23ec27fc9e7a`；覆盖第二轮三方 finding |
 | Machine authority | OpenAPI + JSON Schema + error catalog + fixture |
 
@@ -68,4 +68,14 @@ Matrix 使用原生 identity/invite/join/membership/sync/message/reply/media/lea
 - Slinky：`S-20260917-a875f9c9e85e`，ACCEPTED；独立复算 manifest 28/28，并确认 `PK-R4-SL-02-R1`、`PK-R4-SL-04-R1`、`PK-R4-SL-07-R1` 关闭。
 - LLMTier：`L-20260917-5ac3904f2c00`，ACCEPTED；独立复算 manifest 28/28，并确认 Usage/Matrix delta 未破坏 simplified.4 消费边界。
 
-两方接受均限定设计与机器契约，不代表生产实现、联调或 runtime activation。固定被接受的 manifest SHA-256 为 `e54bc8fb6815a3c9a2619c7be95d88f450431cdef3c77d66b2a8904ce37ded55`；提交只记录该已接受快照及其评审证据，不修改 manifest 成员字节。
+两方接受均限定设计与机器契约，不代表生产实现、联调或 runtime activation。两方评审时固定的内容候选 manifest SHA-256 为 `e54bc8fb6815a3c9a2619c7be95d88f450431cdef3c77d66b2a8904ce37ded55`。文档状态晋升后，manifest 仅因批准状态、版本后缀、reviewed-commit 绑定和治理性文字更新而重新计算；设计语义和机器接口不变。
+
+## 文档状态晋升
+
+User / Piko Project Owner 于 2026-09-17 明确授权完成文档治理。当前 canonical 设计文档由 `In Review` 晋升为 `Approved`，sidecar 由 `review` 晋升为 `accepted`，并统一绑定被评审的 immutable candidate commit `e721ac098652e4cc02630661a56c72ddc05d7613`。该晋升不改变已接受的设计语义、机器契约、STD 锁或外部接口。
+
+Runtime Activation 是独立 Gate，本次未请求、未授权且保持 `false`。实现、真实 Pi/Matrix/LLMTier 联调、崩溃恢复、安全、保留和性能证据仍须在激活前完成。
+
+治理决定记录：`docs/91_reviews/piko-v0.3-finalization-review-decision.json`。
+
+状态晋升后的 manifest SHA-256 为 `0c43961494c74d541c317dd8e470f32fd843c7fa73bc8d873b479d5b4de82bd6`，成员校验为 28/28。

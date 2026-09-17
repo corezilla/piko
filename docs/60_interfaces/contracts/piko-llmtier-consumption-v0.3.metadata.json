@@ -4,6 +4,6 @@
   "authors":["corezilla"],"source_repository":"corezilla/piko","source_path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md",
   "template_id":"interfaces.control","template_version":"0.1.0","template_sha256":"ed812fc7a7cd97f4484040690137c2be42c70f45cf03b5ec7d6dc3c66f5ef98d",
   "template_conformance":"tailored","tailoring_ref":"piko-std-tailoring-v0.1","migration_map_ref":null,
-  "design_level":"system","domain":["software"],"status":"review","visibility":"project","reviewed_commit":null,
+  "design_level":"system","domain":["software"],"status":"accepted","visibility":"project","reviewed_commit":"e721ac098652e4cc02630661a56c72ddc05d7613",
   "parent_document_id":"piko-agent-runtime-contract-v0.3","supersedes":null,"created_at":"2026-09-16","last_modified_at":"2026-09-17"
 }

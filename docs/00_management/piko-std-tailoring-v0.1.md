@@ -4,12 +4,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-tailoring-v0.1` |
-| Document Version | `0.1.1-draft.2` |
-| Status | `In Review` |
+| Document Version | `0.1.1` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `management.tailoring` |
@@ -79,7 +82,7 @@ Element ExternalLink或自定义durable delivery不得借裁剪规则恢复。
 
 ## 5. Review 与生效
 
-当前修订的 Document Status 为 `In Review`；此前 `0.1.0`批准记录保留在Git历史。STD 来源仍锁定到完整 commit
+当前修订的 Document Status 为 `Approved`；此前 `0.1.0`批准记录保留在Git历史。STD 来源仍锁定到完整 commit
 `eeaf9bf33012928e3e74a9ca30e87d717690d343` 与 annotated tag
 当前项目 adoption 已升级为 `0.1.0-draft.21`，source revision 为
 `274ef0a67eda080baa0063ae27ede7ee129aa32a`。MR-01、CP-01 与 PUB-01 已分别提交；DIR-01 只进行目录 relocation 与引用

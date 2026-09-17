@@ -4,11 +4,14 @@
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
 | Document Version | `0.3.0-simplified.5` |
-| Status | `In Review` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-16` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `contracts.specification` |

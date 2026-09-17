@@ -1,6 +1,6 @@
 # Piko 当前文档盘点与 STD 映射
 
-状态：简化候选评审中；Runtime Activation=false
+状态：简化设计与机器契约已批准；Runtime Activation=false
 日期：2026-09-17
 
 ## Current authority

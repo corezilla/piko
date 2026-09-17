@@ -1,0 +1,24 @@
+{
+  "schema_version": "std-review-decision.v1",
+  "review_id": "piko-v0.3-simplified5-finalization",
+  "packet_id": "piko-v0.3-simplification",
+  "verdict": "ACCEPTED",
+  "document_status_before": "review",
+  "requested_document_status_after": "accepted",
+  "runtime_activation_requested": false,
+  "runtime_activation_authority": null,
+  "reviewers": [
+    "Slinky",
+    "LLMTier",
+    "User / Piko Project Owner"
+  ],
+  "decided_at": "2026-09-17T15:01:00+08:00",
+  "decision_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
+  "conditions": [
+    "Applies only to the simplified.5 design and machine-contract snapshot reviewed at commit e721ac098652e4cc02630661a56c72ddc05d7613.",
+    "Document promotion does not change the accepted design semantics, machine contract, STD lock, or external interface.",
+    "Runtime Activation remains false and requires separate implementation, integration, safety, recovery, retention, and performance evidence.",
+    "Machine contracts retain field authority and implementation or integration gates remain open."
+  ],
+  "rationale": "Slinky and LLMTier accepted the simplified.5 snapshot, and the User / Piko Project Owner directly authorized completion of document governance. This decision promotes the reviewed canonical documents without authorizing Runtime Activation."
+}

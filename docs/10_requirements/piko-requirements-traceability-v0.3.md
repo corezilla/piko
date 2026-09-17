@@ -3,12 +3,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-requirements-traceability-v0.3` |
-| Document Version | `0.4.0-draft.2` |
-| Status | `In Review` |
+| Document Version | `0.4.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `requirements.traceability` |
@@ -22,8 +25,8 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-requirements-traceability-v0.3`
-- Version: `0.4.0-draft.2`
-- Status: Review
+- Version: `0.4.0`
+- Status: Approved
 
 | ID | 需求 | 设计 | 机器/验证 |
 |---|---|---|---|

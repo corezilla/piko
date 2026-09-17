@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "catalog_version": "agent-runtime-errors/0.3.0-simplified.5",
-  "status": "review",
+  "status": "accepted",
   "runtime_activation": false,
   "errors": [
     {"code":"InvalidRequest","http_status":400,"retryable":false,"when":"JSON, unknown fields, type, size, or canonical relative-path syntax is invalid"},

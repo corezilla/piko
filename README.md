@@ -1,6 +1,6 @@
 # Piko
 
-Piko 是基于 Pi 的单 Agent 运行时设计。一个 Piko 实例管理一个 Agent；Slinky 负责组织多个 IR、提供材料、验收结果和决定业务下一步。本仓库目前仍是设计与契约候选，不包含生产实现，`runtime_activation=false`。
+Piko 是基于 Pi 的单 Agent 运行时设计。一个 Piko 实例管理一个 Agent；Slinky 负责组织多个 IR、提供材料、验收结果和决定业务下一步。本仓库当前保存已批准的设计与机器契约基线，不包含生产实现，`runtime_activation=false`。
 
 当前唯一任务契约版本为 `0.3.0-simplified.5`，只提供 `POST /runs`、`GET /runs/{run_id}`、`POST /runs/{run_id}:cancel` 和 `GET /runs/{run_id}/result`。
 

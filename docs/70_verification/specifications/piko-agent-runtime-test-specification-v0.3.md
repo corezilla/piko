@@ -3,12 +3,15 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0-draft.16` |
-| Status | `In Review` |
+| Document Version | `0.4.0` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
 | Authors | corezilla |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `assurance.test-specification` |
@@ -22,8 +25,8 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-agent-runtime-test-specification-v0.3`
-- Version: `0.4.0-draft.16`
-- Status: Review
+- Version: `0.4.0`
+- Status: Approved
 
 | Test ID | Oracle |
 |---|---|
