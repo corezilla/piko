@@ -1,20 +1,16 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko v0.3 需求追踪矩阵
-
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-requirements-traceability-v0.3` |
-| Document Version | `0.3.0` |
-| Status | `Approved` |
+| Document Version | `0.4.0-draft.2` |
+| Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-17` |
 | Template ID | `requirements.traceability` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
@@ -25,26 +21,25 @@
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
-## 1. 追踪范围
+- Document ID: `piko-requirements-traceability-v0.3`
+- Version: `0.4.0-draft.2`
+- Status: Review
 
-本矩阵连接现有 Piko v0.2/v0.3 需求/协议 ID、STD 候选设计、机器契约与验证证据。它不复制或取得
-Slinky、LLMTier、Matrix 的 Owner authority。
+| ID | 需求 | 设计 | 机器/验证 |
+|---|---|---|---|
+| PK-01 | 一个 Piko 实例管理一个 Agent | System §1 | 单任务 schema 不含 team/participant |
+| PK-02 | 提交、查询、取消、结果四项任务面 | System §2 | OpenAPI 四 paths |
+| PK-03 | 复用 Pi session/context/tool/retry；每个 Run 隔离 session | System §2-3 | 内部设计 §1-3；PK-T07/15/16 |
+| PK-04 | 期限/预算/工具安全内尽力完成 | System §3 | RunLimits、failure fixture |
+| PK-05 | 未知副作用不盲目重试 | System §3 | `UnsafeRetryBlocked` oracle |
+| PK-06 | 失败返回原因、部分结果、已知动作 | System §3、6 | AgentResult schema |
+| PK-07 | Slinky 决定失败后的业务动作 | System §3 | 不存在 expert escalation API |
+| PK-08 | 标准 Matrix 身份、房间消息、reply、media；只有显式讨论任务可持续消费 | System §5 | discussion schema；PK-T11/17/18 |
+| PK-09 | 标准 OpenAI-compatible LLMTier | System §4 | consumption contract |
+| PK-10 | 任务级 token usage，无 Cost；缺失为 Partial/Unknown 而非零 | System §6 | TokenUsage schema；PK-T10/19 |
+| PK-11 | Memory 更新为普通任务，Slinky 为 authority | System §6 | 无 memory endpoint |
+| PK-12 | Piko/Pi 内部诊断恢复不交给 Slinky | System §7 | 运维设计/故障注入（后续） |
+| PK-13 | 一个逻辑实例同一时刻只执行一个 Run；历史按稳定 run_id 查询 | System §2-3 | RunSessionRecord；PK-T15/20 |
+| PK-14 | 终态、结果、取消与错误码组合可机器判定 | Contract §3-5 | Schema invariants/error matrix；PK-T09/21 |
 
-## 2. Traceability Matrix
-
-| Requirement / Need | Owner | Design allocation | Machine contract | Verification | 当前状态 |
-|---|---|---|---|---|---|
-| 唯一 Agent Runtime surface | Piko | `piko-agent-runtime-design-v0.3` | runtime OpenAPI/Schema v0.2 + Matrix v0.3 | contract validator + AR QA | Candidate |
-| MX-013 cursor/filter | Piko | CollaborationBridge mechanism/internal definition | Matrix OpenAPI/Schema v0.3 | MX-U/C/R-013 | Validator evidence available |
-| MX-014/015 structured resolution | Piko | CollaborationBridge mechanism/internal definition | Matrix Schema/fixtures v0.3 | MX-U/C/S-014/015 | Validator evidence available |
-| MX-016 descriptor unavailable | Piko | CollaborationBridge mechanism | Matrix OpenAPI/error catalog v0.3 | MX-C-015 | Validator evidence available |
-| Crash/retry/UnknownOutcome | Piko | system + mechanism + internal definition | typed errors and persisted identities | recovery/E2E cases | Planned/Blocked by runtime env |
-| Consumed LLMTier invocation | LLMTier fields; Piko adapter | Agent Runtime system design | reviewed Piko-facing bundle | adapter contract/E2E | Semantics reviewed; activation false |
-| Project/IR/Decision/Acceptance | Slinky | external context only | Slinky-owned | Slinky acceptance | Outside Piko authority |
-
-## 3. Coverage gaps
-
-- SessionSummary/CloseResult 等接口语义留给后续重新设计与编码阶段，不属于迁移 Gate。
-- Real Matrix, database crash/restart, credential isolation and LLMTier E2E evidence do not yet exist.
-- Immutable reviewed Piko commit is `f2bb0937f31a27c36ecc1adefc31b1b78b6dc722`;
-  document approval does not close the listed contract/runtime evidence gates.
+明确退出的旧需求：跨系统 capacity/claim/Seat、Session binding/drain/release、产品消息 envelope/trigger、Piko content service、模型 Invocation recovery、SourceInstance、compatibility/readiness 管理面。历史追踪只说明迁移，不进入当前验收。

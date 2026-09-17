@@ -1,563 +1,66 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://piko.local/schemas/agent-runtime-v0.3.schema.json",
-  "title": "Piko Agent Runtime V0.3 定型契约",
-  "description": "单 Agent 轻量 Run、通信绑定投影和产品消息信封的唯一 V0.3 候选。runtime activation=false。",
-  "x-contract-version": "0.3.0-finalization.10",
+  "title": "Piko Agent Runtime simplified contract",
+  "description": "Thin single-Agent task wrapper over Pi. runtime_activation=false.",
+  "x-contract-version": "0.3.0-simplified.5",
   "$defs": {
     "Identifier": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9._:-]+$"},
     "OpaqueRef": {"type":"string","minLength":1,"maxLength":256},
     "Timestamp": {"type":"string","format":"date-time","pattern":"Z$"},
     "Digest": {"type":"string","pattern":"^[0-9a-f]{64}$"},
-    "RelativePath": {"type":"string","minLength":1,"maxLength":4096,"pattern":"^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\u0000).+$"},
-    "CommunicationTrigger": {
-      "type":["object","null"],"additionalProperties":false,
-      "required":["provider","dispatch_ref","trigger_event_id"],
-      "properties":{
-        "provider":{"const":"SlinkyRuntime"},
-        "dispatch_ref":{"$ref":"#/$defs/Identifier"},
-        "trigger_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"}
-      }
-    },
-    "Permissions": {
-      "type":"object","additionalProperties":false,
-      "required":["read_paths","write_paths","tool_profile_ref"],
-      "properties":{
-        "read_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},
-        "write_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},
-        "tool_profile_ref":{"$ref":"#/$defs/OpaqueRef"}
-      }
-    },
-    "RunLimits": {
-      "type":"object","additionalProperties":false,
-      "required":["deadline_at","max_model_calls","max_tool_calls","stop_grace_seconds"],
-      "properties":{
-        "deadline_at":{"$ref":"#/$defs/Timestamp"},
-        "max_model_calls":{"type":"integer","minimum":1,"maximum":100000},
-        "max_tool_calls":{"type":"integer","minimum":0,"maximum":100000},
-        "stop_grace_seconds":{"type":"integer","minimum":1,"maximum":3600}
-      }
-    },
-    "InputEvidenceRequirement": {
-      "enum":["Required","NotRequired"]
-    },
-    "ExecutionRequirementSelector": {
-      "type":"object","additionalProperties":false,
-      "required":["selector_id","quantity","workspace_ref","service_level_id","agent_binding_ref","tool_profile_ref","input_evidence_requirement"],
-      "properties":{
-        "selector_id":{"$ref":"#/$defs/Identifier"},
-        "quantity":{"const":1},
-        "workspace_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "service_level_id":{"type":"string","minLength":1,"maxLength":128,"x-exact-case":true},
-        "agent_binding_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "tool_profile_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "input_evidence_requirement":{"$ref":"#/$defs/InputEvidenceRequirement"}
-      }
-    },
-    "ExecutionCapacityQuery": {
-      "type":"object","additionalProperties":false,
-      "required":["selectors"],
-      "properties":{"selectors":{"type":"array","minItems":1,"maxItems":256,"items":{"$ref":"#/$defs/ExecutionRequirementSelector"}}}
-    },
-    "ExecutionClassResolution": {
-      "type":"object","additionalProperties":false,
-      "required":["selector_id","status","execution_class_id","execution_class_version","reason_code"],
-      "properties":{
-        "selector_id":{"$ref":"#/$defs/Identifier"},
-        "status":{"enum":["Resolved","Unsupported","Unknown"]},
-        "execution_class_id":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "execution_class_version":{"type":["integer","null"],"minimum":1},
-        "reason_code":{"type":["string","null"],"minLength":1,"maxLength":128}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Resolved"}}},"then":{"properties":{"execution_class_id":{"type":"string"},"execution_class_version":{"type":"integer","minimum":1},"reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"status":{"enum":["Unsupported","Unknown"]}}},"then":{"properties":{"execution_class_id":{"type":"null"},"execution_class_version":{"type":"null"},"reason_code":{"type":"string"}}}}
-      ]
-    },
-    "ExecutionClassCapacity": {
-      "type":"object","additionalProperties":false,
-      "required":["execution_class_id","execution_class_version","unit","availability_status","available_quantity","held_claim_quantity","queued_claim_quantity","constraint_ids"],
-      "properties":{
-        "execution_class_id":{"$ref":"#/$defs/OpaqueRef"},"execution_class_version":{"type":"integer","minimum":1},
-        "unit":{"const":"piko_concurrent_agent_run"},"availability_status":{"enum":["Known","Unknown"]},
-        "available_quantity":{"type":["integer","null"],"minimum":0},"held_claim_quantity":{"type":["integer","null"],"minimum":0},
-        "queued_claim_quantity":{"type":["integer","null"],"minimum":0},
-        "constraint_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}}
-      },
-      "allOf":[
-        {"if":{"properties":{"availability_status":{"const":"Known"}}},"then":{"properties":{"available_quantity":{"type":"integer"},"held_claim_quantity":{"type":"integer"},"queued_claim_quantity":{"type":"integer"}}}},
-        {"if":{"properties":{"availability_status":{"const":"Unknown"}}},"then":{"properties":{"available_quantity":{"type":"null"},"held_claim_quantity":{"type":"null"},"queued_claim_quantity":{"type":"null"}}}}
-      ]
-    },
-    "ExecutionCapacityConstraintFact": {
-      "type":"object","additionalProperties":false,
-      "required":["constraint_id","constraint_kind","execution_class_ids","status","committed_limit","held_quantity","available_quantity","shortfall_for_next_unit","is_blocking","reason_code"],
-      "properties":{
-        "constraint_id":{"$ref":"#/$defs/OpaqueRef"},"constraint_kind":{"enum":["DirectClass","SharedWorkerPool","ClientQuota"]},
-        "execution_class_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "status":{"enum":["Known","Unknown"]},"committed_limit":{"type":["integer","null"],"minimum":0},
-        "held_quantity":{"type":["integer","null"],"minimum":0},"available_quantity":{"type":["integer","null"],"minimum":0},
-        "shortfall_for_next_unit":{"type":["integer","null"],"minimum":0},
-        "is_blocking":{"type":"boolean"},"reason_code":{"type":["string","null"],"minLength":1,"maxLength":128}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Known"}}},"then":{"properties":{"committed_limit":{"type":"integer"},"held_quantity":{"type":"integer"},"available_quantity":{"type":"integer"},"shortfall_for_next_unit":{"type":"integer"},"reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"status":{"const":"Unknown"}}},"then":{"properties":{"committed_limit":{"type":"null"},"held_quantity":{"type":"null"},"available_quantity":{"type":"null"},"shortfall_for_next_unit":{"type":"null"},"is_blocking":{"const":true},"reason_code":{"type":"string"}}}}
-      ]
-    },
-    "ExecutionCapacitySnapshot": {
-      "type":"object","additionalProperties":false,
-      "required":["snapshot_id","snapshot_version","scope_ref","status","unit","observed_at","valid_until","selector_resolutions","execution_classes","constraint_facts","etag"],
-      "properties":{
-        "snapshot_id":{"$ref":"#/$defs/OpaqueRef"},"snapshot_version":{"type":"integer","minimum":1},"scope_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "status":{"enum":["Complete","Partial","Unknown"]},"unit":{"const":"piko_concurrent_agent_run"},
-        "observed_at":{"$ref":"#/$defs/Timestamp"},"valid_until":{"$ref":"#/$defs/Timestamp"},
-        "selector_resolutions":{"type":"array","minItems":1,"maxItems":256,"items":{"$ref":"#/$defs/ExecutionClassResolution"}},
-        "execution_classes":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/ExecutionClassCapacity"}},
-        "constraint_facts":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/ExecutionCapacityConstraintFact"}},
-        "etag":{"type":"string","minLength":1}
-      }
-    },
-    "ExecutionClaimView": {
-      "type":"object","additionalProperties":false,
-      "required":["claim_id","unit","quantity","execution_class_id","execution_class_version","status","claim_version","acquired_at","released_at","release_evidence_type","release_evidence_at","unknown_reason_code"],
-      "properties":{
-        "claim_id":{"$ref":"#/$defs/OpaqueRef"},"unit":{"const":"piko_concurrent_agent_run"},"quantity":{"const":1},
-        "execution_class_id":{"$ref":"#/$defs/OpaqueRef"},"execution_class_version":{"type":"integer","minimum":1},
-        "status":{"enum":["Held","Released","Unknown"]},"claim_version":{"type":"integer","minimum":1},
-        "acquired_at":{"$ref":"#/$defs/Timestamp"},"released_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "release_evidence_type":{"enum":[null,"NotDispatched","RunTerminal","ExecutionStoppedAck","AuthorizedReconcile"]},
-        "release_evidence_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "unknown_reason_code":{"type":["string","null"],"minLength":1,"maxLength":128}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Held"}}},"then":{"properties":{"released_at":{"type":"null"},"release_evidence_type":{"type":"null"},"release_evidence_at":{"type":"null"},"unknown_reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"status":{"const":"Released"}}},"then":{"properties":{"released_at":{"type":"string"},"release_evidence_type":{"type":"string"},"release_evidence_at":{"type":"string"},"unknown_reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"status":{"const":"Unknown"}}},"then":{"properties":{"released_at":{"type":"null"},"release_evidence_type":{"type":"null"},"release_evidence_at":{"type":"null"},"unknown_reason_code":{"type":"string"}}}}
-      ]
-    },
-    "AgentTaskRequest": {
-      "type":"object","additionalProperties":false,
-      "required":["client_task_id","instruction","workspace_ref","service_level_id","agent_binding_ref","session_binding_ref","expected_session_binding_version","communication_trigger","permissions","limits","input_evidence_requirement","output_paths"],
-      "properties":{
-        "client_task_id":{"$ref":"#/$defs/Identifier"},
-        "instruction":{"type":"string","minLength":1,"maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
-        "workspace_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "service_level_id":{"type":"string","minLength":1,"maxLength":128,"x-exact-case":true},
-        "agent_binding_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "session_binding_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "expected_session_binding_version":{"type":["integer","null"],"minimum":1},
-        "communication_trigger":{"$ref":"#/$defs/CommunicationTrigger"},
-        "permissions":{"$ref":"#/$defs/Permissions"},
-        "limits":{"$ref":"#/$defs/RunLimits"},
-        "input_evidence_requirement":{"$ref":"#/$defs/InputEvidenceRequirement"},
-        "output_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}}
-      },
-      "allOf":[
-        {"if":{"properties":{"session_binding_ref":{"type":"null"}}},"then":{"properties":{"expected_session_binding_version":{"type":"null"}}}},
-        {"if":{"properties":{"session_binding_ref":{"type":"string"}}},"then":{"properties":{"agent_binding_ref":{"type":"string"},"expected_session_binding_version":{"type":"integer","minimum":1}}}},
-        {"if":{"properties":{"communication_trigger":{"type":"object"}}},"then":{"properties":{"session_binding_ref":{"type":"string"}}}},
-        {"if":{"properties":{"input_evidence_requirement":{"const":"Required"}}},"then":{"properties":{"output_paths":{"maxItems":255}}}}
-      ]
-    },
-    "Progress": {
-      "type":["object","null"],"additionalProperties":false,
-      "required":["message","observed_at"],
-      "properties":{"message":{"type":"string","maxLength":4096,"x-authoritative-length-unit":"utf8_bytes"},"observed_at":{"$ref":"#/$defs/Timestamp"}}
-    },
-    "Recovery": {
-      "type":["object","null"],"additionalProperties":false,
-      "required":["reason_code","unresolved_refs","suggested_action"],
-      "properties":{
-        "reason_code":{"type":"string","minLength":1,"maxLength":128},
-        "unresolved_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "suggested_action":{"enum":["Wait","OperatorAction"]}
-      }
-    },
-    "ExecutionReleaseEvidence": {
-      "type":"object","additionalProperties":false,
-      "required":["agent_fence_ref","tool_termination_or_isolation_refs","workspace_writer_fence_ref","wakeup_fence_ref","external_obligation_status","external_obligation_refs","isolation_boundary_ref","released_at"],
-      "properties":{
-        "agent_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "tool_termination_or_isolation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "workspace_writer_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "wakeup_fence_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "external_obligation_status":{"enum":["Terminal","Isolated","Unknown"]},
-        "external_obligation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "isolation_boundary_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "released_at":{"$ref":"#/$defs/Timestamp"}
-      },
-      "allOf":[
-        {"if":{"properties":{"external_obligation_status":{"const":"Terminal"}}},"then":{"properties":{"isolation_boundary_ref":{"type":"null"}}}},
-        {"if":{"properties":{"external_obligation_status":{"const":"Isolated"}}},"then":{"properties":{"isolation_boundary_ref":{"type":"string"},"external_obligation_refs":{"minItems":1}}}},
-        {"if":{"properties":{"external_obligation_status":{"const":"Unknown"}}},"then":{"properties":{"external_obligation_refs":{"minItems":1}}}}
-      ]
-    },
-    "RunCommunicationAttachment": {
-      "type":["object","null"],"additionalProperties":false,
-      "required":["attachment_id","agent_binding_ref","session_binding_ref","resolved_session_binding_version","session_id","room_id","agent_identity_ref","communication_trigger","wakeup_epoch","attached_at","status"],
-      "properties":{
-        "attachment_id":{"$ref":"#/$defs/OpaqueRef"},
-        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "resolved_session_binding_version":{"type":"integer","minimum":1},
-        "session_id":{"$ref":"#/$defs/OpaqueRef"},
-        "room_id":{"type":"string","minLength":1,"maxLength":255},
-        "agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "communication_trigger":{"$ref":"#/$defs/CommunicationTrigger"},
-        "wakeup_epoch":{"type":"integer","minimum":1},
-        "attached_at":{"$ref":"#/$defs/Timestamp"},
-        "revoked_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "status":{"enum":["Attached","Fenced","Released"]}
-      }
-    },
+    "RelativePath": {"type":"string","minLength":1,"maxLength":4096,"pattern":"^(?!/)(?!.*[/]$)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)(?:\\.|\\.\\.)(?:/|$))(?!.*\\u0000)[^\\\\]+$"},
+    "Permissions": {"type":"object","additionalProperties":false,"required":["read_paths","write_paths","tool_profile_ref"],"properties":{"read_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},"write_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},"tool_profile_ref":{"$ref":"#/$defs/OpaqueRef"}}},
+    "RunLimits": {"type":"object","additionalProperties":false,"required":["deadline_at","max_model_calls","max_tool_calls"],"properties":{"deadline_at":{"$ref":"#/$defs/Timestamp"},"max_model_calls":{"type":"integer","minimum":1,"maximum":100000},"max_tool_calls":{"type":"integer","minimum":0,"maximum":100000}}},
+    "DiscussionContext": {"type":"object","additionalProperties":false,"required":["room_id","trigger_event_id"],"properties":{"room_id":{"type":"string","minLength":3,"maxLength":255,"pattern":"^!.*:.+$"},"trigger_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$.+$"}}},
+    "AgentTaskRequest": {"type":"object","additionalProperties":false,"required":["client_task_id","instruction","workspace_ref","permissions","limits","output_paths"],"properties":{"client_task_id":{"$ref":"#/$defs/Identifier"},"instruction":{"type":"string","minLength":1,"maxLength":1048576},"workspace_ref":{"$ref":"#/$defs/OpaqueRef"},"permissions":{"$ref":"#/$defs/Permissions"},"limits":{"$ref":"#/$defs/RunLimits"},"output_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},"discussion":{"$ref":"#/$defs/DiscussionContext"}}},
+    "RunState": {"enum":["Queued","Running","Cancelling","Completed","Failed","Cancelled"]},
+    "Progress": {"type":"object","additionalProperties":false,"required":["model_calls","tool_calls","last_activity_at"],"properties":{"model_calls":{"type":"integer","minimum":0,"description":"Actual Responses requests started, including retry attempts."},"tool_calls":{"type":"integer","minimum":0},"last_activity_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]}}},
     "RunView": {
       "type":"object","additionalProperties":false,
-      "required":["run_id","client_task_id","state","state_version","accepted_at","started_at","finished_at","result_available","execution_released","release_evidence","execution_claim","input_evidence_capability","progress","recovery","recoverable_until","resolved_bindings_ref","communication_attachment"],
-      "properties":{
-        "run_id":{"$ref":"#/$defs/OpaqueRef"},
-        "client_task_id":{"$ref":"#/$defs/Identifier"},
-        "state":{"enum":["Queued","Running","Stopping","RecoveryRequired","Completed","Failed","Cancelled"]},
-        "state_version":{"type":"integer","minimum":1},
-        "accepted_at":{"$ref":"#/$defs/Timestamp"},
-        "started_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "finished_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "result_available":{"type":"boolean"},
-        "execution_released":{"type":"boolean"},
-        "release_evidence":{"oneOf":[{"$ref":"#/$defs/ExecutionReleaseEvidence"},{"type":"null"}]},
-        "execution_claim":{"$ref":"#/$defs/ExecutionClaimView"},
-        "input_evidence_capability":{"enum":["Auditable","NotAuditable","Unknown"]},
-        "progress":{"$ref":"#/$defs/Progress"},
-        "recovery":{"$ref":"#/$defs/Recovery"},
-        "recoverable_until":{"$ref":"#/$defs/Timestamp"},
-        "resolved_bindings_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "communication_attachment":{"$ref":"#/$defs/RunCommunicationAttachment"}
-      },
+      "required":["run_id","client_task_id","state","accepted_at","started_at","finished_at","result_available","cancel_requested","progress"],
+      "properties":{"run_id":{"$ref":"#/$defs/Identifier"},"client_task_id":{"$ref":"#/$defs/Identifier"},"state":{"$ref":"#/$defs/RunState"},"accepted_at":{"$ref":"#/$defs/Timestamp"},"started_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},"finished_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},"result_available":{"type":"boolean"},"cancel_requested":{"type":"boolean"},"progress":{"$ref":"#/$defs/Progress"}},
       "allOf":[
-        {"if":{"properties":{"state":{"const":"RecoveryRequired"}}},"then":{"properties":{"recovery":{"type":"object"}}}},
-        {"if":{"properties":{"execution_released":{"const":true}}},"then":{"properties":{"release_evidence":{"type":"object"}}}},
-        {"if":{"properties":{"state":{"enum":["Completed","Failed","Cancelled"]}}},"then":{"properties":{"result_available":{"const":true}}}},
-        {"if":{"properties":{"state":{"enum":["Queued","Running","Stopping","RecoveryRequired"]}}},"then":{"properties":{"result_available":{"const":false}}}}
+        {"if":{"properties":{"state":{"const":"Queued"}},"required":["state"]},"then":{"properties":{"started_at":{"type":"null"},"finished_at":{"type":"null"},"result_available":{"const":false},"cancel_requested":{"const":false}}}},
+        {"if":{"properties":{"state":{"const":"Running"}},"required":["state"]},"then":{"properties":{"started_at":{"$ref":"#/$defs/Timestamp"},"finished_at":{"type":"null"},"result_available":{"const":false},"cancel_requested":{"const":false}}}},
+        {"if":{"properties":{"state":{"const":"Cancelling"}},"required":["state"]},"then":{"properties":{"started_at":{"$ref":"#/$defs/Timestamp"},"finished_at":{"type":"null"},"result_available":{"const":false},"cancel_requested":{"const":true}}}},
+        {"if":{"properties":{"state":{"enum":["Completed","Failed","Cancelled"]}},"required":["state"]},"then":{"properties":{"finished_at":{"$ref":"#/$defs/Timestamp"},"result_available":{"const":true}}}},
+        {"if":{"properties":{"state":{"const":"Completed"}},"required":["state"]},"then":{"properties":{"started_at":{"$ref":"#/$defs/Timestamp"},"cancel_requested":{"const":false}}}},
+        {"if":{"properties":{"state":{"const":"Cancelled"}},"required":["state"]},"then":{"properties":{"cancel_requested":{"const":true}}}}
       ]
     },
-    "OutputFile": {
-      "type":"object","additionalProperties":false,"required":["path","sha256","size_bytes"],
-      "properties":{"path":{"$ref":"#/$defs/RelativePath"},"sha256":{"$ref":"#/$defs/Digest"},"size_bytes":{"type":"integer","minimum":0}}
-    },
-    "ByteRange": {
-      "type":"object","additionalProperties":false,"required":["start","end_exclusive"],
-      "properties":{"start":{"type":"integer","minimum":0},"end_exclusive":{"type":"integer","minimum":0}}
-    },
-    "MaterialReadObservation": {
+    "CancelReceipt": {"type":"object","additionalProperties":false,"required":["run_id","outcome","requested_at"],"properties":{"run_id":{"$ref":"#/$defs/Identifier"},"outcome":{"enum":["CancelledBeforeStart","StopRequested","AlreadyTerminal"]},"requested_at":{"$ref":"#/$defs/Timestamp"}}},
+    "OutputArtifact": {"type":"object","additionalProperties":false,"required":["path","sha256","size_bytes"],"properties":{"path":{"$ref":"#/$defs/RelativePath"},"sha256":{"$ref":"#/$defs/Digest"},"size_bytes":{"type":"integer","minimum":0}}},
+    "KnownAction": {"type":"object","additionalProperties":false,"required":["kind","status","description"],"properties":{"kind":{"enum":["ModelCall","ToolCall","FileWrite","MatrixSend","Other"]},"status":{"enum":["Completed","Failed","Unknown"]},"description":{"type":"string","minLength":1,"maxLength":4096}}},
+    "TokenField": {"enum":["input_tokens","output_tokens","total_tokens","cache_read_tokens","cache_write_tokens","reasoning_tokens"]},
+    "TokenUsage": {
       "type":"object","additionalProperties":false,
-      "required":["path","object_version","content_sha256","size_bytes","coverage","observed_ranges","read_event_count","first_observed_at","last_observed_at","post_read_object_version","post_read_sha256"],
-      "properties":{
-        "path":{"$ref":"#/$defs/RelativePath"},"object_version":{"$ref":"#/$defs/OpaqueRef"},
-        "content_sha256":{"oneOf":[{"$ref":"#/$defs/Digest"},{"type":"null"}]},"size_bytes":{"type":"integer","minimum":0},
-        "coverage":{"enum":["FullContent","ByteRanges","MetadataOnly","ChangedDuringRead"]},
-        "observed_ranges":{"type":"array","items":{"$ref":"#/$defs/ByteRange"}},"read_event_count":{"type":"integer","minimum":1},
-        "first_observed_at":{"$ref":"#/$defs/Timestamp"},"last_observed_at":{"$ref":"#/$defs/Timestamp"},
-        "post_read_object_version":{"type":["string","null"],"minLength":1},"post_read_sha256":{"oneOf":[{"$ref":"#/$defs/Digest"},{"type":"null"}]}
-      },
+      "required":["source","quality","input_tokens","output_tokens","total_tokens","cache_read_tokens","cache_write_tokens","reasoning_tokens","model_attempts","usage_observed_attempts","missing_fields"],
+      "properties":{"source":{"const":"PiModelResponses"},"quality":{"enum":["Complete","Partial","Unknown"]},"input_tokens":{"type":["integer","null"],"minimum":0},"output_tokens":{"type":["integer","null"],"minimum":0},"total_tokens":{"type":["integer","null"],"minimum":0},"cache_read_tokens":{"type":["integer","null"],"minimum":0},"cache_write_tokens":{"type":["integer","null"],"minimum":0},"reasoning_tokens":{"type":["integer","null"],"minimum":0},"model_attempts":{"type":"integer","minimum":0},"usage_observed_attempts":{"type":"integer","minimum":0},"missing_fields":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/TokenField"}}},
       "allOf":[
-        {"if":{"properties":{"coverage":{"const":"MetadataOnly"}}},"then":{"properties":{"observed_ranges":{"maxItems":0}}}},
-        {"if":{"properties":{"coverage":{"const":"FullContent"}}},"then":{"properties":{"content_sha256":{"type":"string"}}}},
-        {"if":{"properties":{"coverage":{"const":"FullContent"},"size_bytes":{"minimum":1}},"required":["coverage","size_bytes"]},"then":{"properties":{"observed_ranges":{"minItems":1}}}},
-        {"if":{"properties":{"coverage":{"const":"ChangedDuringRead"}}},"then":{"properties":{"post_read_object_version":{"type":"string"},"post_read_sha256":{"type":"string"}}}},
-        {"if":{"properties":{"coverage":{"enum":["FullContent","ByteRanges","MetadataOnly"]}}},"then":{"properties":{"post_read_object_version":{"type":"null"},"post_read_sha256":{"type":"null"}}}}
+        {"if":{"properties":{"quality":{"const":"Complete"}},"required":["quality"]},"then":{"properties":{"input_tokens":{"type":"integer"},"output_tokens":{"type":"integer"},"total_tokens":{"type":"integer"},"cache_read_tokens":{"type":"integer"},"cache_write_tokens":{"type":"integer"},"reasoning_tokens":{"type":"integer"},"missing_fields":{"maxItems":0}}}},
+        {"if":{"properties":{"quality":{"const":"Partial"}},"required":["quality"]},"then":{"properties":{"missing_fields":{"minItems":1}}}},
+        {"if":{"properties":{"quality":{"const":"Unknown"}},"required":["quality"]},"then":{"properties":{"input_tokens":{"type":"null"},"output_tokens":{"type":"null"},"total_tokens":{"type":"null"},"cache_read_tokens":{"type":"null"},"cache_write_tokens":{"type":"null"},"reasoning_tokens":{"type":"null"},"missing_fields":{"minItems":6,"maxItems":6}}}},
+        {"if":{"properties":{"input_tokens":{"type":"null"}},"required":["input_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"input_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"input_tokens"}}}}}},
+        {"if":{"properties":{"output_tokens":{"type":"null"}},"required":["output_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"output_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"output_tokens"}}}}}},
+        {"if":{"properties":{"total_tokens":{"type":"null"}},"required":["total_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"total_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"total_tokens"}}}}}},
+        {"if":{"properties":{"cache_read_tokens":{"type":"null"}},"required":["cache_read_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"cache_read_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"cache_read_tokens"}}}}}},
+        {"if":{"properties":{"cache_write_tokens":{"type":"null"}},"required":["cache_write_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"cache_write_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"cache_write_tokens"}}}}}},
+        {"if":{"properties":{"reasoning_tokens":{"type":"null"}},"required":["reasoning_tokens"]},"then":{"properties":{"missing_fields":{"contains":{"const":"reasoning_tokens"}}}},"else":{"properties":{"missing_fields":{"not":{"contains":{"const":"reasoning_tokens"}}}}}}
       ]
     },
-    "InputAccessEvidenceDocument": {
-      "type":"object","additionalProperties":false,
-      "required":["evidence_version","producer","run_id","client_task_id","result_generation","recorder_status","started_at","closed_at","observations","gap_reason_codes"],
-      "properties":{
-        "evidence_version":{"const":"piko-input-access-evidence/v1"},"producer":{"const":"PikoTrustedInputBroker"},
-        "run_id":{"$ref":"#/$defs/OpaqueRef"},"client_task_id":{"$ref":"#/$defs/Identifier"},"result_generation":{"type":"integer","minimum":1},
-        "recorder_status":{"enum":["Complete","Partial"]},"started_at":{"$ref":"#/$defs/Timestamp"},"closed_at":{"$ref":"#/$defs/Timestamp"},
-        "observations":{"type":"array","maxItems":100000,"items":{"$ref":"#/$defs/MaterialReadObservation"}},
-        "gap_reason_codes":{"type":"array","uniqueItems":true,"items":{"enum":["RecorderFailure","UnmediatedAccessDetected","UnknownExecution","ObjectChangedDuringRead"]}}
-      },
-      "allOf":[
-        {"if":{"properties":{"recorder_status":{"const":"Complete"}}},"then":{"properties":{"gap_reason_codes":{"maxItems":0},"observations":{"not":{"contains":{"properties":{"coverage":{"const":"ChangedDuringRead"}},"required":["coverage"]}}}}}},
-        {"if":{"properties":{"recorder_status":{"const":"Partial"}}},"then":{"properties":{"gap_reason_codes":{"minItems":1}}}},
-        {"if":{"properties":{"observations":{"contains":{"properties":{"coverage":{"const":"ChangedDuringRead"}},"required":["coverage"]}}},"required":["observations"]},"then":{"properties":{"recorder_status":{"const":"Partial"},"gap_reason_codes":{"contains":{"const":"ObjectChangedDuringRead"}}}}}
-      ]
-    },
-    "Usage": {
-      "type":"object","additionalProperties":false,"required":["model_calls","tool_calls","input_tokens","output_tokens","cost","currency"],
-      "properties":{
-        "model_calls":{"type":"integer","minimum":0},"tool_calls":{"type":"integer","minimum":0},
-        "input_tokens":{"type":["integer","null"],"minimum":0},"output_tokens":{"type":["integer","null"],"minimum":0},
-        "cost":{"type":["string","null"],"pattern":"^(0|[1-9][0-9]{0,19})(\\.[0-9]{1,12})?$"},
-        "currency":{"type":["string","null"],"pattern":"^[A-Z]{3}$"}
-      },
-      "allOf":[
-        {"if":{"properties":{"cost":{"type":"null"}}},"then":{"properties":{"currency":{"type":"null"}}}},
-        {"if":{"properties":{"cost":{"type":"string"}}},"then":{"properties":{"currency":{"type":"string"}}}}
-      ]
-    },
+    "Failure": {"type":"object","additionalProperties":false,"required":["code","cause_class","message"],"properties":{"code":{"enum":["DeadlineExceeded","BudgetExceeded","ModelUnavailable","ModelResponseInvalid","ToolFailure","UnsafeRetryBlocked","ExecutionStateUnknown","DiscussionAccessLost","CancelledByRequest","InternalError"]},"cause_class":{"enum":["TaskDeadline","Budget","Dependency","ModelProtocol","Tool","ExecutionUnknown","Authorization","Cancellation","Internal"]},"message":{"type":"string","minLength":1,"maxLength":8192}}},
     "AgentResult": {
       "type":"object","additionalProperties":false,
-      "required":["run_id","client_task_id","state","reason_code","detail_reason_code","summary","outputs","usage","execution_log_ref","finished_at","result_generation","published_at"],
-      "properties":{
-        "run_id":{"$ref":"#/$defs/OpaqueRef"},"client_task_id":{"$ref":"#/$defs/Identifier"},
-        "state":{"enum":["Completed","Failed","Cancelled"]},
-        "reason_code":{"enum":["AgentFinished","ExecutionError","DeadlineExceeded","ModelCallLimit","ToolCallLimit","UserCancelled"]},
-        "detail_reason_code":{"enum":[null,"AgentExecutionError","DependencyExecutionError","ModelRequestDeadlineExceeded","ServiceEffectiveDeadlineExceeded","TaskDeadlineExceeded"]},
-        "summary":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
-        "outputs":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/OutputFile"}},
-        "usage":{"$ref":"#/$defs/Usage"},
-        "execution_log_ref":{"oneOf":[{"$ref":"#/$defs/OpaqueRef"},{"type":"null"}]},
-        "finished_at":{"$ref":"#/$defs/Timestamp"},"result_generation":{"type":"integer","minimum":1},"published_at":{"$ref":"#/$defs/Timestamp"}
-      },
+      "required":["run_id","client_task_id","generation","state","partial","summary","outputs","known_actions","usage","failure","published_at"],
+      "properties":{"run_id":{"$ref":"#/$defs/Identifier"},"client_task_id":{"$ref":"#/$defs/Identifier"},"generation":{"type":"integer","minimum":1},"state":{"enum":["Completed","Failed","Cancelled"]},"partial":{"type":"boolean"},"summary":{"type":"string","maxLength":1048576},"outputs":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/OutputArtifact"}},"known_actions":{"type":"array","maxItems":10000,"items":{"$ref":"#/$defs/KnownAction"}},"usage":{"$ref":"#/$defs/TokenUsage"},"failure":{"oneOf":[{"$ref":"#/$defs/Failure"},{"type":"null"}]},"published_at":{"$ref":"#/$defs/Timestamp"}},
       "allOf":[
-        {"if":{"properties":{"state":{"const":"Completed"}}},"then":{"properties":{"reason_code":{"const":"AgentFinished"},"detail_reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"state":{"const":"Cancelled"}}},"then":{"properties":{"reason_code":{"const":"UserCancelled"},"detail_reason_code":{"type":"null"}}}},
-        {"if":{"properties":{"state":{"const":"Failed"}}},"then":{"properties":{"reason_code":{"enum":["ExecutionError","DeadlineExceeded","ModelCallLimit","ToolCallLimit"]}}}},
-        {"if":{"properties":{"reason_code":{"const":"ExecutionError"}}},"then":{"properties":{"detail_reason_code":{"enum":["AgentExecutionError","DependencyExecutionError","ModelRequestDeadlineExceeded","ServiceEffectiveDeadlineExceeded"]}}}},
-        {"if":{"properties":{"reason_code":{"const":"DeadlineExceeded"}}},"then":{"properties":{"detail_reason_code":{"const":"TaskDeadlineExceeded"}}}},
-        {"if":{"properties":{"reason_code":{"enum":["ModelCallLimit","ToolCallLimit"]}}},"then":{"properties":{"detail_reason_code":{"type":"null"}}}}
+        {"if":{"properties":{"state":{"const":"Completed"}},"required":["state"]},"then":{"properties":{"failure":{"type":"null"},"partial":{"const":false}}}},
+        {"if":{"properties":{"state":{"const":"Failed"}},"required":["state"]},"then":{"properties":{"failure":{"$ref":"#/$defs/Failure"}}}},
+        {"if":{"properties":{"state":{"const":"Cancelled"}},"required":["state"]},"then":{"properties":{"failure":{"allOf":[{"$ref":"#/$defs/Failure"},{"properties":{"code":{"const":"CancelledByRequest"},"cause_class":{"const":"Cancellation"}}}]}}}}
       ]
     },
-    "CancelRequest": {
-      "type":"object","additionalProperties":false,"required":["reason"],
-      "properties":{"reason":{"type":"string","minLength":1,"maxLength":4096,"x-authoritative-length-unit":"utf8_bytes"}}
-    },
-    "CancelReceipt": {
-      "type":"object","additionalProperties":false,"required":["run_id","command_id","accepted_at","outcome"],
-      "properties":{"run_id":{"$ref":"#/$defs/OpaqueRef"},"command_id":{"$ref":"#/$defs/OpaqueRef"},"accepted_at":{"$ref":"#/$defs/Timestamp"},"outcome":{"enum":["StopRequested","AlreadyTerminal"]}}
-    },
-    "MatrixTransportProfile": {
-      "type":"object","additionalProperties":false,
-      "required":["profile_id","profile_version","matrix_homeserver_url","element_web_base_url","identity_provisioning_mode","credential_binding_ref","room_topology","encryption_policy","federation_policy","enabled","status"],
-      "properties":{
-        "profile_id":{"$ref":"#/$defs/OpaqueRef"},"profile_version":{"type":"integer","minimum":1},
-        "matrix_homeserver_url":{"type":"string","format":"uri","pattern":"^https://"},"element_web_base_url":{"type":"string","format":"uri","pattern":"^https://"},
-        "identity_provisioning_mode":{"const":"ApplicationServiceVirtualUser"},"credential_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "room_topology":{"const":"SlinkyManagedExclusiveRoom"},"encryption_policy":{"const":"Forbidden"},"federation_policy":{"const":"Forbidden"},
-        "enabled":{"type":"boolean"},"status":{"enum":["Ready","Degraded","NotReady","Disabled"]}
-      }
-    },
-    "MatrixTransportProfileRequest": {
-      "type":"object","additionalProperties":false,
-      "required":["matrix_homeserver_url","element_web_base_url","identity_provisioning_mode","credential_binding_ref","room_topology","encryption_policy","federation_policy","enabled"],
-      "properties":{
-        "matrix_homeserver_url":{"type":"string","format":"uri","pattern":"^https://"},"element_web_base_url":{"type":"string","format":"uri","pattern":"^https://"},
-        "identity_provisioning_mode":{"const":"ApplicationServiceVirtualUser"},"credential_binding_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "room_topology":{"const":"SlinkyManagedExclusiveRoom"},"encryption_policy":{"const":"Forbidden"},"federation_policy":{"const":"Forbidden"},
-        "enabled":{"type":"boolean"}
-      }
-    },
-    "MatrixTransportProbeResult": {
-      "type":"object","additionalProperties":false,
-      "required":["profile_id","profile_version","status","homeserver_reachable","as_registration_valid","credential_binding_resolved","observed_at"],
-      "properties":{
-        "profile_id":{"$ref":"#/$defs/OpaqueRef"},"profile_version":{"type":"integer","minimum":1},
-        "status":{"enum":["Ready","Degraded","NotReady","Disabled"]},"homeserver_reachable":{"type":"boolean"},
-        "as_registration_valid":{"type":"boolean"},"credential_binding_resolved":{"type":"boolean"},"observed_at":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "AgentCommunicationIdentityBinding": {
-      "type":"object","additionalProperties":false,
-      "required":["agent_binding_ref","binding_version","client_id","project_ref","agent_identity_ref","matrix_user_id","display_name","display_profile_version","transport_profile_ref","status","etag","created_at","updated_at"],
-      "properties":{
-        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},
-        "client_id":{"$ref":"#/$defs/OpaqueRef"},"project_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "matrix_user_id":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},"display_name":{"type":"string","minLength":1,"maxLength":255},"display_profile_version":{"type":"integer","minimum":1},
-        "transport_profile_ref":{"$ref":"#/$defs/OpaqueRef"},"status":{"enum":["Active","Suspended","RecoveryRequired"]},
-        "etag":{"type":"string","minLength":1},"created_at":{"$ref":"#/$defs/Timestamp"},"updated_at":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "AgentCommunicationIdentityBindingRequest": {
-      "type":"object","additionalProperties":false,
-      "required":["agent_identity_ref","display_name","display_profile_version","transport_profile_ref","desired_status"],
-      "properties":{
-        "agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"display_name":{"type":"string","minLength":1,"maxLength":255},
-        "display_profile_version":{"type":"integer","minimum":1},"transport_profile_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "desired_status":{"enum":["Active","Suspended"]}
-      }
-    },
-    "SessionAgentBindingProjection": {
-      "type":"object","additionalProperties":false,
-      "required":["session_binding_ref","binding_version","client_id","project_ref","session_id","room_id","agent_binding_ref","agent_identity_ref","matrix_user_id","status","authorized_at","authorization_valid_until","updated_at"],
-      "properties":{
-        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},"client_id":{"$ref":"#/$defs/OpaqueRef"},
-        "project_ref":{"$ref":"#/$defs/OpaqueRef"},"session_id":{"$ref":"#/$defs/OpaqueRef"},"room_id":{"type":"string","minLength":1,"maxLength":255},
-        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"matrix_user_id":{"type":"string","pattern":"^@","maxLength":255},
-        "status":{"enum":["Provisioning","Active","Revoking","Revoked","RecoveryRequired"]},
-        "authorized_at":{"$ref":"#/$defs/Timestamp"},"authorization_valid_until":{"$ref":"#/$defs/Timestamp"},"updated_at":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "SessionAgentBindingProjectionRequest": {
-      "type":"object","additionalProperties":false,
-      "required":["binding_version","session_id","room_id","agent_binding_ref","agent_identity_ref","matrix_user_id","desired_status","authorized_at","authorization_valid_until"],
-      "properties":{
-        "binding_version":{"type":"integer","minimum":1},"session_id":{"$ref":"#/$defs/OpaqueRef"},"room_id":{"type":"string","minLength":1,"maxLength":255},
-        "agent_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"agent_identity_ref":{"$ref":"#/$defs/OpaqueRef"},"matrix_user_id":{"type":"string","pattern":"^@","maxLength":255},
-        "desired_status":{"enum":["Provisioning","Active","Revoking","Revoked"]},"authorized_at":{"$ref":"#/$defs/Timestamp"},"authorization_valid_until":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "RevokeBindingCommand": {
-      "type":"object","additionalProperties":false,"required":["operation_id","expected_binding_version","reason_code","requested_at"],
-      "properties":{"operation_id":{"$ref":"#/$defs/Identifier"},"expected_binding_version":{"type":"integer","minimum":1},"reason_code":{"type":"string","minLength":1,"maxLength":128},"requested_at":{"$ref":"#/$defs/Timestamp"}}
-    },
-    "RevokeBindingReceipt": {
-      "type":"object","additionalProperties":false,"required":["operation_id","session_binding_ref","recorded_binding_version","outcome","wakeup_fenced","new_admission_fenced","permission_acquisition_fenced","membership_status","observed_at"],
-      "properties":{
-        "operation_id":{"$ref":"#/$defs/Identifier"},"session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"recorded_binding_version":{"type":"integer","minimum":1},
-        "outcome":{"enum":["Revoking","Revoked","AlreadyRevoked","RecoveryRequired"]},
-        "wakeup_fenced":{"type":"boolean"},"new_admission_fenced":{"type":"boolean"},"permission_acquisition_fenced":{"type":"boolean"},
-        "membership_status":{"enum":["Joined","RevocationRequested","Left","Unknown"]},"observed_at":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "DrainView": {
-      "type":"object","additionalProperties":false,
-      "required":["session_binding_ref","binding_version","status","pending_inbox_count","pending_outbox_count","unresolved_refs","isolated_external_obligation_refs","last_accepted_event_id","writer_fence_evidence_ref","wakeup_fence_evidence_ref","authorization_fence_evidence_ref","membership_status","membership_evidence_ref","observed_at"],
-      "properties":{
-        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},"status":{"enum":["Draining","Drained","RecoveryRequired"]},
-        "pending_inbox_count":{"type":"integer","minimum":0},"pending_outbox_count":{"type":"integer","minimum":0},"unresolved_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "isolated_external_obligation_refs":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "last_accepted_event_id":{"type":["string","null"]},"writer_fence_evidence_ref":{"type":["string","null"]},"wakeup_fence_evidence_ref":{"type":["string","null"]},"authorization_fence_evidence_ref":{"type":["string","null"]},
-        "membership_status":{"enum":["Joined","RevocationRequested","Left","Unknown"]},"membership_evidence_ref":{"type":["string","null"]},
-        "observed_at":{"$ref":"#/$defs/Timestamp"}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Drained"}}},"then":{"properties":{"pending_inbox_count":{"const":0},"pending_outbox_count":{"const":0},"unresolved_refs":{"maxItems":0},"isolated_external_obligation_refs":{"maxItems":0},"writer_fence_evidence_ref":{"type":"string"},"wakeup_fence_evidence_ref":{"type":"string"},"authorization_fence_evidence_ref":{"type":"string"}}}}
-      ]
-    },
-    "MessageAttachment": {
-      "type":"object","additionalProperties":false,"required":["attachment_id","media_type","size_bytes","sha256","content_ref"],
-      "properties":{"attachment_id":{"$ref":"#/$defs/Identifier"},"media_type":{"type":"string","minLength":1,"maxLength":255},"size_bytes":{"type":"integer","minimum":0,"maximum":67108864},"sha256":{"$ref":"#/$defs/Digest"},"content_ref":{"$ref":"#/$defs/OpaqueRef"}}
-    },
-    "ContentUploadMetadata": {
-      "type":"object","additionalProperties":false,
-      "required":["attachment_id","expected_session_binding_version","media_type","size_bytes","sha256"],
-      "properties":{
-        "attachment_id":{"$ref":"#/$defs/Identifier"},"expected_session_binding_version":{"type":"integer","minimum":1},
-        "media_type":{"type":"string","minLength":1,"maxLength":255},"size_bytes":{"type":"integer","minimum":0,"maximum":67108864},
-        "sha256":{"$ref":"#/$defs/Digest"}
-      }
-    },
-    "ContentReferenceView": {
-      "type":"object","additionalProperties":false,
-      "required":["content_ref","attachment_id","project_ref","session_binding_ref","binding_version","media_type","size_bytes","sha256","status","created_at","unbound_expires_at","retained_until","redacted_at","bytes_deleted_at","tombstone_until","etag"],
-      "properties":{
-        "content_ref":{"$ref":"#/$defs/OpaqueRef"},"attachment_id":{"$ref":"#/$defs/Identifier"},"project_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "session_binding_ref":{"$ref":"#/$defs/OpaqueRef"},"binding_version":{"type":"integer","minimum":1},
-        "media_type":{"type":"string","minLength":1,"maxLength":255},"size_bytes":{"type":"integer","minimum":0,"maximum":67108864},
-        "sha256":{"$ref":"#/$defs/Digest"},"status":{"enum":["Uploaded","Bound","Redacted","ExpiredTombstone"]},
-        "created_at":{"$ref":"#/$defs/Timestamp"},"unbound_expires_at":{"$ref":"#/$defs/Timestamp"},"retained_until":{"$ref":"#/$defs/Timestamp"},
-        "redacted_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "bytes_deleted_at":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "tombstone_until":{"oneOf":[{"$ref":"#/$defs/Timestamp"},{"type":"null"}]},
-        "etag":{"type":"string","minLength":1}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Redacted"}}},"then":{"properties":{"redacted_at":{"$ref":"#/$defs/Timestamp"}}}},
-        {"if":{"properties":{"status":{"const":"ExpiredTombstone"}}},"then":{"properties":{"bytes_deleted_at":{"$ref":"#/$defs/Timestamp"},"tombstone_until":{"$ref":"#/$defs/Timestamp"}}}},
-        {"if":{"properties":{"status":{"enum":["Uploaded","Bound"]}}},"then":{"properties":{"bytes_deleted_at":{"type":"null"},"tombstone_until":{"type":"null"}}}}
-      ]
-    },
-    "MessageSendRequest": {
-      "type":"object","additionalProperties":false,
-      "required":["envelope_version","topic_id","sid","rid","recipient_identity_refs","message_type","body","attachments"],
-      "properties":{
-        "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
-        "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},
-        "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "message_type":{"enum":["Request","Answer","Notice"]},"body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
-        "attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456}
-      }
-    },
-    "MessageSendReceipt": {
-      "type":"object","additionalProperties":false,
-      "required":["sid","outbox_id","status","accepted_at","matrix_event_id","matrix_origin_server_ts"],
-      "properties":{
-        "sid":{"$ref":"#/$defs/Identifier"},"outbox_id":{"$ref":"#/$defs/OpaqueRef"},"status":{"enum":["Queued","Sent","Failed","RecoveryRequired"]},
-        "accepted_at":{"$ref":"#/$defs/Timestamp"},"matrix_event_id":{"type":["string","null"],"pattern":"^\\$"},"matrix_origin_server_ts":{"type":["integer","null"],"minimum":0}
-      },
-      "allOf":[
-        {"if":{"properties":{"status":{"const":"Sent"}}},"then":{"properties":{"matrix_event_id":{"type":"string","pattern":"^\\$"},"matrix_origin_server_ts":{"type":"integer","minimum":0}}}},
-        {"if":{"properties":{"status":{"enum":["Queued","Failed","RecoveryRequired"]}}},"then":{"properties":{"matrix_event_id":{"type":"null"},"matrix_origin_server_ts":{"type":"null"}}}}
-      ]
-    },
-    "MessageEventView": {
-      "type":"object","additionalProperties":false,
-      "required":["envelope_version","topic_id","sid","rid","sender_identity_ref","recipient_identity_refs","message_type","body","attachments","matrix_room_id","matrix_event_id","matrix_origin_server_ts","piko_ingested_at"],
-      "properties":{
-        "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
-        "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},"sender_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
-        "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-        "message_type":{"enum":["Request","Answer","Notice"]},"body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
-        "attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456},
-        "matrix_room_id":{"type":"string","minLength":1,"maxLength":255},"matrix_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},
-        "matrix_origin_server_ts":{"type":"integer","minimum":0},"piko_ingested_at":{"$ref":"#/$defs/Timestamp"}
-      }
-    },
-    "IngressEventView": {
-      "type":"object","additionalProperties":false,
-      "required":["matrix_room_id","matrix_event_id","matrix_sender","matrix_origin_server_ts","piko_ingested_at","classification_status","dispatch_eligible","envelope"],
-      "properties":{
-        "matrix_room_id":{"type":"string","minLength":1,"maxLength":255},"matrix_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},
-        "matrix_sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},"matrix_origin_server_ts":{"type":"integer","minimum":0},"piko_ingested_at":{"$ref":"#/$defs/Timestamp"},
-        "classification_status":{"enum":["ProductEnvelopeValid","UnclassifiedNativeMessage","Rejected"]},"dispatch_eligible":{"type":"boolean"},
-        "envelope":{"oneOf":[{"$ref":"#/$defs/MessageEventView"},{"type":"null"}]}
-      },
-      "allOf":[
-        {"if":{"properties":{"classification_status":{"const":"ProductEnvelopeValid"}}},"then":{"properties":{"dispatch_eligible":{"const":true},"envelope":{"$ref":"#/$defs/MessageEventView"}}}},
-        {"if":{"properties":{"classification_status":{"enum":["UnclassifiedNativeMessage","Rejected"]}}},"then":{"properties":{"dispatch_eligible":{"const":false},"envelope":{"type":"null"}}}}
-      ]
-    },
-    "ProductMatrixMessageContent": {
-      "type":"object","additionalProperties":false,
-      "required":["msgtype","body","io.piko.agent.message"],
-      "properties":{
-        "msgtype":{"const":"m.text"},
-        "body":{"type":"string","maxLength":262144,"x-authoritative-length-unit":"utf8_bytes"},
-        "io.piko.agent.message":{
-          "type":"object","additionalProperties":false,
-          "required":["envelope_version","topic_id","sid","rid","sender_identity_ref","recipient_identity_refs","message_type","attachments"],
-          "properties":{
-            "envelope_version":{"const":"piko-message/v0.3"},"topic_id":{"$ref":"#/$defs/Identifier"},"sid":{"$ref":"#/$defs/Identifier"},
-            "rid":{"oneOf":[{"$ref":"#/$defs/Identifier"},{"type":"null"}]},"sender_identity_ref":{"$ref":"#/$defs/OpaqueRef"},
-            "recipient_identity_refs":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/OpaqueRef"}},
-            "message_type":{"enum":["Request","Answer","Notice"]},"attachments":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/MessageAttachment"},"x-max-total-size-bytes":268435456}
-          }
-        },
-        "m.relates_to":{
-          "type":"object","additionalProperties":false,"required":["m.in_reply_to"],
-          "properties":{"m.in_reply_to":{"type":"object","additionalProperties":false,"required":["event_id"],"properties":{"event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"}}}}
-        }
-      },
-      "allOf":[
-        {"if":{"properties":{"io.piko.agent.message":{"properties":{"rid":{"type":"string"}}}}},"then":{"required":["m.relates_to"]}},
-        {"if":{"properties":{"io.piko.agent.message":{"properties":{"rid":{"type":"null"}}}}},"then":{"not":{"required":["m.relates_to"]}}}
-      ]
-    },
-    "ProductMatrixRoomMessageEvent": {
-      "type":"object","additionalProperties":false,"x-schema-role":"controlled_six_field_projection_not_raw_homeserver_event",
-      "required":["type","room_id","event_id","sender","origin_server_ts","content"],
-      "properties":{
-        "type":{"const":"m.room.message"},"room_id":{"type":"string","minLength":1,"maxLength":255},
-        "event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},"sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},
-        "origin_server_ts":{"type":"integer","minimum":0},"content":{"$ref":"#/$defs/ProductMatrixMessageContent"}
-      }
-    },
-    "RawMatrixRoomMessageEvent": {
-      "type":"object","additionalProperties":true,"x-schema-role":"raw_homeserver_event_input_before_projection",
-      "required":["type","room_id","event_id","sender","origin_server_ts","content"],
-      "properties":{
-        "type":{"const":"m.room.message"},"room_id":{"type":"string","minLength":1,"maxLength":255},
-        "event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$"},"sender":{"type":"string","minLength":3,"maxLength":255,"pattern":"^@"},
-        "origin_server_ts":{"type":"integer","minimum":0},"content":{"$ref":"#/$defs/ProductMatrixMessageContent"},
-        "unsigned":{"type":"object","additionalProperties":true}
-      },
-      "not":{"required":["state_key"]}
-    },
-    "ErrorDetail": {
-      "type":"object","additionalProperties":false,"required":["code","message","request_id","retryable"],
-      "properties":{"code":{"type":"string","minLength":1,"maxLength":128},"message":{"type":"string","maxLength":2048},"request_id":{"$ref":"#/$defs/OpaqueRef"},"retryable":{"type":"boolean"},"details":{"type":"object","additionalProperties":true}}
-    },
-    "ErrorEnvelope": {"type":"object","additionalProperties":false,"required":["error"],"properties":{"error":{"$ref":"#/$defs/ErrorDetail"}}}
+    "RequestErrorCode": {"enum":["InvalidRequest","Unauthorized","ScopeDenied","NotFound","IdempotencyConflict","ClientTaskConflict","RunNotTerminal","InvalidDiscussionContext","UnsupportedLimit","DeadlineExpired","QueueFull","DependencyUnavailable","ResultUnavailable","Gone"]},
+    "ErrorEnvelope": {"type":"object","additionalProperties":false,"required":["error"],"properties":{"error":{"type":"object","additionalProperties":false,"required":["code","message","request_id"],"properties":{"code":{"$ref":"#/$defs/RequestErrorCode"},"message":{"type":"string","minLength":1,"maxLength":8192},"request_id":{"type":"string","minLength":1,"maxLength":128}}}}}
   }
 }

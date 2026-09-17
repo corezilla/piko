@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Piko Agent Runtime V0.3 定型 API
-  version: 0.3.0-finalization.10
-  description: 单 Agent 轻量 Run 与 Piko-owned communication provider control 的唯一 V0.3 候选；runtime activation=false。
+  title: Piko Agent Runtime API
+  version: 0.3.0-simplified.5
+  description: 单 Piko 实例、单 Agent 的轻量任务接口；runtime_activation=false。
 servers:
   - url: https://piko.example/agent-runtime/v1
 security:
@@ -11,6 +11,7 @@ paths:
   /runs:
     post:
       operationId: createRun
+      summary: 提交一个 Agent 任务
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
@@ -21,462 +22,127 @@ paths:
             schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentTaskRequest'}
       responses:
         '202':
-          description: Run、ClientTaskIndex、原回执、绑定快照和资源 claim 已原子持久化。
+          description: 任务已持久化；不表示任务成功。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '422': {$ref: '#/components/responses/Error'}
-        '429': {$ref: '#/components/responses/RetryableError'}
-        '503': {$ref: '#/components/responses/Error'}
-  /execution-capacity/snapshots:query:
-    post:
-      operationId: queryExecutionCapacitySnapshot
-      description: >-
-        Client-scoped只读、非预留容量查询。请求以与Run相同的workspace/service level/agent/tool profile及
-        input evidence requirement解析execution class；响应一次返回全部resolved classes及direct/shared/client
-        constraints。此操作不创建claim、Run、reservation或dispatch intent；ETag标识响应representation，
-        valid_until之后或Partial/Unknown必须fail closed。可选If-None-Match只接受一个exact strong ETag或`*`：
-        当前representation匹配（`*`在存在时必匹配）返回412，未匹配仍返回200完整新snapshot；POST绝不返回304，
-        ETag判断也不延长valid_until。Slinky正常刷新不发送条件头。只有POST /runs能执行admission并原子分配claim。
-      parameters:
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/CapacityIfNoneMatch'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ExecutionCapacityQuery'}}}
-      responses:
-        '200':
-          description: 当前非预留snapshot；不得解释为N-Run admission保证。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ExecutionCapacitySnapshot'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/CapacitySnapshotPreconditionFailed'}
-        '422': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/QueueFull'}
+        '503': {$ref: '#/components/responses/Unavailable'}
   /runs/{run_id}:
     get:
       operationId: getRun
-      parameters:
-        - $ref: '#/components/parameters/RunId'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
+      summary: 按稳定 run_id 查询当前或保留期内的历史任务状态
+      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '200':
-          description: 当前 RunView；跨 Client 与不存在统一 404。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
+          description: 当前任务状态。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-  /runs/{run_id}/result:
-    get:
-      operationId: getRunResult
-      parameters:
-        - $ref: '#/components/parameters/RunId'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: 不可变 AgentResult。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentResult'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-        '500': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '410': {$ref: '#/components/responses/Gone'}
   /runs/{run_id}:cancel:
     post:
       operationId: cancelRun
-      parameters:
-        - $ref: '#/components/parameters/RunId'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelRequest'}}}
+      summary: 请求取消任务
+      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '202':
-          description: 取消意图已持久化；不是停止或 execution release 证明。
+          description: Running Run 的取消意图已持久化；不证明执行已停止。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelReceipt'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-  /operator/matrix-transport-profile:
+        '200':
+          description: Queued Run 已在启动前原子取消，或任务此前已经终态。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/CancelReceipt'}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '410': {$ref: '#/components/responses/Gone'}
+  /runs/{run_id}/result:
     get:
-      operationId: getMatrixTransportProfile
-      parameters:
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
+      operationId: getRunResult
+      summary: 取得稳定任务结果
+      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '200':
-          description: 无 Secret 的 singleton transport profile readiness。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-    put:
-      operationId: putMatrixTransportProfile
-      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非 * 的 If-None-Match 或 wildcard/weak If-Match 为 400；stale/已存在为 412。'
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfMatchOptional'
-        - $ref: '#/components/parameters/IfNoneMatchOptional'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfileRequest'}}}
-      responses:
-        '200':
-          description: 已更新；credential 仅以 binding ref 表达。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
-        '201':
-          description: 已创建。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProfile'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '428': {$ref: '#/components/responses/Error'}
-  /operator/matrix-transport-profile:probe:
-    post:
-      operationId: probeMatrixTransportProfile
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-      responses:
-        '200':
-          description: 只读 probe；不得创建 identity、room、Session 或推进 checkpoint。
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MatrixTransportProbeResult'}}}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/agent-communication-bindings/{agent_binding_ref}:
-    parameters:
-      - $ref: '#/components/parameters/ProjectRef'
-      - $ref: '#/components/parameters/AgentBindingRef'
-    get:
-      operationId: getAgentCommunicationIdentityBinding
-      parameters:
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: 稳定 Agent Matrix identity binding；无 Secret。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-    put:
-      operationId: putAgentCommunicationIdentityBinding
-      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非法 wildcard/weak 值为 400；stale/已存在为 412。'
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfMatchOptional'
-        - $ref: '#/components/parameters/IfNoneMatchOptional'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBindingRequest'}}}
-      responses:
-        '200':
-          description: 已更新 display/status；稳定 MXID 不变。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
-        '201':
-          description: 已 provision 稳定 ApplicationServiceVirtualUser。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentCommunicationIdentityBinding'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '428': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:
-    parameters:
-      - $ref: '#/components/parameters/ProjectRef'
-      - $ref: '#/components/parameters/SessionBindingRef'
-    get:
-      operationId: getSessionAgentBindingProjection
-      parameters:
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: Slinky-authoritative SessionAgentBinding 的 Piko 核验投影。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-    put:
-      operationId: putSessionAgentBindingProjection
-      description: '创建必须仅发送 If-None-Match: *；更新必须仅发送 exact strong If-Match。两者都缺为 428，两者并存、非法 wildcard/weak 值为 400；stale/已存在为 412。'
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfMatchOptional'
-        - $ref: '#/components/parameters/IfNoneMatchOptional'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjectionRequest'}}}
-      responses:
-        '200':
-          description: 已核验并更新投影。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
-        '201':
-          description: 已核验 membership 并创建投影。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/SessionAgentBindingProjection'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '422': {$ref: '#/components/responses/Error'}
-        '428': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}:revoke:
-    post:
-      operationId: revokeSessionAgentBinding
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RevokeBindingCommand'}}}
-      responses:
-        '202':
-          description: Piko 本地 fencing 已提交或恢复原 operation；membership 可继续异步收敛。
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RevokeBindingReceipt'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/drain:
-    get:
-      operationId: getSessionAgentBindingDrain
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: Piko-owned inbox/outbox、writer/wakeup fence 与 membership evidence。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/DrainView'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages:
-    post:
-      operationId: submitBoundAgentMessage
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-      requestBody:
-        required: true
-        content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendRequest'}}}
-      responses:
-        '202':
-          description: Outbox command 已持久化；sender/room 从 exact SessionAgentBindingProjection 派生，尚不保证 Matrix 已接收。
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendReceipt'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '422': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/contents:
-    post:
-      operationId: createBoundMessageContent
-      description: >-
-        上传单个待发送附件到同一communication provider。令M为RFC8785 JCS(metadata)的UTF-8字节，
-        H为SHA-256(content bytes)的原始32字节，P为ASCII("piko-content-upload-digest-v1")后接0x00，
-        L为uint64 big-endian的len(M)；logical digest为lowercase-hex(SHA-256(P || L || M || H))。
-        multipart boundary、part headers、filename和content-transfer encoding不进入logical digest。
-        服务端完成基础framing/size检查后先计算digest并比较既有key record：异digest固定409；同digest重放原决定；
-        仅ledger miss再校验metadata声明的size/hash与实际字节，不一致为持久化的422且不创建content_ref。
-        content_ref只能原子绑定一个logical message。
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/RequestId'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [metadata, content]
-              properties:
-                metadata: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ContentUploadMetadata'}
-                content: {type: string, format: binary}
-            encoding:
-              metadata: {contentType: application/json}
-              content: {contentType: application/octet-stream}
-      responses:
-        '201':
-          description: 内容字节、摘要、scope及原回执已原子持久化；尚未绑定消息。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ContentReferenceView'}}}
-        '400': {$ref: '#/components/responses/Error'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '409': {$ref: '#/components/responses/Error'}
-        '412': {$ref: '#/components/responses/Error'}
-        '413': {$ref: '#/components/responses/Error'}
-        '422': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}:
-    get:
-      operationId: getBoundAgentMessage
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/Sid'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: 当前固定 send receipt；Sent 后才出现 Matrix event ID/server timestamp。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/MessageSendReceipt'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages/{sid}/attachments/{attachment_id}:
-    get:
-      operationId: getBoundMessageAttachmentContent
-      description: >-
-        仅供已认证Slinky backend代理用户读取exact message attachment；浏览器不持有Piko credential。
-        条件读取顺序固定为认证→delegated scope/Slinky当前授权/viewer当前room membership→exact linkage/可见性
-        →redaction与bytes retention状态→If-None-Match。匹配ETag不得越过撤权、关联失效、redaction或过期；
-        撤权返回403 ContentViewerNotAuthorized，redaction返回410 ContentRedacted，bytes已删除且仍在30d tombstone窗口
-        返回410 ContentExpired，窗口终点及之后返回404。只有当前仍可读且ETag匹配才返回304。
-        不提供content_ref直查或Client级列表。
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/Sid'
-        - $ref: '#/components/parameters/AttachmentId'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/ViewerMatrixUserId'
-        - $ref: '#/components/parameters/ViewerAuthorizationRef'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: Exact attachment bytes；不返回临时URL、token或其它内容引用。
-          headers:
-            ETag: {$ref: '#/components/headers/ETag'}
-            X-Content-SHA256: {$ref: '#/components/headers/ContentSHA256'}
-            Content-Length: {$ref: '#/components/headers/ContentLength'}
-            Content-Type: {$ref: '#/components/headers/ContentMediaType'}
-          content:
-            application/octet-stream:
-              schema: {type: string, format: binary}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
-        '503': {$ref: '#/components/responses/Error'}
-  /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/ingress-events/{matrix_event_id}:
-    get:
-      operationId: getBoundIngressEvent
-      parameters:
-        - $ref: '#/components/parameters/ProjectRef'
-        - $ref: '#/components/parameters/SessionBindingRef'
-        - $ref: '#/components/parameters/MatrixEventId'
-        - $ref: '#/components/parameters/RequestId'
-        - $ref: '#/components/parameters/IfNoneMatch'
-      responses:
-        '200':
-          description: Piko AS ingress ledger 中的 exact Matrix event fact；只有 dispatch_eligible=true 可用于 communication_trigger。
-          headers: {ETag: {$ref: '#/components/headers/ETag'}}
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/IngressEventView'}}}
-        '304': {$ref: '#/components/responses/NotModified'}
-        '401': {$ref: '#/components/responses/Error'}
-        '403': {$ref: '#/components/responses/Error'}
-        '404': {$ref: '#/components/responses/Error'}
-        '410': {$ref: '#/components/responses/Error'}
+          description: 稳定终态结果；业务接受由调用方决定。
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentResult'}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/RunNotTerminal'}
+        '410': {$ref: '#/components/responses/Gone'}
+        '500': {$ref: '#/components/responses/ResultUnavailable'}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer}
   parameters:
-    RunId: {name: run_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
-    ProjectRef: {name: project_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
-    AgentBindingRef: {name: agent_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
-    SessionBindingRef: {name: session_binding_ref, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
-    AttachmentId: {name: attachment_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}}
-    Sid: {name: sid, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}}
-    MatrixEventId: {name: matrix_event_id, in: path, required: true, description: URL-encoded Matrix event ID, schema: {type: string, minLength: 2, maxLength: 255, pattern: '^\$'}}
-    RequestId: {name: X-Request-ID, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
-    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 255}}
-    IfMatchOptional: {name: If-Match, in: header, required: false, description: Update branch only; one exact strong ETag, wildcard and weak validators forbidden., schema: {type: string, pattern: '^"[^"\\r\\n]+"$'}}
-    IfNoneMatchOptional: {name: If-None-Match, in: header, required: false, description: Create branch only; the sole accepted value is `*`., schema: {type: string, const: '*'}}
-    IfNoneMatch: {name: If-None-Match, in: header, required: false, schema: {type: string, minLength: 1}}
-    CapacityIfNoneMatch: {name: If-None-Match, in: header, required: false, description: POST capacity query precondition; one exact strong ETag or `*`. Match returns 412 CapacitySnapshotPreconditionFailed, non-match returns 200 full snapshot; 304 is forbidden., schema: {type: string, pattern: '^(\*|"[^"\r\n]+")$'}}
-    ViewerMatrixUserId: {name: X-Piko-Viewer-Matrix-User-ID, in: header, required: true, description: Slinky在当前project/session权限检查后提供的exact用户MXID；Piko还核对exact room当前membership。, schema: {type: string, minLength: 3, maxLength: 255, pattern: '^@'}}
-    ViewerAuthorizationRef: {name: X-Piko-Viewer-Authorization-Ref, in: header, required: true, description: Slinky当前授权决定的非Secret审计引用；不能单独授予权限。, schema: {type: string, minLength: 1, maxLength: 256}}
-  headers:
-    ETag: {required: true, schema: {type: string, minLength: 1}}
-    RetryAfter: {required: true, schema: {type: integer, minimum: 0}}
-    ContentSHA256: {required: true, schema: {type: string, pattern: '^[a-f0-9]{64}$'}}
-    ContentLength: {required: true, schema: {type: integer, minimum: 0, maximum: 67108864}}
-    ContentMediaType: {required: true, description: Exact media_type persisted with the upload metadata., schema: {type: string, minLength: 1, maxLength: 255}}
+    RunId: {name: run_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 16, maxLength: 255}
+      description: 仅用于任务提交去重；不传播到模型调用。
+    RequestId: {name: X-Request-ID, in: header, required: false, schema: {type: string, minLength: 1, maxLength: 128}}
   responses:
-    CapacitySnapshotPreconditionFailed:
-      description: POST capacity query precondition matched; typed code is CapacitySnapshotPreconditionFailed and the caller must issue an unconditional query for a full snapshot.
+    BadRequest: {$ref: '#/components/x-error-responses/BadRequest'}
+    Unauthorized: {$ref: '#/components/x-error-responses/Unauthorized'}
+    Forbidden: {$ref: '#/components/x-error-responses/Forbidden'}
+    NotFound: {$ref: '#/components/x-error-responses/NotFound'}
+    Conflict: {$ref: '#/components/x-error-responses/Conflict'}
+    RunNotTerminal: {$ref: '#/components/x-error-responses/RunNotTerminal'}
+    Unprocessable: {$ref: '#/components/x-error-responses/Unprocessable'}
+    QueueFull: {$ref: '#/components/x-error-responses/QueueFull'}
+    Unavailable: {$ref: '#/components/x-error-responses/Unavailable'}
+    ResultUnavailable: {$ref: '#/components/x-error-responses/ResultUnavailable'}
+    Gone: {$ref: '#/components/x-error-responses/Gone'}
+  x-error-responses:
+    BadRequest:
+      description: 请求 JSON 或字段非法。
+      x-error-codes: [InvalidRequest]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
-    Error:
-      description: Typed error。
+    Unauthorized:
+      description: credential 缺失或无效。
+      x-error-codes: [Unauthorized]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
-    RetryableError:
-      description: 当前未受理；调用方保留原 key 并按 Retry-After 重试。
-      headers: {Retry-After: {$ref: '#/components/headers/RetryAfter'}}
+    Forbidden:
+      description: 当前 Client 无所需 scope。
+      x-error-codes: [ScopeDenied]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
-    NotModified: {description: Not modified.}
+    NotFound:
+      description: Run 不存在或对当前 Client 不可见。
+      x-error-codes: [NotFound]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    Conflict:
+      description: 任务 key、client_task_id 或讨论上下文冲突。
+      x-error-codes: [IdempotencyConflict, ClientTaskConflict, InvalidDiscussionContext]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    RunNotTerminal:
+      description: Run 尚未终态，结果不可读取。
+      x-error-codes: [RunNotTerminal]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    Unprocessable:
+      description: 语法正确但当前任务约束不可执行。
+      x-error-codes: [UnsupportedLimit, DeadlineExpired]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    QueueFull:
+      description: 有界本地任务队列已满；未创建 Run。
+      x-error-codes: [QueueFull]
+      headers: {Retry-After: {schema: {type: integer, minimum: 1}}}
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    Unavailable:
+      description: 受理所需的本实例依赖不可用；未创建 Run。
+      x-error-codes: [DependencyUnavailable]
+      headers: {Retry-After: {schema: {type: integer, minimum: 1}}}
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    ResultUnavailable:
+      description: Run 已终态但稳定 Result 缺失；这是内部一致性错误。
+      x-error-codes: [ResultUnavailable]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
+    Gone:
+      description: 保留窗口结束且存在可证明 tombstone。
+      x-error-codes: [Gone]
+      content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}

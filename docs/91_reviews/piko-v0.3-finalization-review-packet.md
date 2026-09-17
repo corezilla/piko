@@ -1,105 +1,71 @@
-# Piko V0.3 Finalization Review Packet
+# Piko V0.3 Simplification Review Packet
 
 | 字段 | 值 |
 |---|---|
-| Package ID | `piko-v0.3-finalization` |
-| Package Version | `0.3.0-finalization.10` |
+| Package ID | `piko-v0.3-simplification` |
+| Package Version | `0.3.0-simplified.5` |
 | Status | Review；runtime activation=false |
-| Authority | Piko |
-| Request | `S-20260916-191ab7c8184c` |
-| Machine authority | `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` + JSON Schema + error catalog |
-| Hash manifest | `docs/91_reviews/piko-v0.3-finalization-manifest.json` |
+| Request | `S-20260917-23ec27fc9e7a`；覆盖第二轮三方 finding |
+| Machine authority | OpenAPI + JSON Schema + error catalog + fixture |
 
-## 1. A 类跨系统设计结论
+## 结论
 
-Piko-owned跨系统字段或行为没有遗留到联调再决定。四项Run API、全部请求/响应/错误、ClientTaskIndex、
-7天恢复、404/410、workspace/tool/agent/session binding、identity provisioning、invite核验、revoke/drain、
-communication trigger、产品消息send/receipt/event/ingress、release/strict close组合和旧wire删除版本均已定义。
-Pre-admission rejection使用不可变`decision_first_created_at`，保留至
-`max(request.deadline_at,decision_first_created_at)+7d`；合法重评在同一serializable事务重新检查
-ClientTaskIndex、完整dispatch tuple、当前projection/权限/model/workspace/tool/capacity，并以unique/CAS保证
-两个不同key暂拒同一task后并发重评最多产生一个Run/intent/claim。
+当前设计采用主流最小边界：一个 Piko 实例管理一个 Pi Agent；Slinky 管业务流程与 Memory；LLMTier 是无 Agent 会话状态的 OpenAI-compatible 模型服务。Piko 新增的外部面只有任务 submit/status/cancel/result。
 
-Finalization.5关闭机器一致性复审三项：Schema用条件约束拒绝Unclassified却可dispatch、Sent缺Matrix
-事实、Queued提前带Matrix事实及Failed+AgentFinished；13项HTTP operation补齐401/403、createRun 410、
-GET/PUT ETag及配置PUT唯一create/update前置条件矩阵；产品消息唯一编码为
-`m.room.message + content.io.piko.agent.message`，并冻结body/reply/sender/room/附件与分类规则。
-Finalization.6补齐三个配置PUT在exact strong If-Match更新目标不存在时的机器404 NotFound响应，并增加
-`put-precondition-update-missing-resource`负例，明确不得隐式创建资源；其余finalization.5语义不变。
-Finalization.7关闭Element消费的两项A类缺口：同一provider增加受控附件上传与按exact
-message/SID/attachment读取，要求Slinky当前授权、Piko delegated scope及viewer当前room membership同时成立；
-不提供content_ref直查、URL/token或Client级列表。另将`ProductMatrixRoomMessageEvent`固定为六字段受控投影，
-raw homeserver event允许`unsigned`等标准外层字段，但非message state event及sender/room不一致一律拒绝。
-Finalization.8精确冻结附件摘要、retention和条件读取：logical digest使用domain prefix、uint64 metadata
-长度、JCS metadata UTF-8与actual content SHA-256原始32字节再哈希；同key异digest 409优先于完整性422。
-tombstone只从实际`bytes_deleted_at`起算30天，blocker推迟删除；读取先核验当前授权/membership/link和
-redaction/retention，最后才判断ETag，因此撤权/410/404不能被304覆盖。
+Pi 原生 session/context/compaction/tool loop/abort/retry 被直接集成。Piko 只增加服务级任务持久化、授权、deadline/budget、结果与 token usage 汇总。最终失败包含部分结果、已知动作和原因；业务重派或升级由 Slinky PM 决定。
 
-Finalization.9关闭用户批准的DF-13/14设计范围。DF-13提供只读、Client-scoped且非预留的
-ExecutionCapacitySnapshot；unit固定为`piko_concurrent_agent_run`，解析唯一execution class/version，
-同一snapshot返回direct、全部shared/overlapping constraints与quota，Unknown/Partial/过期fail closed。
-只有POST /runs受理事务可原子创建quantity=1的execution claim；Queued即Held，429/503无claim，重放和
-重启不重复。逐participant的202+Held claim齐备才是完整backing，部分受理不能冒充Team完整或回滚业务事实。
+Matrix 使用原生 identity/invite/join/membership/sync/message/reply/media/leave；附件使用 Matrix media 和既有文件授权。正式 Memory 更新是普通任务，Piko 不拥有 Memory authority。
 
-DF-14以`PikoTrustedInputBroker`为唯一可信producer，冻结对象版本/hash/size/byte-range事实、安全派生的
-系统证据路径、writer fence→generation→证据artifact/digest→AgentResult原子发布顺序及至少
-`max(request.deadline_at,result.published_at)+7d`的bytes窗口。Complete只表示记录器完整，不证明Slinky
-所需材料集合覆盖或模型理解；Agent自述、stdout、普通日志和execution_log_ref均不构成覆盖证据。
+## 第二轮 finding disposition
 
-Finalization.10落实Slinky独立机器复审的三项修订：容量snapshot仍使用唯一POST，但If-None-Match匹配
-改为RFC 9110一致的412，未匹配200完整snapshot且从不304；MaterialReadObservation Schema要求
-FullContent digest、非空range，并禁止Complete包含ChangedDuringRead，跨字段range/完整覆盖由可执行semantic
-oracle检查；读取证据只通过既有`AgentResult.outputs`中固定路径的唯一artifact发现，删除第二
-`input_access_evidence`引用，并对缺失、重复、path/hash/size/document generation不一致全部fail closed。
+- `PK-R2-PK-01 / PK-R2-SL-06`：删除外部任务 `model` 字段；model/profile 为实例内部配置。
+- `PK-R2-PK-02 / PK-R2-SL-01 / PK-R2-LT-03`：Usage 改为 Complete/Partial/Unknown，保留字段存在性、attempt 数与 missing_fields，未知不填零。
+- `PK-R2-PK-03 / PK-R2-LT-01`：增加单 Agent scheduler、每 Run session 隔离与 RunSessionRecord/lease/checkpoint/result crash 顺序。
+- `PK-R2-PK-04 / PK-R2-SL-05 / PK-R2-LT-05..06`：机器约束状态/结果组合，增加500 ResultUnavailable并让OpenAPI error map与catalog双向一致；删除same-run resume暗示。
+- `PK-R2-PK-05 / PK-R2-SL-02..03 / PK-R2-LT-02`：只在显式普通discussion Run内消费标准Matrix room/event/reply/media；idle消息不执行。
+- `PK-R2-SL-04 / PK-R2-LT-04`：明确cancel不是停止事实，SSE首事件后不透明重放，未知副作用不盲重试。
+- `PK-R2-PK-06 / PK-R2-SL-07`：退役CollaborationBridge current authority，更新tailoring、migration map与inventory。
+- `PK-R2-PK-07 / PK-R2-LT-07..08`：扩大可执行validator覆盖，并强化相对路径与symlink语义；增加运维设计。
 
-LLMTier语义消费固定为candidate.2：三位毫秒deadline header、digest、408优先于缓存429、无ID原POST恢复、
-单调用到期即停止Run新业务、晚到成功仅作Evidence、non-stream Responses/Models/recovery/tool-loop且无
-Chat/SSE/fallback。当前LLMTier目标已更新为`0.3-finalization-candidate.2`，commit
-`57aacfa1fa58cf4e98370281b73d861572e59b53`、OpenAPI SHA-256
-`67eee679a2fea478e10fae158a8aed36f081663738e1a36be709cbd7b57dbce9`。Piko从4个授权Matrix事件重组
-26192-byte归档并独立复算归档、内嵌manifest及8个成员；OpenAPI 570个本地引用可解析，机器字段与上述
-消费语义无冲突。Piko对该精确版本给出Consumer ACCEPTED；详见content-free消费证据JSON。该结论不证明
-真实SDK capture、production实现或runtime activation。
+## 删除清单
 
-## 2. 一次性退役
+从当前外部契约删除：执行容量观察和 claim；跨系统 Session binding/version/projection/close/drain/release；产品 Topic/SID/RID/envelope/outbox/ingress/trigger；Piko content store/token/retention；模型 Invocation/idempotent recovery；SourceInstance/Tier Seat；专用 readiness/compatibility；输入读取证据专用 artifact 协议。相关 mechanism 文档和 Matrix 机器工件已从当前树删除。
 
-从 `0.3.0-finalization.9` 起删除v0.2 heavy request/result、participants/team/collaboration resolution、
-`runs:by-attempt`、manual reconcile、Run SSE、Piko Session list/element-view/:close、原子建房
-`collaboration_contract`及旧嵌套`bindings`。不提供alias、转换器、双写或runtime fallback。
+## 验证边界
 
-## 3. B 类内部下游设计
+本轮静态验证证明四个path、Schema正负例、typed-error映射、Usage语义、固定Pi SSE/retry源码顺序、retired-field scan、JSON/YAML解析、锁定STD定向一致性和diff consistency。Pi/Matrix/LLMTier真实集成、重启、工具副作用、安全、保留和性能仍属后续实现/联调门禁。
 
-durable DB/HA/DDL、worker排程实现、Pi hook、workspace/tool sandbox和部署拓扑由Piko内部继续设计；
-不得修改A类字段、状态、错误、digest、retention或authority。
+## Responses streaming 定向结论
 
-## 4. C 类联调与激活证据
+固定 Pi `0.85.1` / `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` 的真实调用链已经核对：Coding Agent 用 `streamSimple`，Agent loop `for await` 消费事件，OpenAI Responses adapter 固定 `stream:true` 并要求 terminal event。因此首个任务执行需要标准 Responses SSE；non-stream 不是共同基线或 fallback。
 
-真实LLMTier SDK capture、Matrix/Element/AS、Pi、Tool/Workspace、crash/failover、安全/retention、性能与
-RPO/RTO仍未执行。失败只能保持activation=false，不能恢复旧wire。
+`piko-llmtier-consumption-v0.3` simplified.4 固定请求、文本、function call/output、terminal/failure与usage事件子集；reasoning/refusal只在所选模型产生时要求。grammar/custom/deferred tool扩展不进入第一阶段，provider continuation不作optional预留。LLMTier仍需以实际稳定机器字节对齐同一标准子集；这不引入自定义会话或调用恢复协议。
 
-## 5. 验证摘要
+## simplified.4 复审处置
 
-- `python3 tests/contract/validate_v03_contract.py`：exit 0；39 Schema case、88 semantic case、16 path、44 error。
-- 四个消费者反例均被Schema拒绝；raw Matrix root/reply正例与reply/version负例通过；配置PUT create/update/
-  缺头/双头/wildcard/stale oracle均由validator核验。
-- 附件上传/读取、大小与摘要、单消息绑定、参与者授权、保留/tombstone以及raw event投影、sender/room/state
-  负例均由validator核验；真实homeserver与浏览器访问仍为C类联调证据。
-- 附件摘要golden vector由validator按domain-separated preimage重算；撤权/redaction/过期+匹配ETag和
-  actual-deletion起算的半开30天tombstone边界均有静态oracle。
-- DF-13 fixture覆盖shared pool不重复计数、snapshot竞争、N participant部分受理、202丢响应、claim Unknown、
-  restart、release/drain/Tier独立、过期/越权及POST条件头412/200边界；DF-14覆盖安全路径、range并集、
-  FullContent digest/完整覆盖、空文件、metadata-only、changed/unmediated、profile能力、Unknown执行、发布故障、
-  单一outputs artifact linkage与证据窗口。
-- Draft 2020-12 Schema check、全部interfaces JSON parse、OpenAPI YAML parse：exit 0。
-- Piko-owned DF-13/14字段与语义无“实现时再确认”；LLMTier candidate.2机器正文的baseline binding已关闭。
-  Slinky对finalization.10三项修订的独立复验仍是跨方设计门禁，不由Piko自验替代。
-- 仅用项目内`docs/std.lock.json`与`docs/std-source-manifest.json`核验8个本包metadata：7个template hash
-  与锁定draft.21一致；`design.system`文档已采用4.0.0/hash `ec2800...`，与lock内旧hash `96d14...`
-  不一致，明确列为STD迁移项。未跨仓读取、未擅自升级项目STD lock，也不宣称全部STD校验通过。
-- 系统Git被本机未接受Xcode license阻断（exit 69）；使用Codex runtime fallback Git执行diff/check/status与
-  本地review commit，不推送。
+- `PK-R4-SL-01 / PK-R4-LT-03`：实际网络 attempt 在 Pi `options.fetch` wrapper dispatch 前登记；在 `processResponsesStream` 规范化前由最小 Piko observer hook 捕获 raw Usage 与字段存在性，禁止把 Pi cache-subtracted display input 当标准 input。
+- `PK-R4-SL-02`：Complete 覆盖全部实际 attempt 并满足精确算术/子集；Partial 的 null 与 missing 精确一致；Result 发布冻结 UsageSnapshot，迟到事实只更新内部 ledger。
+- `PK-R4-SL-03`：Queued 取消以单事务发布零调用 Cancelled Result并返回 `CancelledBeforeStart`；Running 才返回 `StopRequested`。
+- `PK-R4-SL-04 / PK-R4-LT-02`：唯一 Matrix 路径为 `matrix-js-sdk` Client-Server；定义 membership、event/self echo 去重、DiscussionTurn 与 cursor 提交顺序及稳定 txn 重试。
+- `PK-R4-SL-05`：RelativePath 明确拒绝尾随 `/` 形成的空 segment，并加入机器负例。
+- `PK-R4-SL-06 / PK-R4-LT-08`：read-only preflight 只到网络/TLS/auth/Models；真实 Responses 探针需单独 operator 授权、预算和审计。
+- `PK-R4-SL-07`：current authority 修正为 9 节系统设计、锁定 STD draft.21；旧14章/draft.19只保留历史来源。
+- `PK-R4-LT-09`：完整下一调用 input 保留 opaque reasoning item 的 id/encrypted_content/summary/content。
+- `PK-R4-LT-10`：配置显式固定 `supportsExplicitPromptCacheMode=false`；与 `cacheRetention:none` 一起强制三个 cache 请求字段缺席。
 
-## 6. 评审判定
+本候选仅进入两方普通路径复审；复审通过前不 commit/push，runtime activation 仍为 false。
 
-请求Slinky/LLMTier只审A类跨系统契约；B/C不作为设计冻结阻塞，但保持runtime activation=false。
-若A类无字段矛盾，下一计划阶段为各方内部下游设计，之后按本包唯一wire联调。
+## simplified.5 收尾处置
+
+- `PK-R4-SL-02-R1`：Usage 改为逐字段全 attempt 覆盖语义；字段缺任一 attempt 即 null/missing，Unknown 允许 observed attempts 非零；加入两类可执行聚合 oracle。
+- `PK-R4-SL-04-R1`：在既有 task loop 内定义 DiscussionTurn Pending、确定性 Pi entry、checkpoint 后 Consumed 的提交顺序和两处崩溃恢复；Pi idle 且无 Pending turn 时有限讨论 Run 正常结束，后续消息不重开。
+- `PK-R4-SL-07-R1`：migration map 将旧 service design/STD 基线标为历史审计来源，删除已经结束的 residual authority 表述并指向 current authority；STD 锁未升级。
+
+`L-20260917-5f660a9d497c` 对 simplified.4 的接受保留为历史复审结果；simplified.5 的上述差异仍需 Slinky 与 LLMTier 对同一新快照复审。复审通过前不 commit/push，runtime activation 仍为 false。
+
+## simplified.5 最终复审结果
+
+- Slinky：`S-20260917-a875f9c9e85e`，ACCEPTED；独立复算 manifest 28/28，并确认 `PK-R4-SL-02-R1`、`PK-R4-SL-04-R1`、`PK-R4-SL-07-R1` 关闭。
+- LLMTier：`L-20260917-5ac3904f2c00`，ACCEPTED；独立复算 manifest 28/28，并确认 Usage/Matrix delta 未破坏 simplified.4 消费边界。
+
+两方接受均限定设计与机器契约，不代表生产实现、联调或 runtime activation。固定被接受的 manifest SHA-256 为 `e54bc8fb6815a3c9a2619c7be95d88f450431cdef3c77d66b2a8904ce37ded55`；提交只记录该已接受快照及其评审证据，不修改 manifest 成员字节。

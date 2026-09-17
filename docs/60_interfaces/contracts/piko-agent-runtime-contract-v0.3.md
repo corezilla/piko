@@ -1,17 +1,16 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Agent Runtime V0.3 契约说明
-
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0-draft.10` |
+| Document Version | `0.4.0-draft.14` |
 | Status | `In Review` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-16` |
+| Last Modified Date | `2026-09-17` |
 | Template ID | `contracts.specification` |
 | Template Version | `0.1.0` |
 | Template Conformance | `tailored` |
@@ -22,303 +21,37 @@
 | Supersedes | `agent-runtime-v0.2-heavy-contract` |
 <!-- STD_DOCUMENT_COVER_END -->
 
-> Machine contract为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`
-> (`0.3.0-finalization.10`)；runtime activation=false。
+- Document ID: `piko-agent-runtime-contract-v0.3`
+- Version: `0.4.0-draft.14`
+- Machine version: `0.3.0-simplified.5`
+- Runtime activation: `false`
 
-## 1. Authority 与范围
+## 1. 唯一外部任务面
 
-本契约冻结 Piko V0.3 的单 Agent 轻量任务接口及 Piko-owned communication provider control。Slinky 拥有 Project、IR、Team、STD、Prompt 装配、CollaborationSession/Topic/room mapping、业务 close/archive/backup 与产物接受；Piko只负责一次 Run 的可靠执行、稳定Agent通信身份、AS ingress/delivery、Run attachment、fencing、drain和停止/释放事实。
+机器 authority 为 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml`、`interfaces/schemas/agent-runtime-v0.3.schema.json`、error catalog 与 fixture。仅有 submit/status/cancel/result 四项操作。
 
-字段级 authority：
+`POST /runs` 使用普通任务级 `Idempotency-Key`：相同 Client、endpoint、key 与 canonical body 返回原 Run；body 不同为 `IdempotencyConflict`。`client_task_id` 在 Client 内唯一。该机制只防止 Slinky 重发同一任务，不进入模型调用。
 
-1. OpenAPI：`interfaces/openapi/agent-runtime-openapi-v0.3.yaml`；
-2. JSON Schema：`interfaces/schemas/agent-runtime-v0.3.schema.json`；
-3. error catalog：`interfaces/error-codes/error-blocker-catalog-v0.3.json`；
-4. fixture：`interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`；
-5. 字段产生/消费规则：`piko-v0.3-field-usage.md`。
+`GET /runs/{run_id}` 无副作用。Queued Run 的取消以 200 `CancelledBeforeStart` 返回，并在同一事务发布零调用的 Cancelled Result；Running Run 的 202 `StopRequested` 仅表示取消意图落盘；已终态返回 200 `AlreadyTerminal`。`GET .../result` 在非终态返回 `RunNotTerminal`；结果一旦发布，其 generation 内容不可变。
 
-V0.2 重型 request/result、Team/Participant、`runs:by-attempt`、reconcile、Run SSE，以及旧 Piko-owned Session list/element-view/:close/collaboration_contract 在 `0.3.0-finalization.9` 一次性删除，不提供 alias、转换入口、deprecation双活或runtime fallback。
+## 2. 请求与权限
 
-## 2. API Catalog
+请求只包含任务、workspace、read/write/tool 权限、deadline/调用预算、输出路径，以及讨论任务可选的标准 Matrix `discussion={room_id,trigger_event_id}`。model 由该 Piko 实例配置，不是外部必填或可选 selector。instruction 不扩大权限。所有路径必须是规范 workspace 相对路径，禁止绝对路径、反斜线、`.`/`..` segment、空 segment；解析 symlink 后仍须位于授权根内。
 
-| Operation | Method/path | 成功 | Idempotency/版本 |
-|---|---|---|---|
-| Submit | POST `/agent-runtime/v1/runs` | 202 RunView | Client+endpoint+key；JCS body digest |
-| Execution capacity | POST `/agent-runtime/v1/execution-capacity/snapshots:query` | 200 ExecutionCapacitySnapshot | 只读、Client-scoped、非预留；If-None-Match匹配为412而非304 |
-| Status/recovery | GET `/runs/{run_id}` | 200/304 RunView | Client scope+ETag |
-| Result | GET `/runs/{run_id}/result` | 200/304 AgentResult | immutable ETag；非终态409 |
-| Cancel | POST `/runs/{run_id}:cancel` | 202 CancelReceipt | 独立key；原回执固定 |
-| Transport profile | GET/PUT/probe Operator singleton | 200/201 | ETag+key；Secret仅binding ref |
-| Agent identity | GET/PUT agent communication binding | 200/201 | stable MXID；ETag+key |
-| Session projection | GET/PUT SessionAgentBinding projection | 200/201 | Slinky authority；Piko核验 |
-| Revoke | POST binding `:revoke` | 202 receipt | operation/key/version |
-| Drain | GET binding `/drain` | 200/304 DrainView | Piko evidence projection |
-| Send message | POST binding `/messages` | 202 MessageSendReceipt | Client+endpoint+key；SID index |
-| Upload attachment | POST binding `/contents` | 201 ContentReferenceView | multipart；domain-separated metadata/content digest；single-message bind |
-| Message status | GET binding `/messages/{sid}` | 200/304 receipt | Client+binding+SID |
-| Read attachment | GET binding `/messages/{sid}/attachments/{attachment_id}` | 200/304 bytes | Slinky backend delegated read；exact linkage+viewer membership |
-| Ingress fact | GET binding `/ingress-events/{matrix_event_id}` | 200/304 IngressEventView | exact event；无副作用 |
+一个 endpoint 面向一个稳定 Piko/Agent 实例；不传 agent/session/team/IR/Topic 对象。Slinky 若需要多个 Agent，分别调用多个实例。实例同一时刻只运行一个 Run；其他受理任务排队。每个 Run 使用隔离 Pi session，保留期内以 run_id 查询历史。
 
-没有团队API、手工reconcile API、任务级聊天历史 API、content列表/content_ref直查、临时下载URL或第五个 Run mutation。
+## 3. 结果
 
-附件上传的logical digest固定为
-`lowercase-hex(SHA-256(ASCII("piko-content-upload-digest-v1") || 0x00 || uint64_be(len(M)) || M || H))`，
-其中`M`是RFC8785 JCS(metadata)的UTF-8字节，`H`是实际content bytes的SHA-256原始32字节。
-multipart boundary、part header、filename和content-transfer encoding不参与。基础framing/size检查后先计算并比较
-既有key digest：异digest返回409，即使新请求的声明hash也不匹配；同digest重放原决定；ledger miss才校验
-declared/actual size/hash并以422持久拒绝。
+结果包含状态、partial、summary、outputs、known_actions、task token usage 和 failure。`Completed` 强制 `partial=false/failure=null`；`Failed` 必须有 failure；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。`Completed` 不代表业务接受。失败也必须尽可能返回部分输出、已知动作和 usage。Usage 的 Complete/Partial/Unknown 与 null/missing_fields 由机器 Schema 约束；每个 token 字段只有在全部实际 attempt 都提供该字段时才返回完整 sum，否则为 null 并列入 missing_fields。Complete 表示六项都完整，Partial 表示部分字段完整，Unknown 表示无字段能完整聚合；Unknown 的 usage_observed_attempts 可以非零。零模型调用的 Cancelled Result 使用全零 Complete。Result 发布冻结 UsageSnapshot，迟到 usage 不修改 generation；未知不填零。Cost 不存在于本契约。
 
-附件条件读取固定先检查当前认证、delegated scope、Slinky授权引用和Matrix membership，再检查exact linkage/可见性，
-再检查redaction与bytes retention，最后才判断`If-None-Match`。所以撤权+匹配ETag仍为403，redaction+匹配
-ETag为410 `ContentRedacted`，实际删除后的30天半开tombstone窗口为410 `ContentExpired`，窗口终点及之后为404；
-只有仍可读且ETag匹配才返回304。retention eligibility不会启动tombstone：pending、RecoveryRequired或unknown义务
-会推迟实际删除，`bytes_deleted_at`写入时才计算`tombstone_until=bytes_deleted_at+30d`。
+## 4. 标准外部服务
 
-## 3. Run 状态与结果
+Matrix 讨论与 media 使用标准 Matrix API，不属于本 OpenAPI。LLMTier 使用标准 OpenAI-compatible API，不属于本 OpenAPI。Piko 不对外承诺容量观察、通信产品协议、内容仓库、跨系统 release/drain 或模型调用恢复。
 
-```mermaid
-stateDiagram-v2
-  [*] --> Queued
-  Queued --> Running
-  Queued --> Cancelled
-  Queued --> Failed
-  Running --> Completed
-  Running --> Failed
-  Running --> Stopping
-  Running --> RecoveryRequired
-  Stopping --> Cancelled
-  Stopping --> Failed
-  Stopping --> RecoveryRequired
-  RecoveryRequired --> Running
-  RecoveryRequired --> Stopping
-  RecoveryRequired --> Completed
-  RecoveryRequired --> Failed
-  RecoveryRequired --> Cancelled
-```
+## 5. 保留与 404/410
 
-`Completed` 只表示Agent正常结束，不表示Slinky接受产物。Piko task deadline到达时为
-`Failed/DeadlineExceeded/TaskDeadlineExceeded`。某一次LLMTier caller request deadline先到时为
-`Failed/ExecutionError/ModelRequestDeadlineExceeded`；catalog effective deadline先到时为
-`Failed/ExecutionError/ServiceEffectiveDeadlineExceeded`。两种单调用到期都立即禁止新的Agent业务步骤和
-新的logical model/tool call；原Invocation只继续对账，晚到成功仅进入Evidence，不恢复Agent或改写Result。
-model/tool limit分别使用`ModelCallLimit`、`ToolCallLimit`。只有用户取消且停止事实已证明才
-`Cancelled/UserCancelled`。`RecoveryRequired`非终态。正常终态发布不可变Result；结果发布前必须冻结输出generation和写权限。
+Run、任务去重记录和 Result 至少保留到 `max(request.deadline_at, accepted_at)+7d`。保留窗口内不可见与不存在统一 404；有可证明 tombstone 且窗口已结束可返回 410。活动任务或未知副作用事实不得仅因窗口到达删除。
 
-取消202只表示意图持久化；不证明停止、释放或Session关闭。迟到取消不得覆盖已持久Completed/Failed。
+## 6. HTTP 与 typed error
 
-## 4. Admission、幂等与保留
-
-处理顺序固定：认证→Client可见性与请求大小/JSON基础解析→计算JCS digest→读取
-idempotency/admission-decision ledger。读取到任何key记录都必须先比较digest：不同digest立即409；只有
-digest相同且记录类型为`AcceptedRun`才返回原202。该原回执不因当前deadline、Session撤权、projection
-过期或容量变化而改写。`RetryableRejection`不是受理回执；仅在相同digest、deadline未到且其明确
-re-evaluation condition成立时用record-version CAS重评。ledger miss或合法重评才继续：
-ClientTaskIndex/dispatch冲突→deadline→exact model→workspace/tool/agent/session projection→trigger→
-权限/limits→容量。deadline已到统一422 DeadlineExpired，即使binding同时失效或trigger尚未到；迟到
-ingress不能使过期请求被受理。
-
-规范伪代码：
-
-```text
-authenticate_and_authorize_current_client()
-body = parse_and_basic_validate_json()
-digest = sha256(rfc8785_jcs(body))
-record = lookup(client_id, endpoint, idempotency_key)
-if record:
-    if digest != record.digest: return 409 IdempotencyConflict
-    if record.kind == AcceptedRun: return record.original_202
-    if record.kind == TerminalRejection: return record.original_error
-    if deadline_reached(body): return cas_terminal_422(record)
-    if not record.reevaluation_condition_met: return record.original_error
-    return cas_reevaluate_same_record_and_admit(record, body)
-check_client_task_and_dispatch_conflicts()
-if deadline_reached(body): return persist_terminal_422_with_digest()
-check_mutable_admission_inputs_and_commit_once()
-```
-
-`cas_reevaluate_same_record_and_admit`不是只更新decision状态。它在一个serializable durable transaction中
-锁定并比较原`decision_version`，再次比较digest/deadline，并重新检查`ClientTaskIndex`、完整不可变
-`TriggerDispatchIndex` tuple、当前projection version/status/lease、权限交集、exact model、workspace/tool可见性
-与当前capacity。随后同一事务用unique constraints/CAS至多一次写入Run、两个索引、binding snapshot、可选
-RunCommunicationAttachment、resource claim和原202 receipt；任一索引已经由另一个key/事务占用即返回对应
-`ClientTaskConflict`或`CommunicationTriggerMismatch`，不得建立第二Run、dispatch intent或claim。服务重启后仍从
-原decision record/version执行同一事务。
-
-trigger暂未到时返回404 CommunicationTriggerNotFound，但持久化
-`key,digest,decision_kind=RetryableRejection,decision_version,decision_first_created_at,valid_until,ingress_observed_version`，不创建
-Run/claim，也不产生`original_202`。相同key异digest始终409；deadline前且ingress版本前进时允许用
-同key/body重评，CAS仅一个winner建立Run；deadline到达后decision转为terminal 422 DeadlineExpired。
-即使可重评decision本身到期，key→digest binding/tombstone仍保留至
-`max(request.deadline_at,decision_first_created_at)+7d`。`decision_first_created_at`由Piko durable clock在首次
-写入该pre-admission decision时生成且不可变，重评、decision状态转换和服务重启均不得推进；不能遗忘digest后
-允许同key变body。服务重启不遗忘record、首次时间或版本。
-
-成功在一个durable transaction中写原回执、Run、ClientTaskIndex、binding snapshot、可选RunCommunicationAttachment和资源claim；commit前无Pi、LLMTier、Tool或Matrix side effect。`(client_id,client_task_id)`唯一；换key冲突。
-
-无run_id丢响应重放原POST。已受理Run记录、去重记录、ClientTaskIndex和Result至少保留至
-`max(request.deadline_at,Run.accepted_at)+7d`；pre-admission rejection record/key→digest binding至少保留至
-`max(request.deadline_at,decision_first_created_at)+7d`。有到期tombstone返回410，否则不可见返回404。
-活动、Stopping、RecoveryRequired或未知外部义务不得因窗口到达删除。
-
-## 5. Workspace、Tool、Agent 与模型 binding
-
-`workspace_ref`、`tool_profile_ref`、顶层`agent_binding_ref`都引用Piko既有受控配置并在admission解析为`resolved_bindings_ref`。它们不是新配置系统。顶层`agent_binding_ref/session_binding_ref/expected_session_binding_version`三个键始终必填并显式发送null；旧嵌套`bindings`是unknown field并返回400。有效权限是Client授权、workspace binding、request paths、tool profile和实际操作时path/symlink/egress检查的交集；instruction不授予权限。
-
-`service_level_id`来自LLMTier Models exact-case catalog。Piko generation只使用non-stream Responses、Models和Responses recovery；不使用Chat/SSE、Provider-direct或跨等级fallback。每次新logical模型/工具调用在外呼前原子占用counter并写intent；恢复/查询不重复计数。
-
-### 5.1 Execution capacity snapshot 与 execution claim
-
-`POST /agent-runtime/v1/execution-capacity/snapshots:query` 是唯一只读规划查询。请求只包含异构
-`selectors[]`，每项为 `selector_id`、`quantity=1` 和与 Run admission 相同语义的
-`service_level_id/tool_profile_ref/agent_binding_ref`；Piko以当前 Client 可见配置解析唯一
-`execution_class_id` 与不可变 `execution_class_version`。单位唯一为
-`piko_concurrent_agent_run`，一个独立 participant/Run 的 quantity=1，coordinator 只计算自身。
-
-Snapshot 返回 `snapshot_id/snapshot_version/observed_at/valid_until/status`、逐 selector 的解析结果、
-逐 execution class 的 `available/held_claim/queued_claim`，以及同一 snapshot 中 direct、全部 shared/overlapping
-pool 与 Client quota 的 `constraint_facts`。每个 fact 使用稳定 `constraint_id`、scope、status、
-committed/held/available 和 `shortfall_for_next_unit`；Unknown 时数值为 null、`is_blocking=true`，
-Partial/Unknown/过期一律 fail closed。消费者对每个 participant 检查其 direct 及全部相关 constraint，
-不同 class 的 available 不得相加，也不得从字段推断物理 host/process topology。
-
-Snapshot 是非预留可行性，不创建 Run、claim、dispatch 或等待队列，也不保证后续 admission。只有
-`POST /runs` 可以分配执行占用：受理事务原子写 Run 与 quantity=1 的 `execution_claim`；Queued 即 Held，
-同 key 恢复不重复 claim。429/503 未受理不创建 claim。Slinky 只有在每个 participant 都获得自己的
-202 且 RunView 中 claim=Held 后才可宣称完整 backing；部分 202 是真实部分受理，取消不能回滚已经发生的
-业务事实。claim Unknown、snapshot 过期/越权或 query 依赖不可用均不得按0或可用处理。claim release、
-Run `execution_released`、communication drain、外部 Unknown obligation 与 LLMTier Seat release 是相互独立的事实。
-
-该POST的可选`If-None-Match`只接受一个exact strong ETag或`*`。当前representation匹配（或`*`且存在）
-返回412 `CapacitySnapshotPreconditionFailed`；不匹配返回200完整snapshot。POST绝不返回304，条件判断不
-延长`valid_until`。Slinky正常刷新不发送条件头，并对每个200重新核对Client scope、selectors和有效期；
-其他GET的合法304不受影响。
-
-### 5.2 可信材料读取证据
-
-请求中的 `input_evidence_requirement` 必须显式为 `Required` 或 `NotRequired`。Required 只可搭配
-admission 前可判定为 `Auditable` 的 tool profile；否则422 `InputEvidenceUnsupported`，不得静默降级。
-可信 producer 唯一为 `PikoTrustedInputBroker`，它位于 workspace/tool mediation boundary；Agent、shell、
-stdout、summary、普通 writer 和 `execution_log_ref` 不能生成或补写可信读取事实。
-
-Broker 对每次成功读取记录 workspace-relative path、对象版本、读取前后 SHA-256/size、coverage、
-byte ranges 与 observed_at。同一对象版本/hash下重叠或相邻range取并集，重复读取不累加。FullContent必须
-有content digest；非空文件规范range并集恰覆盖`[0,size)`且每段满足
-`0 <= start < end_exclusive <= size`；空文件只有真实read event才可用空ranges记FullContent。
-stat/list/metadata是MetadataOnly；读取中版本/hash变化为ChangedDuringRead并强制
-`Partial + ObjectChangedDuringRead`，Complete不得包含该观察；
-绕过broker的读取是Unmediated且不能产生Complete。Piko不判断哪些材料“应该被读”，也不证明模型理解；
-Slinky用自己的冻结材料清单核对证据，缺失或不可信即不通过覆盖接受。
-
-证据artifact路径固定为
-`.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json`，其中
-`run_scope_token=lowercase-hex(SHA-256(UTF8(client_id)||0x00||UTF8(run_id)))`。该系统前缀只能由
-Piko evidence producer写入，不扩大 request `write_paths`，不能由任意 `client_task_id` 派生路径。
-证据document按RFC8785 JCS UTF-8编码。发布顺序固定为：fence Agent/tool/workspace writer → 固定output
-generation → 原子生成证据bytes和digest → 将同一证据artifact纳入outputs快照 → 发布immutable AgentResult
-（包含`result_generation`、`published_at`）。
-任何阶段失败返回500 `InputEvidencePublicationFailed`，保持原义务/RecoveryRequired，不制造Complete。
-Unknown执行不得发布虚假Complete。
-
-`AgentResult`不再有`input_access_evidence`第二引用。Required任务的`outputs`必须且只能包含一个匹配
-`.piko/evidence/input-access/v1/<run_scope_token>/<result_generation>.json`的系统OutputFile；path世代、
-SHA-256和size必须与证据bytes一致，document的run/task/generation也必须与Result一致。缺失、重复、不同
-path/hash/size/generation均fail closed且不得发布terminal Result；NotRequired任务不得伪造该系统artifact。
-该系统artifact不在请求`output_paths`中声明且不扩大write_paths；因为Result总上限为256，Required任务的
-业务`output_paths`上限为255，给唯一系统artifact保留一个位置。
-消费者仍通过原workspace/artifact
-授权读取模式取得bytes，不新增日志读取或第二证据通道。证据bytes至少可读至
-`max(request.deadline_at,result.published_at)+7d`；Result可查询不等于bytes可读。Slinky应在该窗口内验证并
-接管长期Artifact，窗口内ACL/对象版本/散列失败即不接受，窗口后不得绕过授权恢复内容。
-
-## 6. Communication binding 与 trigger
-
-`agent_binding_ref`是稳定身份；`session_binding_ref+expected_session_binding_version`是Slinky授权的精确Session/room投影。投影还含`authorization_valid_until`；只有status=Active、expected version相等、当前时间早于valid_until且本地revoke fence未提交才可admit。Slinky更新投影与Piko admission不是跨系统ACID：Piko本地事务对projection row加锁/CAS；revoke先提交则新admission 409，admission先提交则已有Run保留原义务、随后revoke阻断全部新业务。过期projection fail closed为409 CommunicationBindingUnavailable。
-
-`communication_trigger`只接受`provider=SlinkyRuntime`、Client内唯一`dispatch_ref`和exact`trigger_event_id`。Bearer认证而非body常量证明可信caller。Piko验证event已在AS ingress ledger、room/identity/version/boundary匹配；不从最新消息推断。
-
-TriggerDispatchIndex键为`(client_id,dispatch_ref)`，值不可变绑定
-`client_task_id+session_binding_ref+trigger_event_id+agent_binding_ref`；任一组成变化均409
-`CommunicationTriggerMismatch`。ClientTaskIndex另保证同task换dispatch/key为409 `ClientTaskConflict`。
-同一event只有Slinky显式提交新的dispatch_ref+client_task_id才可建立另一Run；Piko ingress/retry从不生成
-dispatch_ref。同event可显式派给不同Agent或不同任务；同一完整消费键只产生一个Run。
-
-消息发送使用同一communication provider的既有outbox机制：
-`POST /projects/{project_ref}/session-agent-bindings/{session_binding_ref}/messages`提交
-`MessageSendRequest`；`GET .../messages/{sid}`查询固定receipt；Slinky用
-`GET .../ingress-events/{matrix_event_id}`读取Piko AS ingress ledger的可调度事实。三者使用同一Client
-Bearer/Project/Session binding scope，不创建第二transport。
-
-发送前request不含sender、room、matrix_event_id或Matrix时间：sender/MXID与room从exact Active
-projection派生；Matrix成功受理后才在receipt/view出现`matrix_event_id`与`matrix_origin_server_ts`。
-Piko自己的`accepted_at/piko_ingested_at`只表示本地持久化时钟。SID唯一域为
-`client+session_binding_ref+sender_identity_ref+sid`；同SID异digest 409 MessageIdConflict。
-RID必须解析为同room、同topic、当前sender可见的event，否则409 ReplyTopicMismatch。recipient至少1个，
-不允许空集合、广播fallback或未授权身份。附件单项≤64MiB、总计≤256MiB；content_ref必须是已授权
-Piko内容引用，读取时复核size/hash，不能用任意URL取得权限。未知version/type fail closed。
-
-IngressEventView从Matrix `event.sender/room_id/event_id/origin_server_ts`和Piko binding核验sender；body自报
-无authority。合法产品event为ProductEnvelopeValid且`dispatch_eligible=true`；普通原生Matrix消息记录为
-UnclassifiedNativeMessage、`dispatch_eligible=false`，不自动创建dispatch或Run；Rejected同样不可调度。
-当前AgentTeams bridge格式只是协作基础设施，不自动成为产品协议。
-
-唯一产品Matrix codec使用 `type=m.room.message`，便于Element原生显示，但必须带namespaced
-`content.io.piko.agent.message`；普通没有该扩展的 `m.room.message` 仍是UnclassifiedNativeMessage。
-`content.msgtype=m.text`，`content.body`与HTTP `body`逐UTF-8字节一致；namespaced对象只承载
-`envelope_version/topic_id/sid/rid/sender_identity_ref/recipient_identity_refs/message_type/attachments`。
-Piko从Active projection派生sender identity，外层`event.sender/room_id`是Matrix事实；任一不匹配均Rejected。
-`matrix_event_id/origin_server_ts`只由homeserver在受理后产生，发送前payload禁止携带。
-
-`rid=null`时禁止`m.relates_to`；`rid`非空时必须存在唯一
-`m.relates_to.m.in_reply_to.event_id`，且Piko SID索引证明该event与rid属于同room/topic。V0.3不使用
-`m.thread`或`m.replace`；未知version、扩展畸形、body/identity/room/reply不一致均Rejected、不可dispatch。
-附件只把`attachment_id/media_type/size_bytes/sha256/content_ref`放入扩展；发送前Piko用当前Client、Session、
-sender与recipient授权在既有content store解析content_ref并复核size/hash。Matrix不含下载URL、token或字节；
-Slinky/Element只显示经Piko核验的元数据。附件先由Slinky backend使用Client credential上传到同一binding
-`/contents`；multipart的metadata与实际字节hash组成幂等digest，单项最大64MiB。content_ref只能CAS绑定一个
-logical message，MessageAttachment的media/size/hash必须逐项相等。
-
-用户读取不由浏览器直连Piko：Slinky backend先验证当前Project/Session权限，再以
-`content:read:delegated` scope调用exact message attachment GET，同时传viewer exact MXID与非Secret
-authorization decision ref；Piko复核project/session/message/attachment不可变link及viewer在exact room的当前
-membership。任一失败403/404；依赖不可用503，不降级为仅Bearer读取。未绑定上传24h到期；绑定后至少保留到
-message accepted_at+7d，pending/RecoveryRequired/未知delivery义务不得删除；到期tombstone 30d返回410，
-之后404。长期项目历史由Slinky在授权边界内复制至其artifact/backup store，Piko不提供transcript/backup服务。
-
-`ProductMatrixRoomMessageEvent`只验证从真实homeserver event抽取的六字段受控投影，不是原始事件本身。
-原始`RawMatrixRoomMessageEvent`可含`unsigned`及其它外层标准字段，但必须是非state的`m.room.message`；
-`state_key`存在即拒绝。抽取前仍核验真实type/room/sender/event/time和严格content；外层额外字段不授予权限，
-也不能使畸形扩展通过。sender/room与exact projection不一致时分类Rejected。
-
-配置PUT使用唯一条件矩阵：create仅`If-None-Match:*`→201+ETag；update仅exact strong
-`If-Match:"etag"`→200+ETag；两者缺失428 PreconditionRequired；两者同时、weak/wildcard If-Match或
-非`*` If-None-Match为400 InvalidPreconditionCombination；stale/update-existing冲突为412，update缺失资源404。
-所有GET先做401/403鉴权再处理404/410/304；所有200 GET及配置PUT 200/201返回强ETag。createRun在已知
-去重tombstone过期时返回410 Gone。
-
-## 7. Revoke、drain、release 与 Session close
-
-Slinky先在本地提交撤权/version；Piko幂等提交本地fence，立即阻断新wakeup、新admission、新权限获取。Matrix membership独立收敛，证据未齐保持Revoking。既有义务仅对账，不取得新模型/Tool/workspace权限。
-
-`execution_released=true`需要机器字段`release_evidence`：agent_fence_ref、tool终止/隔离refs、workspace_writer_fence_ref、wakeup_fence_ref、external_obligation_status/refs、isolation_boundary_ref和released_at。隔离可令Run执行资源释放，但任何Isolated/Unknown外部义务ref必须同时保留在DrainView，使drain=RecoveryRequired且Session不可Closed。release不等待Session Closed；也不推断LLMTier terminal、Seat release或UnknownOutcome清除。
-
-`drain_status`逐`session_binding_ref`报告Piko inbox/outbox、unresolved/isolated external refs、authorization/writer/wakeup fence与该Agent虚拟用户membership。`membership_status=Left`只描述该binding的Piko虚拟用户，不要求人类成员或Slinky归档身份退出；零Agent房间对Piko无membership blocker。Slinky拥有最终Session关闭守卫和历史访问策略。完整组合矩阵见字段表。
-
-## 8. Error、鉴权与Secret
-
-所有分支只依赖error code/status/retryable/details，message不参与客户端逻辑。当前Client credential撤销先于任何回执重放；通过认证/Client可见性后，原Run replay不因Session后来撤权重做admission。
-
-AS token/registration、device key、delivery checkpoint、LLMTier credential、自动登录材料、逐步推理和完整transcript不进入Run/Result/binding/message DTO或日志。用户用自身Matrix session；V0.3禁止E2EE、federation和iframe token URL。
-
-## 9. 正负 fixture 与验证
-
-fixture覆盖：四种binding组合、trigger缺失/冲突、多Agent同event、path escape、key/task冲突、cancel≠release、release/drain/membership/strict close、Unknown Tier obligation。静态validator校验Schema/OpenAPI refs、error完整性、retired path/field不存在和fixtures预期。
-
-静态通过仅证明设计候选自洽，不证明真实Pi、Matrix、LLMTier、Tool、DB crash或RPO/RTO。runtime activation保持false。
-
-## 10. A/B/C与重新打开条件
-
-- A：本契约全部跨系统字段和行为，必须在联调前冻结；不得转移到实现测试。
-- B：Piko内部DB/HA/DDL/worker/Pi/workspace sandbox设计，可独立开展且不得改A。
-- C：真实依赖capture、故障注入、性能与安全证据；失败保持activation=false。
-
-重新打开A仅限：三方明确修改authority/Scope B、机器Schema发现不可满足矛盾、安全审查要求破坏性变更或用户批准新版本。不得以实现困难新增compatibility branch。
+每个 operation/status 可返回的 typed code 由 OpenAPI `x-error-codes` 与 error catalog `operation_status_codes` 双向一致性测试强制。createRun 的讨论 room/event 冲突为 409 `InvalidDiscussionContext`；本地队列满且未创建 Run 为 429 `QueueFull`；终态 Run 丢失 durable Result 为 500 `ResultUnavailable`，不得伪装成 404 或成功空结果。不存在面向调用方的 same-run resume 动作或 `retryable_by_same_run` 字段。

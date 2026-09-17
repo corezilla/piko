@@ -1,129 +1,46 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "package_id": "piko-v0.3-finalization",
-  "package_version": "0.3.0-finalization.10",
+  "package_id": "piko-v0.3-simplification",
+  "package_version": "0.3.0-simplified.5",
   "status": "review",
   "runtime_activation": false,
-  "generated_at": "2026-09-16",
+  "base_commit": "4c63380f944e41d0047e9f47340689a182b62fba",
+  "generated_at": "2026-09-17",
   "artifacts": [
-    {
-      "path": "README.md",
-      "sha256": "ebb79f7e3f7b3d1858e5e28af1badef553fe2bda7d79b53deef5a39b16bdcacb"
-    },
-    {
-      "path": "docs/20_system_design/piko-agent-runtime-design-v0.3.md",
-      "sha256": "ee492523dec959d2dbd9eb74966cfbd124e629c8dcbd81d243321a29073c088f"
-    },
-    {
-      "path": "docs/20_system_design/piko-agent-runtime-design-v0.3.metadata.json",
-      "sha256": "6123ee2c9e0205a487c16a886aa0eb002894ad032c0edf3269894d36a39d9ee5"
-    },
-    {
-      "path": "docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md",
-      "sha256": "dfb2d71e5166afdc888c3d873f6ec3fec5c420c7d47142fcde12b8023519c61f"
-    },
-    {
-      "path": "docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.metadata.json",
-      "sha256": "f64c59bb84483a6eb0cec6eba4e956f7a250814a17df5a65611141e116f76583"
-    },
-    {
-      "path": "docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md",
-      "sha256": "8cc40dea61f87364d55575dd611df07d833564dba9dcf6f101d21f956d71e045"
-    },
-    {
-      "path": "docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.metadata.json",
-      "sha256": "890cf48051555d1c8717b0259980743c44910f50a8c92e0d7175396cfddf9685"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md",
-      "sha256": "0172f68ef11aebcd759846be83ea8e4019832e2bc5346aa2f3e7eacc9b55a6cb"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.metadata.json",
-      "sha256": "f73f8ebf9ea41e50db9cbecdd09c7ea46864c849977d14ad11667d5564487b59"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-v0.3-field-usage.md",
-      "sha256": "d83779eb2d5b8d31c7b6e6dda87ab2708afeb26660ef6ab30f6f55e9d65520f9"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-v0.3-field-usage.metadata.json",
-      "sha256": "83955f60d885b10ee508432a9f84dc2eb33af9071e3b1ffc76e2041974e043f9"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md",
-      "sha256": "e046c769e6e4e468e85887e8a74a6e879f15d2032f0329fd630e2fceafdce2f8"
-    },
-    {
-      "path": "docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.metadata.json",
-      "sha256": "c9c089037263e2c8c9e2df5b27413330ac461755d4a6ea5b91bebbc96e379e99"
-    },
-    {
-      "path": "interfaces/openapi/agent-runtime-openapi-v0.3.yaml",
-      "sha256": "9a087eda3edf623bc21f74fdfe9394ca6b4cbf04cf8d6c71c80ca8e823ad5806"
-    },
-    {
-      "path": "interfaces/schemas/agent-runtime-v0.3.schema.json",
-      "sha256": "e390a6e96251fdcf75e8df36cdf9b1fcc24fae93a2edf8cd4cf35a931385a6d1"
-    },
-    {
-      "path": "interfaces/error-codes/error-blocker-catalog-v0.3.json",
-      "sha256": "55b260c4a164f75556c1bf925da293c7b3daf7df889c1a245d9fe2a9b8ebffc4"
-    },
-    {
-      "path": "interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json",
-      "sha256": "982880a0117c63ccb7ebc496d4bc35602a0123280f9101afb788629828f312a4"
-    },
-    {
-      "path": "docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md",
-      "sha256": "08f9ba874f20b18f0418a6ce1d9f22838c5c298f9271428e338343e36184601f"
-    },
-    {
-      "path": "docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.metadata.json",
-      "sha256": "7a9f7b57347cf8c22c7b628b8bb940659fb80f7613b9e32e58374c7ad7169d06"
-    },
-    {
-      "path": "docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md",
-      "sha256": "0652dcd55920501d3a7db442ca8826e2f615c4c5161193e33086ceb64f2d862c"
-    },
-    {
-      "path": "docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.metadata.json",
-      "sha256": "0812696f8bea42260b9305720df1086334b567971fc26d31aac32834cc5aa3b9"
-    },
-    {
-      "path": "tests/contract/validate_v03_contract.py",
-      "sha256": "604fa0ff9a3b4dfbb5af1c3a2218a80cb4ed2afc93c95b3ea27db96c713260ed"
-    },
-    {
-      "path": "docs/91_reviews/piko-v0.3-finalization-review-packet.md",
-      "sha256": "3ac87a2bbc32403a81f358f4a47034feaa5d882ce4fb8c337270a60bb32232ab"
-    },
-    {
-      "path": "docs/91_reviews/piko-llmtier-candidate2-consumption-evidence.json",
-      "sha256": "44872f1707f78b23a56e16c859ff265e6ce7dfe7c8a8f48db466c6548cc47e92"
-    }
+    {"path":"README.md","sha256":"a1327405d788f0b9a16738f5eb1188ff5dfdfa76affac4bc2c5e4233b3385033"},
+    {"path":"docs/00_management/piko-std-tailoring-v0.1.md","sha256":"550ac41cbf3d4efc7ea8995d1945094a2de5bff5e2c212c941540a9639241239"},
+    {"path":"docs/00_management/piko-std-tailoring-v0.1.metadata.json","sha256":"9b1e90cd79714590b5b76a769e9b961d518bcdb211bcd1e45da32d325587c0c8"},
+    {"path":"docs/10_requirements/piko-requirements-traceability-v0.3.md","sha256":"df14d29af51133341937a7908f2c1628a604ce13ff25b8170e89e7ec99833d6d"},
+    {"path":"docs/10_requirements/piko-requirements-traceability-v0.3.metadata.json","sha256":"ecd52e6e738d8aba98f44c604e7a5f9dd664512c811f41bab607d903d2be6359"},
+    {"path":"docs/20_system_design/piko-agent-runtime-design-v0.3.md","sha256":"cac2ebfd36e752e5aeae07d01ceb0549450e2898bfff2df77b82e84ebd0810f1"},
+    {"path":"docs/20_system_design/piko-agent-runtime-design-v0.3.metadata.json","sha256":"2246eb89dac42a076b3bd590c076d963a3a7bf09d748196c1589f9e5a8320bf4"},
+    {"path":"docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md","sha256":"0cd9acb32fd5afbd05b3b9b49130199f991374be101e8c3179ce29b7b35a9b5a"},
+    {"path":"docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.metadata.json","sha256":"ca6fadaa594aec2d3658df60a56f06267c1ad590cefff82f549dd141c43244b2"},
+    {"path":"docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md","sha256":"200bab206dfece0da6aa22138683a28fdbf4cfbe5564b703905d99a8460bc8ee"},
+    {"path":"docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.metadata.json","sha256":"28184b281692f6114d1021f11d3975b31b406508902cee277bf214f0a8db60ff"},
+    {"path":"docs/60_interfaces/contracts/piko-v0.3-field-usage.md","sha256":"5ede292aab0efd5af5df61d6be9b53d6e5ba9b1fbb6f37059a22a5cae72f6ee9"},
+    {"path":"docs/60_interfaces/contracts/piko-v0.3-field-usage.metadata.json","sha256":"cc327ff4facb8cf8253275daf2b4ceebf690e579a29c2596ad87c60871d2709d"},
+    {"path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md","sha256":"c47881ccd1a0cdc713b02ce18e777a4d62c64bed2ba6eba00c447a7720c61cb4"},
+    {"path":"docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.metadata.json","sha256":"546751a83791e3b2787dd502264f93d0559a5964a99ee0cf12d0e785b5511c56"},
+    {"path":"docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md","sha256":"0bf80d56c19b35c206f868fe1e97ef318dbe7f001d9da3bcb5e0c0c3d7407d2c"},
+    {"path":"docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.metadata.json","sha256":"984c57c8eb0cc42ce25cf513022d38eb36f8ce2cd1d5d7d6f21bab0ccad2ae01"},
+    {"path":"docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.md","sha256":"2afc07a09a0d33caba3b5b3cddf8a0ffecfb9ff7a4e5950c1c9e785948e80107"},
+    {"path":"docs/70_verification/specifications/piko-agent-runtime-test-specification-v0.3.metadata.json","sha256":"cd1f8ddd1e99270b45f8acb9ecc692d10b4e046fd3979815d7ba3cde4a486b86"},
+    {"path":"docs/80_operations/piko-runtime-release-and-operations-v0.3.md","sha256":"7efab8de592586153399794fdfc63e47dff328edb2bb4d795edb27b9423075e2"},
+    {"path":"docs/80_operations/piko-runtime-release-and-operations-v0.3.metadata.json","sha256":"cd0e62d8970cade2660434e5f337a310ad2665d64d6529ebfbe2b0f05d205b03"},
+    {"path":"docs/98_migration/current-document-inventory.md","sha256":"d2de3d944832aecf50810ad23da083de6651e39a6fe1d285398021f71d125df3"},
+    {"path":"docs/98_migration/piko-std-migration-map.md","sha256":"5e863c44f99827d7882db6496955657e00997a78973fbd8de8d955b0500560f4"},
+    {"path":"interfaces/openapi/agent-runtime-openapi-v0.3.yaml","sha256":"1662c8a6246d0401680087516915ffbb223c8e3f8335a4411d2d2294d48659bb"},
+    {"path":"interfaces/schemas/agent-runtime-v0.3.schema.json","sha256":"9e17e57d6a630d7b8650ab7269446e7a8104e824ef3928e6347513ef1ad21f11"},
+    {"path":"interfaces/error-codes/error-blocker-catalog-v0.3.json","sha256":"77b940a2fdc438f6442d92ad516139c9aefc0704bb5c25b353bab520df36c2ae"},
+    {"path":"interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json","sha256":"4353764cd0a2df15d44304087d2dd89180e32a1246ae6a223523d888444806b8"},
+    {"path":"tests/contract/validate_v03_contract.py","sha256":"e21665fd008426f115ca157c0ae4a9e0578147d3beb9c729f67fc3e944d9d308"}
   ],
-  "validation": {
-    "contract_validator": "PASS: 39 schema cases, 88 semantic cases, 16 paths, 44 errors",
-    "draft_2020_12_schema": "PASS",
-    "interface_json_and_openapi_yaml_parse": "PASS",
-    "locked_std_source_hashes": "PARTIAL: 7 of 8 selected metadata match draft.21 source manifest; design.system 4.0.0 is an explicit STD migration mismatch",
-    "git_diff_check": "PASS_WITH_CODEX_FALLBACK_GIT"
-  },
-  "cross_system_design_pending": [
-    "Slinky independent re-review of the Piko 0.3.0-finalization.10 DF-13/14 amendments remains open; provider self-validation does not replace that cross-system review"
-  ],
-  "downstream_internal_design": [
-    "durable DB/HA/DDL",
-    "worker scheduling implementation",
-    "Pi hook implementation",
-    "workspace/tool sandbox implementation"
-  ],
-  "integration_evidence": [
-    "real LLMTier capture",
-    "Matrix/Element/Application Service E2E",
-    "crash/failover",
-    "security and retention enforcement",
-    "performance/RPO/RTO"
+  "retired_current_paths": [
+    "interfaces/openapi/agent-runtime-matrix-openapi-v0.3.yaml",
+    "interfaces/schemas/agent-runtime-matrix-v0.3.schema.json",
+    "interfaces/vectors/v0.3/collaboration-decision-fixtures.json",
+    "docs/20_system_design/mechanisms/piko-collaboration-bridge-design-v0.3.md",
+    "docs/30_subsystem_design/piko-collaboration-bridge-internal-design-v0.3.md"
   ]
 }
