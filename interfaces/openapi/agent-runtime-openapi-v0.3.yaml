@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Piko Agent Runtime API
-  version: 0.3.0-simplified.5
-  description: 单 Piko 实例、单 Agent 的轻量任务接口；runtime_activation=false。
+  version: 0.3.0-simplified.6
+  description: 单 Piko 实例、单 Agent 的轻量任务接口；当前为设计阶段契约。
 servers:
   - url: https://piko.example/agent-runtime/v1
 security:
@@ -13,7 +13,6 @@ paths:
       operationId: createRun
       summary: 提交一个 Agent 任务
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
@@ -22,12 +21,13 @@ paths:
             schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/AgentTaskRequest'}
       responses:
         '202':
-          description: 任务已持久化；不表示任务成功。
+          description: 新任务已持久化，或同一 task_id 返回原 Run；不表示任务成功。
           content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/Conflict'}
+        '410': {$ref: '#/components/responses/Gone'}
         '422': {$ref: '#/components/responses/Unprocessable'}
         '429': {$ref: '#/components/responses/QueueFull'}
         '503': {$ref: '#/components/responses/Unavailable'}
@@ -80,12 +80,6 @@ components:
     bearerAuth: {type: http, scheme: bearer}
   parameters:
     RunId: {name: run_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema: {type: string, minLength: 16, maxLength: 255}
-      description: 仅用于任务提交去重；不传播到模型调用。
     RequestId: {name: X-Request-ID, in: header, required: false, schema: {type: string, minLength: 1, maxLength: 128}}
   responses:
     BadRequest: {$ref: '#/components/x-error-responses/BadRequest'}
@@ -117,8 +111,8 @@ components:
       x-error-codes: [NotFound]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     Conflict:
-      description: 任务 key、client_task_id 或讨论上下文冲突。
-      x-error-codes: [IdempotencyConflict, ClientTaskConflict, InvalidDiscussionContext]
+      description: task_id 已绑定不同任务定义，或讨论上下文冲突。
+      x-error-codes: [TaskConflict, InvalidDiscussionContext]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     RunNotTerminal:
       description: Run 尚未终态，结果不可读取。

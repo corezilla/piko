@@ -24,12 +24,12 @@
 | Canonical Path | `docs/80_operations/piko-runtime-release-and-operations-v0.3.md` |
 | Supersedes | none |
 
-> 本文是下游实现的运维设计，不是已发布版本、部署说明或 runtime activation 授权。
+> 本文是下游实现的运维设计，不是已发布版本或部署说明。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. Release scope、版本与兼容性
 
-目标 release 只实现 `0.3.0-simplified.5` 四项任务面、固定 Pi 版本、标准 Matrix 与标准 LLMTier Responses SSE 消费。旧 capacity/claim、产品消息、内容服务和模型 Invocation 协议不是兼容面，也不建立 fallback。
+目标 release 只实现 `0.3.0-simplified.6` 四项任务面、全局唯一 `task_id` 身份、固定 Pi 版本、标准 Matrix 与标准 LLMTier Responses SSE 消费。旧 capacity/claim、产品消息、内容服务和模型 Invocation 协议不是兼容面，也不建立 fallback。
 
 ## 2. 构建、制品、SBOM/BOM 与来源证明
 
@@ -41,7 +41,7 @@
 
 ## 4. 配置、Secret、校准数据与环境
 
-实例配置包含内部 model/profile、workspace roots、tool profiles、Task Store、Matrix homeserver/identity 和 LLMTier base URL。外部任务不得覆盖 model。credential 只从部署 Secret provider 注入，禁止出现在 API、Result、日志、Matrix 消息或诊断导出。
+实例配置包含唯一 Slinky bearer principal、内部 model/profile、workspace roots、tool profiles及recovery contracts、Task Store、Matrix homeserver/identity、LLMTier base URL，以及固定 Pi commit 和 additive patch manifest/hash。启动必须把每个recovery contract引用绑定到已注册实现并核对工具effect/replay元数据，未绑定或不匹配时fail closed。外部任务不得覆盖 model。credential 只从部署 Secret provider 注入，禁止出现在 API、Result、日志、Matrix 消息或诊断导出。
 
 ## 5. Preflight、Bring-up 与健康检查
 
@@ -49,20 +49,20 @@
 
 ## 6. 升级、迁移、回滚和恢复
 
-升级前停止新受理并等待或明确fence当前worker；保存RunSessionRecord/Result generation边界，再迁移schema。回滚只允许到能读取现有记录的版本。重启恢复按Result→Run→lease→session/checkpoint顺序对账；unknown side effect不重放。任何状态改变、credential修改、强制lease回收或数据修复需operator授权。
+升级前停止新受理并等待或明确fence当前worker；保存RunSessionRecord/Result generation边界，再迁移schema。回滚只允许到能读取现有记录的版本。重启恢复按Result→Run→lease→确定性Pi session→Harness open operation/result/transcript顺序对账；unknown side effect不重放。任何状态改变、credential修改、强制lease回收或数据修复需operator授权。
 
 ## 7. 操作、监控、告警与 SLO
 
-监控队列长度、单execution slot状态、lease epoch、Run状态时长、checkpoint/result generation、模型/工具attempt、usage质量、Matrix sync lag与dependency errors。当前无已批准SLO，不宣称可用性数字。
+监控队列长度、单execution slot状态、lease epoch、Run状态时长、Harness operation/result generation、模型/工具attempt、usage质量、Matrix sync lag与dependency errors。当前无已批准SLO，不宣称可用性数字。
 
 ## 8. 故障诊断、维护与更换
 
-诊断先固定build/config/schema/时钟及run_id，再查Task Store提交点、lease、session/checkpoint、工具intent/result、Responses stream边界、Matrix cursor/txn和Result generation。只读证据不足为Unknown；不得用换key、手工改ledger或盲目重放绕过。
+诊断先固定build/config/schema/Pi patch fingerprint/时钟、`task_id`及`run_id`，再查Task Store提交点、lease、discussion intake、Harness session/operation/transcript、tool call ledger与intent/result、Responses stream边界、Matrix cursor/txn和Result generation。只读证据不足为Unknown；不得通过更换`task_id`伪装成原任务恢复，也不得手工改ledger或盲目重放绕过。
 
 ## 9. 数据保留、备份、审计与安全
 
-Run、任务去重与Result至少保存到`max(deadline_at,accepted_at)+7d`，活动或unknown事实继续保留。Pi session、Matrix token与Secret不进入普通诊断包。备份恢复不得复活旧lease、取消意图或已撤销权限。
+Run、完整任务定义与Result至少保存到`max(deadline_at,accepted_at)+7d`，随后永久保留最小`task_id/run_id/Gone` tombstone；活动或unknown事实继续保留。备份必须成组覆盖SQLite与Harness session，并记录同一快照边界；Matrix token与Secret不进入普通诊断包。恢复不得复活旧lease、取消意图或已撤销权限。
 
 ## 10. Acceptance、交接与退役
 
-激活前需要机器契约、crash/retry/权限/Matrix/usage联调、安全与恢复证据，以及独立runtime授权。退役先禁止新Run、收口或隔离现有Run、保留可查询结果，再撤销credential；进程退出本身不是业务停止证据。
+部署前需要机器契约、crash/retry/权限/Matrix/usage联调、安全与恢复证据，以及独立发布授权。退役先禁止新Run、收口或隔离现有Run、保留可查询结果，再撤销credential；进程退出本身不是业务停止证据。

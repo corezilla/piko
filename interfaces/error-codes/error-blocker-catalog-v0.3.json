@@ -1,16 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "catalog_version": "agent-runtime-errors/0.3.0-simplified.5",
+  "catalog_version": "agent-runtime-errors/0.3.0-simplified.6",
   "status": "accepted",
-  "runtime_activation": false,
   "errors": [
     {"code":"InvalidRequest","http_status":400,"retryable":false,"when":"JSON, unknown fields, type, size, or canonical relative-path syntax is invalid"},
     {"code":"Unauthorized","http_status":401,"retryable":false,"when":"credential is missing or invalid"},
     {"code":"ScopeDenied","http_status":403,"retryable":false,"when":"Client lacks workspace, tool, path, room, event, or media authority"},
     {"code":"NotFound","http_status":404,"retryable":false,"when":"Run is absent or not visible to the authenticated Client"},
-    {"code":"Gone","http_status":410,"retryable":false,"when":"the published query-retention window has elapsed"},
-    {"code":"IdempotencyConflict","http_status":409,"retryable":false,"when":"the same task submission key is reused with a different canonical request digest"},
-    {"code":"ClientTaskConflict","http_status":409,"retryable":false,"when":"the same Client/client_task_id is already associated with another key"},
+    {"code":"Gone","http_status":410,"retryable":false,"when":"a task identity tombstone proves that the immutable task existed but its retained body, Run, or Result is no longer queryable"},
+    {"code":"TaskConflict","http_status":409,"retryable":false,"when":"task_id already exists with a different immutable task definition"},
     {"code":"RunNotTerminal","http_status":409,"retryable":true,"when":"result is queried before the Run reaches a terminal state"},
     {"code":"InvalidDiscussionContext","http_status":409,"retryable":false,"when":"room/event facts do not identify an authorized visible event in the same room"},
     {"code":"UnsupportedLimit","http_status":422,"retryable":false,"when":"Piko cannot enforce a requested task limit"},
@@ -20,20 +18,19 @@
     {"code":"DependencyUnavailable","http_status":503,"retryable":true,"when":"a required dependency is unavailable before acceptance; no Run was created"}
   ],
   "operation_status_codes": {
-    "createRun": {"400":["InvalidRequest"],"401":["Unauthorized"],"403":["ScopeDenied"],"409":["IdempotencyConflict","ClientTaskConflict","InvalidDiscussionContext"],"422":["UnsupportedLimit","DeadlineExpired"],"429":["QueueFull"],"503":["DependencyUnavailable"]},
+    "createRun": {"400":["InvalidRequest"],"401":["Unauthorized"],"403":["ScopeDenied"],"409":["TaskConflict","InvalidDiscussionContext"],"410":["Gone"],"422":["UnsupportedLimit","DeadlineExpired"],"429":["QueueFull"],"503":["DependencyUnavailable"]},
     "getRun": {"401":["Unauthorized"],"403":["ScopeDenied"],"404":["NotFound"],"410":["Gone"]},
     "cancelRun": {"401":["Unauthorized"],"403":["ScopeDenied"],"404":["NotFound"],"410":["Gone"]},
     "getRunResult": {"401":["Unauthorized"],"403":["ScopeDenied"],"404":["NotFound"],"409":["RunNotTerminal"],"410":["Gone"],"500":["ResultUnavailable"]}
   },
   "rules": {
-    "task_idempotency": "authenticated Client + POST /runs + Idempotency-Key is the task-submission namespace. Same key and canonical body returns the original Run; different body returns 409. The key is not forwarded to LLMTier and does not promise model-call exactly-once.",
-    "client_task_uniqueness": "client_task_id is unique within one Client. A different key for the same task returns 409.",
+    "task_identity": "task_id is the global immutable identity of one logical task. First acceptance binds one task_id to one Run and its validated task definition. A repeated submission returns that existing Run and never creates or restarts execution; a different definition for the same task_id returns TaskConflict. Purge retains a permanent minimal task_id/run_id tombstone, so the task_id is never reusable and a later submission returns Gone.",
     "single_agent_queue": "One logical Piko instance owns one Agent execution slot. Accepted Runs may queue; only one Run is Running or Cancelling. Each Run receives an isolated Pi session unless a future separately approved design says otherwise.",
-    "retry_boundary": "Model setup and pre-stream transient failures may use Pi's bounded provider retry. Once a Responses stream has emitted an event, failure is an execution fact and is not transparently replayed. A side-effecting tool is retried only when declared safe/idempotent or its completion state is queryable; unknown outcome is never blindly replayed.",
+    "retry_boundary": "Piko disables provider-internal retry with streamOptions.maxRetries=0. Pi AgentHarness owns bounded retry as distinct durable effect attempts. A committed orphaned assistant effect is recovered from its frame prefix and is never transparently redispatched. A side-effecting tool is replayed only when Pi tool metadata declares replay:safe and the profile supplies the required recovery contract; unknown outcome is never blindly replayed.",
     "discussion_boundary": "discussion authorizes one existing room/event as context for one finite ordinary task. Authorized events become durable DiscussionTurns and are committed once into the same Pi session. When Pi is idle and no durable turn is pending, the Run completes; later room events never reopen it or create a Run, model call, reply, or approval.",
     "cancellation": "A Queued Run is atomically published as Cancelled with a durable result and returns CancelledBeforeStart without taking the execution slot. A Running Run returns StopRequested after intent persistence; that receipt is not stop evidence. Unknown side effects remain explicit known_actions.",
-    "retention": "Run, task-deduplication record, and result remain queryable at least until max(request.deadline_at, accepted_at)+7d. Active or unresolved execution facts are not deleted merely because the window elapsed.",
-    "usage": "Usage is accumulated independently per field across distinct Pi model-response attempts. A field is an integer sum only when every actual attempt reports it; otherwise it is null and listed missing. Partial has some complete fields, Unknown has none and may still have nonzero usage_observed_attempts. Later observation may replace the same attempt's fact but is never added twice.",
+    "retention": "Run, full immutable task definition, and result remain queryable at least until max(request.deadline_at, accepted_at)+7d. After purge a permanent minimal task_id/run_id/Gone tombstone remains. Active or unresolved execution facts are not deleted merely because the window elapsed.",
+    "usage": "Usage is accumulated independently per field across distinct durable Pi provider-effect attempts. A field is an integer sum only when every durable attempt reports it; otherwise it is null and listed missing. Partial has some complete fields, Unknown has none and may still have nonzero usage_observed_attempts. Later observation may replace the same attempt's fact but is never added twice.",
     "no_model_recovery_protocol": "Piko uses the agreed standard OpenAI-compatible Responses SSE surface. It sends no custom conversation, capacity, source-instance, invocation-recovery, or release protocol to LLMTier.",
     "secret_boundary": "API, log, result, and Matrix handling never expose credentials, Matrix access tokens, provider secrets, or automatic-login material."
   }

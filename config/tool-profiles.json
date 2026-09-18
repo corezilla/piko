@@ -1,0 +1,18 @@
+{
+  "profile_version": "0.3",
+  "recovery_contracts": {
+    "workspace-atomic-write": {
+      "kind": "stable_deduplication",
+      "implementation_ref": "builtin:workspace-atomic-write"
+    }
+  },
+  "profiles": {
+    "workspace-standard": {
+      "tools": {
+        "read": {"effect":"read_only","replay":"safe","permissions":{"read_paths":[]}},
+        "write": {"effect":"workspace_write","replay":"safe","recovery_contract_ref":"workspace-atomic-write","permissions":{"write_paths":[]}},
+        "edit": {"effect":"workspace_write","replay":"safe","recovery_contract_ref":"workspace-atomic-write","permissions":{"write_paths":[]}}
+      }
+    }
+  }
+}

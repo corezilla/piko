@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "pi_version": "0.85.1",
+  "pi_commit": "9767ba275f3e9a5ee0f5c5342249b629ab1b2282",
+  "patch_file": "patches/pi-v0.85.1-piko.patch",
+  "additive_changes": [
+    {
+      "id": "PK-PI-STEP-ID",
+      "purpose": "Expose the already durable generation step identity to before_request hooks.",
+      "files": [
+        "upstream/pi/packages/agent/src/harness/agent-harness.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/drive/generation.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/drive/deferred.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/drive/structural.ts"
+      ]
+    },
+    {
+      "id": "PK-PI-RAW-USAGE",
+      "purpose": "Expose provider-native terminal Responses usage to the embedding runtime before Pi normalization.",
+      "files": [
+        "upstream/pi/packages/ai/src/types.ts",
+        "upstream/pi/packages/ai/src/api/simple-options.ts",
+        "upstream/pi/packages/ai/src/api/openai-responses-shared.ts",
+        "upstream/pi/packages/ai/src/api/openai-responses.ts",
+        "upstream/pi/packages/agent/src/harness/agent-harness.ts",
+        "upstream/pi/packages/agent/src/harness/execution/assistant.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/drive/generation.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/harness.ts",
+        "upstream/pi/packages/agent/src/harness/runtime/types.ts"
+      ]
+    },
+    {
+      "id": "PK-PI-DURABLE-FS",
+      "purpose": "Inject a NodeExecutionEnv subclass that fsyncs Pi JSONL session writes.",
+      "files": ["src/durable-fs.ts"]
+    },
+    {
+      "id": "PK-PI-NODE22-BODY-TYPE",
+      "purpose": "Narrow the existing SSE body to Node 22 BodyInit without changing runtime bytes.",
+      "files": ["upstream/pi/packages/ai/src/api/openai-codex-responses.ts"]
+    }
+  ]
+}

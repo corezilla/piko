@@ -25,7 +25,7 @@
 | Supersedes | none |
 
 > 内部 repository identifier 为 `piko`，canonical GitHub repository 为 `corezilla/piko`。
-> 本裁剪清单已完成文档批准；Runtime Activation 仍为独立 Gate。
+> 本裁剪清单已完成文档批准；项目当前仍处于设计阶段。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 适用背景
@@ -85,7 +85,7 @@ Element ExternalLink或自定义durable delivery不得借裁剪规则恢复。
 当前修订的 Document Status 为 `Approved`；此前批准记录保留在 Git 历史。当前项目采用的 STD
 锁定为 `0.1.0-draft.21`、source revision
 `274ef0a67eda080baa0063ae27ede7ee129aa32a`，`source_tag=null`；不得从当前 STD checkout 推导或擅自升级。
-MR-01、CP-01、PUB-01、DIR-01 与 PUB-02 均已完成。Runtime Activation 不随文档状态改变。
+MR-01、CP-01、PUB-01、DIR-01 与 PUB-02 均已完成。文档状态不代表生产实现或部署准备状态。
 
 重新评审触发条件：STD immutable commit/tag、模板或 Schema version 变化、Piko
 authority/API/状态机变化、Pi/LLMTier/Matrix contract 变化、production topology 确定，或

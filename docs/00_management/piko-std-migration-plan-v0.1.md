@@ -25,7 +25,7 @@
 | Supersedes | none |
 
 > MR-01、CP-01 与 PUB-01 已分别形成 immutable commit。用户随后要求按 STD 默认软件目录树
-> 一次性搬移；DIR-01 只改变路径与引用，Runtime Activation 保持 `false / NOT_RUN`。
+> 一次性搬移；DIR-01 只改变路径与引用，不改变项目仍处于设计阶段的事实。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 目标、范围与成功标准
@@ -34,8 +34,7 @@
   默认软件目录树，并在后续 PUB-02 重新发布可追溯的项目 RAG manifest。
 - 范围内：draft.19 source lock、编号文档树、顶层 `interfaces/`、`tests/contract/`、全部路径引用、
   sidecar/封面 source path 和目录迁移 review evidence。
-- 范围外：实现变更、新 runtime/config/fallback/compatibility path、其他项目文件、外部产品发布和
-  Runtime Activation。
+- 范围外：实现变更、新 runtime/config/fallback/compatibility path、其他项目文件和外部产品发布。
 - 成功标准：immutable STD source 可复验；单一 current authority；机器契约 authority 不丢失；
   L1/L2 通过且 L3 如实记录；每个 cohort 经 STD pre-commit Gate 后单独提交。
 
@@ -65,7 +64,7 @@
 | G4.5 STD Pre-Commit Review | STD reviewer | cohort 文件边界、三层证据与 dirty preservation | 收到明确 `COMMIT_APPROVED` 前禁止 commit/push |
 | G5 Canonical Promotion | 用户 + Piko Project Owner | authority/索引切换 | repository identifier、reviewed commit、逐 scope promotion 独立批准 |
 | G6 Publication/RAG | Piko publication/RAG owner | inclusion/exclusion 与 publication commit | 仅 canonical promoted artifacts 入库；重复 authority 检查通过 |
-| G7 Runtime Activation | 独立 runtime authority | 部署/外部依赖激活 | L3 运行证据满足且另有明确授权 |
+| G7 Production Readiness | 独立部署责任人 | 部署与外部依赖准备 | L3 运行证据满足且另有明确部署决定 |
 
 Slinky 继续拥有 Project/Plan/IR/Work/Decision/Acceptance；LLMTier 继续拥有 provider/capacity/routing/
 Invocation；Matrix/Element 实现不属于 Piko。Piko 只迁移本项目拥有或消费边界的事实。
@@ -108,7 +107,7 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 |---|---|---|---|
 | L1 STD structural/source | `verify-source-manifest` + `validate-design --project-root ... --require-immutable-std` | PASS | 0 new/inherited error；全部 sidecar/cover/decision/source 一致 |
 | L2 project contract/schema/test | `python3 tests/contract/validate_v03_contract.py` | PASS | fixtures、OpenAPI refs/filter、typed errors、authority boundary 通过 |
-| L3 runtime/external | Runtime Activation 与外部 vector backend | `N/A` for migration | 后续设计、编码和运行验证使用独立 Gate，不作为迁移 blocker |
+| L3 runtime/external | 运行证据与外部 vector backend | `N/A` for migration | 后续设计、编码和运行验证使用独立 Gate，不作为迁移 blocker |
 
 每次 cohort packet 保存原始命令、exit code、关键输出、artifact 路径、执行 commit 和 dirty/content digest。
 
@@ -132,7 +131,7 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 - Commit 前：向 STD 报 `READY_FOR_COMMIT` 并冻结 cohort 文件清单；只有收到 `COMMIT_APPROVED` 才可提交，
   且提交不得夹带清单外文件。commit 本身也不构成 canonical promotion。
 - 全迁移已完成：每份 scope 已完成单一 authority 切换，旧工作树副本已删除，项目 RAG 已重建；
-  Runtime Activation 保持 false，不是文档迁移完成的必要推论。
+  文档迁移完成不代表生产实现或部署准备完成。
 
 ## 9. 沟通、配置与变更控制
 
@@ -140,7 +139,7 @@ MR-01、CP-01、PUB-01 已分别提交。DIR-01 已用 immutable commit
 G4 接受的内容集合由 MR-01 commit 固定；CP-01 记录 Document Status 与 authority promotion；PUB-01
 记录旧路径 publication。DIR-01 已由 `9f55da4a82e764b8479b134b0c5ffe11d1ce5ec4` 固定并推送；PUB-02
 以随后的最终文档 snapshot 发布新路径 manifest。
-Runtime Activation 不从任何文档或目录 Gate 推导。
+生产实现或部署准备状态不从任何文档或目录 Gate 推导。
 重大设计变化单独提出，不藏入格式迁移；STD revision、模板 hash、authority 或 contract 改变即触发增量复审。
 
 资源/采购：本轮只需本地仓库、locked STD checkout 与现有 validator；无采购、模型权重或外部数据依赖。

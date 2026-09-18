@@ -1,0 +1,21 @@
+{
+  "instance_id": "piko-local",
+  "listen": {"host":"127.0.0.1","port":8787},
+  "api_auth": {"mode":"bearer","principal_id":"slinky","bearer_token_secret_ref":"env:PIKO_API_BEARER"},
+  "task_store": {"sqlite_path":"/Users/ben/work/piko/var/piko.sqlite","busy_timeout_ms":5000},
+  "pi": {
+    "version":"0.85.1",
+    "commit":"9767ba275f3e9a5ee0f5c5342249b629ab1b2282",
+    "session_root":"/Users/ben/work/piko/var/pi-sessions",
+    "adapter_patch_manifest_path":"/Users/ben/work/piko/config/pi-adapter-patch-manifest.json",
+    "adapter_patch_sha256":"c2dc381b936ecfd41721ac33b7ff4caaf077c3b8d8d09285adb2df31ef038f22"
+  },
+  "agent": {"model":"piko-default","profile_ref":"workspace-standard"},
+  "workspace": {"roots":{"piko":"/Users/ben/work/piko"},"staging_root":"/Users/ben/work/piko/var/staging"},
+  "tools": {"profile_registry_path":"/Users/ben/work/piko/config/tool-profiles.json"},
+  "matrix": {"enabled":false},
+  "llmtier": {"base_url":"https://llmtier.example/v1/","api_key_secret_ref":"env:PIKO_LLM_API_KEY","models_timeout_ms":10000},
+  "queue": {"capacity":100},
+  "retention": {"minimum_query_days":7},
+  "observability": {"log_level":"info","metrics_enabled":false}
+}

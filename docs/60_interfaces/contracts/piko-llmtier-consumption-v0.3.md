@@ -3,7 +3,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-consumption-v0.3` |
-| Document Version | `0.3.0-simplified.5` |
+| Document Version | `0.3.0-simplified.6` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -25,7 +25,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-llmtier-consumption-v0.3`
-- Version: `0.3.0-simplified.5`
+- Version: `0.3.0-simplified.6`
 - Status: Approved
 
 ## 1. 目的
@@ -38,9 +38,10 @@ LLMTier 为 Piko 提供无 Agent 会话状态的 OpenAI-compatible 模型服务�
 
 | 文件/符号 | 对消费契约的含义 |
 |---|---|
-| `packages/coding-agent/src/core/sdk.ts::setDefaultStreamFn(streamSimple)` | Coding Agent 的默认模型调用是 streaming |
-| `packages/agent/src/agent-loop.ts::streamAssistantResponse` | Agent loop 逐事件消费 `AssistantMessageEventStream`，并用 tool call 驱动下一轮 |
-| `packages/ai/src/api/openai-responses.ts::stream` | 调用 `client.responses.create` 并处理流；provider retry 包围同一标准请求 |
+| `packages/agent/src/harness/agent-harness.ts::AgentHarness` | durable session、lane、operation、abort、结果与恢复边界 |
+| `packages/agent/src/harness/runtime/drive/generation.ts` | 先提交 assistant effect intent，再调用 `lane.models.streamSimple` |
+| `packages/agent/src/harness/execution/assistant.ts` | Harness 逐事件消费 `AssistantMessageEventStream` |
+| `packages/ai/src/api/openai-responses.ts::stream` | 调用 `client.responses.create` 并处理标准 SSE stream |
 | `packages/ai/src/api/openai-responses.ts::buildParams` | 请求固定 `stream:true`、`store:false`，携带完整 `input` 与标准 `tools` |
 | `packages/ai/src/api/openai-responses-shared.ts::convertResponsesMessages` | tool result 编码为下一次请求的 `function_call_output` |
 | `packages/ai/src/api/openai-responses-shared.ts::processResponsesStream` | 解析文本、函数参数、终态、失败和 usage SSE 事件 |
@@ -67,17 +68,17 @@ LLMTier 为 Piko 提供无 Agent 会话状态的 OpenAI-compatible 模型服务�
 
 终态 `response.completed|incomplete.response.usage` 需提供 `input_tokens`、`output_tokens`、`total_tokens`；可取得时提供 `input_tokens_details.cached_tokens`、`input_tokens_details.cache_write_tokens`、`output_tokens_details.reasoning_tokens`，缺失按未知处理而非伪造业务事实。
 
-Piko 不发送 SourceInstance、Agent/Run/Session、Tier Seat、capacity claim、自定义 deadline/header、模型 Idempotency-Key 或 Invocation recovery 字段。第一阶段每次调用发送当前完整标准 `input`，不发送 `previous_response_id` 等 provider continuation identity；如未来固定 Pi 实际需要它，必须另行以具体需求复审，不能以“可选透传”预留协议。
+Piko 不向模型层发送 `task_id`、SourceInstance、Agent/Run/Session、Tier Seat、capacity claim、自定义 deadline/header 或 Invocation recovery 字段。第一阶段每次调用发送当前完整标准 `input`，不发送 `previous_response_id` 等 provider continuation identity；如未来固定 Pi 实际需要它，必须另行以具体需求复审，不能以“可选透传”预留协议。
 
 ## 3. Usage
 
-Piko 以每个实际 Pi model attempt 的 raw 标准 usage 为任务级统计来源。实际 dispatch 在 Pi `options.fetch` wrapper 中先做预算 CAS 和 attempt Started 落盘；Pi `onResponse` 只提供 HTTP 元数据，因此 Piko 在 `processResponsesStream` 对 terminal usage 规范化前使用最小 observer hook 保存 raw response identity、字段存在性和 token 值。它不替换 provider adapter 或建立第二调用路径。`input_tokens` 使用未扣除 cache 的标准原值，cache 是 input 子集，reasoning 是 output 子集，total 是 input+output。
+Piko 以每个 Pi durable provider-effect attempt 的 raw 标准 usage 为任务级统计来源。Piko 在 Harness `before_request{runId,stepId,attempt}` 中先做 deadline/budget CAS；固定 provider `streamOptions.maxRetries=0`，由 Harness policy 建立下一次独立 attempt。固定 Pi 缺少稳定 `stepId` 和 normalization 前 raw usage 通知，因此只允许两个 additive adapter patch：补充稳定 `stepId`，以及 `onRawUsage` observer。补丁 manifest/hash 必须由启动配置固定；不得替换 provider adapter或建立第二调用路径。`input_tokens` 使用未扣除 cache 的标准原值，cache 是 input 子集，reasoning 是 output 子集，total 是 input+output。
 
-保存 attempt/request/response identity 与原始字段存在性，汇总 input/output/total，cache read/write/reasoning 可用则汇总，不可用为 null。Complete 必须覆盖全部实际 attempt；Result 发布冻结 UsageSnapshot，迟到事实只更新内部 ledger，不修改已发布 Result。若 LLMTier 另有统一 Usage 查询，它只按同一 request/response identity 对账或补齐，不能与 response usage 重复累计，也不成为任务完成前提。身份缺失则保持 Unknown。Cost 不消费。
+保存 attempt/request/response identity 与原始字段存在性，汇总 input/output/total，cache read/write/reasoning 可用则汇总，不可用为 null。Complete 必须覆盖全部 durable provider-effect attempt；Result 发布冻结 UsageSnapshot，迟到事实只更新内部 ledger，不修改已发布 Result。若 LLMTier 另有统一 Usage 查询，它只按同一 request/response identity 对账或补齐，不能与 response usage 重复累计，也不成为任务完成前提。身份缺失则保持 Unknown。Cost 不消费。
 
 ## 4. 失败与恢复
 
-固定 Pi 的 `retryProviderRequest` 包围的是 `client.responses.create(...).withResponse()`，而 `processResponsesStream` 在该调用返回之后。因此只有尚未观察到 SSE event 的建流失败可按 Pi policy 有界重试；首个 event 后的断流不得透明重发同一 logical call。Piko 记录该 attempt 的已知输出/usage/unknown 状态，由 task loop 明确失败或在仍安全且有预算时发起后续新调用。Piko 不要求 LLMTier exactly-once，也不用新协议查询 Invocation。任务最终失败由 Piko 报告，Slinky 决定业务后续。
+provider 内部 retry 固定关闭。Harness 每次模型调用先提交 effect intent；失败是否再试由 Harness retry policy、deadline 和预算共同决定，并产生新的 durable attempt。崩溃后若 assistant effect 已提交而 outcome 不完整，恢复只从已提交 frame prefix 形成中断结果，不重新 dispatch 同一 effect。Piko 不要求 LLMTier exactly-once，也不用新协议查询 Invocation。任务最终失败由 Piko 报告，Slinky 决定业务后续。
 
 ## 5. 兼容审查边界
 

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piko.local/schemas/piko-tool-profile-v0.3.schema.json",
+  "title": "Piko Runtime v0.3 tool profile registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile_version", "recovery_contracts", "profiles"],
+  "properties": {
+    "profile_version": {"const": "0.3"},
+    "recovery_contracts": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+      "additionalProperties": {"$ref": "#/$defs/RecoveryContract"}
+    },
+    "profiles": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+      "additionalProperties": {"$ref": "#/$defs/Profile"}
+    }
+  },
+  "$defs": {
+    "RecoveryContract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "implementation_ref"],
+      "properties": {
+        "kind": {"enum": ["stable_deduplication", "external_status_query"]},
+        "implementation_ref": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]{1,256}$"},
+        "verification_timeout_ms": {"type": "integer", "minimum": 100, "maximum": 120000}
+      }
+    },
+    "RelativePath": {"type": "string", "minLength": 1, "maxLength": 4096, "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)(?!.*[\\u0000-\\u001F\\u007F])[^/]+(?:/[^/]+)*$"},
+    "Profile": {
+      "type": "object", "additionalProperties": false, "required": ["tools"],
+      "properties": {
+        "tools": {
+          "type": "object", "minProperties": 1,
+          "propertyNames": {"pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+          "additionalProperties": {"$ref": "#/$defs/ToolPolicy"}
+        }
+      }
+    },
+    "ToolPolicy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["effect", "replay", "permissions"],
+      "properties": {
+        "effect": {"enum": ["read_only", "workspace_write", "process", "network", "external"]},
+        "replay": {"enum": ["never", "safe"]},
+        "recovery_contract_ref": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]{1,256}$"},
+        "permissions": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "read_paths": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/RelativePath"}},
+            "write_paths": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/RelativePath"}},
+            "executables": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9._+-]{1,128}$"}},
+            "network_hosts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9.-]+(?::[0-9]{1,5})?$"}}
+          }
+        }
+      },
+      "allOf": [{
+        "if": {"properties": {"replay": {"const": "safe"}, "effect": {"not": {"const": "read_only"}}}, "required": ["replay", "effect"]},
+        "then": {"required": ["recovery_contract_ref"]}
+      }]
+    }
+  }
+}

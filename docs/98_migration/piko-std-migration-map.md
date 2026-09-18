@@ -33,8 +33,7 @@
 - 旧 QA 与跨项目 review 工作树副本已删除；仍有价值的约束位于 canonical design、contract 和 V&V
   文档，作为后续重新设计/编码输入，不属于迁移 blocker。
 - DIR-01 将 current prose、机器契约、验证资料、评审记录与历史材料一次搬到 STD 默认路径；不改变
-  Document ID、业务语义、接口 ID 或 Runtime Activation。
+  Document ID、业务语义或接口 ID。
 - `rag/project-ingestion-manifest.jsonl` 已删除全部 PUB-01 Piko 记录，并由 PUB-02 基于最终文档
-  snapshot 全量重建；历史记录只说明当时发布事实，不是当前 simplified.5 authority。
-- 外部 RAG backend 不存在，indexing 为 `N/A_NO_PROJECT_BACKEND`；Runtime Activation 仍为
-  `false / NOT_RUN`。
+  snapshot 全量重建；历史记录只说明当时发布事实，不是当前 simplified.6 authority。
+- 外部 RAG backend 不存在，indexing 为 `N/A_NO_PROJECT_BACKEND`；当前仍处于设计阶段。

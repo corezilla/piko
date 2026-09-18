@@ -1,0 +1,7 @@
+node_modules/
+dist/
+var/
+config/runtime.json
+*.log
+.DS_Store
+.pytest_cache/
