@@ -9,6 +9,7 @@ import { openAIResponsesApi } from "../upstream/pi/packages/ai/src/api/openai-re
 import { envApiKeyAuth } from "../upstream/pi/packages/ai/src/auth/helpers.ts";
 import type { Model } from "../upstream/pi/packages/ai/src/types.ts";
 import type { AgentResult, RuntimeConfig, TaskRequest } from "./types.js";
+import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { ToolRegistry } from "./config.js";
 import { DurableNodeExecutionEnv } from "./durable-fs.js";
@@ -50,7 +51,7 @@ export class PiRuntime {
     const existing=(await this.repo.list({cwd:workspace},BACKGROUND_CONTEXT)).find(x=>x.id===runId);
     const session=existing?await this.repo.open(existing,BACKGROUND_CONTEXT):await this.repo.create({cwd:workspace,id:runId},BACKGROUND_CONTEXT);
     const profile=this.registry.profiles[task.permissions.tool_profile_ref];
-    if(!profile)throw new Error(`unknown tool profile ${task.permissions.tool_profile_ref}`);
+    if(!profile)throw new PikoError("UnknownToolProfile",422,`unknown tool profile ${task.permissions.tool_profile_ref}`);
     const available:any={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();

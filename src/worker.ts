@@ -1,9 +1,28 @@
 import { randomUUID } from "node:crypto";
 import type { RuntimeConfig, TokenUsage, AgentResult } from "./types.js";
+import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { PiRuntime } from "./pi-runtime.js";
 import { collectOutputs, resolveWorkspace } from "./workspace.js";
-import type { MatrixRuntime } from "./matrix.js";
+import { isPermanentMatrixError, type MatrixRuntime } from "./matrix.js";
+
+const PIKO_CODE_TO_FAILURE:Record<string,{code:string;cause_class:string}>={
+  DeadlineExceeded:{code:"DeadlineExceeded",cause_class:"TaskDeadline"},
+  InvalidWorkspace:{code:"InvalidWorkspace",cause_class:"Authorization"},
+  ScopeDenied:{code:"ScopeDenied",cause_class:"Authorization"},
+  UnknownToolProfile:{code:"UnknownToolProfile",cause_class:"Tool"},
+  UnknownRecoveryContract:{code:"UnknownRecoveryContract",cause_class:"Tool"},
+  UnsafeRecoveryApplication:{code:"UnsafeRetryBlocked",cause_class:"ExecutionUnknown"},
+  ToolFailure:{code:"ToolFailure",cause_class:"Tool"},
+};
+
+function resolvePikoFailure(error:PikoError):{code:string;cause_class:string}{
+  if(PIKO_CODE_TO_FAILURE[error.code])return PIKO_CODE_TO_FAILURE[error.code]!;
+  if(error.code==="InvalidWorkspace")return {code:"InvalidWorkspace",cause_class:"Authorization"};
+  if(error.code==="ScopeDenied")return {code:"ScopeDenied",cause_class:"Authorization"};
+  if(error.code.startsWith("Unknown"))return {code:error.code,cause_class:"Tool"};
+  return {code:"InternalError",cause_class:"Internal"};
+}
 
 const fields=["input_tokens","output_tokens","total_tokens","cache_read_tokens","cache_write_tokens","reasoning_tokens"] as const;
 export function aggregateUsage(rows:any[],attempts:number):TokenUsage{
@@ -27,17 +46,46 @@ export class RunWorker {
       const workspace=await resolveWorkspace(task.workspace_ref,this.config.workspace.roots);
       timer=setInterval(()=>this.store.heartbeat(runId,epoch),1000);
       if(Date.parse(task.limits.deadline_at)<=Date.now())throw Object.assign(new Error("task deadline elapsed"),{pikoCode:"DeadlineExceeded",cause:"TaskDeadline"});
-      const outcome=await this.pi.execute(runId,epoch,task,workspace,()=>this.store.cancelRequested(runId)||Date.parse(task.limits.deadline_at)<=Date.now(),task.discussion?async(event,turn,body)=>{await this.matrix.sendDiscussionReply(runId,task.discussion!.room_id,event,turn,body)}:undefined);
+      const outcome=await this.pi.execute(runId,epoch,task,workspace,()=>this.store.cancelRequested(runId)||Date.parse(task.limits.deadline_at)<=Date.now(),task.discussion?async(event,turn,body)=>{await sendDiscussionReplyWithRetry(this.matrix,task.limits.deadline_at,runId,task.discussion!.room_id,event,turn,body)}:undefined);
       const view=this.store.getRun(runId);const attempts=view.progress.model_calls;const usage=aggregateUsage(this.store.usage(runId),attempts);const outputs=await collectOutputs(task,workspace);const published_at=new Date().toISOString();
       const deadline=Date.parse(task.limits.deadline_at)<=Date.now()&&!this.store.cancelRequested(runId);
       const state=outcome.status==="completed"?"Completed":outcome.status==="cancelled"&&!deadline?"Cancelled":"Failed";
       const failure=state==="Completed"?null:deadline?{code:"DeadlineExceeded",cause_class:"TaskDeadline",message:"Task deadline elapsed."}:outcome.failure??{code:"InternalError",cause_class:"Internal",message:outcome.summary};
       this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state,partial:state!=="Completed"&&outputs.length>0,summary:outcome.summary,outputs,known_actions:this.store.knownActions(runId),usage,failure,published_at} as AgentResult,epoch);
     }catch(error){
-      const e=error as any;const published_at=new Date().toISOString();const cancelled=this.store.cancelRequested(runId);const budget=e.message==="ModelCallLimitExceeded"||e.message==="ToolCallLimitExceeded";const code=cancelled?"CancelledByRequest":budget?"BudgetExceeded":typeof e.pikoCode==="string"?e.pikoCode:"InternalError";const cause=cancelled?"Cancellation":budget?"Budget":typeof e.cause==="string"?e.cause:"Internal";
+      const e=error as any;const published_at=new Date().toISOString();const cancelled=this.store.cancelRequested(runId);const budget=e.message==="ModelCallLimitExceeded"||e.message==="ToolCallLimitExceeded";
+      let code="InternalError";let cause_class="Internal";
+      if(cancelled){code="CancelledByRequest";cause_class="Cancellation"}
+      else if(budget){code="BudgetExceeded";cause_class="Budget"}
+      else if(error instanceof PikoError){const mapped=resolvePikoFailure(error);code=mapped.code;cause_class=mapped.cause_class}
+      else if(typeof e.pikoCode==="string"){code=e.pikoCode;cause_class=typeof e.cause==="string"?e.cause:"Internal"}
       const usage=aggregateUsage(this.store.usage(runId),this.store.getRun(runId).progress.model_calls);let outputs:AgentResult["outputs"]=[];try{outputs=await collectOutputs(task,await resolveWorkspace(task.workspace_ref,this.config.workspace.roots))}catch{/* preserve the primary failure */}
-      try{this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state:cancelled?"Cancelled":"Failed",partial:outputs.length>0,summary:e.message??String(e),outputs,known_actions:this.store.knownActions(runId),usage,failure:{code,cause_class:cause,message:e.message??String(e)},published_at} as AgentResult,epoch)}catch(finalize){console.error("run finalization failed",runId,finalize)}
+      try{this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state:cancelled?"Cancelled":"Failed",partial:outputs.length>0,summary:e.message??String(e),outputs,known_actions:this.store.knownActions(runId),usage,failure:{code,cause_class,message:e.message??String(e)},published_at} as AgentResult,epoch)}catch(finalize){console.error("run finalization failed",runId,finalize)}
     }finally{if(timer)clearInterval(timer)}
   }
   async close(){this.stopped=true;await this.loopPromise}
+}
+
+const DISCUSSION_RETRY_DELAYS_MS=[200,1000,5000];
+async function sendDiscussionReplyWithRetry(matrix:MatrixRuntime,deadlineAt:string,runId:string,roomId:string,eventId:string,turn:number,body:string):Promise<void>{
+  let lastError:unknown;
+  for(let attempt=0;attempt<=DISCUSSION_RETRY_DELAYS_MS.length;attempt++){
+    try{await matrix.sendDiscussionReply(runId,roomId,eventId,turn,body);return}
+    catch(error){
+      lastError=error;
+      if(isPermanentMatrixError(error))break;
+      if(error instanceof Error){
+        const name=error.name;
+        const msg=String(error.message??"");
+        const transient=name==="ConnectionError"||/ConnectionError|fetch failed|ECONNREFUSED|ETIMEDOUT|socket hang up|aborted/i.test(msg);
+        if(!transient)break;
+      }
+      if(attempt<DISCUSSION_RETRY_DELAYS_MS.length){
+        const remaining=Date.parse(deadlineAt)-Date.now();
+        if(remaining<=0)break;
+        await new Promise(r=>setTimeout(r,Math.min(DISCUSSION_RETRY_DELAYS_MS[attempt],remaining)));
+      }
+    }
+  }
+  throw lastError;
 }

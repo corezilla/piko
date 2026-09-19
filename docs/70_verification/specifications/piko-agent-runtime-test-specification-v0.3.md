@@ -71,4 +71,4 @@
 | PK-T39 | Matrix插入turn与`Open→Closing`并发时由SQLite writer顺序决定；Failed/Cancelled把未消费turn终结为`Abandoned`，任何终态Run都不能残留Pending/QueuedInPi turn |
 | PK-T40 | tool recovery ref必须存在并绑定已注册实现；Usage semantic validator拒绝attempt/算术/子集反例；Failed必须有started_at且路径拒绝控制字符 |
 
-机器可表达部分由静态、单元和集成测试执行；真实依赖门禁由对应联调报告记录。当前直接 oMLX 验证状态见 `docs/70_verification/reports/piko-direct-omlx-debug-20260918.md`，测试规格本身不维护重复的运行状态。
+机器可表达部分由静态、单元和集成测试执行；真实依赖门禁由对应联调报告记录。直接 oMLX 验证状态见 `docs/70_verification/reports/piko-direct-omlx-debug-20260918.md`；Matrix 真实身份与重启注入的最新一轮证据见 `docs/70_verification/reports/piko-matrix-acceptance-20260919.md`，将 PK-T11/17/18/25/28/38 由 PARTIAL 转为 PASS。测试规格本身不维护重复的运行状态。

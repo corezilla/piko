@@ -19,7 +19,7 @@ export class MatrixRuntime {
     const cursor=this.store.matrixCursor();if(cursor)this.client.store.setSyncToken(cursor);
     this.client.on(RoomEvent.Timeline,(event:MatrixEvent)=>{this.pendingEvents.push(event)});
     let readyResolve!:()=>void,readyReject!:(error:unknown)=>void;const ready=new Promise<void>((resolve,reject)=>{readyResolve=resolve;readyReject=reject});let readySettled=false;
-    this.client.on(ClientEvent.Sync,(state)=>{if(state!=="PREPARED"&&state!=="SYNCING")return;const next=this.client?.getSyncStateData()?.nextSyncToken;if(!next)return;const batch=this.pendingEvents.splice(0);this.syncWork=this.syncWork.then(()=>this.processBatch(batch,next));this.syncWork.then(()=>{if(!readySettled){readySettled=true;readyResolve()}},error=>{console.error("Matrix sync batch rejected",error);this.client?.stopClient();if(!readySettled){readySettled=true;readyReject(error)}})});
+    this.client.on(ClientEvent.Sync,(state)=>{if(state!=="PREPARED"&&state!=="SYNCING")return;const next=this.client?.getSyncStateData()?.nextSyncToken;if(!next)return;const batch=this.pendingEvents.splice(0);this.syncWork=this.syncWork.then(()=>this.processBatch(batch,next));this.syncWork.then(()=>{if(!readySettled){readySettled=true;readyResolve()}},error=>{console.error("Matrix sync batch rejected",error);const permanent=isPermanentMatrixError(error);if(!readySettled||permanent){this.client?.stopClient()}if(!readySettled){readySettled=true;readyReject(error)}})});
     await this.client.startClient({initialSyncLimit:20,pollTimeout:this.config.matrix.sync_timeout_ms??30000});
     const timer=setTimeout(()=>{if(!readySettled){readySettled=true;readyReject(new Error("Matrix initial sync timeout"))}},60000);try{await ready}finally{clearTimeout(timer)}
     this.started=true;
@@ -71,4 +71,15 @@ export class MatrixRuntime {
     try{const result=await this.send(room,txn,body,event);this.store.finishMatrixSend(txn,result.event_id);return result.event_id}catch(error){this.store.unknownMatrixSend(txn);throw error}
   }
   async close(){if(this.client){this.client.stopClient();this.client.removeAllListeners()}this.started=false}
+}
+
+export function isPermanentMatrixError(error:unknown):boolean{
+  if(!error||typeof error!=="object")return false;
+  const e=error as {errcode?:string;message?:string;httpStatus?:number;data?:{errcode?:string}};
+  const code=e.errcode??e.data?.errcode;
+  if(code==="M_UNKNOWN_TOKEN"||code==="M_FORBIDDEN"||code==="M_UNKNOWN_ROOM"||code==="M_BAD_JSON")return true;
+  if(typeof e.httpStatus==="number"&&e.httpStatus>=400&&e.httpStatus<500&&e.httpStatus!==408&&e.httpStatus!==429)return true;
+  const msg=String(e.message??"");
+  if(/credential identity mismatch|no longer joined/i.test(msg))return true;
+  return false;
 }
