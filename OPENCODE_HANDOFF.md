@@ -11,6 +11,20 @@ Git remote：`https://github.com/corezilla/piko`
 当前分支：`docs/piko-system-design-std26`  
 已推送 HEAD：`caa6e0ef9e6eed00c9d8d442beb59efd987223f2`（`feat: implement Piko durable agent runtime`）；本地与远端一致。
 
+## STD 入口（**先读 STD，不要手写文档**）
+
+Piko 文档体系遵守 STD（`/Users/ben/work/STD/`，本机 clone）。
+**不要**在 Piko 仓库手写带 STD cover 的文档。流程：
+
+1. 看 STD `/Users/ben/work/STD/docs/template-selection.md` 选模板
+2. 跑 `/Users/ben/work/STD/scripts/new-design` 生成文档和 metadata
+3. 填正文占位符
+4. 跑 `/Users/ben/work/STD/scripts/validate-design --project-root .` 校验
+5. 同时 commit `*.md` 和 `*.metadata.json`
+
+Piko 当前 STD 版本锁在 `docs/std.lock.json`（draft.21，按 STD §2.1 升级需独立 review）。
+完整 agent 规则见 `AGENTS.md`。
+
 ## 第一件事：保留当前工作树
 
 已推送的提交含 Piko v0.3 运行时、机器契约、设计修订、Pi 补丁和首批验证。**上一次单元测试扩充还未提交或推送**：
