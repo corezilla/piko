@@ -20,7 +20,7 @@
 | Tailoring Reference | none |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
-| Canonical Path | `docs/70_verification/reports/piko-matrix-acceptance-20260919.md` |
+| Canonical Path | `tests/integration/reports/piko-matrix-acceptance-20260919.md` |
 | Supersedes | piko-direct-omlx-debug-20260918 |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是

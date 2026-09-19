@@ -20,7 +20,7 @@
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
-| Canonical Path | `docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md` |
+| Canonical Path | `docs/60_interfaces/piko-llmtier-consumption-v0.3.md` |
 | Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 

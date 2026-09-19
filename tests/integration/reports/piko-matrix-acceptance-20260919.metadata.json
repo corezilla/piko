@@ -23,7 +23,7 @@
   "status": "draft",
   "visibility": "project",
   "source_repository": "corezilla/piko",
-  "source_path": "docs/70_verification/reports/piko-matrix-acceptance-20260919.md",
+  "source_path": "tests/integration/reports/piko-matrix-acceptance-20260919.md",
   "reviewed_commit": null,
   "parent_document_id": "piko-agent-runtime-test-specification-v0.3",
   "supersedes": "piko-direct-omlx-debug-20260918",
