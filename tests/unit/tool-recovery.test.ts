@@ -46,4 +46,10 @@ describe("workspace write recovery",()=>{
     await tool.execute("call",{path:"x.txt",edits:[{oldText:"before",newText:"after"}]},()=>{},context,inv.value,BACKGROUND_CONTEXT);
     expect(JSON.stringify([...inv.memos.values()]).length).toBeLessThan(1000);
   });
+  it("fails closed on a malformed durable recovery memo",async()=>{
+    const root=await mkdtemp(join(tmpdir(),"piko-recovery-"));roots.push(root);await writeFile(join(root,"x.txt"),"before\n");
+    const tool=applyToolRecoveryPolicy(createWriteTool(),policy,registry);const inv=invocation();inv.memos.set("workspace-write-plan",{version:1,before:7} as any);const context={env:new DurableNodeExecutionEnv({cwd:root})};
+    await expect(tool.execute("call",{path:"x.txt",content:"after\n"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/Invalid durable recovery plan/);
+    expect(await readFile(join(root,"x.txt"),"utf8")).toBe("before\n");
+  });
 });

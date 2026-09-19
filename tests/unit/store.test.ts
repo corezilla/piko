@@ -47,4 +47,5 @@ describe("TaskStore",()=>{
     expect(s.db.prepare("SELECT status FROM discussion_turns WHERE run_id=?").all(view.run_id)).toEqual([{status:"Abandoned"}]);
   });
   it("abandons the trigger turn when a queued discussion is cancelled",()=>{const s=make(),view=s.createOrGet(discussionTask(),"slinky",10,"trigger");s.cancel(view.run_id);expect(s.db.prepare("SELECT status FROM discussion_turns WHERE run_id=?").get(view.run_id)).toEqual({status:"Abandoned"})});
+  it("keeps Closing idempotent for the same recovered lease",()=>{const s=make(),view=s.createOrGet(discussionTask(),"slinky",10,"trigger"),claim=s.nextQueued("w","b")!;s.markTurn(view.run_id,"$trigger","Consumed");expect(s.tryCloseIntake(view.run_id,claim.lease_epoch)).toBe(true);expect(s.tryCloseIntake(view.run_id,claim.lease_epoch)).toBe(true);expect(s.db.prepare("SELECT discussion_intake_state FROM runs WHERE run_id=?").get(view.run_id)).toEqual({discussion_intake_state:"Closing"})});
 });

@@ -1,0 +1,82 @@
+{
+  "docs/20_system_design/system-design.md": {
+    "bytes": 106705,
+    "sha256": "de28aa5c50b2e4eb413b4eb5b9fdae91814cd57ced90000a551c8ec8e3158035"
+  },
+  "docs/10_requirements/software-requirements.md": {
+    "bytes": 25562,
+    "sha256": "bd5cc74284ca6ee5d74b66aeadf7200a17ef0c7783b04d5e40faed67621e3132"
+  },
+  "docs/60_interfaces/external-service-interface-control.md": {
+    "bytes": 6413,
+    "sha256": "69cb5e196ce8005365d10fff11d4eef992cdb80fa15434b52f6990ea6a9555e7"
+  },
+  "docs/60_interfaces/contracts/external-service-contracts.md": {
+    "bytes": 5350,
+    "sha256": "a40580c57b28d68675f4d6a44532f2c09526749982ebef2bfdcd56b00a0acfea"
+  },
+  "docs/40_module_design/runtime/design.md": {
+    "bytes": 5441,
+    "sha256": "c241afe0f2d1797c8d546c61ea49a373af9f9cdbd306923aa1607914dd629598"
+  },
+  "docs/40_module_design/ir/design.md": {
+    "bytes": 2696,
+    "sha256": "9a7439308e1a033223bc08fe985416ee296029cf07b3d46da5e0ac20726cde2b"
+  },
+  "docs/40_module_design/plan/design.md": {
+    "bytes": 2175,
+    "sha256": "9547a79a387f2feb4bc14f4802be2118c62a69a3b9898e5987364a4d5d847149"
+  },
+  "docs/30_subsystem_design/knowledge/design.md": {
+    "bytes": 15543,
+    "sha256": "06c123b2d03b6e9ebd117146da9e16bab4fbd664849cbeefd67c46a40918c14c"
+  },
+  "docs/30_subsystem_design/memory_subsystem.md": {
+    "bytes": 13317,
+    "sha256": "bd522b3581604a7c3b5042ce57239a57300bcc0c9305ffa5c862611289672ff0"
+  },
+  "docs/00_management/version-development-plan.md": {
+    "bytes": 16524,
+    "sha256": "301b9b507daf024746f42df0251255242c5b91461bcd29bf6c232617082288cc"
+  },
+  "docs/90_decisions/intelligent-process-scope-20260916.md": {
+    "bytes": 2645,
+    "sha256": "4a189f1644cc26d5aabde5ee212cdcd5869dd38f2dd8b8e7a97611c027b818ce"
+  },
+  "docs/70_verification/specifications/intelligent-process-design-checks.md": {
+    "bytes": 2585,
+    "sha256": "740ce1e2be03cc9d14a2884d2865a7f31a2025b88eebefd6a5300e43fc646138"
+  },
+  "docs/91_reviews/intelligent-process-design-revision-20260917.md": {
+    "bytes": 1845,
+    "sha256": "e8cc70acaf65c72b74781763ca8b65db5daef01db2b5dc9afe3dc70567345b13"
+  },
+  "docs/20_system_design/mechanisms/work_delegation.md": {
+    "bytes": 32637,
+    "sha256": "65af8f5c49486d80a010814cad56fefe92828937c1e6165d002acdc604429521"
+  },
+  "docs/20_system_design/mechanisms/artifact_acceptance.md": {
+    "bytes": 25220,
+    "sha256": "5fce56c1fa1e5dddeb7334b12ccf437260e010b7f7b5d59d3d832a92bacca102"
+  },
+  "docs/20_system_design/mechanisms/task_context.md": {
+    "bytes": 29826,
+    "sha256": "4c5b5ab90cf6d580032d7baa55ccf7133140f70beb9572a29d9d70fd38dce3bd"
+  },
+  "docs/50_implementation_design/fixed-stage-runtime.md": {
+    "bytes": 41343,
+    "sha256": "93c201f68aca0e16246e3af1a3ba45b37e39ed34ab38fdcdcc4d5be0cc1e6118"
+  },
+  "docs/60_interfaces/contracts/communication-lifecycle-contract.md": {
+    "bytes": 29984,
+    "sha256": "6db36d1b0a7ad669f969e0ba74ad3839049e716a17b60df4784ff6ea630b6638"
+  },
+  "docs/60_interfaces/contracts/mechanism-core-contract.md": {
+    "bytes": 6487,
+    "sha256": "1e466dae0e958070d112fd31c5c0c361c0ec6664b19f4d0b1d2722fbab0b3d9c"
+  },
+  "docs/60_interfaces/contracts/view-contracts.md": {
+    "bytes": 29177,
+    "sha256": "f01292b356d83ac3e27ca42eb83dcb74373b0d131d1978a84e18df786a374f68"
+  }
+}

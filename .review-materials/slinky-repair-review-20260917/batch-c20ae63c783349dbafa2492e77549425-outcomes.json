@@ -1,0 +1,8 @@
+[
+  {
+    "event_id": "$HmcPFqqP8-sUIc_MFVKtOEXW0NK7443HINvgxOCiEMQ",
+    "status": "answered",
+    "reason": "已完成固定53文件只读复审并发布AMENDMENT；确认大部分首轮finding关闭，指出current系统设计残留Session/Topic/备份操作、Piko材料读取覆盖证据，以及authority current/historical glob重叠三项精确缺陷。",
+    "reply_id": "P-20260917-28d8492be528"
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "docs/60_interfaces/contracts/fixtures/version-development-wbs.json": {
+    "bytes": 15839,
+    "sha256": "37a218371c4560bc1c9029aa179b3d96a030f91bbe4e3ecdc736508bc5eda972"
+  },
+  "docs/90_decisions/project-communication-integration.md": {
+    "bytes": 28937,
+    "sha256": "f4a6c63781ee5881ec6567a2a687a892e6219e737ef785a65979bc1b9ad36aa1"
+  },
+  "docs/20_system_design/mechanisms/execution_scope.md": {
+    "bytes": 30092,
+    "sha256": "ecc8f69b09921507105ed0b8850929cb5e62cf25b6ca83930c957b13926bf95e"
+  },
+  "docs/40_module_design/pr/design.md": {
+    "bytes": 10979,
+    "sha256": "09bc10eb809b9afb8cfcb05147050c8b0aca390e952687e94e06578d4a1208ab"
+  },
+  "docs/40_module_design/research/design.md": {
+    "bytes": 9027,
+    "sha256": "8a2fdc585fb5d221e02260874e17f8d34c3127bfe973f0d6f312471fc0c2b610"
+  },
+  "docs/40_module_design/component/design.md": {
+    "bytes": 6882,
+    "sha256": "fecdda1dd656a94caadc8c56f602848c0fef4f69e6130776f49b7b70b76b4812"
+  },
+  "docs/30_subsystem_design/testing/design.md": {
+    "bytes": 13627,
+    "sha256": "6ce3abd699a7cc971c940780197abd7edbe95b4c1a3284396f42046e01349db9"
+  },
+  "docs/70_verification/plans/verification-validation-plan.md": {
+    "bytes": 9108,
+    "sha256": "dadc98a2d0fb4b71497bbf94f7761f1e67dd19b9203abd06a3e8fe59837d7c11"
+  },
+  "docs/70_verification/specifications/test-lifecycle-specification.md": {
+    "bytes": 40380,
+    "sha256": "c4a26e8a627cd08812fc644d7aba9392343914f561017ab47be73637581d903d"
+  },
+  "docs/70_verification/specifications/fixed-stage-runtime-tests.md": {
+    "bytes": 15506,
+    "sha256": "a08d1de671f440be13998c97b63aef5cefa6e5a48f8a42f74890df890031ebca"
+  }
+}

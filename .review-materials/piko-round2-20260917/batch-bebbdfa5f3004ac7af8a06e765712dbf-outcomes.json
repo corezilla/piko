@@ -1,0 +1,8 @@
+[
+  {
+    "event_id": "$YsPmpTRoDUXYkh40BxlgCHcSoZt5JJ5dVoeD0SAsZCM",
+    "status": "answered",
+    "reason": "已直接按绝对路径固定当前未提交设计快照，提供含Document ID/version/hash/git base/dirty状态的普通JSON清单，并完成全文自评；发布1个P0、5个P1、1个P2意见，未修改设计正文或机器契约。",
+    "reply_id": "P-20260917-a763ee673818"
+  }
+]

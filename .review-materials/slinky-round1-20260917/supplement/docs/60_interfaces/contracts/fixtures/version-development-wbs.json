@@ -1,0 +1,651 @@
+{
+  "schema_version": "slinky-development-wbs/v1",
+  "document_ref": "docs/00_management/version-development-plan.md",
+  "evidence_level": "design_candidate",
+  "runtime_configuration": false,
+  "estimate_basis": "human person-days; external wait excluded; dates require confirmed resource capacity",
+  "tasks": [
+    {
+      "id": "V03-M00",
+      "batch": "B0",
+      "title": "主干文档归并",
+      "owner": "Documentation",
+      "depends_on": [],
+      "effort_person_days": [
+        1,
+        2
+      ],
+      "resources": [
+        "repository"
+      ],
+      "outputs": [
+        "source inventory",
+        "53 mapped documents"
+      ],
+      "exit_criteria": "来源/STD/链接检查通过",
+      "status": "Completed",
+      "evidence_refs": [
+        "docs/98_migration/v03-mainline-rollin/verification.json",
+        "docs/98_migration/v03-mainline-rollin/std-validation.json"
+      ]
+    },
+    {
+      "id": "V03-M01",
+      "batch": "B0",
+      "title": "启动基线与设计检查骨架",
+      "owner": "Design/Test",
+      "depends_on": [
+        "V03-M00"
+      ],
+      "effort_person_days": [
+        1,
+        2
+      ],
+      "resources": [
+        "repository"
+      ],
+      "outputs": [
+        "development plan",
+        "DAG/WBS fixtures",
+        "tests"
+      ],
+      "exit_criteria": "精确 DAG、负例、WBS 检查通过",
+      "status": "Completed",
+      "evidence_refs": [
+        "docs/00_management/version-development-plan.md",
+        "docs/98_migration/v03-mainline-rollin/design-tests.xml"
+      ]
+    },
+    {
+      "id": "V03-D01",
+      "batch": "B1",
+      "title": "需求与验收对照",
+      "owner": "Product/Design",
+      "depends_on": [
+        "V03-M01"
+      ],
+      "effort_person_days": [
+        1,
+        3
+      ],
+      "resources": [
+        "reviewer"
+      ],
+      "outputs": [
+        "requirements specification",
+        "traceability"
+      ],
+      "exit_criteria": "原需求 ID 保留，功能/边界/验收有 owner",
+      "status": "InProgress",
+      "partial_deliveries": ["docs/10_requirements/software-requirements.md", "docs/60_interfaces/contracts/fixtures/requirements-traceability.json"],
+      "remaining_scope": "独立需求 Review、所有模块逐 Case 展开及验收确认；不把 Candidate 当 Approved"
+    },
+    {
+      "id": "V03-D02",
+      "batch": "B1",
+      "title": "系统设计与主流程细化",
+      "owner": "Architect",
+      "depends_on": [
+        "V03-D01"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "reviewer"
+      ],
+      "outputs": [
+        "system design",
+        "startup/exception sequences"
+      ],
+      "exit_criteria": "固定 DAG/authority/恢复/数据 owner 可推演",
+      "status": "InProgress",
+      "partial_deliveries": ["docs/40_module_design/runtime/design.md"],
+      "remaining_scope": "完整系统启动/各模块启动/跨模块主流程与数据持久化边界；本批仅 Runtime 切片"
+    },
+    {
+      "id": "V03-T01",
+      "batch": "B1",
+      "title": "System Test Design",
+      "owner": "Test",
+      "depends_on": [
+        "V03-D02"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "test-designer"
+      ],
+      "outputs": [
+        "system cases",
+        "oracle design",
+        "environment plan"
+      ],
+      "exit_criteria": "全生命周期与外部故障可测，不能只检查报告",
+      "status": "Planned",
+      "preliminary_design_refs": ["docs/70_verification/specifications/fixed-stage-runtime-tests.md"],
+      "remaining_scope": "待 V03-D02 gate 后完成全项目 System Test Design；Runtime Case 不是全部系统覆盖"
+    },
+    {
+      "id": "V03-D03",
+      "batch": "B1",
+      "title": "子系统/模块/ISD 映射",
+      "owner": "Module owners",
+      "depends_on": [
+        "V03-D02"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "reviewer"
+      ],
+      "outputs": [
+        "module design",
+        "file/interface/state mapping",
+        "ISD"
+      ],
+      "exit_criteria": "每个实现切片有启动/参数/错误/副作用/恢复和测试入口",
+      "status": "InProgress",
+      "partial_deliveries": ["docs/50_implementation_design/fixed-stage-runtime.md"],
+      "remaining_scope": "Runtime RT-G01..07 review；Plan/IR/PR/Knowledge/Research/Testing/Web 的源码与 ISD"
+    },
+    {
+      "id": "V03-D04",
+      "batch": "B1",
+      "title": "Piko/Tier/Element 外部契约闭环",
+      "owner": "Integration",
+      "depends_on": [
+        "V03-D02"
+      ],
+      "effort_person_days": [
+        2,
+        5
+      ],
+      "resources": [
+        "piko-review",
+        "llmtier-review"
+      ],
+      "outputs": [
+        "pinned contract bundle",
+        "review evidence"
+      ],
+      "exit_criteria": "project-room/embed/enum/close/recovery 对齐；external wait 单列",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T02",
+      "batch": "B1",
+      "title": "Module/Contract Test Design",
+      "owner": "Test",
+      "depends_on": [
+        "V03-D03",
+        "V03-T01"
+      ],
+      "effort_person_days": [
+        3,
+        5
+      ],
+      "resources": [
+        "test-designer"
+      ],
+      "outputs": [
+        "module/contract cases",
+        "fault matrix"
+      ],
+      "exit_criteria": "每个 required enum/error、并发和无 ID recovery 有 oracle",
+      "status": "Planned",
+      "preliminary_design_refs": ["docs/70_verification/specifications/fixed-stage-runtime-tests.md", "docs/60_interfaces/contracts/schemas/runtime-readiness.schema.json"],
+      "remaining_scope": "只交付 Runtime 内部依赖查询切片；其余 mutable/外部 Contract 与各模块测试待完成"
+    },
+    {
+      "id": "V03-T03",
+      "batch": "B1",
+      "title": "测试资产构建和资格验证",
+      "owner": "Test",
+      "depends_on": [
+        "V03-T02",
+        "V03-D04"
+      ],
+      "effort_person_days": [
+        3,
+        6
+      ],
+      "resources": [
+        "test-builder"
+      ],
+      "outputs": [
+        "fixtures",
+        "runner",
+        "controlled mutations",
+        "qualification"
+      ],
+      "exit_criteria": "Case 能检出刻意错误，未执行不算 Pass",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T04",
+      "batch": "B1",
+      "title": "隔离环境准备与 admission",
+      "owner": "PR/Test",
+      "depends_on": [
+        "V03-T01"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "environment-admin"
+      ],
+      "outputs": [
+        "1/2/6 environment fingerprints",
+        "cleanup/readiness"
+      ],
+      "exit_criteria": "路径/端口/数据/source/browser identity 可隔离，失败 quarantine",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-I01",
+      "batch": "B2",
+      "title": "现有 Runtime 固定 DAG 演进",
+      "owner": "Runtime",
+      "depends_on": [
+        "V03-D03",
+        "V03-T02"
+      ],
+      "effort_person_days": [
+        3,
+        6
+      ],
+      "resources": [
+        "developer"
+      ],
+      "outputs": [
+        "runtime patch",
+        "unit tests",
+        "state migration"
+      ],
+      "exit_criteria": "15 stage 依赖与并行/重启保持，不创建第二 runtime",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-I02",
+      "batch": "B2",
+      "title": "Plan/Gantt 与滚动细化",
+      "owner": "Plan",
+      "depends_on": [
+        "V03-D03",
+        "V03-T02"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "developer"
+      ],
+      "outputs": [
+        "Plan implementation",
+        "unit/contract tests"
+      ],
+      "exit_criteria": "全周期 WBS、排期/实际分离、冲突/风险/最迟决策时间",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-I03",
+      "batch": "B2",
+      "title": "IR/PR 组合与资源准备",
+      "owner": "IR/PR",
+      "depends_on": [
+        "V03-D03",
+        "V03-D04",
+        "V03-T02"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "developer"
+      ],
+      "outputs": [
+        "IR/PR implementation",
+        "lease/recovery tests"
+      ],
+      "exit_criteria": "完整 IR、预封装 PR、并发/失效/补偿可验证",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-I04",
+      "batch": "B2",
+      "title": "Piko/Tier 适配与恢复",
+      "owner": "Integration",
+      "depends_on": [
+        "V03-D03",
+        "V03-D04",
+        "V03-T03"
+      ],
+      "effort_person_days": [
+        3,
+        6
+      ],
+      "resources": [
+        "developer",
+        "piko-service",
+        "llmtier-service"
+      ],
+      "outputs": [
+        "adapters",
+        "consumer/provider tests"
+      ],
+      "exit_criteria": "唯一调用路径，typed result、202/terminal/no-ID/restart",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T05",
+      "batch": "B2",
+      "title": "首个真实纵向切片 pilot",
+      "owner": "Integration/Test",
+      "depends_on": [
+        "V03-I01",
+        "V03-I02",
+        "V03-I03",
+        "V03-I04",
+        "V03-T04"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "pilot-environment",
+        "piko-service",
+        "llmtier-service"
+      ],
+      "outputs": [
+        "Goal -> Work -> Result -> Actual evidence"
+      ],
+      "exit_criteria": "真实依赖首次集成，不用模拟替代最终 outcome",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-F01",
+      "batch": "B3",
+      "title": "Knowledge/Memory/Research",
+      "owner": "Knowledge/Research",
+      "depends_on": [
+        "V03-D03",
+        "V03-T02",
+        "V03-I04"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "developer"
+      ],
+      "outputs": [
+        "knowledge/experience flow",
+        "research implementation",
+        "tests"
+      ],
+      "exit_criteria": "模板标准硬约束，能力选择与用户决策/证据可追溯",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-F02",
+      "batch": "B3",
+      "title": "Testing 与多语言 Web 工程",
+      "owner": "Testing/Web",
+      "depends_on": [
+        "V03-D03",
+        "V03-T03",
+        "V03-T05"
+      ],
+      "effort_person_days": [
+        5,
+        10
+      ],
+      "resources": [
+        "developer",
+        "test-environment"
+      ],
+      "outputs": [
+        "testing lifecycle",
+        "web/python pipeline",
+        "tests"
+      ],
+      "exit_criteria": "T0-T8 authority、跨语言契约、真实 mutation/coverage",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-F03",
+      "batch": "B3",
+      "title": "四 View 顶部 Shell 与业务接口",
+      "owner": "WebUI",
+      "depends_on": [
+        "V03-D03",
+        "V03-I01",
+        "V03-I02",
+        "V03-I03"
+      ],
+      "effort_person_days": [
+        3,
+        6
+      ],
+      "resources": [
+        "developer",
+        "browser"
+      ],
+      "outputs": [
+        "view APIs",
+        "shell",
+        "browser tests"
+      ],
+      "exit_criteria": "顶部四 View、真实数据、稳定 patch、desktop/mobile",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-F04",
+      "batch": "B3",
+      "title": "项目内 Element 与异步用户决策",
+      "owner": "WebUI/Runtime",
+      "depends_on": [
+        "V03-D04",
+        "V03-F03",
+        "V03-I04"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "developer",
+        "matrix-element-environment"
+      ],
+      "outputs": [
+        "embedded RoomView",
+        "decision flow",
+        "browser/security tests"
+      ],
+      "exit_criteria": "两项目多 room、原生 event、撤权/切换/Expert-PM-User 闭环",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T06",
+      "batch": "B3",
+      "title": "Module/Subsystem 调试与复验",
+      "owner": "Module/Test",
+      "depends_on": [
+        "V03-F01",
+        "V03-F02",
+        "V03-F03",
+        "V03-F04",
+        "V03-T05"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "test-environment",
+        "developer"
+      ],
+      "outputs": [
+        "defects",
+        "lower-layer regression",
+        "promotion evidence"
+      ],
+      "exit_criteria": "缺陷补下层测试、必要重跑、无假覆盖后 promotion",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T07",
+      "batch": "B3",
+      "title": "六环境并行压力 pilot",
+      "owner": "IR/PR/Test",
+      "depends_on": [
+        "V03-T06",
+        "V03-T04"
+      ],
+      "effort_person_days": [
+        2,
+        5
+      ],
+      "resources": [
+        "six-isolated-environments",
+        "shared-tier"
+      ],
+      "outputs": [
+        "queue/conflict/fairness/recovery evidence"
+      ],
+      "exit_criteria": "1 -> 2 -> 6 并行；压力到 Plan/PM 风险可见",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T08",
+      "batch": "B4",
+      "title": "完整系统/E2E/安全/恢复/性能",
+      "owner": "Test",
+      "depends_on": [
+        "V03-T06",
+        "V03-T07"
+      ],
+      "effort_person_days": [
+        4,
+        8
+      ],
+      "resources": [
+        "six-isolated-environments",
+        "browser"
+      ],
+      "outputs": [
+        "system matrix",
+        "crash/permission/performance evidence"
+      ],
+      "exit_criteria": "全固定 DAG 与用户决策，满足基线化阈值",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-T09",
+      "batch": "B4",
+      "title": "系统缺陷调试与回归",
+      "owner": "Module/Test",
+      "depends_on": [
+        "V03-T08"
+      ],
+      "effort_person_days": [
+        3,
+        8
+      ],
+      "resources": [
+        "developer",
+        "test-environment"
+      ],
+      "outputs": [
+        "defect fixes",
+        "lower+upper-layer rerun"
+      ],
+      "exit_criteria": "高优先级缺陷关闭，残余风险明确",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-R01",
+      "batch": "B4",
+      "title": "部署/迁移/回滚文档与演练",
+      "owner": "Release",
+      "depends_on": [
+        "V03-T05"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "release-environment"
+      ],
+      "outputs": [
+        "operations",
+        "migration/backups",
+        "rehearsal"
+      ],
+      "exit_criteria": "恢复已验证，无静默旧路径 fallback",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-R02",
+      "batch": "B4",
+      "title": "遗留调用点清理与切换资格",
+      "owner": "Runtime/Release",
+      "depends_on": [
+        "V03-T09",
+        "V03-R01"
+      ],
+      "effort_person_days": [
+        2,
+        4
+      ],
+      "resources": [
+        "release-environment",
+        "developer"
+      ],
+      "outputs": [
+        "legacy removal",
+        "cutover candidate",
+        "regression"
+      ],
+      "exit_criteria": "新 release 内旧 Tier/mlexp/direct 路径不再可达",
+      "status": "Planned"
+    },
+    {
+      "id": "V03-R03",
+      "batch": "B4",
+      "title": "独立验收与显式发布",
+      "owner": "User/Review",
+      "depends_on": [
+        "V03-R02"
+      ],
+      "effort_person_days": [
+        1,
+        3
+      ],
+      "resources": [
+        "reviewer",
+        "release-environment"
+      ],
+      "outputs": [
+        "acceptance decision",
+        "release manifest",
+        "closure"
+      ],
+      "exit_criteria": "用户验收、exact commit/证据、activation 显式授权",
+      "status": "Planned"
+    }
+  ]
+}
