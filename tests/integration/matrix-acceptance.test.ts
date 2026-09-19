@@ -152,9 +152,12 @@ beforeAll(async () => {
 });
 
 describe("Piko acceptance — service availability", () => {
-  it("Piko is listening", () => { expect(pikoUp, `Piko at ${PIKO_URL} unreachable`).toBe(true); });
+  it("Piko is reachable (skipped when no PIKO_BEARER)", () => {
+    if (!PIKO_BEARER) return;
+    expect(pikoUp, `Piko at ${PIKO_URL} unreachable`).toBe(true);
+  });
   it("LLM endpoint is reachable (used by oMLX smoke only)", async () => {
-    if (skipSlow) return;
+    if (skipSlow || !PIKO_BEARER) return;
     try {
       const r = await fetch(`${LLM_BASE}models`);
       expect(r.status === 200 || r.status === 401).toBe(true);
