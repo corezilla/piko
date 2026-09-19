@@ -18,7 +18,12 @@ describe("workspace authorization",()=>{
   it("rejects read and write paths that escape through a symlink",async()=>{
     const workspace=await mkdtemp(join(tmpdir(),"piko-workspace-"));const outside=await mkdtemp(join(tmpdir(),"piko-outside-"));roots.push(workspace,outside);
     await mkdir(join(workspace,"safe"));await writeFile(join(outside,"secret.txt"),"secret");await symlink(outside,join(workspace,"safe","link"));
-    await expect(authorizePath(workspace,"safe/link/secret.txt",["safe"])).rejects.toThrow(/outside task permissions/);
-    await expect(authorizePath(workspace,"safe/link/new.txt",["safe"],true)).rejects.toThrow(/outside task permissions/);
+    await expect(authorizePath(workspace,"safe/link/secret.txt",["safe"])).rejects.toThrow(/resolves outside workspace|outside task permissions/);
+    await expect(authorizePath(workspace,"safe/link/new.txt",["safe"],true)).rejects.toThrow(/resolves outside workspace|outside task permissions/);
+  });
+  it("rejects allowed paths that resolve through a symlink to outside workspace",async()=>{
+    const workspace=await mkdtemp(join(tmpdir(),"piko-workspace-"));const outside=await mkdtemp(join(tmpdir(),"piko-outside-"));roots.push(workspace,outside);
+    await mkdir(join(workspace,"safe"));await writeFile(join(outside,"secret.txt"),"secret");await symlink(outside,join(workspace,"safe","link"));
+    await expect(authorizePath(workspace,"safe/link/secret.txt",["safe/link/secret.txt"])).rejects.toThrow(/resolves outside workspace|outside task permissions/);
   });
 });

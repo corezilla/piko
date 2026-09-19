@@ -11,13 +11,16 @@ export async function resolveWorkspace(ref:string,roots:Record<string,string>):P
   return realpath(configured);
 }
 export async function authorizePath(workspace:string,input:string,allowed:string[],write=false):Promise<string>{
+  const wsReal=await realpath(workspace).catch(()=>workspace);
   const candidate=resolve(workspace,input);
   if(!inside(workspace,candidate))throw new PikoError("ScopeDenied",403,"path escapes workspace");
   let checked:string;
   try{checked=await realpath(write?dirname(candidate):candidate)}catch{checked=await realpath(dirname(candidate))}
   const target=write?resolve(checked,candidate.split(sep).at(-1)!):checked;
-  const roots=await Promise.all(allowed.map(p=>realpath(resolve(workspace,p)).catch(()=>resolve(workspace,p))));
-  if(!roots.some(root=>inside(root,target)))throw new PikoError("ScopeDenied",403,"path is outside task permissions");
+  if(!inside(wsReal,target))throw new PikoError("ScopeDenied",403,"path resolves outside workspace");
+  const allowedAbs=allowed.map(p=>resolve(wsReal,p));
+  if(!allowedAbs.every(p=>inside(wsReal,p)))throw new PikoError("ScopeDenied",403,"allowed path resolves outside workspace");
+  if(!allowedAbs.some(root=>inside(root,target)))throw new PikoError("ScopeDenied",403,"path is outside task permissions");
   return target;
 }
 export async function collectOutputs(task:TaskRequest,workspace:string){
