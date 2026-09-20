@@ -2,7 +2,7 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.26",
   "source_repository": "corezilla/STD",
-  "source_revision": "5a1e71f4e2baa6e6761b685e91deecbd58cf0649",
+  "source_revision": "4bec18d210d9f14c79e0745e80ee6f59872aaa78",
   "source_tag": null,
   "generated_at": "2026-09-20",
   "artifacts": [
@@ -29,7 +29,7 @@
     {
       "path": "docs/adoption.md",
       "role": "guidance",
-      "sha256": "83523956fbb30c0dbdf93f96fcc3c51c60cb3b2c0eb7473f9b190d6dc23a0487"
+      "sha256": "c81a173e75e4d4d4c5bdd507f131dc392caca3bd509fa17fc4b148bb22b57f6f"
     },
     {
       "path": "docs/ai-authoring-guide.md",
@@ -514,7 +514,7 @@
     {
       "path": "templates/_shared/project-readme.md",
       "role": "template",
-      "sha256": "015bbaa7a59d9201b9b7ed35e37b635917b4c693024cb3e4e3fdd27c10ff6976"
+      "sha256": "e3e9930e81a890b12663daeade64fe5bbc509a9cc523c145dc0bb80008c23167"
     },
     {
       "path": "templates/assurance/acceptance-test-plan.md",

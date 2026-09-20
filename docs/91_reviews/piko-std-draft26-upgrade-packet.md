@@ -52,7 +52,7 @@
 |---|---|
 | Repository | `corezilla/piko`，分支 `docs/piko-system-design-std26` |
 | 升级前 lock | `0.1.0-draft.21` @ `274ef0a67eda080baa0063ae27ede7ee129aa32a`（adopted 2026-09-07） |
-| 升级后 lock | `0.1.0-draft.26` @ `5a1e71f4e2baa6e6761b685e91deecbd58cf0649`（本地 STD checkout HEAD） |
+| 升级后 lock | `0.1.0-draft.26` @ `4bec18d210d9f14c79e0745e80ee6f59872aaa78`（本地 STD checkout HEAD；`5a1e71f4` 后仅追加 README 模板文档 commit，无模板语义变化） |
 | Manifest | `docs/std-source-manifest.json` 重建为 189 artifacts，`verify-source-manifest` PASS |
 | 升级前 validate-design | `new=105 inherited=0`（20 template-version-mismatch、20 template.hash、2 lock.source-mismatch、24+59 .review-materials 相关） |
 
