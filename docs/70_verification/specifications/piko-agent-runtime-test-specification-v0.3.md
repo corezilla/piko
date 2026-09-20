@@ -3,17 +3,17 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-test-specification-v0.3` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Verification Owner |
-| Authors | corezilla |
+| Authors | corezilla, opencode |
 | Reviewer | User / Piko Project Owner |
 | Approver | User / Piko Project Owner |
 | Approval Date | `2026-09-17` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-20` |
 | Template ID | `assurance.test-specification` |
 | Template Version | `0.2.1` |
 | Template Conformance | `tailored` |
@@ -25,7 +25,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-agent-runtime-test-specification-v0.3`
-- Version: `0.4.0`
+- Version: `0.5.0`
 - Status: Approved
 
 | Test ID | Oracle |
@@ -70,5 +70,19 @@
 | PK-T38 | discussion首次accept同时写typed instruction和一个PikoDiscussionMessage；trigger正文不复制，accept前后崩溃均只消费一次 |
 | PK-T39 | Matrix插入turn与`Open→Closing`并发时由SQLite writer顺序决定；Failed/Cancelled把未消费turn终结为`Abandoned`，任何终态Run都不能残留Pending/QueuedInPi turn |
 | PK-T40 | tool recovery ref必须存在并绑定已注册实现；Usage semantic validator拒绝attempt/算术/子集反例；Failed必须有started_at且路径拒绝控制字符 |
+| PK-T41 | 对LLMTier请求子集固定：仅发model、完整input、`stream:true`、`store:false`与标准tools；不发送`prompt_cache_key/retention/options`、`previous_response_id`、task/session/deadline等任何跨系统字段 |
+| PK-T42 | 工具结果以`function_call_output{call_id,output}`进入下一次完整input；`function_call_arguments.delta/done`聚合后可驱动Piko工具循环 |
+| PK-T43 | 仅凭契约必需SSE事件集（response.created→output_item.added(message)→output_text.delta→output_item.done→response.completed+usage）即可完成Run并产出正确Result |
+| PK-T44 | `response.incomplete`终态产生明确非Completed语义，不伪装成功 |
+| PK-T45 | `response.failed`与顶层error映射为ModelResponseInvalid/ModelUnavailable等契约错误码，不得落InternalError |
+| PK-T46 | reasoning/refusal事件可消费；opaque reasoning item的id/encrypted_content/summary在下一请求按字节结构重放 |
+| PK-T47 | usage可选字段缺失按null/Partial语义处理，不伪造数值；Complete覆盖全部durable attempt |
+| PK-T48 | SSE在终态事件前断流时provider retry保持0，由Harness产生新durable attempt；已提交effect前缀形成中断结果 |
+| PK-T49 | 慢流超过models_timeout_ms超时映射为契约失败，budget CAS不被绕过 |
+| PK-T50 | 非JSON/错误content-type响应体产生干净失败映射，不挂起不panic |
+| PK-T51 | `/v1/responses`与`/v1/models`的401/429/500/503分别正确映射；429的retry-after被尊重；preflight模型名缺失拒绝启动 |
+| PK-T52 | `input_tokens`为未扣cache原值，cache_read/write为input子集，reasoning为output子集，total=input+output；算术反例被usage validator拒绝 |
+| PK-T53 | 迟到usage或外部Usage查询只按request/response identity对账补齐，不与response usage重复累计；身份缺失保持Unknown |
+| PK-T54 | 全链路在契约形状的mock LLMTier + Piko组合下，由外部调用方（Slinky位）完成submit/poll/result校验/cancel/幂等重交全流程 |
 
-机器可表达部分由静态、单元和集成测试执行；真实依赖门禁由对应联调报告记录。直接 oMLX 验证状态见 `docs/70_verification/reports/piko-direct-omlx-debug-20260918.md`；Matrix 真实身份与重启注入的最新一轮证据见 `docs/70_verification/reports/piko-matrix-acceptance-20260919.md`，将 PK-T11/17/18/25/28/38 由 PARTIAL 转为 PASS。测试规格本身不维护重复的运行状态。
+机器可表达部分由静态、单元和集成测试执行；真实依赖门禁由对应联调报告记录。直接 oMLX 验证状态见 `tests/integration/reports/piko-direct-omlx-debug-20260918.md`；Matrix 真实身份与重启注入的最新一轮证据见 `tests/integration/reports/piko-matrix-acceptance-20260919.md`，将 PK-T11/17/18/25/28/38 由 PARTIAL 转为 PASS。PK-T41..T54 由 `piko-llmtier-consumption-v0.3` 消费契约衍生，通过 mock LLMTier 契约测试离线执行；真实 LLMTier 兼容仍是独立部署 Gate。测试规格本身不维护重复的运行状态。
