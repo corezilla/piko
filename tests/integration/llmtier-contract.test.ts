@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,7 +11,6 @@ import { PiRuntime } from "../../src/pi-runtime.js";
 import { RunWorker } from "../../src/worker.js";
 import { preflightModelProvider } from "../../src/provider-preflight.js";
 import { startMockLlmtier, type MockLlmtier, type ScriptStep } from "../common/mock-llmtier.js";
-import { readFile } from "node:fs/promises";
 import Ajv, { type ValidateFunction } from "ajv/dist/2020.js";
 
 /** Load LLMTier candidate.7 OpenAPI schemas for wire-conformance validation. */
@@ -481,4 +480,190 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
       await stack?.close();
     }
   }, 60_000);
+});
+
+describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK-T41..T54)", () => {
+  it("gap-1: write tool + output collection (path/sha256/size in Result)", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      script: [
+        { kind: "toolCall", toolName: "write", args: JSON.stringify({ path: "out/gap1.txt", content: "gap-one-bytes" }), callId: "call_gap1" },
+        { kind: "completed", text: "written" },
+      ],
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      await mkdir(join(stack.config.workspace.roots.piko, "out"), { recursive: true });
+      const { runId } = await submit(stack, task("gap-write-1", "write it", {
+        permissions: { read_paths: [], write_paths: ["out/gap1.txt"], tool_profile_ref: "workspace-standard" },
+        output_paths: ["out/gap1.txt"],
+      }));
+      const result = await waitTerminal(stack, runId!);
+      expect(result.state).toBe("Completed");
+      expect(result.outputs.length).toBe(1);
+      expect(result.outputs[0].path).toBe("out/gap1.txt");
+      expect(result.outputs[0].size_bytes).toBe(13);
+      expect(result.outputs[0].sha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(result.partial).toBe(false);
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 60_000);
+
+  it("gap-2: cancellation while Pi is streaming maps to Cancelled/CancelledByRequest", async () => {
+    const mock = await startMockLlmtier({ model: "piko-test-model", loopLast: true, script: [{ kind: "hang", ms: 30_000 }] });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock, { timeoutMs: 25_000 });
+      const { runId } = await submit(stack, task("gap-cancel-1", "will be cancelled mid-stream"));
+      for (let i = 0; i < 100; i++) {
+        if (stack.store.getRun(runId!).state === "Running") break;
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      const { outcome } = await (async () => {
+        const res = await fetch(`${stack.baseUrl}/runs/${runId}:cancel`, { method: "POST", headers: { authorization: "Bearer test-token" } });
+        return { outcome: ((await res.json()) as any).outcome as string };
+      })();
+      expect(["StopRequested", "AlreadyTerminal"]).toContain(outcome);
+      const result = await waitTerminal(stack, runId!, 60_000);
+      expect(result.state).toBe("Cancelled");
+      expect(result.failure?.code).toBe("CancelledByRequest");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 90_000);
+
+  it("gap-3: tool budget exhaustion maps to BudgetExceeded", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      script: [{ kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_gap3" }],
+      loopLast: true,
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
+      const { runId } = await submit(stack, task("gap-toolbudget", "read", {
+        permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
+        limits: { deadline_at: new Date(Date.now() + 120_000).toISOString(), max_model_calls: 5, max_tool_calls: 0 },
+      }));
+      const result = await waitTerminal(stack, runId!);
+      expect(result.state).toBe("Failed");
+      expect(result.failure?.code).toBe("BudgetExceeded");
+      expect(result.failure?.cause_class).toBe("Budget");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 60_000);
+
+  it("gap-4: model budget exhaustion maps to BudgetExceeded", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      script: [
+        { kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_gap4" },
+        { kind: "completed", text: "second call" },
+      ],
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
+      const { runId } = await submit(stack, task("gap-modelbudget", "two calls", {
+        permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
+        limits: { deadline_at: new Date(Date.now() + 120_000).toISOString(), max_model_calls: 1, max_tool_calls: 5 },
+      }));
+      const result = await waitTerminal(stack, runId!, 90_000);
+      expect(result.state).toBe("Failed");
+      expect(result.failure?.code).toBe("BudgetExceeded");
+      expect(result.failure?.cause_class).toBe("Budget");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 90_000);
+
+  it("gap-5: scope denial is a formal ToolFailure, not a crash", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      script: [{ kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_gap5" }],
+      loopLast: true,
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "secret");
+      const { runId } = await submit(stack, task("gap-scope", "read unauthorized", {
+        permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" },
+      }));
+      const result = await waitTerminal(stack, runId!);
+      expect(result.state).toBe("Failed");
+      expect(result.failure?.code).toBe("ToolFailure");
+      expect(result.failure?.cause_class).toBe("Tool");
+      expect(result.failure?.message).toContain("outside task permissions");
+      // The unauthorized bytes must not leak into the Result.
+      expect(JSON.stringify(result)).not.toContain("secret");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 60_000);
+
+  it("gap-6: deadline elapsing mid-execution maps to DeadlineExceeded", async () => {
+    const mock = await startMockLlmtier({ model: "piko-test-model", loopLast: true, script: [{ kind: "hang", ms: 30_000 }] });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock, { timeoutMs: 25_000 });
+      const { runId } = await submit(stack, task("gap-deadline", "slow", {
+        limits: { deadline_at: new Date(Date.now() + 3_000).toISOString(), max_model_calls: 3, max_tool_calls: 0 },
+      }));
+      const result = await waitTerminal(stack, runId!, 60_000);
+      expect(result.state).toBe("Failed");
+      expect(result.failure?.code).toBe("DeadlineExceeded");
+      expect(result.failure?.cause_class).toBe("TaskDeadline");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 90_000);
+
+  it("gap-7: two Runs keep independent Pi sessions (session isolation A/B)", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      loopLast: true,
+      script: [{ kind: "completed", text: "ack" }],
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      const markerA = `SESSION_A_MARKER_${Date.now()}`;
+      const markerB = `SESSION_B_MARKER_${Date.now()}`;
+      const a = await submit(stack, task("gap-iso-a", `Memorize and repeat: ${markerA}`));
+      const b = await submit(stack, task("gap-iso-b", `Memorize and repeat: ${markerB}`));
+      const ra = await waitTerminal(stack, a.runId!);
+      const rb = await waitTerminal(stack, b.runId!);
+      expect(ra.state).toBe("Completed");
+      expect(rb.state).toBe("Completed");
+
+      const sessionRoot = stack.config.pi.session_root;
+      const { execFileSync } = await import("node:child_process");
+      const files = execFileSync("find", [sessionRoot, "-type", "f", "-name", "*.jsonl"]).toString().trim().split("\n").filter(Boolean);
+      const fa = files.find((f) => f.includes(a.runId!));
+      const fb = files.find((f) => f.includes(b.runId!));
+      expect(fa, `session file for ${a.runId} exists`).toBeTruthy();
+      expect(fb, `session file for ${b.runId} exists`).toBeTruthy();
+      const contentA = await readFile(fa!, "utf8");
+      const contentB = await readFile(fb!, "utf8");
+      expect(contentA).toContain(markerA);
+      expect(contentA).not.toContain(markerB);
+      expect(contentB).toContain(markerB);
+      expect(contentB).not.toContain(markerA);
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 90_000);
 });

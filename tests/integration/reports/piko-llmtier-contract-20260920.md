@@ -156,3 +156,27 @@ LLMTier 仓库本地 checkout 的稳定候选 `interfaces/openapi/llmtier-v0.3.o
 属真实联调 Gate。
 
 `npm run check`：19 契约测试全绿；全套 81 passed + 4 skipped。
+
+## 10. 追加（同日第三轮）：gap review 与 09-18 场景全覆盖闭环
+
+对照 09-18 报告的 16 个 live 场景逐项盘点，识别 9 个未在 mock/Matrix 套件覆盖的缺口，
+全部以离线方式关闭：
+
+| # | 缺口 | 关闭方式 | 结果 |
+|---|---|---|---|
+| 1 | write 工具 + outputs(sha256/size) 契约路径 | mock gap-1 | PASS（13 B 输出，hash/size 落 Result） |
+| 2 | Running 中 cancel → Cancelled | mock gap-2 | PASS（StopRequested → CancelledByRequest） |
+| 3 | tool budget 耗尽 | mock gap-3 | PASS（BudgetExceeded/Budget） |
+| 4 | model budget 耗尽 | mock gap-4 | PASS（BudgetExceeded/Budget） |
+| 5 | scope-denial 正式用例 | mock gap-5 | PASS（ToolFailure/Tool，越权字节不泄漏进 Result） |
+| 6 | deadline 执行中过期 | mock gap-6 | PASS（DeadlineExceeded/TaskDeadline） |
+| 7 | session isolation A/B | mock gap-7 | PASS（两 Run JSONL transcript 各含己方 marker、零交叉） |
+| 8 | Matrix media 附件全链路 | live | PASS（upload→downloadMedia→staging 字节一致（cmp）→turn `Consumed`（可见内容含 `[Matrix attachment: …]`）→Run Completed；sanitize 文件名生效） |
+| 9a | 同房间双 Open Run 收同一 turn | live | PASS（turn 2 双双 Consumed，双 Completed） |
+| 9b | PK-T12 Memory proposal 复验 | live | PASS（authority sha256 不变 + proposal 落盘 + outputs 记录） |
+
+接受性残余（有 09-18 live 证据 + 单元覆盖，本轮不在 mock 复现）：强制进程死亡流中
+（PK-T05）、result-commit 崩溃（PK-T20）、safe/never edit-effect 崩溃恢复（PK-T06/07）——
+需对真实 oMLX 做 SIGKILL 时序注入，保持 09-18 证据有效。
+
+`npm run check` 最终态：**20 文件 / 88 passed + 4 skipped**，机器契约 PASS simplified.6。
