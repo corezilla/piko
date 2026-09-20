@@ -11,6 +11,17 @@ import { PiRuntime } from "../../src/pi-runtime.js";
 import { RunWorker } from "../../src/worker.js";
 import { preflightModelProvider } from "../../src/provider-preflight.js";
 import { startMockLlmtier, type MockLlmtier, type ScriptStep } from "../common/mock-llmtier.js";
+import { readFile } from "node:fs/promises";
+import Ajv, { type ValidateFunction } from "ajv/dist/2020.js";
+
+/** Load LLMTier candidate.7 OpenAPI schemas for wire-conformance validation. */
+async function llmtierValidator(def: "ResponsesRequest" | "ResponseStreamEvent"): Promise<ValidateFunction> {
+  const doc = JSON.parse(await readFile("/Users/ben/work/LLMTier/interfaces/openapi/llmtier-v0.3.openapi.json", "utf8"));
+  const AjvCtor: any = (Ajv as any).default ?? Ajv;
+  const ajv = new AjvCtor({ strict: false, allErrors: true });
+  ajv.addSchema(doc, "llmtier-openapi");
+  return ajv.compile({ $ref: `llmtier-openapi#/components/schemas/${def}` });
+}
 
 interface Stack {
   baseUrl: string;
@@ -221,6 +232,64 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
       await stack?.close();
     }
   }, 60_000);
+
+  it("PK-T46: refusal deltas are consumed and the run still completes", async () => {
+    const mock = await startMockLlmtier({ model: "piko-test-model", script: [{ kind: "refusal", text: "Cannot comply with synthetic request" }] });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      const { runId } = await submit(stack, task("t46-refusal", "trigger refusal"));
+      const result = await waitTerminal(stack, runId!);
+      expect(result.state).toBe("Completed");
+      expect(result.summary).toContain("Cannot comply");
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 60_000);
+
+  it("wire conformance: Piko requests satisfy ResponsesRequest and mock events satisfy ResponseStreamEvent (LLMTier candidate.7)", async () => {
+    const mock = await startMockLlmtier({
+      model: "piko-test-model",
+      script: [
+        { kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_wire_1", reasoning: { id: "rs_w", encrypted: "enc-wire", summary: "s" } },
+        { kind: "completed", text: "wire ok", usage: "full" },
+      ],
+    });
+    let stack: Stack | undefined;
+    try {
+      stack = await makeStack(mock);
+      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
+      const { runId } = await submit(stack, task("wire-001", "wire conformance", {
+        permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
+      }));
+      const result = await waitTerminal(stack, runId!);
+      expect(result.state).toBe("Completed");
+
+      const validateRequest = await llmtierValidator("ResponsesRequest");
+      const validateEvent = await llmtierValidator("ResponseStreamEvent");
+
+      const requestErrors: string[] = [];
+      for (const r of mock.requests.filter((x) => x.path.endsWith("/responses"))) {
+        if (!validateRequest(r.body)) {
+          requestErrors.push(...(validateRequest.errors ?? []).map((e) => `${e.instancePath} ${e.message}`));
+        }
+      }
+      expect(requestErrors, `Piko request violates LLMTier ResponsesRequest: ${requestErrors.join("; ")}`).toEqual([]);
+
+      const eventErrors: string[] = [];
+      for (const e of mock.emitted) {
+        if (!validateEvent(e)) {
+          eventErrors.push(`${(e as any).type}: ${(validateEvent.errors ?? []).map((x) => `${x.instancePath} ${x.message}`).join("; ")}`);
+        }
+      }
+      expect(eventErrors, `mock events violate LLMTier ResponseStreamEvent: ${eventErrors.join("; ")}`).toEqual([]);
+      expect(mock.emitted.length).toBeGreaterThan(8);
+    } finally {
+      await mock.close();
+      await stack?.close();
+    }
+  }, 90_000);
 
   it("PK-T46: opaque reasoning item is replayed byte-identical on the next request", async () => {
     const mock = await startMockLlmtier({

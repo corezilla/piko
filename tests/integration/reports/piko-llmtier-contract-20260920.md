@@ -36,7 +36,7 @@ PK-T41..T54 共 13 项自动化 oracle（PK-T52 由既有 UT-USG-01 validator �
 
 | 状态 | Count |
 |---|---:|
-| PASS | 14 (13 mock-oracle tests + PK-T52 unit) |
+| PASS | 19（含 refusal 消费与 LLMTier candidate.7 双向 wire conformance） |
 | PARTIAL | 0 |
 | NOT_RUN | 0 |
 
@@ -130,3 +130,29 @@ PK-T41..T54 共 13 项自动化 oracle（PK-T52 由既有 UT-USG-01 validator �
 - **待开**：真实 LLMTier 联调需 operator 提供 endpoint/key/模型名并显式解禁（M6）；
   联调通过后本报告升级为 acceptance 证据链的一部分。
 - Runtime Activation：`false`（本报告不授权任何运行时变更）。
+
+## 9. 追加（同日第二轮）：对齐 LLMTier candidate.7 实际 OpenAPI 的字节级 conformance
+
+第一轮 mock 是按 `piko-llmtier-consumption-v0.3` 的**语义**实现的。本轮追加读取
+LLMTier 仓库本地 checkout 的稳定候选 `interfaces/openapi/llmtier-v0.3.openapi.json`
+（`0.3-simplified-candidate.7`，只读，未触碰 LLMTier 项目），把 mock 升级为字节级一致，
+并新增**双向 conformance 测试**：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| Piko 请求 ↔ `ResponsesRequest`（additionalProperties:false 白名单） | PASS | ajv 校验全部录制请求体，0 违例——确认 `prompt_cache_*` 三字段缺席、`reasoning:{effort:"none"}` 在枚举内、tools 形状匹配 `FunctionTool` |
+| mock 事件 ↔ `ResponseStreamEvent` union | PASS | ajv 校验全部发出事件（含 sequence_number），0 违例 |
+| 线封装 | PASS | `event: <type>` 行 + `data: [DONE]` 终结符 + 单调 sequence_number，与 LLMTier 自家 `tests/fixtures/v03_fake_provider.py` 同构 |
+| `stream=true required`（非流式 400） | PASS | mock 强制 stream 语义，Piko 恒满足 |
+| refusal 消费 | PASS | `response.refusal.delta` → Run Completed 且 summary 含 refusal 文本 |
+
+第一版 conformance 校验器抓到并修正的 mock 偏差（均为 mock 侧，非 Piko）：
+
+1. `output_text` content 缺 LLMTier 必填的 `annotations: []`；
+2. `response.function_call_arguments.done` 缺必填 `output_index`。
+
+**结论**：Piko 的真实请求字节落在 LLMTier candidate.7 的请求白名单内；mock 事件字节
+落在其事件 union 内。两侧离线对齐完成，剩余差异只可能来自 LLMTier 实现 divergence，
+属真实联调 Gate。
+
+`npm run check`：19 契约测试全绿；全套 81 passed + 4 skipped。
