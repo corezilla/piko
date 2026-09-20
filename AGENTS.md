@@ -59,7 +59,7 @@ Other mappings are in `template-selection.md`.
 
 ## 4. STD Validation Rules to Remember
 
-- Every document MUST have a STD cover (`<!-- STD_DOCUMENT_COVER_BEGIN -->` ... `<!-- STD_DOCUMENT_COVER_END -->`) and a matching sidecar `*.metadata.json`.
+- Every document MUST have a STD cover (the standard `STD_DOCUMENT_COVER` BEGIN/END marker pair, see `/Users/ben/work/STD/templates/_shared/document-cover.md`) and a matching sidecar `*.metadata.json`.
 - `template_sha256` in metadata must match the locked template file.
 - `source_path` must equal the actual repo-relative path.
 - `Supersedes` should reference the previous doc by `Document ID`, not by path.
@@ -85,7 +85,7 @@ Other mappings are in `template-selection.md`.
 
 ## 6. Hard Rules
 
-1. **Never** hand-author a STD document without going through `new-design`. The cover fields are validated; hand-written covers fail silently or noisily.
+1. **Never** hand-author a STD document without going through `new-design`. The cover fields are validated; hand-written covers fail silently or noisily. Every STD document carries the standard cover marker pair (see `/Users/ben/work/STD/templates/_shared/document-cover.md`) plus a matching sidecar `*.metadata.json`.
 2. **Never** bump `docs/std.lock.json` without an explicit upgrade review per STD §2.1 ("项目升级模板必须显式执行并评审 diff"). State the upgrade intent, list the diff, then change the lock.
 3. **Never** fabricate Reviewer / Approver / Approval Date / Git commit hash inside a doc body. Those go in sidecar metadata or are filled when the doc actually reaches that state.
 4. **Never** skip running `validate-design` before commit. Resolve every `[new]` issue or document why it is inherited from a pre-STD era.

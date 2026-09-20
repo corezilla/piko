@@ -1,13 +1,32 @@
 {
-  "project": "piko", "authority": "piko",
-  "document_id": "piko-agent-runtime-design-v0.3", "document_type": "design.system",
-  "document_version": "0.4.0", "title": "Piko Agent Runtime 总体系统设计",
-  "document_owner": "Piko Architecture Owner", "authors": ["corezilla"],
-  "source_repository": "corezilla/piko", "source_path": "docs/20_system_design/piko-agent-runtime-design-v0.3.md",
-  "template_id": "design.system", "template_version": "0.1.0",
-  "template_sha256": "96d14c6b43e990a5362aab8f90e46aa51d13a59ec93e814dbfda98294c4f25c5",
-  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
-  "design_level": "system", "domain": ["systems", "software"], "status": "accepted", "visibility": "project",
-  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613", "parent_document_id": null, "supersedes": "docs/99_reference/design/agent-runtime-service-design-v0.2.md",
-  "created_at": "2026-09-07", "last_modified_at": "2026-09-17"
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-agent-runtime-design-v0.3",
+  "document_type": "design.system",
+  "document_version": "0.4.0",
+  "title": "Piko Agent Runtime 总体系统设计",
+  "document_owner": "Piko Architecture Owner",
+  "authors": [
+    "corezilla"
+  ],
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/20_system_design/piko-agent-runtime-design-v0.3.md",
+  "template_id": "design.system",
+  "template_version": "8.3.1",
+  "template_sha256": "3853edba4ad25b2bf81a78a78c88f1ede830538312ed71631f9b3804d322a16a",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "systems",
+    "software"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
+  "parent_document_id": null,
+  "supersedes": "docs/99_reference/design/agent-runtime-service-design-v0.2.md",
+  "created_at": "2026-09-07",
+  "last_modified_at": "2026-09-17"
 }

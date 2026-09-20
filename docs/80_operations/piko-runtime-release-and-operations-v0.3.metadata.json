@@ -6,17 +6,21 @@
   "document_version": "0.1.0",
   "title": "Piko Runtime v0.3 发布与运维设计",
   "document_owner": "Piko Operator",
-  "authors": ["corezilla"],
+  "authors": [
+    "corezilla"
+  ],
   "source_repository": "corezilla/piko",
   "source_path": "docs/80_operations/piko-runtime-release-and-operations-v0.3.md",
   "template_id": "operations.release",
-  "template_version": "0.1.0",
-  "template_sha256": "4ad7537774d05a45983b5a070339c6e395ae9ea9bf01cc408579be0d1a9c627d",
+  "template_version": "0.1.1",
+  "template_sha256": "bc6ac8e7f207b636ea67155f46c47b6ffa4c60b93e3c21d6fec7449ead03b2b6",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
   "design_level": "system",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "accepted",
   "visibility": "project",
   "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",

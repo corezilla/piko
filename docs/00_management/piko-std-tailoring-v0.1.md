@@ -16,7 +16,7 @@
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `management.tailoring` |
-| Template Version | `0.1.0` |
+| Template Version | `0.1.1` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |

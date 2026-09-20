@@ -2,9 +2,9 @@
   "schema_version": "std-source-manifest.v1",
   "std_version": "0.1.0-draft.26",
   "source_repository": "corezilla/STD",
-  "source_revision": "b8ba3251fa3514333873f562edb1d9c5b9b469af",
+  "source_revision": "5a1e71f4e2baa6e6761b685e91deecbd58cf0649",
   "source_tag": null,
-  "generated_at": "2026-09-19",
+  "generated_at": "2026-09-20",
   "artifacts": [
     {
       "path": "MIGRATION_HANDOFF.md",
@@ -29,7 +29,7 @@
     {
       "path": "docs/adoption.md",
       "role": "guidance",
-      "sha256": "6cfe539777460501b56a5890ad1db525531280e868a5f37a9ab164604ea0f530"
+      "sha256": "83523956fbb30c0dbdf93f96fcc3c51c60cb3b2c0eb7473f9b190d6dc23a0487"
     },
     {
       "path": "docs/ai-authoring-guide.md",
@@ -109,7 +109,7 @@
     {
       "path": "docs/ai-guides/verification.md",
       "role": "guidance",
-      "sha256": "080b1630edceca29d63f13949ccc1319c9257444d83b5ab94d3955e1a05742a1"
+      "sha256": "0cbdd8ac4a75d5fe8d84d93f2d5e139a592486c61a4e6afc2c15ccfcc01d335e"
     },
     {
       "path": "docs/ai-system-design-authoring-guide.md",
@@ -404,7 +404,7 @@
     {
       "path": "docs/repository-layout.md",
       "role": "guidance",
-      "sha256": "e0c63f33c5488fd272b30d85cf8d9b3ac99c7d41412383d04f56ba5962ed76ca"
+      "sha256": "65d31ebaa70a3ff168e924a619a72d5ad04eb6edc4ad79086e8133c2f69206b5"
     },
     {
       "path": "docs/software-object-identifiers.md",
@@ -414,7 +414,7 @@
     {
       "path": "docs/software-project-layout.md",
       "role": "guidance",
-      "sha256": "0682c057f49dacfae2173e1b468ca9bce88839014c5466958ba24876dd9bbdd9"
+      "sha256": "8772db56e2ef31f02a6cf7ca37a752a195c149cf5cfbb2eba093c72dd13ebf8c"
     },
     {
       "path": "docs/template-selection.md",
@@ -484,7 +484,7 @@
     {
       "path": "scripts/new-design",
       "role": "tool",
-      "sha256": "763975b9aa5d27d74aa0454124686f3d750733d96279caeb7c31214656064418"
+      "sha256": "471b9448aa434276f7343c50f0ce879a6b4cce511b043f233672a06a319d577d"
     },
     {
       "path": "scripts/sync-template-covers",
@@ -904,7 +904,7 @@
     {
       "path": "templates/path-policy.json",
       "role": "template",
-      "sha256": "0777830427fe8e072971fc003da164baded76705585d72626eec6755d1725112"
+      "sha256": "b4b5ecab29da801c6e924799d30238fd8616a60a92004acc24e306e6e6faacd0"
     },
     {
       "path": "templates/product/roadmap.md",

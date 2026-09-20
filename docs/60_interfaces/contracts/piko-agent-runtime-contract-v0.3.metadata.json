@@ -1,13 +1,31 @@
 {
-  "project": "piko", "authority": "piko",
-  "document_id": "piko-agent-runtime-contract-v0.3", "document_type": "contracts.specification",
-  "document_version": "0.4.0", "title": "Piko Agent Runtime V0.3 契约说明",
-  "document_owner": "Piko Contract Owner", "authors": ["corezilla"],
-  "source_repository": "corezilla/piko", "source_path": "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md",
-  "template_id": "contracts.specification", "template_version": "0.1.0",
-  "template_sha256": "d7e40a9a6940375cfcfe8793e24943f48ab7d2b48e2e204735c3cb814bcae909",
-  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
-  "design_level": "system", "domain": ["software"], "status": "accepted", "visibility": "project",
-  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613", "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": "agent-runtime-v0.2-heavy-contract",
-  "created_at": "2026-09-07", "last_modified_at": "2026-09-17"
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-agent-runtime-contract-v0.3",
+  "document_type": "contracts.specification",
+  "document_version": "0.4.0",
+  "title": "Piko Agent Runtime V0.3 契约说明",
+  "document_owner": "Piko Contract Owner",
+  "authors": [
+    "corezilla"
+  ],
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md",
+  "template_id": "contracts.specification",
+  "template_version": "0.3.1",
+  "template_sha256": "4a81d2187ab8dc22a99169fd67e2203ce5effa5f0a5380c633fd96793891b330",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "software"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
+  "parent_document_id": "piko-agent-runtime-design-v0.3",
+  "supersedes": "agent-runtime-v0.2-heavy-contract",
+  "created_at": "2026-09-07",
+  "last_modified_at": "2026-09-17"
 }

@@ -15,7 +15,7 @@
 | Created Date | `2026-09-16` |
 | Last Modified Date | `2026-09-17` |
 | Template ID | `contracts.specification` |
-| Template Version | `0.1.0` |
+| Template Version | `0.3.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |

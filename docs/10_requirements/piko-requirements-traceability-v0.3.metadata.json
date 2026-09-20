@@ -1,13 +1,33 @@
 {
-  "project": "piko", "authority": "piko",
-  "document_id": "piko-requirements-traceability-v0.3", "document_type": "requirements.traceability",
-  "document_version": "0.4.0", "title": "Piko v0.3 需求追踪矩阵",
-  "document_owner": "Piko Project Owner", "authors": ["corezilla"],
-  "source_repository": "corezilla/piko", "source_path": "docs/10_requirements/piko-requirements-traceability-v0.3.md",
-  "template_id": "requirements.traceability", "template_version": "0.1.0",
-  "template_sha256": "36de8b0d99021f57d0dc214e7ce9644761336fc6548be36c4e29ae38486acc17",
-  "template_conformance": "tailored", "tailoring_ref": "piko-std-tailoring-v0.1", "migration_map_ref": null,
-  "design_level": "cross-level", "domain": ["management", "systems", "software"], "status": "accepted", "visibility": "project",
-  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613", "parent_document_id": "piko-agent-runtime-design-v0.3", "supersedes": null,
-  "created_at": "2026-09-07", "last_modified_at": "2026-09-17"
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-requirements-traceability-v0.3",
+  "document_type": "requirements.traceability",
+  "document_version": "0.4.0",
+  "title": "Piko v0.3 需求追踪矩阵",
+  "document_owner": "Piko Project Owner",
+  "authors": [
+    "corezilla"
+  ],
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/10_requirements/piko-requirements-traceability-v0.3.md",
+  "template_id": "requirements.traceability",
+  "template_version": "0.1.1",
+  "template_sha256": "82273407325cbb134d752b7e2f9f8267295ca7faefe3aa3001f615efb8bb54d3",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "management",
+    "systems",
+    "software"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
+  "parent_document_id": "piko-agent-runtime-design-v0.3",
+  "supersedes": null,
+  "created_at": "2026-09-07",
+  "last_modified_at": "2026-09-17"
 }

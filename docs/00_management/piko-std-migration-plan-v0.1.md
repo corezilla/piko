@@ -16,7 +16,7 @@
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-08` |
 | Template ID | `management.project-plan` |
-| Template Version | `0.1.0` |
+| Template Version | `0.1.1` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |

@@ -6,17 +6,21 @@
   "document_version": "0.1.0",
   "title": "Piko Agent Runtime Core 内部设计",
   "document_owner": "Piko Architecture Owner",
-  "authors": ["corezilla"],
+  "authors": [
+    "corezilla"
+  ],
   "source_repository": "corezilla/piko",
   "source_path": "docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md",
   "template_id": "design.definition",
-  "template_version": "0.1.0",
-  "template_sha256": "4e0efa9ea781e5e925ec0e51a1e1f4a48888d34759c78ec357adabe575e14c3f",
+  "template_version": "2.1.1",
+  "template_sha256": "db6d4d2031754a39692f6a4435d63802e89273b64a84f2a23c38fb58e08775ec",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
   "design_level": "subsystem",
-  "domain": ["software"],
+  "domain": [
+    "software"
+  ],
   "status": "accepted",
   "visibility": "project",
   "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
