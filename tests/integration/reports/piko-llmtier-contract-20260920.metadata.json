@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-llmtier-contract-20260920",
+  "document_type": "assurance.test-report",
+  "document_version": "0.1.0",
+  "title": "Piko LLMTier 契约离线验收 — 2026-09-20 mock + Matrix 复验",
+  "document_owner": "corezilla",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "template_id": "assurance.test-report",
+  "template_version": "0.1.1",
+  "template_sha256": "c8d7e48fe5de3bccf2381d66e20019170a63e7bbbaa7e273d0ef327950eb54fd",
+  "template_conformance": "native",
+  "tailoring_ref": null,
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "tests/integration/reports/piko-llmtier-contract-20260920.md",
+  "reviewed_commit": null,
+  "parent_document_id": "piko-agent-runtime-test-specification-v0.3",
+  "supersedes": null,
+  "created_at": "2026-09-20",
+  "last_modified_at": "2026-09-20"
+}
