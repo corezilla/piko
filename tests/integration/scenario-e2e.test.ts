@@ -651,8 +651,11 @@ d("PTS-06 多 IR 房间评审", () => {
     );
     expect(ingested, "event ingested after membership loss (not fail-closed)").toBe(0);
 
-    await H.cancelRun(runId);
-    await H.waitRun(runId, { timeoutMs: 120_000 });
+    // Design contract: the Run ends Failed/DiscussionAccessLost, not Cancelled.
+    const done = await H.waitRun(runId, { timeoutMs: 120_000 });
+    expect(done.result.state).toBe("Failed");
+    expect(done.result.failure?.code).toBe("DiscussionAccessLost");
+    expect(done.result.failure?.cause_class).toBe("Authorization");
     // Best effort: make the room usable again for later runs.
     await H.matrixInvite(t.ben, room, BOT_ID).catch(() => undefined);
     await H.matrixJoin(t.pikoBot, room).catch(() => undefined);

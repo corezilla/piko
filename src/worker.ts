@@ -42,20 +42,25 @@ export class RunWorker {
   private async loop(){let recovery=this.store.recoverOrphaned(this.owner,this.boot);while(!this.stopped){if(Date.now()-this.lastPurge>3600000){this.store.purgeExpired();this.lastPurge=Date.now()}const claim=recovery??this.store.nextQueued(this.owner,this.boot);recovery=null;if(!claim){await new Promise(r=>setTimeout(r,200));continue}await this.run(claim.run_id,claim.lease_epoch)}}
   private async run(runId:string,epoch:number){
     const task=this.store.getTask(runId);let timer:NodeJS.Timeout|undefined;
+    const accessLost=()=>this.store.discussionAccessLost(runId);
+    const accessLostFailure={code:"DiscussionAccessLost",cause_class:"Authorization",message:"Piko lost access to the discussion room."};
     try{
       const workspace=await resolveWorkspace(task.workspace_ref,this.config.workspace.roots);
       timer=setInterval(()=>this.store.heartbeat(runId,epoch),1000);
       if(Date.parse(task.limits.deadline_at)<=Date.now())throw Object.assign(new Error("task deadline elapsed"),{pikoCode:"DeadlineExceeded",cause:"TaskDeadline"});
-      const outcome=await this.pi.execute(runId,epoch,task,workspace,()=>this.store.cancelRequested(runId)||Date.parse(task.limits.deadline_at)<=Date.now(),task.discussion?async(event,turn,body)=>{await sendDiscussionReplyWithRetry(this.matrix,task.limits.deadline_at,runId,task.discussion!.room_id,event,turn,body)}:undefined);
+      if(accessLost())throw Object.assign(new Error(accessLostFailure.message),{pikoCode:"DiscussionAccessLost",cause:"Authorization"});
+      const outcome=await this.pi.execute(runId,epoch,task,workspace,()=>this.store.cancelRequested(runId)||accessLost()||Date.parse(task.limits.deadline_at)<=Date.now(),task.discussion?async(event,turn,body)=>{await sendDiscussionReplyWithRetry(this.matrix,task.limits.deadline_at,runId,task.discussion!.room_id,event,turn,body)}:undefined);
       const view=this.store.getRun(runId);const attempts=view.progress.model_calls;const usage=aggregateUsage(this.store.usage(runId),attempts);const outputs=await collectOutputs(task,workspace);const published_at=new Date().toISOString();
       const deadline=Date.parse(task.limits.deadline_at)<=Date.now()&&!this.store.cancelRequested(runId);
-      const state=outcome.status==="completed"?"Completed":outcome.status==="cancelled"&&!deadline?"Cancelled":"Failed";
-      const failure=state==="Completed"?null:deadline?{code:"DeadlineExceeded",cause_class:"TaskDeadline",message:"Task deadline elapsed."}:outcome.failure??{code:"InternalError",cause_class:"Internal",message:outcome.summary};
+      const lost=accessLost();
+      const state=outcome.status==="completed"?"Completed":lost?"Failed":outcome.status==="cancelled"&&!deadline?"Cancelled":"Failed";
+      const failure=state==="Completed"?null:lost?accessLostFailure:deadline?{code:"DeadlineExceeded",cause_class:"TaskDeadline",message:"Task deadline elapsed."}:outcome.failure??{code:"InternalError",cause_class:"Internal",message:outcome.summary};
       this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state,partial:state!=="Completed"&&outputs.length>0,summary:outcome.summary,outputs,known_actions:this.store.knownActions(runId),usage,failure,published_at} as AgentResult,epoch);
     }catch(error){
       const e=error as any;const published_at=new Date().toISOString();const cancelled=this.store.cancelRequested(runId);const budget=e.message==="ModelCallLimitExceeded"||e.message==="ToolCallLimitExceeded";
       let code="InternalError";let cause_class="Internal";
       if(cancelled){code="CancelledByRequest";cause_class="Cancellation"}
+      else if(accessLost()){code="DiscussionAccessLost";cause_class="Authorization"}
       else if(budget){code="BudgetExceeded";cause_class="Budget"}
       else if(error instanceof PikoError){const mapped=resolvePikoFailure(error);code=mapped.code;cause_class=mapped.cause_class}
       else if(typeof e.pikoCode==="string"){code=e.pikoCode;cause_class=typeof e.cause==="string"?e.cause:"Internal"}

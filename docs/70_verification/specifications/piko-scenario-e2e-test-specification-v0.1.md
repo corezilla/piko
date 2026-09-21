@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.5.0` |
+| Document Version | `0.6.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -108,7 +108,7 @@ recovery / usage 等不同维度。
 |---|---|---|---|---|---|
 | PTS-06-C1 | normal | `scripts/scenario-env.sh` 房间 + second-user 触发事件 + `discussion{room_id,trigger_event_id}` | Run `Completed` ∧ `discussion_turns` 该 run 有 ≥2 条（trigger + followup）且终态 `Consumed/Abandoned` ∧ bot 回复事件含 `m.relates_to.m.in_reply_to` 指向 trigger/followup ∧ usage `usage_observed_attempts≥1` | PASS | — |
 | PTS-06-C2 | dedup | bot 自身回复经 sync 回流 | 该 bot 回复 event_id 在 `matrix_events` 出现且仅 1 次 ∧ 未因此新增 `discussion_turns`（turn 计数不变） | PASS | — |
-| PTS-06-C3 | membership | ben 踢出 `@piko-bot`（房间内 power=0） | **设计契约**：Run 终态 `Failed` 且 `failure.code=DiscussionAccessLost`。**当前实现分歧**：`src/matrix.ts:43` 在下一个 batch 抛 `Piko is no longer joined…` 并由 `isPermanentMatrixError` 触发 `stopClient()`（fail-closed），但**不发出** `DiscussionAccessLost`（`types.ts:13` 仅定义）。故本 case 预期 FAIL，作为对实现的缺陷记录；已实现部分断言「撤回后不再摄取新事件」。 | PASS | 静态证据 `src/matrix.ts:43` |
+| PTS-06-C3 | membership | ben 踢出 `@piko-bot`（房间内 power=0） | Run 终态 `Failed` ∧ `failure.code=DiscussionAccessLost`（`cause_class=Authorization`）∧ 撤回后不再摄取新事件（fail-closed）。实现：`src/matrix.ts` 检测失联时调 `store.markDiscussionAccessLost(room)`，worker 的取消回调纳入该标记并据此发布失败码（`src/worker.ts`）。 | PASS | 自动化 `scen-06-c3` 实测 `Failed/DiscussionAccessLost` |
 | PTS-06-C4 | boundary | 空闲房间消息/邀请（无 open discussion run） | 不创建隐式 Run（`runs` 计数不变）∧ 终态后对该 run 不再回复（无新 `discussion_turns`） | PASS | — |
 
 ### PTS-07 Memory 更新建议
@@ -212,7 +212,7 @@ recovery / usage 等不同维度。
     （期望 ≥2 行且终态 `Consumed`）。
   - C2：记录 C1 中 bot 回复的 `event_id`，等待其经 sync 回流后查 `matrix_events`（应仅 1 条）与
     `discussion_turns` 计数（不变）。
-  - C3：ben 踢出 piko-bot（power=0 可踢）→ 断言设计契约 `DiscussionAccessLost`（当前实现分歧见 §3 行内）；
+  - C3：ben 踢出 piko-bot（power=0 可踢）→ 断言终态 `Failed/DiscussionAccessLost` 且撤回后不再摄取新事件；
     已实现部分断言「撤回后 `matrix_events` 不再增长」。
   - C4：向无 open discussion run 的房间发消息 / 发邀请 → 断言 `runs` 计数不变、无新 `discussion_turns`。
 - **PTS-10-C4（重启恢复）**：
@@ -236,7 +236,7 @@ recovery / usage 等不同维度。
   3. 需读回自产物的 case，产出目录必须同时列入 `read_paths`（PTS-05 系列、PTS-01 已如此）。
   4. PTS-01-C1 指令已明确要求 `location` 写出材料文件名（否则模型以「需求文档/R-1」指代，机检不稳定）。
   5. PTS-09-C2 的 `read_paths` 含 `pts-09`（容忍模型误读相邻目录），判定仍聚焦写入范围。
-- **PTS-06-C3 判定口径**：自动化用例断言**已实现的 fail-closed**（撤回后不再摄取新事件）；设计契约 `DiscussionAccessLost` 未实现，作为缺陷在 §3 行内与测试计划 §11 记录。
+- **PTS-06-C3**：实现已按契约补齐——失联时 `store.markDiscussionAccessLost(room)` 标记受影响 Run，worker 终止并发布 `Failed/DiscussionAccessLost`（`cause_class=Authorization`），同时保持 fail-closed。单元回归见 `tests/unit/matrix.test.ts`、`tests/unit/worker-runtime.test.ts`。
 
 ### v0.1 执行证据映射
 
@@ -299,7 +299,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 - 11 个 case 用冻结种子/指令跑通并定稿 Oracle（PTS-01-C1/C2、02-C4、03-C1/C3、05-C3、06-C1、07-C1、08-C1、09-C3、10-C4）；
 - 原「需故障注入时序」的 **PTS-09-C3 已改为纯诊断 case**（种子为一份含未知外部状态的失败日志），彻底消除时序依赖；
 - 唯一仍需故障注入的 **PTS-10-C4** 程序已实测（SIGKILL 在飞 bash → 重启 → `UnsafeRetryBlocked`，副作用未重放，见 §3.3）；
-- 发现 1 处**实现分歧**：**PTS-06-C3** 的设计契约 `DiscussionAccessLost` 当前实现未发出（`src/matrix.ts:43` 仅 fail-closed），该 case 预期 FAIL 并作为缺陷记录。
+- 曾发现 1 处**实现分歧**（**PTS-06-C3** 的 `DiscussionAccessLost` 未发出），已修复并回归通过（见 §3.4）。
 - 种子/指令的工程约束（`write_paths` 目录须预存、`read_paths` 须含产出目录、指令须用相对路径）已写入 §2，并修正了初版种子脚本中的目录创建缺陷。
 
 ### 11.1 环境与工具链核验（实测）
@@ -321,7 +321,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 | ✅ 可直接执行 | PTS-01-C1/C3、PTS-02-C1/C2/C3、PTS-03-C1/C2/C3、PTS-04-C1/C2/C4、PTS-05-C1/C2/C4、PTS-06-C1/C2/C3/C4、PTS-07-C1/C3、PTS-08-C2、PTS-09-C1/C2、PTS-10-C1..C5（共 28） |
 | ✅ Oracle 已定稿（模型不确定性已用实机探针收敛） | PTS-01-C1/C2、PTS-02-C4、PTS-03-C1/C3、PTS-05-C3、PTS-07-C1/C2、PTS-08-C1/C2、PTS-09-C1/C2/C3（共 12）；判定口径见 §3 各行与 §3.1 |
 | ✅ 故障注入已实测（PTS-10-C4） | 程序见 §3.3：SIGKILL 落在 never-replay bash 在飞时；实测重启后 `Failed/UnsafeRetryBlocked`，sentinel 唯一 token = 1 行；允许 1 次 RERUN（模型未真正发起 bash 调用 → INVALID）；**SIGKILL 后子进程不保证回收，执行后清理 `sleep` 残留** |
-| ⚠️ 设计契约与实现分歧（PTS-06-C3） | 设计契约要求终态 `DiscussionAccessLost`，实现仅 fail-closed（`src/matrix.ts:43`）；该 case 预期 FAIL，作为对实现的缺陷记录 |
+| ✅ 已修复（PTS-06-C3） | 失联时标记受影响 Run，终态发布 `Failed/DiscussionAccessLost`（`cause_class=Authorization`），并保持 fail-closed；单元 + 场景回归通过 |
 | 🔧 需环境准备（已提供脚本） | PTS-06-C1..C4 依赖 `scripts/scenario-env.sh` 的专用房间（piko-bot power=0）；执行前先运行该脚本 |
 
 ### 11.3 已获得的 PASS 证据（含可行性探针）

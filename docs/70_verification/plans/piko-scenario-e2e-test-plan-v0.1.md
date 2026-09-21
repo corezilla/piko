@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.5.0` |
+| Document Version | `0.6.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -61,8 +61,8 @@
 
 **可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断。所有模型 Oracle 已用实机
 探针定稿（规格 §11.5）；PTS-09-C3 改为纯诊断 case（去除故障注入时序依赖）；PTS-10-C4 的重启
-注入程序已实测（`UnsafeRetryBlocked` + 副作用未重放）；PTS-06-C3 存在设计契约与实现分歧
-（`DiscussionAccessLost` 未发出），预期 FAIL 并记为缺陷。bash 子进程在 deadline/取消时经实测
+注入程序已实测（`UnsafeRetryBlocked` + 副作用未重放）；PTS-06-C3 的 `DiscussionAccessLost` 契约
+已实现并回归通过。bash 子进程在 deadline/取消时经实测
 会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
 
 **执行期已实测的陷阱与工程约束（须遵守）**：
@@ -160,14 +160,14 @@
 - 自动化套件（`npm run test:scenario`）即机器可复核证据；人工执行按 `scripts/scenario-run.sh`。
 - 证据汇总写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
 - Gate：全部 case PASS 方可作为「场景测试已验证」引用；FAIL/BLOCKED 保持 Gate 开放。
-  （2026-09-21 自动化执行 35/35 PASS，除 PTS-06-C3 的 `DiscussionAccessLost` 契约分歧按缺陷记录。）
+  （2026-09-21 自动化执行 35/35 PASS；含 PTS-06-C3 的 `DiscussionAccessLost` 契约。）
 
 ## 11. 风险、安全与清理恢复
 
 - **bash 边界**：bash 以 Piko 进程权限在 workspace cwd 执行——开发机假设，生产部署需另行隔离（operator Gate）。
 - 模型非确定性：以客观 Oracle 兜底；允许 1 次 RERUN。模型偶发把 tool call 以**文本**输出而不真正调用
   工具（PTS-10-C4 已观察）——此类判 INVALID 并重置重跑，不计 FAIL。
-- **已知缺陷（测试发现）**：PTS-06-C3 设计契约要求 `DiscussionAccessLost`，实现未发出
-  （`src/matrix.ts:43` 仅 fail-closed）。该 case 预期 FAIL，作为实现缺陷记录并驱动修复/回归。
+- **已修复缺陷（测试驱动）**：PTS-06-C3 的 `DiscussionAccessLost` 曾未实现，已补齐
+  （`store.markDiscussionAccessLost` + worker 终止映射），单元与场景回归均通过。
 - **SIGKILL 残留**：Piko 被 SIGKILL 时 bash 子进程不保证回收，执行后清理 `sleep` 残留。
 - 清理：产物隔离在临时目录，执行后删除即复位；不触碰仓库其他路径。

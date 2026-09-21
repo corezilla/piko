@@ -40,7 +40,7 @@ export class MatrixRuntime {
   }
   private async processBatch(events:MatrixEvent[],cursor:string){
     const rooms=new Set(events.map(event=>event.getRoomId()).filter((room):room is string=>!!room&&this.store.openDiscussionRuns(room).length>0));
-    if(rooms.size){const joined=new Set((await this.client!.getJoinedRooms()).joined_rooms);for(const room of rooms)if(!joined.has(room))throw new Error(`Piko is no longer joined to discussion room ${room}`)}
+    if(rooms.size){const joined=new Set((await this.client!.getJoinedRooms()).joined_rooms);for(const room of rooms)if(!joined.has(room)){this.store.markDiscussionAccessLost(room);throw new Error(`Piko is no longer joined to discussion room ${room}`)}}
     const prepared=[];for(const event of events){const item=await this.prepareEvent(event);if(item)prepared.push(item)}
     this.store.ingestMatrixBatch(prepared,cursor);
   }
