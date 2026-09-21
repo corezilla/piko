@@ -18,6 +18,13 @@ import { applyToolRecoveryPolicy } from "./tool-recovery.js";
 import { relative,resolve,sep } from "node:path";
 
 export type PiExecution={status:"completed"|"failed"|"cancelled";summary:string;failure?:NonNullable<AgentResult["failure"]>};
+
+/** Provider-availability failures (gateway 502/503, provider unreachable) map to
+ *  the contract's ModelUnavailable/Dependency, not ModelProtocol. Pi folds the
+ *  HTTP status into the message text, so classification is message-based. */
+export function isProviderUnavailableMessage(message:string):boolean{
+  return /\((?:502|503)\)|provider_unavailable|model_unavailable|ECONNREFUSED|connection refused|fetch failed/i.test(message);
+}
 type DiscussionTurn={event_id:string;turn_seq:number;status:string;visible_content:string;pi_operation_id?:string|null};
 
 export function discussionMessage(turn:DiscussionTurn,timestamp=Date.now()):AgentMessage{return createCustomMessage("piko.discussion",turn.visible_content,false,{event_id:turn.event_id},timestamp)}
@@ -125,7 +132,7 @@ export class PiRuntime {
         }
         if(outcome.status==="aborted")return {status:"cancelled",summary:"Execution cancelled.",failure:{code:"CancelledByRequest",cause_class:"Cancellation",message:"Cancellation was acknowledged by Pi."}};
         const message=outcome.error?.message??`Pi operation ${outcome.status}.`;
-        const unavailable=outcome.error?.code==="model_unavailable";
+        const unavailable=outcome.error?.code==="model_unavailable"||isProviderUnavailableMessage(message);
         return {status:"failed",summary:message,failure:{code:unavailable?"ModelUnavailable":"ModelResponseInvalid",cause_class:unavailable?"Dependency":"ModelProtocol",message}};
       }
     } finally {clearInterval(cancelTimer);await created.harness.close(BACKGROUND_CONTEXT)}

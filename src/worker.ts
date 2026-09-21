@@ -5,6 +5,7 @@ import type { TaskStore } from "./store.js";
 import type { PiRuntime } from "./pi-runtime.js";
 import { collectOutputs, resolveWorkspace } from "./workspace.js";
 import { isPermanentMatrixError, type MatrixRuntime } from "./matrix.js";
+import { isProviderUnavailableMessage } from "./pi-runtime.js";
 
 const PIKO_CODE_TO_FAILURE:Record<string,{code:string;cause_class:string}>={
   DeadlineExceeded:{code:"DeadlineExceeded",cause_class:"TaskDeadline"},
@@ -54,7 +55,8 @@ export class RunWorker {
       const deadline=Date.parse(task.limits.deadline_at)<=Date.now()&&!this.store.cancelRequested(runId);
       const lost=accessLost();
       const state=outcome.status==="completed"?"Completed":lost?"Failed":outcome.status==="cancelled"&&!deadline?"Cancelled":"Failed";
-      const failure=state==="Completed"?null:lost?accessLostFailure:deadline?{code:"DeadlineExceeded",cause_class:"TaskDeadline",message:"Task deadline elapsed."}:outcome.failure??{code:"InternalError",cause_class:"Internal",message:outcome.summary};
+      let failure=state==="Completed"?null:lost?accessLostFailure:deadline?{code:"DeadlineExceeded",cause_class:"TaskDeadline",message:"Task deadline elapsed."}:outcome.failure??{code:"InternalError",cause_class:"Internal",message:outcome.summary};
+      if(state==="Failed"&&failure&&failure.code==="ModelResponseInvalid"&&isProviderUnavailableMessage(failure.message))failure={code:"ModelUnavailable",cause_class:"Dependency",message:failure.message};
       this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state,partial:state!=="Completed"&&outputs.length>0,summary:outcome.summary,outputs,known_actions:this.store.knownActions(runId),usage,failure,published_at} as AgentResult,epoch);
     }catch(error){
       const e=error as any;const published_at=new Date().toISOString();const cancelled=this.store.cancelRequested(runId);const budget=e.message==="ModelCallLimitExceeded"||e.message==="ToolCallLimitExceeded";
@@ -64,6 +66,7 @@ export class RunWorker {
       else if(budget){code="BudgetExceeded";cause_class="Budget"}
       else if(error instanceof PikoError){const mapped=resolvePikoFailure(error);code=mapped.code;cause_class=mapped.cause_class}
       else if(typeof e.pikoCode==="string"){code=e.pikoCode;cause_class=typeof e.cause==="string"?e.cause:"Internal"}
+      else if(isProviderUnavailableMessage(String(e.message??""))){code="ModelUnavailable";cause_class="Dependency"}
       const usage=aggregateUsage(this.store.usage(runId),this.store.getRun(runId).progress.model_calls);let outputs:AgentResult["outputs"]=[];try{outputs=await collectOutputs(task,await resolveWorkspace(task.workspace_ref,this.config.workspace.roots))}catch{/* preserve the primary failure */}
       try{this.store.finish({run_id:runId,task_id:task.task_id,generation:this.store.generation(runId),state:cancelled?"Cancelled":"Failed",partial:outputs.length>0,summary:e.message??String(e),outputs,known_actions:this.store.knownActions(runId),usage,failure:{code,cause_class,message:e.message??String(e)},published_at} as AgentResult,epoch)}catch(finalize){console.error("run finalization failed",runId,finalize)}
     }finally{if(timer)clearInterval(timer)}
