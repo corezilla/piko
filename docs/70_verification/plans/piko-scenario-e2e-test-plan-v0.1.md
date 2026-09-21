@@ -56,7 +56,7 @@
 （piko-bot `power_level=0`，使 admin 可撤销其 membership）；piko-bot 的权威 token 取自
 `~/piko-secrets/matrix-piko-bot`（`users.json` 中的 token 在历次 PK-T18 重置后可能过期）。
 
-**可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断；27 个直接执行、5 个需收紧
+**可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断；28 个直接执行、5 个需收紧
 Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 个依赖场景房间脚本。bash 子进程
 在 deadline/取消时经实测会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
 

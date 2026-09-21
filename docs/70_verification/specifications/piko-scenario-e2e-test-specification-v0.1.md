@@ -190,7 +190,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 ## 11. 可行性 Review（dry-run 结论，2026-09-21）
 
 在正式执行前对 35 个 case 逐一推断「能否顺利执行并得到期望结果」，含环境与工具链核验。
-**结论：0 个阻断性缺口**；8 个 case 需收紧 Oracle 表述（模型不确定性），其余可直接执行。
+**结论：0 个阻断性缺口**；28 个可直接执行、5 个需收紧 Oracle（模型不确定性）、1 个需故障注入时序、1 个已获 PASS 证据（PTS-04-C3）。
 
 ### 11.1 环境与工具链核验（实测）
 
@@ -208,7 +208,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 
 | 判定 | case |
 |---|---|
-| ✅ 可直接执行 | PTS-01-C1/C3、PTS-02-C1/C2/C3、PTS-03-C1/C2/C3、PTS-04-C1/C2/C4、PTS-05-C1/C2/C4、PTS-06-C1/C2/C3/C4、PTS-07-C1/C3、PTS-08-C2、PTS-09-C1/C2、PTS-10-C1..C5（共 27） |
+| ✅ 可直接执行 | PTS-01-C1/C3、PTS-02-C1/C2/C3、PTS-03-C1/C2/C3、PTS-04-C1/C2/C4、PTS-05-C1/C2/C4、PTS-06-C1/C2/C3/C4、PTS-07-C1/C3、PTS-08-C2、PTS-09-C1/C2、PTS-10-C1..C5（共 28） |
 | ⚠️ 可执行，需收紧 Oracle（模型不确定性） | PTS-01-C2（接受 `Failed` 或 summary 显式声明缺失，不编造内容）、PTS-02-C4（接受 `Failed` 或显式「无法修复」）、PTS-05-C3（接受显式「无发现」）、PTS-07-C2（接受 conflict/partial 表述）、PTS-08-C1（Oracle 校验引用材料名 + 未决项，不评主观质量）（共 5） |
 | ⚠️ 可执行，需故障注入时序 | PTS-09-C3（SIGKILL 需落在 never-replay 工具效果进行中；时序敏感，允许 1 次 RERUN；**Piko 被 SIGKILL 时子进程不保证被回收，执行后需清理残留**）（1） |
 | 🔧 需环境准备（已提供脚本） | PTS-06-C1..C4 依赖 `scripts/scenario-env.sh` 的专用房间；执行前先运行该脚本（2 个新房间已建） |
