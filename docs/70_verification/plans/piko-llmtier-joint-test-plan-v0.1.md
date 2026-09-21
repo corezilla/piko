@@ -159,8 +159,9 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 
 - 执行：opencode（主导：环境、驱动、判定、缺陷定位）；审批：Piko Project Owner。
 - 资源：本机 8180/8788 端口、oMLX、`~/piko-secrets/` 联调凭据；不占用 8787/18999/8181。
-- 当前进度：JT-01 ✅、JT-04 ✅、JT-06 ✅（403）、JT-10 ✅；下一个为 **JT-02**，此后按编号序
-  （JT-02、JT-03、JT-05、JT-07、JT-08、JT-09、JT-11、JT-12）。本节随执行更新。
+- 当前进度（2026-09-22，已完结）：**12/12 case 全部 PASS**（0 FAIL / 0 SKIP）；S2 修复缺陷 2 项
+  （D-1/D-2，见报告 §5.1）；S3 多维度回归全绿（scenario 31/31 joint、check 95、test:live 41/41）；
+  S4 报告已产出：`tests/integration/reports/piko-llmtier-joint-report-v0.1.md`。待 Owner 签批 Gate。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
