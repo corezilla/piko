@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -59,14 +59,23 @@
 （piko-bot `power_level=0`，使 admin 可撤销其 membership）；piko-bot 的权威 token 取自
 `~/piko-secrets/matrix-piko-bot`（`users.json` 中的 token 在历次 PK-T18 重置后可能过期）。
 
-**可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断；28 个直接执行、5 个需收紧
-Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 个依赖场景房间脚本。bash 子进程
-在 deadline/取消时经实测会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
+**可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断。所有模型 Oracle 已用实机
+探针定稿（规格 §11.5）；PTS-09-C3 改为纯诊断 case（去除故障注入时序依赖）；PTS-10-C4 的重启
+注入程序已实测（`UnsafeRetryBlocked` + 副作用未重放）；PTS-06-C3 存在设计契约与实现分歧
+（`DiscussionAccessLost` 未发出），预期 FAIL 并记为缺陷。bash 子进程在 deadline/取消时经实测
+会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
 
-**执行期已实测的两个陷阱（须遵守）**：① 含工具的 profile 配 `max_tool_calls=0` 会导致
-`BudgetExceeded`——讨论/纯文本 case 用 `max_tool_calls≥2` 或声明「不使用工具」；
+**执行期已实测的陷阱与工程约束（须遵守）**：
+① 含工具的 profile 配 `max_tool_calls=0` 会导致 `BudgetExceeded`——讨论/纯文本 case 用
+`max_tool_calls≥2` 或声明「不使用工具」；
 ② 讨论多轮需紧跟发送（首轮过快会先关 intake，followup 不入 turn），C1 的 Oracle 定为
-「≥1 turn Consumed」；③ 权限拒绝 case 的终态是 `Failed/ToolFailure`，Oracle 不得要求 `Completed`。
+「≥1 turn Consumed」；
+③ 权限拒绝 case 的终态是 `Failed/ToolFailure`，Oracle 不得要求 `Completed`；
+④ `write_paths` 目录必须**预先存在**，否则写工具 `ToolFailure(ENOENT)`；
+⑤ 需要读回自己产物的 case，产出目录必须**同时**列入 `read_paths`，否则 `path is outside task permissions`；
+⑥ 指令必须使用仓库根相对路径并禁止绝对路径/`..`，否则模型可能越界；
+⑦ 边界 case 的 Oracle 允许「显式说明」型终态（如 PTS-02-C4 的 `Completed`+显式「不可能」），
+不强制 `Failed`——判定以「无伪报成功 + 只读文件不变」为准。
 
 ## 3. Test Strategy 与 Coverage Model
 
@@ -99,8 +108,14 @@ Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 �
 
 - 单机 loopback 拓扑；种子按场景在临时目录构造（只读材料、最小仓库、失败测试、植入缺陷材料、
   Matrix 房间等）。
-- 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、Matrix Client-Server API。
-- 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min。
+- **种子与指令**：`scripts/scenario-seeds.sh`（幂等）重建 `var/scenario-seeds/`，产出每个 case 的
+  种子、产出目录、`params.json`（read/write/output/limits）与冻结指令 `instruction.txt`。
+- **执行入口**：`scripts/scenario-run.sh <case-dir> <task_id> [--cancel-after N]`（读 `params.json` +
+  `instruction.txt`，POST/轮询/取结果）；Matrix 与重启类按规格 §3.3 程序。
+- 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、`jq`、sqlite3、
+  Matrix Client-Server API。
+- 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min；
+  逐 case 参数见规格 §3.1。
 
 ## 6. Test Types 与 Case Families（按场景）
 
@@ -116,8 +131,10 @@ Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 �
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
 - **Entry**：§2 Entry criteria 满足。
-- **Pass**：case 对应 Run `Completed` 且该 case 全部 Oracle 满足。
-- **Fail**：Run 非 Completed，或任一 Oracle 不满足。
+- **Pass**：该 case 的**独立 Oracle 全部满足**。终态要求以各 case 的 oracle 为准（normal case 通常要求
+  `Completed`；permission/negative/boundary case 允许 `Failed`/`ToolFailure`/`BudgetExceeded` 或
+  `Completed`+显式说明，只要「无伪报成功 + 只读/受保护文件字节不变」成立）。具体见规格 §3。
+- **Fail**：任一 Oracle 不满足（含伪报成功、受保护文件被改、副作用被重放）。
 - **Rerun**：每 case 允许 1 次重跑（模型非确定性）；两次均败判 FAIL，RERUN 记录在案。
 - **Blocked**：环境/依赖不可用。
 - **Invalid**：种子/步骤未按规格执行（重置后重跑，不计分母）。
@@ -141,5 +158,9 @@ Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 �
 ## 11. 风险、安全与清理恢复
 
 - **bash 边界**：bash 以 Piko 进程权限在 workspace cwd 执行——开发机假设，生产部署需另行隔离（operator Gate）。
-- 模型非确定性：以客观 Oracle 兜底；允许 1 次 RERUN。
+- 模型非确定性：以客观 Oracle 兜底；允许 1 次 RERUN。模型偶发把 tool call 以**文本**输出而不真正调用
+  工具（PTS-10-C4 已观察）——此类判 INVALID 并重置重跑，不计 FAIL。
+- **已知缺陷（测试发现）**：PTS-06-C3 设计契约要求 `DiscussionAccessLost`，实现未发出
+  （`src/matrix.ts:43` 仅 fail-closed）。该 case 预期 FAIL，作为实现缺陷记录并驱动修复/回归。
+- **SIGKILL 残留**：Piko 被 SIGKILL 时 bash 子进程不保证回收，执行后清理 `sleep` 残留。
 - 清理：产物隔离在临时目录，执行后删除即复位；不触碰仓库其他路径。
