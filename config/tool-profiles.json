@@ -9,9 +9,71 @@
   "profiles": {
     "workspace-standard": {
       "tools": {
-        "read": {"effect":"read_only","replay":"safe","permissions":{"read_paths":[]}},
-        "write": {"effect":"workspace_write","replay":"safe","recovery_contract_ref":"workspace-atomic-write","permissions":{"write_paths":[]}},
-        "edit": {"effect":"workspace_write","replay":"safe","recovery_contract_ref":"workspace-atomic-write","permissions":{"write_paths":[]}}
+        "read": {
+          "effect": "read_only",
+          "replay": "safe",
+          "permissions": {
+            "read_paths": []
+          }
+        },
+        "write": {
+          "effect": "workspace_write",
+          "replay": "safe",
+          "recovery_contract_ref": "workspace-atomic-write",
+          "permissions": {
+            "write_paths": []
+          }
+        },
+        "edit": {
+          "effect": "workspace_write",
+          "replay": "safe",
+          "recovery_contract_ref": "workspace-atomic-write",
+          "permissions": {
+            "write_paths": []
+          }
+        }
+      }
+    },
+    "workspace-exec": {
+      "tools": {
+        "read": {
+          "effect": "read_only",
+          "replay": "safe",
+          "permissions": {
+            "read_paths": []
+          }
+        },
+        "write": {
+          "effect": "workspace_write",
+          "replay": "safe",
+          "recovery_contract_ref": "workspace-atomic-write",
+          "permissions": {
+            "write_paths": []
+          }
+        },
+        "edit": {
+          "effect": "workspace_write",
+          "replay": "safe",
+          "recovery_contract_ref": "workspace-atomic-write",
+          "permissions": {
+            "write_paths": []
+          }
+        },
+        "bash": {
+          "effect": "process",
+          "replay": "never",
+          "permissions": {
+            "executables": [
+              "python3",
+              "pytest",
+              "node",
+              "npm",
+              "cat",
+              "ls",
+              "mkdir"
+            ]
+          }
+        }
       }
     }
   }
