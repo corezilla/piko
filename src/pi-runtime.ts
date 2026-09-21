@@ -23,7 +23,7 @@ export type PiExecution={status:"completed"|"failed"|"cancelled";summary:string;
  *  the contract's ModelUnavailable/Dependency, not ModelProtocol. Pi folds the
  *  HTTP status into the message text, so classification is message-based. */
 export function isProviderUnavailableMessage(message:string):boolean{
-  return /\((?:502|503)\)|provider_unavailable|model_unavailable|ECONNREFUSED|connection refused|fetch failed/i.test(message);
+  return /\((?:502|503)\)|provider_unavailable|model_unavailable|ECONNREFUSED|connection refused|connection error|fetch failed|network error|socket disconnected|terminated/i.test(message);
 }
 type DiscussionTurn={event_id:string;turn_seq:number;status:string;visible_content:string;pi_operation_id?:string|null};
 
