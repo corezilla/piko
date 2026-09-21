@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.6.0` |
+| Document Version | `0.7.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -115,8 +115,10 @@
 - **执行入口**：`scripts/scenario-run.sh <case-dir> <task_id> [--cancel-after N]`（读 `params.json` +
   `instruction.txt`，POST/轮询/取结果）；Matrix 与重启类按规格 §3.3 程序。
 - **自动化用例（首选）**：`tests/integration/scenario-e2e.test.ts`（35 case）+ `tests/common/scenario-harness.ts`。
-  默认跳过，`SCENARIO_E2E=1` 开启（`npm run test:scenario`）；`beforeEach` 重建种子实现环境复位。
-  2026-09-21 全量执行 35/35 PASS（规格 §3.4）。
+  live 套件在 `vitest.live.config.ts`（串行），入口 `npm run test:scenario` / `npm run test:live`；
+  **按环境可达性运行**（`SCENARIO_E2E=0` 强制关闭），跳过的唯一原因是依赖不可用。
+  `beforeEach` 重建种子实现环境复位；PTS-06-C3 结束重启 Piko（fail-closed 停 Matrix 客户端）。
+  2026-09-21 `npm run test:live` → 41/41 PASS（规格 §3.4）。
 - 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、`jq`、sqlite3、
   Matrix Client-Server API。
 - 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min；
@@ -157,10 +159,10 @@
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
 - 每 case 记录：run_id、state、summary、outputs、known_actions、usage、本地复核命令与输出。
-- 自动化套件（`npm run test:scenario`）即机器可复核证据；人工执行按 `scripts/scenario-run.sh`。
+- 自动化套件（`npm run test:live` / `npm run test:scenario`）即机器可复核证据；人工执行按 `scripts/scenario-run.sh`。
 - 证据汇总写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
 - Gate：全部 case PASS 方可作为「场景测试已验证」引用；FAIL/BLOCKED 保持 Gate 开放。
-  （2026-09-21 自动化执行 35/35 PASS；含 PTS-06-C3 的 `DiscussionAccessLost` 契约。）
+  （2026-09-21 `npm run test:live` 41/41 PASS；含 PTS-06-C3 的 `DiscussionAccessLost` 契约。）
 
 ## 11. 风险、安全与清理恢复
 

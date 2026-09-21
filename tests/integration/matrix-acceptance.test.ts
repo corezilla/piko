@@ -4,18 +4,42 @@ import { afterAll,beforeAll,beforeEach,describe,expect,it } from "vitest";
 // ~/piko-matrix-homeserver/tls/server.crt; Node 22's global fetch reads that.
 // The test runner must be launched with NODE_EXTRA_CA_CERTS=... already exported.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const HOMESERVER_DIR = process.env.HOMESERVER_DIR ?? "/Users/ben/piko-matrix-homeserver";
+const SECRETS_DIR = process.env.PIKO_SECRETS_DIR ?? `${process.env.HOME}/piko-secrets`;
+const readIf = (path: string): string => {
+  try {
+    return readFileSync(path, "utf8").trim();
+  } catch {
+    return "";
+  }
+};
+const readJsonIf = <T,>(path: string): T => {
+  try {
+    return JSON.parse(readIf(path)) as T;
+  } catch {
+    return {} as T;
+  }
+};
+// Credentials live on disk in the sandbox; env vars are an override, not a
+// prerequisite. Without this the acceptance tests skipped even when the whole
+// environment was available.
+const users = readJsonIf<Record<string, { access_token?: string }>>(join(HOMESERVER_DIR, "users.json"));
+const scenarioRoom = readJsonIf<{ room_id?: string }>(join(HOMESERVER_DIR, "room-scenario.json"));
+
 const PIKO_URL = process.env.PIKO_URL ?? "http://127.0.0.1:8787";
-const PIKO_BEARER = process.env.PIKO_BEARER ?? "";
+const PIKO_BEARER = process.env.PIKO_BEARER ?? readIf(join(SECRETS_DIR, "piko-api-bearer"));
 const MATRIX_BASE = process.env.MATRIX_BASE ?? "https://127.0.0.1:8448";
-const SECOND_TOK = process.env.SECOND_TOK ?? "";
-const PIKO_BOT_TOK = process.env.PIKO_BOT_TOK ?? "";
-const BEN_TOK = process.env.BEN_TOK ?? "";
-const ROOM_ID = process.env.ROOM_ID ?? "";
+const SECOND_TOK = process.env.SECOND_TOK ?? users["second-user"]?.access_token ?? "";
+const PIKO_BOT_TOK = process.env.PIKO_BOT_TOK ?? readIf(join(SECRETS_DIR, "matrix-piko-bot"));
+const BEN_TOK = process.env.BEN_TOK ?? users["ben"]?.access_token ?? "";
+const ROOM_ID = process.env.ROOM_ID ?? scenarioRoom.room_id ?? "";
 const LLM_BASE = process.env.LLM_BASE ?? "http://127.0.0.1:9000/v1/";
 const SQLITE_PATH = process.env.PIKO_SQLITE_PATH ?? "/Users/ben/work/piko/var/piko-omlx.sqlite";
 const PIKO_RUNTIME_CONFIG = process.env.PIKO_RUNTIME_CONFIG ?? "/Users/ben/work/piko/config/runtime.json";
 const CA_CERT = process.env.CA_CERT ?? "/Users/ben/piko-matrix-homeserver/tls/server.crt";
-const HOMESERVER_DIR = process.env.HOMESERVER_DIR ?? "/Users/ben/piko-matrix-homeserver";
 const PYTHON_BIN = process.env.PYTHON_BIN ?? `${process.env.HOME}/piko-runtime-venv/bin/python`;
 
 let pikoUp = false;

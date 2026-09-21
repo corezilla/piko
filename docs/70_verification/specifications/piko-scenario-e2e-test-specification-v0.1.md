@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.6.0` |
+| Document Version | `0.7.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -227,9 +227,12 @@ recovery / usage 等不同维度。
 ### 3.4 自动化与执行结果
 
 - **用例实现**：`tests/integration/scenario-e2e.test.ts`（35 个 case）+ `tests/common/scenario-harness.ts`（驱动/种子/矩阵/重启工具）。
-- **门控**：默认跳过；`SCENARIO_E2E=1` 显式开启（`npm run test:scenario`）。未开启时不影响 `npm run check`。
-- **环境复位**：`beforeEach` 调 `scripts/scenario-seeds.sh` 重建全部种子；`afterAll` 再次复位；PTS-10-C4 结束确保 Piko 重启并清理 `sleep` 残留；PTS-06-C3 结束后尽力恢复房间成员。
-- **执行结果（2026-09-21）**：`SCENARIO_E2E=1 npx vitest run tests/integration/scenario-e2e.test.ts` → **35 passed / 0 failed**（约 679s，单执行槽串行，无跨用例干扰）。
+- **门控与入口**：live 套件独立于默认 `check`（`vitest.live.config.ts`，串行），入口为
+  `npm run test:scenario`（仅场景）与 `npm run test:live`（场景 + Matrix 验收）。
+  **按环境可达性运行**（Piko + oMLX 可达即运行；`SCENARIO_E2E=0` 强制关闭），跳过的唯一原因是依赖确实不可用，而非缺手动开关。
+  `npm run check` 不再包含 live 套件，因此**无 skipped**（93 passed）。
+- **环境复位**：`beforeEach` 调 `scripts/scenario-seeds.sh` 重建全部种子；`afterAll` 再次复位；PTS-10-C4 结束确保 Piko 重启并清理 `sleep` 残留；**PTS-06-C3 结束必须重启 Piko**（fail-closed 会停掉 Matrix 客户端）并恢复房间成员。
+- **执行结果（2026-09-21）**：`npm run test:live` → **41 passed / 0 failed**（35 场景 + 6 Matrix 验收；串行，无跨用例干扰）。
 - **实现约束（执行中发现，已固化为规范）**：
   1. **bash 不受 read/write_paths 约束**：`src/pi-runtime.ts:73` 仅在工具参数含 `path` 时做权限校验，`bash` 无 `path` 参数 → 可任意读写。故**权限拒绝类 case 必须使用不含 bash 的 `workspace-standard`**（PTS-01-C3、02-C2、03-C2、05-C4、07-C3 已如此）。
   2. `write_paths` 目录必须预先存在（否则 `ENOENT`）；种子脚本末尾已加安全网自动创建所有 `write_paths` 目录。

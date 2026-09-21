@@ -26,7 +26,30 @@ export const SEED_ROOT = process.env.SCEN_ROOT ?? join(REPO_ROOT, "var/scenario-
 export const SEED_REL = "var/scenario-seeds";
 export const PYTHON_BIN = process.env.PYTHON_BIN ?? "python3";
 
-export const LIVE = process.env.SCENARIO_E2E === "1";
+/**
+ * Live when the environment is actually reachable (Piko + oMLX); the plain
+ * reason for a skip is then a genuinely absent dependency, not a missing flag.
+ * SCENARIO_E2E=0 forces the suite off (e.g. a quick offline run).
+ */
+export const LIVE = process.env.SCENARIO_E2E !== "0" && liveAvailableSync();
+
+function httpCode(url: string): string {
+  try {
+    return execFileSync("curl", ["-s", "-m", "3", "-o", "/dev/null", "-w", "%{http_code}", url], {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "000";
+  }
+}
+
+export function liveAvailableSync(): boolean {
+  if (!["404", "401", "400"].includes(httpCode(`${PIKO_URL}/runs/none`))) return false;
+  const llm = httpCode(`${process.env.LLM_BASE ?? "http://127.0.0.1:9000/v1/"}models`);
+  return llm === "200" || llm === "401";
+}
 
 export interface RunParams {
   case: string;

@@ -15,7 +15,14 @@ export default defineConfig({
   }},
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "tests/fault/**/*.test.ts"],
-    exclude: ["upstream/**", "node_modules/**"],
+    // Live E2E suites live in vitest.live.config.ts (npm run test:live): they
+    // need a reachable Piko/oMLX/Synapse and must run serially.
+    exclude: [
+      "upstream/**",
+      "node_modules/**",
+      "tests/integration/scenario-e2e.test.ts",
+      "tests/integration/matrix-acceptance.test.ts"
+    ],
     // Live integration/acceptance tests drive a real model and process; unit
     // tests still finish in milliseconds, so a generous ceiling is safe.
     testTimeout: 300_000,
