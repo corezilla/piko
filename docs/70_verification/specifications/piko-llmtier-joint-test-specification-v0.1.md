@@ -117,8 +117,8 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | PASS | `run-fceab2d8…` Failed/ModelUnavailable/Dependency；重启后 `run-5a4395f4…` Completed。首跑暴露 `Connection error.` 分类缺陷，**已修复**（分类器扩展+单测） |
 | JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | PASS | R1=Running/R2=Queued → 双 `Completed`（`jt-09-a/b`） |
 | JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
-| JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | NOT_RUN | PTS 系列 |
-| JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | NOT_RUN | PTS 系列 |
+| JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15（vitest 实测） |
+| JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped（vitest 实测） |
 
 **合计 12 case；执行顺序：按 JT 编号递增（JT-01 → JT-12）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
 
