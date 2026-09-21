@@ -5,3 +5,4 @@ config/runtime.json
 *.log
 .DS_Store
 .pytest_cache/
+config/runtime*.json

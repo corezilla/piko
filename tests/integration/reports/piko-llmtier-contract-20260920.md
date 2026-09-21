@@ -180,3 +180,29 @@ LLMTier 仓库本地 checkout 的稳定候选 `interfaces/openapi/llmtier-v0.3.o
 需对真实 oMLX 做 SIGKILL 时序注入，保持 09-18 证据有效。
 
 `npm run check` 最终态：**20 文件 / 88 passed + 4 skipped**，机器契约 PASS simplified.6。
+
+## 11. 追加（同日第四轮）：对接 LLMTier 自家 fixture 服务器（authentic wire bytes）
+
+LLMTier 仓库自带契约 fixture 服务器 `tests/fixtures/v03_fake_provider.py`（其契约测试
+所用、候选语义的最小真实实现，默认 9191，模型 `synthetic-chat`）。将其在本机启动，
+Piko 以 `config/runtime.synthetic.json`（gitignored）直连，preflight 一次通过，
+从调用者视角执行三条流（全程离线，未接触 m5air）：
+
+| 流 | 结果 | 发现 |
+|---|---|---|
+| 基础完成 | **Completed**，usage `Complete`（76/4 + cache/reasoning 全 0 精确透传，missing_fields=[]） | ⚠️ summary 为兜底文案：fixture 只发单个 `response.completed`（携带完整 output 数组、**无** `output_item.added/done` 与 `output_text.delta` 事件），Pi 从 item 事件物化文本 → 空文本走兜底 |
+| REFUSE | **Completed**，无崩溃 | 同上 degenerate 流 |
+| CALL_TOOL | function_call 真实分发：Pi 收 `fc_fake/call_01/read` 后**实际执行了 read 工具**（fixture 的 `args:{}` 不满足 read schema → ENOENT → `ToolFailure`） | ✅ 工具循环线协议（envelope/call_id/工具分派）对 LLMTier 真实字节全通 |
+
+### 判定
+
+- **工具循环线协议**：对 LLMTier 自家 fixture 字节验证通过——这是 M6 前最强的离线证据。
+- **⚠️ M6 必查项（新增部署 Gate 检查点）**：若真实 LLMTier 的 SSE 流也只发
+  `response.completed` 而无 item/delta 事件序列，Piko 的 Result summary 将为空文本兜底
+  （usage/状态仍正确）。其 OpenAPI（`ResponseOutputItemEvent`/`ResponseOutputTextDeltaEvent`
+  等）与消费契约 §2.2 均声明完整事件集，且 pinned Pi 按标准事件流消费——大概率真实实现
+  会发完整流；**联调第一条 Run 必须核对 summary 非空**，若为空则属 LLMTier 实现 divergence，
+  按 §5 兼容审查边界处理（不改 pinned Pi 的事件消费面）。
+
+另：`.gitignore` 增加 `config/runtime*.json` 模式（本地多配置变体不入库）；
+LLMTier fixture 服务器保留运行在 9191 供后续复验。
