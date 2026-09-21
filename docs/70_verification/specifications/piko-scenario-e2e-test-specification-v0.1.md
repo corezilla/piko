@@ -145,7 +145,7 @@ recovery / usage 等不同维度。
 | PTS-10-C5 | usage | (a) 正常完成 run；(b) 缺 usage/真实零/迟到 usage | (a) 实机：`usage.quality∈{Complete,Partial}` ∧ `usage_observed_attempts==model_attempts` ∧ `missing_fields` 与 `quality` 满足 `src/semantic.ts` 不变量；oMLX 不返回 `cache_write_tokens`，故 `Partial` 属**预期**非失败。(b) 缺 usage/真实零/迟到 usage 与「迟到不改已发布 Result」为 store 级不变量，**委派** `piko-agent-runtime-test-specification-v0.3` 的 PK-T53（结果不可变 sha256），本规格不重复。 | NOT_RUN | — |
 
 **合计：10 场景 / 35 case；已执行 PASS 5（PTS-02-C1、PTS-04-C1、PTS-04-C3、PTS-05-C1、PTS-05-C2），NOT_RUN 30。**
-另有 10 个 case 通过「Oracle 定稿探针」验证了种子、指令与 Oracle 的可执行性（见 §11.5），
+另有 11 个 case 通过「Oracle 定稿探针」验证了种子、指令与 Oracle 的可执行性（见 §11.5），
 但其正式执行仍按本规格冻结版本重跑并计入 NOT_RUN 分母。
 
 ### 3.1 种子与执行参数规范
@@ -178,7 +178,7 @@ recovery / usage 等不同维度。
 | PTS-05-C2 | `pts-05/design` | `pts-05/outputs` | `pts-05/outputs/findings.json` | — | findings 命中矛盾 |
 | PTS-05-C3 | `pts-05-c3/clean`,`pts-05-c3/review` | `pts-05-c3/review` | `pts-05-c3/review/report.md` | — | `grep 未发现缺陷`；`shasum -c` clean/* |
 | PTS-05-C4 | `pts-05/code` | `pts-05/outputs` | — | — | `shasum` code 不变 |
-| PTS-06-C1..C4 | 由 `scripts/scenario-env.sh` 房间驱动（见 §3.3） | n/a | n/a | — | Synapse API + sqlite `discussion_turns`/`matrix_events` |
+| PTS-06-C1..C4 | `pts-06`（须给**非空** read 路径；空 read_paths + 工具型 profile → `ToolFailure`） | `pts-06` | — | `profile=workspace-standard`；`max_model_calls=6, max_tool_calls=4` | Synapse API + sqlite `discussion_turns`/`matrix_events` |
 | PTS-07-C1 | `pts-07` | `pts-07/outputs` | `pts-07/outputs/memory-proposal.json` | — | `jq` keys；`shasum` authority |
 | PTS-07-C2 | `pts-07-c2` | `pts-07-c2/outputs` | `pts-07-c2/outputs/memory-proposal.json` | — | `grep conflict/不匹配` |
 | PTS-07-C3 | `pts-07/materials` | `pts-07/outputs` | — | — | `shasum` authority 不变 |
@@ -203,10 +203,14 @@ recovery / usage 等不同维度。
 ### 3.3 特殊 case 程序（Matrix 与故障注入）
 
 - **PTS-06（Matrix）**：先 `bash scripts/scenario-env.sh` 建立专用房间（piko-bot power=0）。
+  指令用 `pts-06/instruction.txt`（"Reply briefly: ack. Do not call any tools."），权限给非空
+  `read_paths=["var/scenario-seeds/pts-06"]`、`write_paths` 同、`profile=workspace-standard`、
+  `max_tool_calls=4`（空 read_paths 会触发 `ToolFailure`）。
   - C1：用 second-user 发送 trigger 事件取 `event_id`；`POST /runs` 带
-    `discussion{room_id,trigger_event_id}`；在 intake 关闭前（立即）再发一条 followup；
-    轮询至终态；用 Synapse `GET /rooms/{room}/event/{id}` 校验 bot 回复的 `m.relates_to.m.in_reply_to`；
-    sqlite 查 `discussion_turns`。
+    `discussion{room_id,trigger_event_id}`；**立即**再发一条 followup（首轮过快会先关 intake）；
+    轮询至终态；用 Synapse `GET /rooms/{room}/messages?dir=b` 校验 bot 回复的
+    `m.relates_to.m.in_reply_to` 指向 trigger 与 followup；sqlite 查 `discussion_turns`
+    （期望 ≥2 行且终态 `Consumed`）。
   - C2：记录 C1 中 bot 回复的 `event_id`，等待其经 sync 回流后查 `matrix_events`（应仅 1 条）与
     `discussion_turns` 计数（不变）。
   - C3：ben 踢出 piko-bot（power=0 可踢）→ 断言设计契约 `DiscussionAccessLost`（当前实现分歧见 §3 行内）；
@@ -279,7 +283,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 
 在正式执行前对 35 个 case 逐一推断「能否顺利执行并得到期望结果」，含环境与工具链核验。
 **结论：0 个阻断性缺口**。所有模型的 Oracle 已通过**实机探针定稿**（§11.5），不再停留在推断：
-- 10 个 case 用冻结种子/指令跑通并定稿 Oracle（PTS-01-C1/C2、02-C4、03-C1/C3、05-C3、07-C1、08-C1、09-C3、10-C4）；
+- 11 个 case 用冻结种子/指令跑通并定稿 Oracle（PTS-01-C1/C2、02-C4、03-C1/C3、05-C3、06-C1、07-C1、08-C1、09-C3、10-C4）；
 - 原「需故障注入时序」的 **PTS-09-C3 已改为纯诊断 case**（种子为一份含未知外部状态的失败日志），彻底消除时序依赖；
 - 唯一仍需故障注入的 **PTS-10-C4** 程序已实测（SIGKILL 在飞 bash → 重启 → `UnsafeRetryBlocked`，副作用未重放，见 §3.3）；
 - 发现 1 处**实现分歧**：**PTS-06-C3** 的设计契约 `DiscussionAccessLost` 当前实现未发出（`src/matrix.ts:43` 仅 fail-closed），该 case 预期 FAIL 并作为缺陷记录。
@@ -338,3 +342,4 @@ PTS-05-C1（`run-1375d509…`）、PTS-05-C2（`run-c6761fb5…`）。
 | PTS-08-C1 | `run-f56f0df2-2c5f-435a-b454-6356d4b7ec65` | Completed；引用三材料 + 2 假设 + 2 未决 |
 | PTS-09-C3 | `run-e05f08d6-2da0-4ef4-abc7-bc8f4443de99` | Completed；分类 + 未知副作用 + 先核验 + 禁盲重放 |
 | PTS-10-C4 | `run-4cdb5da6-c8d9-428e-8c54-762c5452e1f4` | 重启后 `Failed/UnsafeRetryBlocked`；sentinel token = 1 行（未重放） |
+| PTS-06-C1 | `run-5c06539b-8308-4327-8355-288023f5538a` | Completed；`discussion_turns` 两轮均 `Consumed`；两条 bot reply 的 `m.in_reply_to` 分别指向 trigger 与 followup |

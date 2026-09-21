@@ -404,7 +404,7 @@ w pts-05-c4/instruction.txt <<'EOF'
 EOF
 
 w pts-06/instruction.txt <<'EOF'
-Reply briefly: ack
+Reply briefly: ack. Do not call any tools.
 EOF
 
 w pts-07/instruction.txt <<'EOF'
@@ -446,7 +446,7 @@ w pts-09-c3/instruction.txt <<'EOF'
 EOF
 
 w pts-10/instruction.txt <<'EOF'
-Reply briefly: ack
+Reply briefly: ack. Do not call any tools.
 EOF
 
 echo "scenario seeds generated under: $ROOT"

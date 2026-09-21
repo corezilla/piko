@@ -75,7 +75,9 @@
 ⑤ 需要读回自己产物的 case，产出目录必须**同时**列入 `read_paths`，否则 `path is outside task permissions`；
 ⑥ 指令必须使用仓库根相对路径并禁止绝对路径/`..`，否则模型可能越界；
 ⑦ 边界 case 的 Oracle 允许「显式说明」型终态（如 PTS-02-C4 的 `Completed`+显式「不可能」），
-不强制 `Failed`——判定以「无伪报成功 + 只读文件不变」为准。
+不强制 `Failed`——判定以「无伪报成功 + 只读文件不变」为准；
+⑧ Matrix 讨论 case（PTS-06）须给**非空** `read_paths` 并在指令中声明「不使用工具」，
+否则空 `read_paths` + 工具型 profile 会触发 `ToolFailure`（已实测）。
 
 ## 3. Test Strategy 与 Coverage Model
 
