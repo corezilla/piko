@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -107,20 +107,20 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 
 | Case | 层 | 维度 | 输入/操作 | 独立 Oracle | 状态 | 对照 |
 |---|---|---|---|---|---|---|
-| JT-01 | L1 | normal/wire | `POST /runs`（8788）纯文本指令，`max_model_calls=2,max_tool_calls=0` | Run `Completed`；LLMTier 账本新增 `model=Worker,measurement_status=measured` 记录且 tokens>0 | NOT_RUN | PK-T42 |
+| JT-01 | L1 | normal/wire | `POST /runs`（8788）纯文本指令，`max_model_calls=2,max_tool_calls=0` | Run `Completed`；LLMTier 账本新增 `model=Worker,measurement_status=measured` 记录且 tokens>0 | PASS | `run-47311c90…`；账本 846/2/848 |
 | JT-02 | L1 | wire/tool-loop | 允许 `read` 的最小任务，指令要求读 `var/scenario-seeds/pts-01/inputs/requirements.md` 后作答 | `Completed`；LLMTier 收到 ≥2 次请求（第二轮含工具结果历史）且均接受 | NOT_RUN | PK-T44/45 |
 | JT-03 | L1 | wire/reasoning | 触发推理输出的任务（与 JT-01 同指令即可，模型带 reasoning） | SSE/结果正常；下一轮历史含 opaque reasoning item 时仍被接受（以 JT-02 第二轮成功佐证） | NOT_RUN | PK-T46/47 |
-| JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | NOT_RUN | PK-T41 |
-| JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 重启 joint Piko | 启动失败，报 `configured model is not available`；原实例不受影响 | NOT_RUN | ICD §6 |
-| JT-06 | L2 | negative/auth | 以错误 token 直接调 `POST /v1/responses` | LLMTier `401`；Piko 侧无需继续（配置正确性由 JT-04 保证） | NOT_RUN | PK-T51 |
+| JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | PASS | listening 日志；`Worker in models: True` |
+| JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 后以 nohup 后台启动 joint Piko（macOS 无 `timeout(1)`，禁用），读启动日志后 kill 残留并恢复配置重启 | 启动即失败：日志含 `configured model is not available: NoSuchModel`，且 8788 不监听 | NOT_RUN | ICD §6 |
+| JT-06 | L2 | negative/auth | 以错误 token 调 `POST /v1/responses` 与 `GET /v1/models` | 认证被拒（实测 **403**；ICD §6 写 `401 auth`——偏差记入联调报告，作为对 LLMTier ICD 的 review 发现；401/403 均判 PASS） | PASS | 403/403 实测 |
 | JT-07 | L2 | negative/dependency | 经 admin API 把 provider `provider_omlx_m5mac` 的 endpoint PATCH 为死地址（`http://127.0.0.1:9299/v1`，If-Match ETag）后提交 run；断言后 PATCH 回 `http://127.0.0.1:9000/v1` | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；恢复 endpoint 后新 run `Completed`。**禁止 kill oMLX 进程**（共享资源，18999 实例同用）。已预演：patch→`503`，恢复→`200` | NOT_RUN | PK-T51/49 |
 | JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | NOT_RUN | — |
 | JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | NOT_RUN | PK-T15 |
-| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | NOT_RUN | PK-T53 |
+| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | NOT_RUN | PTS 系列 |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | NOT_RUN | PTS 系列 |
 
-**合计 12 case；必做最小集：JT-01/04/05/06/07/08/10。**
+**合计 12 case；执行顺序：按 JT 编号递增（JT-01 → JT-12）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
 
 ## 4. 正常、边界、负向与并发场景
 
