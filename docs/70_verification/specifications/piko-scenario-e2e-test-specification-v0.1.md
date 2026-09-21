@@ -46,12 +46,12 @@
 
 | Case ID | Requirement/成员 | 场景/输入 | 独立 Oracle | 环境 | 状态 | Run/证据 |
 |---|---|---|---|---|---|---|
-| SC-01 | 写设计文档 | 输入 `requirements-notes.md`（≥3 条带关键词需求）→ 产出 `design.md` | Completed；`design.md` 存在且 ≥2KB；逐条包含每个需求关键词；`known_actions` 含 read+write；outputs 含该文件 | oMLX live | NOT_RUN | — |
-| SC-02 | review 设计文档 | 输入 `design-flawed.md`（矛盾：需求 token 30min vs 设计 24h）→ 产出 `design-review.md` | Completed；findings 文件存在；内容提及 token/有效期矛盾概念；read 被调用 | oMLX live | NOT_RUN | — |
-| SC-03 | 编写代码（python/html/ts） | 产出 `src/fib.py`、`web/index.html`、`src/util.ts` | 三文件存在；`python3 -m py_compile fib.py` 通过；html 含 `<!DOCTYPE html>`；util.ts 含 `export` | oMLX live | NOT_RUN | — |
-| SC-04 | review 代码 | 输入 `code/calc.py`（植入 bug：偶数长度 median 整除错误）→ 产出 `code/calc-review.md` | findings 文件存在；内容提及 median/偶数/整除 概念 | oMLX live | NOT_RUN | — |
-| SC-05 | 执行测试 | 输入 `pkg/calc.py`（正确）+ `pkg/test_calc.py`（3 用例）→ bash 运行 pytest → 产出 `pkg/test-report.md` | Completed；known_actions 含 bash；report 或 summary 含 `3 passed` | oMLX live | NOT_RUN | — |
-| SC-06 | debug 修复 | 输入 `pkg/calc.py` broken 版（同 SC-04 bug）+ 失败测试 → 修复并复跑 | Completed；`pkg/calc.py` 被修改（edit 观测）；**执行后本地复跑 `pytest` = 3 passed** | oMLX live | NOT_RUN | — |
+| SC-01 | 写设计文档 | 输入 `requirements-notes.md`（≥3 条带关键词需求）→ 产出 `design.md` | Completed；`design.md` 存在且 ≥2KB；逐条包含每个需求关键词；`known_actions` 含 read+write；outputs 含该文件 | oMLX live | PASS | `run-fc067216-b97d-4aae-b0bd-7274ffc97fa6`；design.md 5641B，三关键词覆盖 |
+| SC-02 | review 设计文档 | 输入 `design-flawed.md`（矛盾：需求 token 30min vs 设计 24h）→ 产出 `design-review.md` | Completed；findings 文件存在；内容提及 token/有效期矛盾概念；read 被调用 | oMLX live | PASS | `run-c6761fb5-b73c-4ecf-93cb-245707f7863e`；design-review.md 命中 token 有效期缺陷 |
+| SC-03 | 编写代码（python/html/ts） | 产出 `src/fib.py`、`web/index.html`、`src/util.ts` | 三文件存在；`python3 -m py_compile fib.py` 通过；html 含 `<!DOCTYPE html>`；util.ts 含 `export` | oMLX live | PASS | `run-bbf6b476-39a1-456e-908a-62891bfdfb94`；三文件本地复核（py_compile/fib(10)=55/DOCTYPE/export） |
+| SC-04 | review 代码 | 输入 `code/calc.py`（植入 bug：偶数长度 median 整除错误）→ 产出 `code/calc-review.md` | findings 文件存在；内容提及 median/偶数/整除 概念 | oMLX live | PASS | `run-1375d509-71c4-4304-bf25-57d0bdc4cd7b`；calc-review.md 命中偶数 median bug |
+| SC-05 | 执行测试 | 输入 `pkg/calc.py`（正确）+ `pkg/test_calc.py`（3 用例）→ bash 运行 pytest → 产出 `pkg/test-report.md` | Completed；known_actions 含 bash；report 或 summary 含 `3 passed` | oMLX live | PASS | `run-5e37b0a7-cb80-418b-b318-8ee4ea5b58a9`；bash pytest 报告 3 用例通过 |
+| SC-06 | debug 修复 | 输入 `pkg/calc.py` broken 版（同 SC-04 bug）+ 失败测试 → 修复并复跑 | Completed；`pkg/calc.py` 被修改（edit 观测）；**执行后本地复跑 `pytest` = 3 passed** | oMLX live | PASS | `run-14b18841-112a-424b-8c88-b998b68bd4f5`；edit 修复后本地 pytest 3 passed |
 
 ## 4. 正常、边界、负向与并发场景
 
