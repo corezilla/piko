@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -57,6 +57,21 @@ LLMTier joint 0.0.0.0:8180（loopback 与 192.168.1.8 均可达）──OMLX_API
 | 模型后端 | oMLX `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed` @ `127.0.0.1:9000/v1` |
 | 隔离红线 | 不触碰 8787（生产 Piko）、18999（他人 llmtier_v03）、m5air 8181 |
 
+### 2.1.1 联调运行的环境变量契约（防串实例）
+
+所有针对 joint 实例的驱动（含 scenario 套件）必须显式携带：
+
+```bash
+export PIKO_URL=http://127.0.0.1:8788                       # 目标实例（harness 按 URL 端口定位 kill/restart）
+export PIKO_SQLITE_PATH=/Users/ben/work/piko/var/piko-llmtier-joint.sqlite   # sqlite 断言面
+export PIKO_RUNTIME_CONFIG=/Users/ben/work/piko/config/runtime.llmtier.json  # 重启所用配置
+export SCENARIO_MATRIX=0                                     # joint 实例 matrix 关闭，排除 PTS-06×4
+```
+
+缺 `PIKO_SQLITE_PATH` 会把 sqlite 断言打到生产库；缺 `SCENARIO_MATRIX=0` 会执行 PTS-06 而 joint
+实例 Matrix 未启用 → 必然失败。**串行要求**：联调执行期间不得并行运行 `npm run test:live`
+（其目标是 8787 生产实例，且共享 oMLX）。
+
 ### 2.2 Secret 与授权决定
 
 - `~/piko-secrets/llmtier-joint-admin-token`（admin API）、`~/piko-secrets/llmtier-joint-data-token`
@@ -98,12 +113,12 @@ LLMTier joint 0.0.0.0:8180（loopback 与 192.168.1.8 均可达）──OMLX_API
 | JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | NOT_RUN | PK-T41 |
 | JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 重启 joint Piko | 启动失败，报 `configured model is not available`；原实例不受影响 | NOT_RUN | ICD §6 |
 | JT-06 | L2 | negative/auth | 以错误 token 直接调 `POST /v1/responses` | LLMTier `401`；Piko 侧无需继续（配置正确性由 JT-04 保证） | NOT_RUN | PK-T51 |
-| JT-07 | L2 | negative/dependency | `kill` oMLX 后提交 run（deadline 5min） | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；重启 oMLX 后新 run 正常 | NOT_RUN | PK-T51/49 |
-| JT-08 | L4 | recovery | run 执行中 `kill -9` LLMTier joint → 按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态（`Failed`，失败码 ∈ {ModelUnavailable, InternalError}，**不得**永久 Running）；重启后 JT-01 复跑 `Completed` | NOT_RUN | — |
+| JT-07 | L2 | negative/dependency | 经 admin API 把 provider `provider_omlx_m5mac` 的 endpoint PATCH 为死地址（`http://127.0.0.1:9299/v1`，If-Match ETag）后提交 run；断言后 PATCH 回 `http://127.0.0.1:9000/v1` | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；恢复 endpoint 后新 run `Completed`。**禁止 kill oMLX 进程**（共享资源，18999 实例同用）。已预演：patch→`503`，恢复→`200` | NOT_RUN | PK-T51/49 |
+| JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | NOT_RUN | — |
 | JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | NOT_RUN | PK-T15 |
-| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 账本 `input/output/total_tokens` 与 Piko `Result.usage` 同源一致（Piko `input_tokens` 含 cached）；`record_version` 随时间单调不减 | NOT_RUN | PK-T53 |
+| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | NOT_RUN | PK-T53 |
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | NOT_RUN | PTS 系列 |
-| JT-12 | L3 | regression/全量 | scenario suite 35 case 全量指向 8788（PTS-06 Matrix 除外/按门控） | 35/35 PASS | NOT_RUN | PTS 系列 |
+| JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | NOT_RUN | PTS 系列 |
 
 **合计 12 case；必做最小集：JT-01/04/05/06/07/08/10。**
 

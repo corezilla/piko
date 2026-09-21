@@ -14,7 +14,10 @@ import * as H from "../common/scenario-harness.js";
 const d = H.LIVE ? describe : describe.skip;
 // Evaluated at collection time (skipIf runs before beforeAll), so use the
 // synchronous reachability check + the on-disk room file.
-const matrixReady = H.LIVE && H.matrixReachableSync() && !!H.loadMatrixTokens().roomId;
+// SCENARIO_MATRIX=0 excludes the Matrix cases (e.g. joint runs against a
+  // target instance with matrix.enabled=false).
+  const matrixReady =
+    H.LIVE && process.env.SCENARIO_MATRIX !== "0" && H.matrixReachableSync() && !!H.loadMatrixTokens().roomId;
 let matrixTokens: H.MatrixTokens | undefined;
 
 beforeAll(async () => {

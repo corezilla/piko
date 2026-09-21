@@ -311,9 +311,19 @@ export function pytest(cwd: string): { code: number; stdout: string } {
   }
 }
 
+/** Target port derived from PIKO_URL — joint-test runs must never touch the
+ *  production instance on another port. */
+export function pikoPort(): number {
+  try {
+    return Number(new URL(PIKO_URL).port) || 80;
+  } catch {
+    return 8787;
+  }
+}
+
 export async function restartPiko(): Promise<void> {
   try {
-    const pid = execSync("lsof -nP -iTCP:8787 -sTCP:LISTEN -t").toString().trim().split("\n")[0];
+    const pid = execSync(`lsof -nP -iTCP:${pikoPort()} -sTCP:LISTEN -t`).toString().trim().split("\n")[0];
     if (pid) execSync(`kill -9 ${pid}`);
   } catch {
     /* not running */
@@ -331,8 +341,14 @@ export async function restartPiko(): Promise<void> {
 }
 
 export async function killPiko(): Promise<void> {
+  // Kill ONLY the listener on the target port. A pkill by process name would
+  // also take down unrelated Piko instances on this host.
   try {
-    execSync("pkill -9 -f 'src/main.ts'", { stdio: "ignore" });
+    const pid = execSync(`lsof -nP -iTCP:${pikoPort()} -sTCP:LISTEN -t`)
+      .toString()
+      .trim()
+      .split("\n")[0];
+    if (pid) execSync(`kill -9 ${pid}`);
   } catch {
     /* nothing to kill */
   }

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -71,7 +71,7 @@
 | 阶段 | case | 退出条件 |
 |---|---|---|
 | P1 最小必做集 | JT-01、JT-04、JT-05、JT-06、JT-07、JT-08、JT-10 | 全 PASS |
-| P2 穿透与回归 | JT-02、JT-03、JT-09、JT-11 → JT-12 | 全 PASS（JT-12 为 35/35） |
+| P2 穿透与回归 | JT-02、JT-03、JT-09、JT-11 → JT-12 | 全 PASS（JT-12 为 31/31，除 Matrix×4） |
 | P3 收敛 | 缺陷复测、证据汇总、报告 | 报告产出并送审 |
 
 ## 5. 环境、设备、拓扑、数据和工具
@@ -80,6 +80,11 @@
 - 驱动工具：`curl`/`jq`（LLMTier 面）；Piko 四项任务 API 与
   `tests/integration/scenario-e2e.test.ts`（经 env `PIKO_URL=http://127.0.0.1:8788` 指向 joint 实例）；
   `sqlite3`（两侧 store）。
+- **联调运行 env 契约（必须整体携带，缺一即串实例）**：`PIKO_URL=http://127.0.0.1:8788`、
+  `PIKO_SQLITE_PATH=…/var/piko-llmtier-joint.sqlite`、
+  `PIKO_RUNTIME_CONFIG=…/config/runtime.llmtier.json`、`SCENARIO_MATRIX=0`（规格 §2.1.1）。
+  harness 的 kill/restart 已按 `PIKO_URL` 端口定位（review 修正项）。
+- **串行要求**：联调执行期间禁止并行运行 `npm run test:live`（目标是 8787 生产实例，共享 oMLX）。
 - 故障注入：按端口定位进程 `kill -9`（JT-07/08）；错误 token（JT-06）；改配置重启（JT-05）。
 
 ## 6. Test Types 与 Case Families
@@ -108,6 +113,10 @@
 - **已知预期（不判缺陷）**：usage `quality=Partial`（oMLX 无 `cache_write_tokens`）；
   LLMTier 全局 `readyz=degraded`（`Embedding-v1` 占位）。
 - 回归基线：`npm run check`（93 passed / 0 skipped）与 `npm run test:live`（41/41）保持绿。
+- **Review 修正（2026-09-22，执行前）**：harness `killPiko/restartPiko` 由进程名匹配改为按
+  `PIKO_URL` 端口定位（否则 PTS-10-C4 会误杀 8787 生产实例）；scenario 套件增加
+  `SCENARIO_MATRIX` 门控；JT-07 注入方式由「kill oMLX」改为「admin API patch provider endpoint」
+  （oMLX 为共享资源）；JT-08 oracle 增加「Completed=注入未命中→INVALID」。
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
