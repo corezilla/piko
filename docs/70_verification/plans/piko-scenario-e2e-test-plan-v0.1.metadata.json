@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-scenario-e2e-test-plan-v0.1",
   "document_type": "assurance.test-plan",
-  "document_version": "0.4.0",
+  "document_version": "0.5.0",
   "title": "Piko 场景测试计划（PTS-01..PTS-10）",
   "document_owner": "corezilla",
   "authors": [

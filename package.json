@@ -10,7 +10,8 @@
     "start": "tsx src/main.ts",
     "dev": "tsx src/main.ts",
     "test": "vitest run",
-    "check": "tsc -p tsconfig.json --noEmit && vitest run && python3 tests/contract/validate_v03_contract.py"
+    "check": "tsc -p tsconfig.json --noEmit && vitest run && python3 tests/contract/validate_v03_contract.py",
+    "test:scenario": "SCENARIO_E2E=1 vitest run tests/integration/scenario-e2e.test.ts"
   },
   "dependencies": {
     "ajv": "8.17.1",

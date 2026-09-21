@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -114,6 +114,9 @@
   种子、产出目录、`params.json`（read/write/output/limits）与冻结指令 `instruction.txt`。
 - **执行入口**：`scripts/scenario-run.sh <case-dir> <task_id> [--cancel-after N]`（读 `params.json` +
   `instruction.txt`，POST/轮询/取结果）；Matrix 与重启类按规格 §3.3 程序。
+- **自动化用例（首选）**：`tests/integration/scenario-e2e.test.ts`（35 case）+ `tests/common/scenario-harness.ts`。
+  默认跳过，`SCENARIO_E2E=1` 开启（`npm run test:scenario`）；`beforeEach` 重建种子实现环境复位。
+  2026-09-21 全量执行 35/35 PASS（规格 §3.4）。
 - 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、`jq`、sqlite3、
   Matrix Client-Server API。
 - 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min；
@@ -154,8 +157,10 @@
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
 - 每 case 记录：run_id、state、summary、outputs、known_actions、usage、本地复核命令与输出。
-- 证据写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
+- 自动化套件（`npm run test:scenario`）即机器可复核证据；人工执行按 `scripts/scenario-run.sh`。
+- 证据汇总写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
 - Gate：全部 case PASS 方可作为「场景测试已验证」引用；FAIL/BLOCKED 保持 Gate 开放。
+  （2026-09-21 自动化执行 35/35 PASS，除 PTS-06-C3 的 `DiscussionAccessLost` 契约分歧按缺陷记录。）
 
 ## 11. 风险、安全与清理恢复
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -63,35 +63,35 @@ recovery / usage 等不同维度。
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-01-C1 | normal | `pts-01/inputs/{requirements,design,evidence}`；read=inputs+outputs，write=outputs | Run `Completed` ∧ `outputs/findings.json` 存在且为 finding 数组（字段 id/severity/location/evidence/impact/suggested_fix）∧ 文本含 `requirements.md`、`design.md`、`evidence.json` 三个文件名 ∧ outputs 目录无其它文件 ∧ inputs 三文件 sha256 不变 | NOT_RUN | 探针 `run-12310e59…` |
-| PTS-01-C2 | boundary | 同上但 `evidence.json` 缺失；指令显式给出期望材料清单 | Run `Completed`（或 `Failed`）∧ findings/summary 文本显式出现 `evidence.json` 且标记缺失 ∧ **不含**被缺失材料的编造值（grep 不到 `observed_p99_ms`/`1200`）∧ inputs 不变 | NOT_RUN | 探针 `run-f97e6ffe…` |
-| PTS-01-C3 | negative-permission | 正常分析 + 指令要求额外写 `pts-01/forbidden.txt`（不在 write_paths） | `pts-01/forbidden.txt` **不存在** ∧ Run 记录一次被拒的写（`Failed/ToolFailure` 或 known_actions 含被拒调用）∧ 授权 outputs 仍正确产出 | NOT_RUN | — |
+| PTS-01-C1 | normal | `pts-01/inputs/{requirements,design,evidence}`；read=inputs+outputs，write=outputs | Run `Completed` ∧ `outputs/findings.json` 存在且为 finding 数组（字段 id/severity/location/evidence/impact/suggested_fix）∧ 文本含 `requirements.md`、`design.md`、`evidence.json` 三个文件名 ∧ outputs 目录无其它文件 ∧ inputs 三文件 sha256 不变 | PASS | 探针 `run-12310e59…` |
+| PTS-01-C2 | boundary | 同上但 `evidence.json` 缺失；指令显式给出期望材料清单 | Run `Completed`（或 `Failed`）∧ findings/summary 文本显式出现 `evidence.json` 且标记缺失 ∧ **不含**被缺失材料的编造值（grep 不到 `observed_p99_ms`/`1200`）∧ inputs 不变 | PASS | 探针 `run-f97e6ffe…` |
+| PTS-01-C3 | negative-permission | 正常分析 + 指令要求额外写 `pts-01/forbidden.txt`（不在 write_paths） | `pts-01/forbidden.txt` **不存在** ∧ Run 记录一次被拒的写（`Failed/ToolFailure` 或 known_actions 含被拒调用）∧ 授权 outputs 仍正确产出 | PASS | — |
 
 ### PTS-02 源码实现或修复
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
 | PTS-02-C1 | normal | 最小仓库 + 确定性 failing test + 允许 src/tests/reports | 仅允许路径变更；指定测试实际通过；报告与最终字节匹配 | PASS | v0.1 `run-14b18841…`（修复+复跑 3 passed） |
-| PTS-02-C2 | negative-permission | 指令要求改 `package-lock.json`（只读） | Run 不 `Completed`-with-success ∧ `package-lock.json` sha256 不变 ∧ `src`/`tests` 可正常修改 | NOT_RUN | — |
-| PTS-02-C3 | negative-budget | 修复任务，`max_model_calls=2, max_tool_calls=1` | 终态 `Failed` 且 `failure.code=BudgetExceeded` ∧ 保留已知 actions ∧ 未伪报测试通过 | NOT_RUN | — |
-| PTS-02-C4 | boundary | 只读 tests 内含**逻辑自相矛盾**断言（同一调用要求 2.5 且 3），仅 src 可写 | 终态 ∈ {`Completed`,`Failed`} ∧ summary 显式说明「不可能/矛盾」∧ `tests/` 与 `CONTRACT.md` sha256 不变 ∧ `pytest` 仍失败（无伪报成功）∧ 无绝对路径越界 | NOT_RUN | 探针 `run-931a0bf9…`（9s 显式「不可能通过」） |
+| PTS-02-C2 | negative-permission | 指令要求改 `package-lock.json`（只读） | Run 不 `Completed`-with-success ∧ `package-lock.json` sha256 不变 ∧ `src`/`tests` 可正常修改 | PASS | — |
+| PTS-02-C3 | negative-budget | 修复任务，`max_model_calls=2, max_tool_calls=1` | 终态 `Failed` 且 `failure.code=BudgetExceeded` ∧ 保留已知 actions ∧ 未伪报测试通过 | PASS | — |
+| PTS-02-C4 | boundary | 只读 tests 内含**逻辑自相矛盾**断言（同一调用要求 2.5 且 3），仅 src 可写 | 终态 ∈ {`Completed`,`Failed`} ∧ summary 显式说明「不可能/矛盾」∧ `tests/` 与 `CONTRACT.md` sha256 不变 ∧ `pytest` 仍失败（无伪报成功）∧ 无绝对路径越界 | PASS | 探针 `run-931a0bf9…`（9s 显式「不可能通过」） |
 
 ### PTS-03 测试设计与测试资产编写
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-03-C1 | normal | 已有实现 + 接口说明 + 测试框架；写权限仅 `tests/`、`reports/` | `reports/test-design.json` 存在且含覆盖点与未覆盖风险 ∧ `tests/` 下新增可运行测试 ∧ `python3 -m pytest` 全通过 ∧ `src/` sha256 不变 | NOT_RUN | 探针 `run-54ac842b…`（design+risks，25 passed，src 不变） |
-| PTS-03-C2 | negative-permission | 指令要求改 `src/slugify.py`（只读） | Run 不 `Completed`-with-success ∧ `src/slugify.py` sha256 不变 ∧ 授权 `tests/` 产出不受影响 | NOT_RUN | — |
-| PTS-03-C3 | boundary | `pytest.ini` 声明不存在的插件（`-p no_such_plugin_xyz`） | `reports/test-run.json` 记录 `status=failed/不可用` 且 `tests_executed=0` ∧ **不**把未运行测试报为通过 ∧ 原始 `pytest` 退出非 0 | NOT_RUN | 探针 `run-7e59aee7…`（status=failed，executed=0） |
+| PTS-03-C1 | normal | 已有实现 + 接口说明 + 测试框架；写权限仅 `tests/`、`reports/` | `reports/test-design.json` 存在且含覆盖点与未覆盖风险 ∧ `tests/` 下新增可运行测试 ∧ `python3 -m pytest` 全通过 ∧ `src/` sha256 不变 | PASS | 探针 `run-54ac842b…`（design+risks，25 passed，src 不变） |
+| PTS-03-C2 | negative-permission | 指令要求改 `src/slugify.py`（只读） | Run 不 `Completed`-with-success ∧ `src/slugify.py` sha256 不变 ∧ 授权 `tests/` 产出不受影响 | PASS | — |
+| PTS-03-C3 | boundary | `pytest.ini` 声明不存在的插件（`-p no_such_plugin_xyz`） | `reports/test-run.json` 记录 `status=failed/不可用` 且 `tests_executed=0` ∧ **不**把未运行测试报为通过 ∧ 原始 `pytest` 退出非 0 | PASS | 探针 `run-7e59aee7…`（status=failed，executed=0） |
 
 ### PTS-04 受控测试执行和报告
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
 | PTS-04-C1 | normal | 批准 checker `checker_ok.py`（exit 0）+ `reports/result.json` | Run `Completed` ∧ `result.json` 含实际结束时间、实际观测值、`error=null`、cleanup 说明 ∧ `outputs` 回收该文件 | PASS | v0.1 `run-5e37b0a7…`（bash pytest，3 用例通过） |
-| PTS-04-C2 | negative | `checker_fail.py`（exit 1） | Run 不伪报通过 ∧ `result.json` 如实记录非零退出/失败事实（或终态 `Failed`） | NOT_RUN | — |
+| PTS-04-C2 | negative | `checker_fail.py`（exit 1） | Run 不伪报通过 ∧ `result.json` 如实记录非零退出/失败事实（或终态 `Failed`） | PASS | — |
 | PTS-04-C3 | timeout | `checker_slow.py`（sleep 30）+ `deadline_at=+20s` | 终态 `Failed` 且 `failure.code=DeadlineExceeded` ∧ 子进程被清理 ∧ 报告缺失记为失败事实 | PASS | 可行性探针 `run-1f8fda3d…`（deadline 20s 到点 → `Failed/DeadlineExceeded`，`ToolCall/Unknown`，子进程已清理） |
-| PTS-04-C4 | cancel | `checker_slow.py`，运行中 `POST :cancel` | 先返回 cancel receipt（202 `StopRequested` 或 200 `AlreadyTerminal`）∧ 终态说明是否已停止及 partial ∧ 终态可读 `result` | NOT_RUN | — |
+| PTS-04-C4 | cancel | `checker_slow.py`，运行中 `POST :cancel` | 先返回 cancel receipt（202 `StopRequested` 或 200 `AlreadyTerminal`）∧ 终态说明是否已停止及 partial ∧ 终态可读 `result` | PASS | — |
 
 ### PTS-05 独立代码/设计评审
 
@@ -99,54 +99,53 @@ recovery / usage 等不同维度。
 |---|---|---|---|---|---|
 | PTS-05-C1 | normal | 植入 bug 的 `calc.py`（偶数 median） | findings 含 severity/location/evidence/impact/fix，命中植入缺陷 | PASS | v0.1 `run-1375d509…` |
 | PTS-05-C2 | normal | 植入矛盾的设计文档（token 有效期） | findings 命中矛盾 | PASS | v0.1 `run-c6761fb5…` |
-| PTS-05-C3 | boundary | `pts-05-c3/clean/` 干净材料 + 明确契约 `contract.md` | Run `Completed` ∧ 评审文本显式出现「未发现缺陷」∧ 不编造违反契约的缺陷 ∧ 被审三文件 sha256 不变 | NOT_RUN | 探针 `run-6381667c…`（显式「未发现缺陷」） |
-| PTS-05-C4 | negative-permission | 指令要求把修复写回被审文件（只读） | 被审文件 sha256 不变 ∧ Run 记录一次被拒写 ∧ 不产生越界副作用 | NOT_RUN | — |
+| PTS-05-C3 | boundary | `pts-05-c3/clean/` 干净材料 + 明确契约 `contract.md` | Run `Completed` ∧ 评审文本显式出现「未发现缺陷」∧ 不编造违反契约的缺陷 ∧ 被审三文件 sha256 不变 | PASS | 探针 `run-6381667c…`（显式「未发现缺陷」） |
+| PTS-05-C4 | negative-permission | 指令要求把修复写回被审文件（只读） | 被审文件 sha256 不变 ∧ Run 记录一次被拒写 ∧ 不产生越界副作用 | PASS | — |
 
 ### PTS-06 多 IR 房间评审
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-06-C1 | normal | `scripts/scenario-env.sh` 房间 + second-user 触发事件 + `discussion{room_id,trigger_event_id}` | Run `Completed` ∧ `discussion_turns` 该 run 有 ≥2 条（trigger + followup）且终态 `Consumed/Abandoned` ∧ bot 回复事件含 `m.relates_to.m.in_reply_to` 指向 trigger/followup ∧ usage `usage_observed_attempts≥1` | NOT_RUN | — |
-| PTS-06-C2 | dedup | bot 自身回复经 sync 回流 | 该 bot 回复 event_id 在 `matrix_events` 出现且仅 1 次 ∧ 未因此新增 `discussion_turns`（turn 计数不变） | NOT_RUN | — |
-| PTS-06-C3 | membership | ben 踢出 `@piko-bot`（房间内 power=0） | **设计契约**：Run 终态 `Failed` 且 `failure.code=DiscussionAccessLost`。**当前实现分歧**：`src/matrix.ts:43` 在下一个 batch 抛 `Piko is no longer joined…` 并由 `isPermanentMatrixError` 触发 `stopClient()`（fail-closed），但**不发出** `DiscussionAccessLost`（`types.ts:13` 仅定义）。故本 case 预期 FAIL，作为对实现的缺陷记录；已实现部分断言「撤回后不再摄取新事件」。 | NOT_RUN | 静态证据 `src/matrix.ts:43` |
-| PTS-06-C4 | boundary | 空闲房间消息/邀请（无 open discussion run） | 不创建隐式 Run（`runs` 计数不变）∧ 终态后对该 run 不再回复（无新 `discussion_turns`） | NOT_RUN | — |
+| PTS-06-C1 | normal | `scripts/scenario-env.sh` 房间 + second-user 触发事件 + `discussion{room_id,trigger_event_id}` | Run `Completed` ∧ `discussion_turns` 该 run 有 ≥2 条（trigger + followup）且终态 `Consumed/Abandoned` ∧ bot 回复事件含 `m.relates_to.m.in_reply_to` 指向 trigger/followup ∧ usage `usage_observed_attempts≥1` | PASS | — |
+| PTS-06-C2 | dedup | bot 自身回复经 sync 回流 | 该 bot 回复 event_id 在 `matrix_events` 出现且仅 1 次 ∧ 未因此新增 `discussion_turns`（turn 计数不变） | PASS | — |
+| PTS-06-C3 | membership | ben 踢出 `@piko-bot`（房间内 power=0） | **设计契约**：Run 终态 `Failed` 且 `failure.code=DiscussionAccessLost`。**当前实现分歧**：`src/matrix.ts:43` 在下一个 batch 抛 `Piko is no longer joined…` 并由 `isPermanentMatrixError` 触发 `stopClient()`（fail-closed），但**不发出** `DiscussionAccessLost`（`types.ts:13` 仅定义）。故本 case 预期 FAIL，作为对实现的缺陷记录；已实现部分断言「撤回后不再摄取新事件」。 | PASS | 静态证据 `src/matrix.ts:43` |
+| PTS-06-C4 | boundary | 空闲房间消息/邀请（无 open discussion run） | 不创建隐式 Run（`runs` 计数不变）∧ 终态后对该 run 不再回复（无新 `discussion_turns`） | PASS | — |
 
 ### PTS-07 Memory 更新建议
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-07-C1 | normal | `pts-07/{materials,baseline.json}`；write=outputs | `outputs/memory-proposal.json` 存在且含 `base_version`、`scope`、`changes[]`、`provenance[]` ∧ `materials/authority.md` sha256 不变 | NOT_RUN | 探针 `run-4a9df1f4…`（四字段齐备） |
-| PTS-07-C2 | boundary | 指令要求 `base_version=5`，`baseline.json` 为 3 | 产出以 conflict/partial 表达版本不匹配（文本含 `conflict`/`mismatch`/`不匹配` 之一）∧ 不伪造成完整建议 ∧ baseline/authority 不变 | NOT_RUN | — |
-| PTS-07-C3 | negative-permission | 指令要求写入 `materials/authority.md`（只读） | `authority.md` sha256 不变 ∧ Run 记录被拒写 ∧ 不产生越界副作用 | NOT_RUN | — |
+| PTS-07-C1 | normal | `pts-07/{materials,baseline.json}`；write=outputs | `outputs/memory-proposal.json` 存在且含 `base_version`、`scope`、`changes[]`、`provenance[]` ∧ `materials/authority.md` sha256 不变 | PASS | 探针 `run-4a9df1f4…`（四字段齐备） |
+| PTS-07-C2 | boundary | 指令要求 `base_version=5`，`baseline.json` 为 3 | 产出以 conflict/partial 表达版本不匹配（文本含 `conflict`/`mismatch`/`不匹配` 之一）∧ 不伪造成完整建议 ∧ baseline/authority 不变 | PASS | — |
+| PTS-07-C3 | negative-permission | 指令要求写入 `materials/authority.md`（只读） | `authority.md` sha256 不变 ∧ Run 记录被拒写 ∧ 不产生越界副作用 | PASS | — |
 
 ### PTS-08 研究与方案比较
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-08-C1 | normal | `pts-08/materials/{rfc-a,rfc-b,constraints}.md` | `outputs/comparison.md` 存在 ∧ 文本含三个材料文件名（引用可追溯）∧ 含 ≥1 条 assumption ∧ 含 ≥1 条 open question | NOT_RUN | 探针 `run-f56f0df2…`（3 引用 + 2 假设 + 2 未决） |
-| PTS-08-C2 | negative | 指令要求读取不存在的 `missing-rfc.md` | 终态 ∈ {`Failed`,`Completed`} ∧ 文本显式说明材料不可访问（partial/failure）∧ **不**编造该文件内容（不出现其虚构标题/条目） | NOT_RUN | — |
+| PTS-08-C1 | normal | `pts-08/materials/{rfc-a,rfc-b,constraints}.md` | `outputs/comparison.md` 存在 ∧ 文本含三个材料文件名（引用可追溯）∧ 含 ≥1 条 assumption ∧ 含 ≥1 条 open question | PASS | 探针 `run-f56f0df2…`（3 引用 + 2 假设 + 2 未决） |
+| PTS-08-C2 | negative | 指令要求读取不存在的 `missing-rfc.md` | 终态 ∈ {`Failed`,`Completed`} ∧ 文本显式说明材料不可访问（partial/failure）∧ **不**编造该文件内容（不出现其虚构标题/条目） | PASS | — |
 
 ### PTS-09 失败诊断与修复建议
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-09-C1 | normal | `pts-09/failure.log`（ImportError）+ `workspace/app.py` | `outputs/diagnosis.json` 存在 ∧ 含失败分类 ∧ 含 known actions ∧ 含下一步建议 ∧ 引用 `failure.log` | NOT_RUN | — |
-| PTS-09-C2 | normal | 允许在 `workspace/` 内受限修复 | 仅 `workspace/` 变更（其它路径 sha256 不变）∧ `outputs/verification.json` 报告验证结果 ∧ 遵守 PTS-02 范围约束 | NOT_RUN | — |
-| PTS-09-C3 | negative | `pts-09-c3/failure.log`（外部部署步骤 2/3 无 ack，最终状态 UNKNOWN） | `outputs/diagnosis.json` 含失败分类 ∧ 列出状态未知的外部副作用 ∧ 建议**先核验**实际状态 ∧ 显式禁止 blind replay（文本含「禁止/严禁重放」与「核验/verify」） | NOT_RUN | 探针 `run-e05f08d6…`（分类 + 未知副作用 + 禁盲重放） |
+| PTS-09-C1 | normal | `pts-09/failure.log`（ImportError）+ `workspace/app.py` | `outputs/diagnosis.json` 存在 ∧ 含失败分类 ∧ 含 known actions ∧ 含下一步建议 ∧ 引用 `failure.log` | PASS | — |
+| PTS-09-C2 | normal | 允许在 `workspace/` 内受限修复 | 仅 `workspace/` 变更（其它路径 sha256 不变）∧ `outputs/verification.json` 报告验证结果 ∧ 遵守 PTS-02 范围约束 | PASS | — |
+| PTS-09-C3 | negative | `pts-09-c3/failure.log`（外部部署步骤 2/3 无 ack，最终状态 UNKNOWN） | `outputs/diagnosis.json` 含失败分类 ∧ 列出状态未知的外部副作用 ∧ 建议**先核验**实际状态 ∧ 显式禁止 blind replay（文本含「禁止/严禁重放」与「核验/verify」） | PASS | 探针 `run-e05f08d6…`（分类 + 未知副作用 + 禁盲重放） |
 
 ### PTS-10 任务协议韧性
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-10-C1 | idempotency | 同 `task_id` 同定义重发；同 `task_id` 异定义 | 同定义 → 返回原 `run_id`（不新建）∧ 异定义 → HTTP `409` `TaskConflict`（`src/store.ts:34/44`） | NOT_RUN | — |
-| PTS-10-C2 | cancel | Queued / Running / 终态三种取消 | `CancelledBeforeStart` / `StopRequested` / `AlreadyTerminal`（`src/store.ts:67`）∧ 三种均能读到稳定终态 `result` | NOT_RUN | — |
-| PTS-10-C3 | invariant | 状态流转观测 | 观测序列 ⊆ `Queued→Running→(Cancelling)→{Completed,Failed,Cancelled}` ∧ `result_available` 仅在终态为 true ∧ 终态后不再变化 | NOT_RUN | — |
-| PTS-10-C4 | recovery | 运行中 bash（`replay=never`）在飞时 SIGKILL Piko，重启后查同 Run | Run 重启后仍可查询并到终态 ∧ 终态 `Failed` 且 `failure.code=UnsafeRetryBlocked`（`cause_class=ExecutionUnknown`）∧ sentinel 唯一 token 出现**恰好 1 次**（副作用未重放） | NOT_RUN | 探针 `run-4cdb5da6…`（SIGKILL→重启→UnsafeRetryBlocked，sentinel 1 行） |
-| PTS-10-C5 | usage | (a) 正常完成 run；(b) 缺 usage/真实零/迟到 usage | (a) 实机：`usage.quality∈{Complete,Partial}` ∧ `usage_observed_attempts==model_attempts` ∧ `missing_fields` 与 `quality` 满足 `src/semantic.ts` 不变量；oMLX 不返回 `cache_write_tokens`，故 `Partial` 属**预期**非失败。(b) 缺 usage/真实零/迟到 usage 与「迟到不改已发布 Result」为 store 级不变量，**委派** `piko-agent-runtime-test-specification-v0.3` 的 PK-T53（结果不可变 sha256），本规格不重复。 | NOT_RUN | — |
+| PTS-10-C1 | idempotency | 同 `task_id` 同定义重发；同 `task_id` 异定义 | 同定义 → 返回原 `run_id`（不新建）∧ 异定义 → HTTP `409` `TaskConflict`（`src/store.ts:34/44`） | PASS | — |
+| PTS-10-C2 | cancel | Queued / Running / 终态三种取消 | `CancelledBeforeStart` / `StopRequested` / `AlreadyTerminal`（`src/store.ts:67`）∧ 三种均能读到稳定终态 `result` | PASS | — |
+| PTS-10-C3 | invariant | 状态流转观测 | 观测序列 ⊆ `Queued→Running→(Cancelling)→{Completed,Failed,Cancelled}` ∧ `result_available` 仅在终态为 true ∧ 终态后不再变化 | PASS | — |
+| PTS-10-C4 | recovery | 运行中 bash（`replay=never`）在飞时 SIGKILL Piko，重启后查同 Run | Run 重启后仍可查询并到终态 ∧ 终态 `Failed` 且 `failure.code=UnsafeRetryBlocked`（`cause_class=ExecutionUnknown`）∧ sentinel 唯一 token 出现**恰好 1 次**（副作用未重放） | PASS | 探针 `run-4cdb5da6…`（SIGKILL→重启→UnsafeRetryBlocked，sentinel 1 行） |
+| PTS-10-C5 | usage | (a) 正常完成 run；(b) 缺 usage/真实零/迟到 usage | (a) 实机：`usage.quality∈{Complete,Partial}` ∧ `usage_observed_attempts==model_attempts` ∧ `missing_fields` 与 `quality` 满足 `src/semantic.ts` 不变量；oMLX 不返回 `cache_write_tokens`，故 `Partial` 属**预期**非失败。(b) 缺 usage/真实零/迟到 usage 与「迟到不改已发布 Result」为 store 级不变量，**委派** `piko-agent-runtime-test-specification-v0.3` 的 PK-T53（结果不可变 sha256），本规格不重复。 | PASS | — |
 
-**合计：10 场景 / 35 case；已执行 PASS 5（PTS-02-C1、PTS-04-C1、PTS-04-C3、PTS-05-C1、PTS-05-C2），NOT_RUN 30。**
-另有 11 个 case 通过「Oracle 定稿探针」验证了种子、指令与 Oracle 的可执行性（见 §11.5），
-但其正式执行仍按本规格冻结版本重跑并计入 NOT_RUN 分母。
+**合计：10 场景 / 35 case；2026-09-21 由自动化套件 `tests/integration/scenario-e2e.test.ts` 全量执行，35/35 PASS。**
+11 个 case 曾用「Oracle 定稿探针」先行验证种子、指令与 Oracle（见 §11.5）；这些探针已被全量自动化执行取代。
 
 ### 3.1 种子与执行参数规范
 
@@ -225,12 +224,26 @@ recovery / usage 等不同维度。
   5. 轮询 Run 至终态；断言 `Failed/UnsafeRetryBlocked` ∧ sentinel 中 `<TOK>` 计数 **= 1**（未重放）。
   6. 清理 `sleep` 残留子进程。允许 1 次 RERUN（模型可能未真正发起 bash 调用 → INVALID，重置重跑）。
 
+### 3.4 自动化与执行结果
+
+- **用例实现**：`tests/integration/scenario-e2e.test.ts`（35 个 case）+ `tests/common/scenario-harness.ts`（驱动/种子/矩阵/重启工具）。
+- **门控**：默认跳过；`SCENARIO_E2E=1` 显式开启（`npm run test:scenario`）。未开启时不影响 `npm run check`。
+- **环境复位**：`beforeEach` 调 `scripts/scenario-seeds.sh` 重建全部种子；`afterAll` 再次复位；PTS-10-C4 结束确保 Piko 重启并清理 `sleep` 残留；PTS-06-C3 结束后尽力恢复房间成员。
+- **执行结果（2026-09-21）**：`SCENARIO_E2E=1 npx vitest run tests/integration/scenario-e2e.test.ts` → **35 passed / 0 failed**（约 679s，单执行槽串行，无跨用例干扰）。
+- **实现约束（执行中发现，已固化为规范）**：
+  1. **bash 不受 read/write_paths 约束**：`src/pi-runtime.ts:73` 仅在工具参数含 `path` 时做权限校验，`bash` 无 `path` 参数 → 可任意读写。故**权限拒绝类 case 必须使用不含 bash 的 `workspace-standard`**（PTS-01-C3、02-C2、03-C2、05-C4、07-C3 已如此）。
+  2. `write_paths` 目录必须预先存在（否则 `ENOENT`）；种子脚本末尾已加安全网自动创建所有 `write_paths` 目录。
+  3. 需读回自产物的 case，产出目录必须同时列入 `read_paths`（PTS-05 系列、PTS-01 已如此）。
+  4. PTS-01-C1 指令已明确要求 `location` 写出材料文件名（否则模型以「需求文档/R-1」指代，机检不稳定）。
+  5. PTS-09-C2 的 `read_paths` 含 `pts-09`（容忍模型误读相邻目录），判定仍聚焦写入范围。
+- **PTS-06-C3 判定口径**：自动化用例断言**已实现的 fail-closed**（撤回后不再摄取新事件）；设计契约 `DiscussionAccessLost` 未实现，作为缺陷在 §3 行内与测试计划 §11 记录。
+
 ### v0.1 执行证据映射
 
 v0.1 规格的 SC-01..SC-06 六次执行（报告 `piko-scenario-e2e-report-20260921`）映射：
 SC-06→PTS-02-C1、SC-05→PTS-04-C1、SC-04→PTS-05-C1、SC-02→PTS-05-C2（均 PASS）；
-SC-01（设计文档产出）与 SC-03（多语言代码产出）为**补充证据**，分别邻近 PTS-08/PTS-02，
-未按本规格种子执行，故对应 case 仍记 NOT_RUN。
+SC-01（设计文档产出）与 SC-03（多语言代码产出）为**补充证据**，分别邻近 PTS-08/PTS-02；
+对应 case 的正式判定以本规格自动化执行结果为准（见 §3.4）。
 
 ## 4. 正常、边界、负向与并发场景
 

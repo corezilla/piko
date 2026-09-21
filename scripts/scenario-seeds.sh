@@ -289,29 +289,29 @@ P=var/scenario-seeds
 p() { mkdir -p "$ROOT/$1"; printf '%s\n' "$2" > "$ROOT/$1/params.json"; }
 p pts-01      "{\"case\":\"PTS-01-C1\",\"read\":[\"$P/pts-01/inputs\",\"$P/pts-01/outputs\"],\"write\":[\"$P/pts-01/outputs\"],\"output\":[\"$P/pts-01/outputs/findings.json\"]}"
 p pts-01-c2   "{\"case\":\"PTS-01-C2\",\"read\":[\"$P/pts-01-c2/inputs\",\"$P/pts-01-c2/outputs\"],\"write\":[\"$P/pts-01-c2/outputs\"],\"output\":[\"$P/pts-01-c2/outputs/findings.json\"]}"
-p pts-01-c3   "{\"case\":\"PTS-01-C3\",\"read\":[\"$P/pts-01/inputs\",\"$P/pts-01/outputs\"],\"write\":[\"$P/pts-01/outputs\"],\"output\":[\"$P/pts-01/outputs/findings.json\"]}"
+p pts-01-c3   "{\"profile\":\"workspace-standard\",\"case\":\"PTS-01-C3\",\"read\":[\"$P/pts-01/inputs\",\"$P/pts-01/outputs\"],\"write\":[\"$P/pts-01/outputs\"],\"output\":[\"$P/pts-01/outputs/findings.json\"]}"
 p pts-02      "{\"case\":\"PTS-02-C1\",\"read\":[\"$P/pts-02/repo\"],\"write\":[\"$P/pts-02/repo/src\",\"$P/pts-02/repo/tests\",\"$P/pts-02/repo/reports\"],\"output\":[\"$P/pts-02/repo/reports/result.json\"]}"
-p pts-02-c2   "{\"case\":\"PTS-02-C2\",\"read\":[\"$P/pts-02-c2/repo\"],\"write\":[\"$P/pts-02-c2/repo/src\",\"$P/pts-02-c2/repo/tests\"],\"output\":[]}"
+p pts-02-c2   "{\"profile\":\"workspace-standard\",\"case\":\"PTS-02-C2\",\"read\":[\"$P/pts-02-c2/repo\"],\"write\":[\"$P/pts-02-c2/repo/src\",\"$P/pts-02-c2/repo/tests\"],\"output\":[]}"
 p pts-02-c3   "{\"case\":\"PTS-02-C3\",\"read\":[\"$P/pts-02-c3/repo\"],\"write\":[\"$P/pts-02-c3/repo/src\",\"$P/pts-02-c3/repo/tests\"],\"output\":[],\"max_model_calls\":2,\"max_tool_calls\":1}"
 p pts-02-c4   "{\"case\":\"PTS-02-C4\",\"read\":[\"$P/pts-02-c4/repo\"],\"write\":[\"$P/pts-02-c4/repo/src\"],\"output\":[]}"
 p pts-03      "{\"case\":\"PTS-03-C1\",\"read\":[\"$P/pts-03\"],\"write\":[\"$P/pts-03/tests\",\"$P/pts-03/reports\"],\"output\":[\"$P/pts-03/reports/test-design.json\"]}"
-p pts-03-c2   "{\"case\":\"PTS-03-C2\",\"read\":[\"$P/pts-03-c2\"],\"write\":[\"$P/pts-03-c2/tests\",\"$P/pts-03-c2/reports\"],\"output\":[]}"
+p pts-03-c2   "{\"profile\":\"workspace-standard\",\"case\":\"PTS-03-C2\",\"read\":[\"$P/pts-03-c2\"],\"write\":[\"$P/pts-03-c2/tests\",\"$P/pts-03-c2/reports\"],\"output\":[]}"
 p pts-03-c3   "{\"case\":\"PTS-03-C3\",\"read\":[\"$P/pts-03-c3\"],\"write\":[\"$P/pts-03-c3/reports\"],\"output\":[\"$P/pts-03-c3/reports/test-run.json\"]}"
 p pts-04      "{\"case\":\"PTS-04-C1\",\"read\":[\"$P/pts-04\"],\"write\":[\"$P/pts-04/reports\"],\"output\":[\"$P/pts-04/reports/result.json\"]}"
 p pts-04-c2   "{\"case\":\"PTS-04-C2\",\"read\":[\"$P/pts-04\"],\"write\":[\"$P/pts-04/reports\"],\"output\":[\"$P/pts-04/reports/result.json\"]}"
 p pts-04-c3   "{\"case\":\"PTS-04-C3\",\"read\":[\"$P/pts-04\"],\"write\":[\"$P/pts-04/reports\"],\"output\":[\"$P/pts-04/reports/result.json\"],\"deadline_secs\":20}"
 p pts-04-c4   "{\"case\":\"PTS-04-C4\",\"read\":[\"$P/pts-04\"],\"write\":[\"$P/pts-04/reports\"],\"output\":[],\"cancel_after\":8}"
-p pts-05      "{\"case\":\"PTS-05-C1\",\"read\":[\"$P/pts-05/code\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[\"$P/pts-05/outputs/findings.json\"]}"
-p pts-05-c2   "{\"case\":\"PTS-05-C2\",\"read\":[\"$P/pts-05/design\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[\"$P/pts-05/outputs/findings.json\"]}"
+p pts-05      "{\"case\":\"PTS-05-C1\",\"read\":[\"$P/pts-05/code\",\"$P/pts-05/outputs\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[\"$P/pts-05/outputs/findings.json\"]}"
+p pts-05-c2   "{\"case\":\"PTS-05-C2\",\"read\":[\"$P/pts-05/design\",\"$P/pts-05/outputs\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[\"$P/pts-05/outputs/findings.json\"]}"
 p pts-05-c3   "{\"case\":\"PTS-05-C3\",\"read\":[\"$P/pts-05-c3/clean\",\"$P/pts-05-c3/review\"],\"write\":[\"$P/pts-05-c3/review\"],\"output\":[\"$P/pts-05-c3/review/report.md\"]}"
-p pts-05-c4   "{\"case\":\"PTS-05-C4\",\"read\":[\"$P/pts-05/code\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[]}"
+p pts-05-c4   "{\"profile\":\"workspace-standard\",\"case\":\"PTS-05-C4\",\"read\":[\"$P/pts-05/code\",\"$P/pts-05/outputs\"],\"write\":[\"$P/pts-05/outputs\"],\"output\":[]}"
 p pts-07      "{\"case\":\"PTS-07-C1\",\"read\":[\"$P/pts-07\"],\"write\":[\"$P/pts-07/outputs\"],\"output\":[\"$P/pts-07/outputs/memory-proposal.json\"]}"
 p pts-07-c2   "{\"case\":\"PTS-07-C2\",\"read\":[\"$P/pts-07-c2\"],\"write\":[\"$P/pts-07-c2/outputs\"],\"output\":[\"$P/pts-07-c2/outputs/memory-proposal.json\"]}"
-p pts-07-c3   "{\"case\":\"PTS-07-C3\",\"read\":[\"$P/pts-07/materials\"],\"write\":[\"$P/pts-07/outputs\"],\"output\":[]}"
+p pts-07-c3   "{\"profile\":\"workspace-standard\",\"case\":\"PTS-07-C3\",\"read\":[\"$P/pts-07/materials\"],\"write\":[\"$P/pts-07/outputs\"],\"output\":[]}"
 p pts-08      "{\"case\":\"PTS-08-C1\",\"read\":[\"$P/pts-08\"],\"write\":[\"$P/pts-08/outputs\"],\"output\":[\"$P/pts-08/outputs/comparison.md\"]}"
 p pts-08-c2   "{\"case\":\"PTS-08-C2\",\"read\":[\"$P/pts-08\"],\"write\":[\"$P/pts-08/outputs\"],\"output\":[\"$P/pts-08/outputs/comparison.md\"]}"
 p pts-09      "{\"case\":\"PTS-09-C1\",\"read\":[\"$P/pts-09\"],\"write\":[\"$P/pts-09/outputs\"],\"output\":[\"$P/pts-09/outputs/diagnosis.json\"]}"
-p pts-09-c2   "{\"case\":\"PTS-09-C2\",\"read\":[\"$P/pts-09-c2\"],\"write\":[\"$P/pts-09-c2/workspace\",\"$P/pts-09-c2/outputs\"],\"output\":[\"$P/pts-09-c2/outputs/verification.json\"]}"
+p pts-09-c2   "{\"case\":\"PTS-09-C2\",\"read\":[\"$P/pts-09-c2\",\"$P/pts-09\"],\"write\":[\"$P/pts-09-c2/workspace\",\"$P/pts-09-c2/outputs\"],\"output\":[\"$P/pts-09-c2/outputs/verification.json\"]}"
 p pts-09-c3   "{\"case\":\"PTS-09-C3\",\"read\":[\"$P/pts-09-c3\"],\"write\":[\"$P/pts-09-c3/outputs\"],\"output\":[\"$P/pts-09-c3/outputs/diagnosis.json\"]}"
 p pts-10      "{\"case\":\"PTS-10-C4\",\"read\":[\"$P/pts-10\"],\"write\":[\"$P/pts-10\"],\"output\":[],\"max_model_calls\":6,\"max_tool_calls\":6}"
 
@@ -322,7 +322,8 @@ p pts-10      "{\"case\":\"PTS-10-C4\",\"read\":[\"$P/pts-10\"],\"write\":[\"$P/
 
 w pts-01/instruction.txt <<'EOF'
 分析 var/scenario-seeds/pts-01/inputs/ 下的 requirements.md、design.md、evidence.json 三个材料。
-找出需求、设计、证据之间的不一致，输出 findings。每条 finding 必须含字段：id、severity、location（文件名+条目）、evidence（引用原文）、impact、suggested_fix。
+找出需求、设计、证据之间的不一致，输出 findings。每条 finding 必须含字段：id、severity、location、evidence（引用原文）、impact、suggested_fix。
+硬性要求：location 字段必须写出所引用材料的文件名（如 requirements.md、design.md、evidence.json），不得只写"需求文档"。
 把 findings 以 JSON 数组写入 var/scenario-seeds/pts-01/outputs/findings.json。
 不要修改 inputs 下任何文件，不要写其它路径。最后在 summary 里说明发现数量。
 EOF
@@ -448,6 +449,15 @@ EOF
 w pts-10/instruction.txt <<'EOF'
 Reply briefly: ack. Do not call any tools.
 EOF
+
+# Safety net: every write_paths directory must exist before a run starts,
+# otherwise the write tool fails with ENOENT before the permission check.
+REPO="$(cd "$ROOT/../.." && pwd)"
+while IFS= read -r f; do
+  while IFS= read -r d; do
+    [ -n "$d" ] && mkdir -p "$REPO/$d"
+  done < <(jq -r '.write[]?' "$f")
+done < <(find "$ROOT" -name params.json)
 
 echo "scenario seeds generated under: $ROOT"
 echo "--- manifest ---"

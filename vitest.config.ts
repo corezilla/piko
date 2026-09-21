@@ -15,6 +15,10 @@ export default defineConfig({
   }},
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "tests/fault/**/*.test.ts"],
-    exclude: ["upstream/**", "node_modules/**"]
+    exclude: ["upstream/**", "node_modules/**"],
+    // Live integration/acceptance tests drive a real model and process; unit
+    // tests still finish in milliseconds, so a generous ceiling is safe.
+    testTimeout: 300_000,
+    hookTimeout: 120_000
   }
 });
