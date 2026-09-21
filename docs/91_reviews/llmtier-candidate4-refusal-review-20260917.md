@@ -1,4 +1,31 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # LLMTier candidate.4 refusal 定向复审
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `llmtier-candidate4-refusal-review-20260917` |
+| Document Version | `0.1.0` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | corezilla |
+| Authors | corezilla, opencode |
+| Created Date | `2026-09-17` |
+| Last Modified Date | `2026-09-21` |
+| Template ID | `review.packet` |
+| Template Version | `0.1.1` |
+| Template Conformance | `legacy-mapped` |
+| Tailoring Reference | none |
+| Migration Map Reference | docs/98_migration/piko-std-migration-map.md |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/91_reviews/llmtier-candidate4-refusal-review-20260917.md` |
+| Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_COVER_END -->
 
 覆盖原消息 ID：`L-20260917-fcc994a78c2d`。
 

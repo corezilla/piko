@@ -1,4 +1,31 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko simplified.5 定向复审请求
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-simplified5-review-request-20260917` |
+| Document Version | `0.1.0` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | corezilla |
+| Authors | corezilla, opencode |
+| Created Date | `2026-09-17` |
+| Last Modified Date | `2026-09-21` |
+| Template ID | `review.packet` |
+| Template Version | `0.1.1` |
+| Template Conformance | `legacy-mapped` |
+| Tailoring Reference | none |
+| Migration Map Reference | docs/98_migration/piko-std-migration-map.md |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/91_reviews/piko-simplified5-review-request-20260917.md` |
+| Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_COVER_END -->
 
 覆盖本批原消息 `S-20260917-fe46f52041bf` 与 `L-20260917-5f660a9d497c`。LLMTier 对 simplified.4 的 ACCEPTED 保留为历史复审结果；Slinky 在同一基线提出的三项残留已合并修订为唯一 `0.3.0-simplified.5`。本候选仍是 dirty、未提交快照，base/HEAD=`4c63380f944e41d0047e9f47340689a182b62fba`，runtime_activation=false。
 

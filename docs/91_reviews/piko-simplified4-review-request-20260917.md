@@ -1,4 +1,31 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko simplified.4 集中整改复审请求
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-simplified4-review-request-20260917` |
+| Document Version | `0.1.0` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | corezilla |
+| Authors | corezilla, opencode |
+| Created Date | `2026-09-17` |
+| Last Modified Date | `2026-09-21` |
+| Template ID | `review.packet` |
+| Template Version | `0.1.1` |
+| Template Conformance | `legacy-mapped` |
+| Tailoring Reference | none |
+| Migration Map Reference | docs/98_migration/piko-std-migration-map.md |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/91_reviews/piko-simplified4-review-request-20260917.md` |
+| Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_COVER_END -->
 
 覆盖原消息 ID：`S-20260917-5b0a357a90de`、`P-20260917-512f74457b8b`、`S-20260917-87b417ab93f7`、`L-20260917-f2df35c87982`。
 

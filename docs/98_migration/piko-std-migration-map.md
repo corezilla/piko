@@ -37,3 +37,22 @@
 - `rag/project-ingestion-manifest.jsonl` 已删除全部 PUB-01 Piko 记录，并由 PUB-02 基于最终文档
   snapshot 全量重建；历史记录只说明当时发布事实，不是当前 simplified.6 authority。
 - 外部 RAG backend 不存在，indexing 为 `N/A_NO_PROJECT_BACKEND`；当前仍处于设计阶段。
+
+## 4. Legacy 文档登记（2026-09-21，保留原结构）
+
+以下历史文档以 `template_conformance=legacy-mapped` 注册 STD 实例：保留其原有正文结构，
+等价章节映射由本节维护；它们记录历史事实，不构成 current authority。
+
+| 文档 | 模板 | 来源 authority | residual scope |
+|---|---|---|---|
+| `tests/integration/reports/piko-direct-omlx-debug-20260918.md` | `assurance.test-report` | 直连 oMLX 调试证据（历史） | 只记录当时 34 PASS / 6 PARTIAL；状态已由 20260919 / 20260920 / 20260921 报告推进 |
+| `docs/91_reviews/llmtier-candidate4-refusal-review-20260917.md` | `review.packet` | LLMTier candidate.4 refusal 定向复审记录 | 跨项目历史复审；不构成 Piko 设计或契约 authority |
+| `docs/91_reviews/piko-simplified4-review-request-20260917.md` | `review.packet` | simplified.4 集中整改复审请求 | 历史请求；结论已并入 simplified.5 / .6 |
+| `docs/91_reviews/piko-simplified5-review-request-20260917.md` | `review.packet` | simplified.5 定向复审请求 | 历史请求；结论已并入 simplified.6 |
+| `docs/91_reviews/piko-v0.3-finalization-review-packet.md` | `review.packet` | finalization review packet（simplified.5） | 历史评审包；current authority 见现行系统设计与机器契约 |
+
+章节等价：`review.packet` 的请求/范围/基线/变更/finding disposition/决定分别由各历史文档的
+“结论 / 基线核验 / 逐项处置 / 稳定路径与摘要”等原有小节承载；`assurance.test-report` 的执行
+摘要/基线/执行记录/缺陷/剩余门禁分别由原报告的 “Scope / Summary / Test status / Direct-oMLX
+live evidence / Defects found and corrected / Remaining gates” 承载。
+

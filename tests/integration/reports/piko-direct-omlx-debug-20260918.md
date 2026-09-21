@@ -1,4 +1,31 @@
+<!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko direct-oMLX debug report — 2026-09-18
+
+> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+
+| 文档字段 | 值 |
+|---|---|
+| Document ID | `piko-direct-omlx-debug-20260918` |
+| Document Version | `0.1.0` |
+| Status | `Draft` |
+| Project | `piko` |
+| Authority | `piko` |
+| Document Owner | corezilla |
+| Authors | corezilla, opencode |
+| Created Date | `2026-09-18` |
+| Last Modified Date | `2026-09-21` |
+| Template ID | `assurance.test-report` |
+| Template Version | `0.1.1` |
+| Template Conformance | `legacy-mapped` |
+| Tailoring Reference | none |
+| Migration Map Reference | docs/98_migration/piko-std-migration-map.md |
+| Repository | `corezilla/piko` |
+| Canonical Path | `tests/integration/reports/piko-direct-omlx-debug-20260918.md` |
+| Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_COVER_END -->
 
 ## Scope
 
