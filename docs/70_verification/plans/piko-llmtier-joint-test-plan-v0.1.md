@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -31,11 +31,15 @@
 > **从开始到结束**的全过程：启动检查 → 12 个 case 按序逐步执行 → 收敛 → 输出成果归档。
 > 规格定义「测什么、怎么测、怎么判」；本计划定义「按什么顺序、每步产出什么、出现各种情况如何处置」。
 > 执行原则：**只按本计划与规格执行，不引入计划外步骤；计划/规格有问题时先修订文档并提交，再继续执行。**
+> **计划一经开始不得随意停止**：遇阻先修复、回归、直到调通（修复手段允许修改 Piko 与 LLMTier
+> 双方的设计、代码与配置）；确实修不好的记 SKIP 并继续，最终报告说明原因。
 
 ## 1. 目标、范围与测试层级
 
 - **目标**：完成 Piko ↔ 真实 LLMTier 的首次联合调试（规格 §3 全部 12 个 case，按 JT 编号递增
-  一步一步执行，不分必做/可选），收敛缺陷，产出可签批的联调报告。
+  一步一步执行，不分必做/可选）。**总体目的：调通所有功能、消灭所有已知 bug**——发现问题即
+  修复（Piko/LLMTier 双侧代码、设计、配置均可改）并回归，直到调通；确实修不好的记 SKIP，
+  最终报告说明原因与证据。全部 case 结束后进行联合多维度测试（S3）。
 - **排除**：m5air 生产部署与 TLS 激活、embeddings、admin API 完整 CRUD、Slinky capacity、
   mock 契约单测（PK-T41..T54 已独立覆盖）。
 - **不改变**：`overall.runtime_activation=false`；联调通过 ≠ production activation。
@@ -57,7 +61,7 @@
 ## 3. 执行总流程（从开始到结束）
 
 ```text
-S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 收敛 ──▶ S3 输出成果与归档
+S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 缺陷修复与收敛 ──▶ S3 联合多维度测试 ──▶ S4 报告与归档
    (每阶段开始      (每 case 六个标准动作,           (FAIL 复测、       (中间+最终成果,
     重复 S0)         见 §3.2)                         缺陷清单)          见 §5)
 ```
@@ -81,6 +85,15 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 收敛 �
 5. **提交**：`git commit` + `push`（证据不落地不下一个）；
 6. **流转**：PASS → 下一个 case；其余按 §4 情况处置后再流转。
 
+### 3.3 S2 / S3 / S4 定义
+
+- **S2 缺陷修复与收敛**：对每个 FAIL/BLOCKED 逐项定位并修复（Piko/LLMTier 双侧代码、设计、
+  配置均可改）→ 回归该 case → 通过则改判 PASS；确实修不好的记 SKIP（原因+修复尝试+证据）。
+- **S3 联合多维度测试**：全部 case 结束后，在 joint 实例上做全维度回归——scenario 套件 31/31
+  （`SCENARIO_MATRIX=0`）、`npm run check`、`npm run test:live`（41/41，生产实例面），
+  并汇总 wire/usage/错误映射/恢复/并发各维度观测。
+- **S4 报告与归档**：输出联调报告，**必须列出所有未通过点（FAIL/SKIP）及原因与证据**。
+
 执行顺序固定：**JT-01 → JT-02 → … → JT-12**（已完成的 JT-01/04/06/10 保留结果，其余按编号序）。
 同一时刻只执行一个 case（Piko 单执行槽 + 共享 oMLX）；**禁止**并行运行 `npm run test:live`。
 
@@ -94,13 +107,13 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 收敛 �
 | FAIL | 步骤正确但 Oracle 不满足 | 保留现场（两侧日志）→ 复测 1 次（计 RERUN）→ 仍 FAIL 判 FAIL，进 S2 缺陷清单 → 继续下一 case |
 | RERUN | 模型非确定性 / 注入时序未命中 | 重跑 1 次并记录两次运行；第 2 次为准 |
 | INVALID | 步骤偏离规格 / 注入未命中（如 JT-08 出现 Completed）/ 环境问题污染样本 | 重置环境 → 重跑；不计入判定分母 |
-| BLOCKED | 依赖不可用且按 §4.2 无法恢复 | 记 BLOCKED + 阻塞原因 → 跳到下一个不受阻的 case；收敛时汇总 |
+| BLOCKED | 经 §4.2 修复循环后仍失败 | **不得停止计划**：记 BLOCKED + 原因与修复尝试记录 → 继续下一 case；S2 再攻；S4 报告说明 |
 
 ### 4.2 阻塞处置（按阻塞类型）
 
 | 类型 | 识别 | 处置 |
 |---|---|---|
-| B-1 组件不可用（8180/8788/9000 任一不健康） | S0 或 case 中探活失败 | 按规格 §2.1 命令重建该组件（LLMTier 重启必带 `OMLX_API_KEY`+两 token）→ 重跑当前 case（计 RERUN）；**连续 2 次恢复失败** → 该 case 记 BLOCKED；若 ≥3 个 case BLOCKED 或组件彻底不可恢复 → **全局暂停**：提交现场、报告 Owner、等待指示 |
+| B-1 组件不可用（8180/8788/9000 任一不健康） | S0 或 case 中探活失败 | 按规格 §2.1 命令重建该组件（LLMTier 重启必带 `OMLX_API_KEY`+两 token）→ 重跑当前 case（计 RERUN）；恢复失败进入**修复循环**（改双侧代码/配置 → 回归），至多 3 轮；仍失败 → 该 case 记 BLOCKED 跳过并继续（**不停计划**），S2 再攻，S4 报告说明 |
 | B-2 端口/资源被占 | 端口非预期监听 | 确认归属；属他人/生产资源（18999/8787/m5air）→ **不触碰**，修订规格换端口后再执行 |
 | B-3 共享资源风险 | 步骤需要 kill 共享进程（如 oMLX） | **立即停止该步骤**，修订规格改用无副作用注入（JT-07 已改为 admin API patch），再继续 |
 | B-4 计划/规格不可执行 | 步骤命令不存在、Oracle 与实测不符、文本歧义 | 暂停该 case → 修订计划/规格并提交 → 按新文档继续（本次已发生：`timeout(1)`、JT-06 401→403） |
@@ -118,14 +131,14 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 收敛 �
 | 两侧现场日志 | `LLMTier/state/llmtier-piko-joint.log`、`piko/var/piko-llmtier-joint.log`（保留至 Gate 关闭） |
 | 代码/文档修订（如发生 B-3/B-4） | 独立 commit，注明触发 case |
 
-每 case 完成即 `git commit` + `push`；**证据未提交不进入下一个 case**。
+每 case 完成即 `git commit`（**证据未提交不进入下一个 case**）；`push` 至少每 2 个 case 一次，阶段结束必须 push，异常随时 push。
 
 ### 5.2 最终成果（S3，Gate 关闭条件）
 
 | 成果 | 落点 |
 |---|---|
 | 规格 §3 全部 12 case 状态为终态判定 | 规格文档 |
-| 联调报告（STD test-report：结果汇总、缺陷清单、对 LLMTier ICD 的 review 发现、观测数据） | `tests/integration/reports/piko-llmtier-joint-report-*.md`（new-design 生成） |
+| 联调报告（STD test-report：结果汇总、缺陷清单、对 LLMTier ICD 的 review 发现、观测数据、**所有未通过点（FAIL/SKIP）及原因与证据**） | `tests/integration/reports/piko-llmtier-joint-report-*.md`（new-design 生成） |
 | 缺陷/偏差记录（含已发生的 schema 放宽、403 vs 401） | 报告 §缺陷 + 计划 §9 |
 | 证据保留 | 联调库、两侧日志保留至 Gate 签批；之后按规格 §10 清理 |
 
@@ -137,8 +150,9 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
 - **Entry**：§2 Entry criteria（= S0 全过）。
-- **Exit（联调 Gate）**：12 个 case 全部执行完毕且有终态判定 ∧ 无未收敛 BLOCKED ∧ JT-12 为
-  31/31（除 Matrix×4）∧ 联调报告产出并送 Owner 签批。
+- **Exit（联调 Gate）**：12 个 case 全部执行完毕且有终态判定 ∧ S3 联合多维度测试完成
+  （scenario 31/31 + `npm run check` + `npm run test:live` 41/41）∧ 联调报告产出（含所有
+  未通过点及原因）并送 Owner 签批。修不好的点以 SKIP+原因进入报告，不阻塞 Gate 评审。
 - 单 case PASS/FAIL/RERUN/INVALID/BLOCKED 定义见 §4.1（与规格 §8 一致）。
 
 ## 8. 组织、职责、排期和资源
@@ -150,7 +164,9 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
-- **LLMTier 侧缺陷**：记录于联调报告，经 LLMTier 仓库自身流程处理；Piko 侧不改 LLMTier 源码。
+- **修复优先**：联调期间发现的任何问题（任一侧）一律先修复并回归，直到调通；确实无法
+  修复的记 SKIP，最终报告说明原因与证据。
+- **LLMTier 侧缺陷**：直接修复（遵守 LLMTier 仓库规范：改动跑其全量测试），并记录于联调报告。
 - **Piko 侧偏差**：必须「落文档、落测试、落回归」——已有先例：`llmtier.base_url` schema 放宽
   （Owner 批准 2026-09-21）。
 - **已知预期（不判缺陷）**：usage `quality=Partial`（oMLX 无 `cache_write_tokens`）；LLMTier
