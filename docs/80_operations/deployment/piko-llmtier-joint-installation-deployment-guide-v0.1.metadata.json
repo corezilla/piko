@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-llmtier-joint-installation-deployment-guide-v0.1",
+  "document_type": "operations.installation-deployment",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko ↔ LLMTier 联调方案（环境部署与首次联合调试）",
+  "document_owner": "corezilla",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "template_id": "operations.installation-deployment",
+  "template_version": "0.1.1",
+  "template_sha256": "0ae0574dfa17eb3be712402a9f2f9e4657e31f71987045575cd32139b9cc6c71",
+  "template_conformance": "native",
+  "tailoring_ref": null,
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/80_operations/deployment/piko-llmtier-joint-installation-deployment-guide-v0.1.md",
+  "reviewed_commit": null,
+  "parent_document_id": null,
+  "supersedes": null,
+  "created_at": "2026-09-21",
+  "last_modified_at": "2026-09-21"
+}

@@ -72,7 +72,7 @@ for invalid_config in (
     {**config_example, "api_auth": {"mode": "bearer", "principal_id": "slinky-main", "bearer_token_secret_ref": "plaintext-secret"}},
     {key: value for key, value in config_example.items() if key != "api_auth"},
     {**config_example, "matrix": {"enabled": True}},
-    {**config_example, "llmtier": {**config_example["llmtier"], "base_url": "http://192.168.1.8:8180/v1/"}},
+    {**config_example, "llmtier": {**config_example["llmtier"], "base_url": "ftp://192.168.1.8:8180/v1/"}},
 ):
     assert list(config_validator.iter_errors(invalid_config))
 
