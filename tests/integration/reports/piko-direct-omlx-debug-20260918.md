@@ -7,11 +7,14 @@
 |---|---|
 | Document ID | `piko-direct-omlx-debug-20260918` |
 | Document Version | `0.1.0` |
-| Status | `Draft` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-21` |
 | Created Date | `2026-09-18` |
 | Last Modified Date | `2026-09-21` |
 | Template ID | `assurance.test-report` |

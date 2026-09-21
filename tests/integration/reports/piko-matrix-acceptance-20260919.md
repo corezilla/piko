@@ -7,13 +7,16 @@
 |---|---|
 | Document ID | `piko-matrix-acceptance-20260919` |
 | Document Version | `0.1.0` |
-| Status | `Draft` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-21` |
 | Created Date | `2026-09-19` |
-| Last Modified Date | `2026-09-19` |
+| Last Modified Date | `2026-09-21` |
 | Template ID | `assurance.test-report` |
 | Template Version | `0.1.1` |
 | Template Conformance | `native` |

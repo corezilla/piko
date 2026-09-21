@@ -5,14 +5,14 @@
 |---|---|
 | Document ID | `piko-std-relocated-publication-packet` |
 | Document Version | `0.1.0` |
-| Status | `In Review` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Publication/RAG Owner |
 | Authors | corezilla |
 | Reviewer | User / Piko Project Owner; STD reviewer |
 | Created Date | `2026-09-08` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-21` |
 | Template ID | `review.packet` |
 | Template Version | `0.1.1` |
 | Template Conformance | `tailored` |

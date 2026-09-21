@@ -4,7 +4,7 @@
   "document_id": "piko-scenario-e2e-test-plan-v0.1",
   "document_type": "assurance.test-plan",
   "document_version": "0.3.0",
-  "title": "Piko 场景端到端测试计划（设计/评审/编码/代码评审/测试执行/调试）",
+  "title": "Piko 场景测试计划（PTS-01..PTS-10）",
   "document_owner": "corezilla",
   "authors": [
     "corezilla",
@@ -20,7 +20,7 @@
   "domain": [
     "mixed"
   ],
-  "status": "draft",
+  "status": "accepted",
   "visibility": "project",
   "source_repository": "corezilla/piko",
   "source_path": "docs/70_verification/plans/piko-scenario-e2e-test-plan-v0.1.md",

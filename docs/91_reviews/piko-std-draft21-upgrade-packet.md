@@ -5,13 +5,13 @@
 |---|---|
 | Document ID | `piko-std-draft21-upgrade-packet` |
 | Document Version | `0.1.0` |
-| Status | `In Review` |
+| Status | `Superseded` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-09` |
-| Last Modified Date | `2026-09-09` |
+| Last Modified Date | `2026-09-21` |
 | Template ID | `review.packet` |
 | Template Version | `0.1.1` |
 | Template Conformance | `tailored` |

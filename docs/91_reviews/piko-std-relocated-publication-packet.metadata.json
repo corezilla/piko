@@ -23,11 +23,11 @@
     "systems",
     "software"
   ],
-  "status": "review",
+  "status": "accepted",
   "visibility": "project",
   "reviewed_commit": null,
   "parent_document_id": "piko-std-directory-relocation-packet",
   "supersedes": "docs/91_reviews/piko-std-publication-packet.md",
   "created_at": "2026-09-08",
-  "last_modified_at": "2026-09-08"
+  "last_modified_at": "2026-09-21"
 }

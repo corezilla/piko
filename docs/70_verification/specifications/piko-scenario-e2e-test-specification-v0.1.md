@@ -7,11 +7,14 @@
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
 | Document Version | `0.3.0` |
-| Status | `Draft` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
+| Reviewer | User / Piko Project Owner |
+| Approver | User / Piko Project Owner |
+| Approval Date | `2026-09-21` |
 | Created Date | `2026-09-21` |
 | Last Modified Date | `2026-09-21` |
 | Template ID | `assurance.test-specification` |

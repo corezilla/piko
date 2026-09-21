@@ -20,7 +20,7 @@
   "domain": [
     "mixed"
   ],
-  "status": "draft",
+  "status": "accepted",
   "visibility": "project",
   "source_repository": "corezilla/piko",
   "source_path": "docs/91_reviews/piko-std-draft26-upgrade-packet.md",
@@ -28,5 +28,5 @@
   "parent_document_id": null,
   "supersedes": "piko-std-draft21-upgrade-packet",
   "created_at": "2026-09-20",
-  "last_modified_at": "2026-09-20"
+  "last_modified_at": "2026-09-21"
 }

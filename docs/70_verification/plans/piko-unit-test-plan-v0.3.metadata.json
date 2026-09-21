@@ -20,7 +20,7 @@
   "domain": [
     "mixed"
   ],
-  "status": "draft",
+  "status": "accepted",
   "visibility": "project",
   "source_repository": "corezilla/piko",
   "source_path": "docs/70_verification/plans/piko-unit-test-plan-v0.3.md",

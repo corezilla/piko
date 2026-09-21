@@ -7,13 +7,13 @@
 |---|---|
 | Document ID | `piko-std-draft26-upgrade-packet` |
 | Document Version | `0.1.0` |
-| Status | `Draft` |
+| Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
 | Created Date | `2026-09-20` |
-| Last Modified Date | `2026-09-20` |
+| Last Modified Date | `2026-09-21` |
 | Template ID | `review.packet` |
 | Template Version | `0.1.1` |
 | Template Conformance | `native` |
@@ -31,7 +31,7 @@
 
 | Gate | 请求/结果 |
 |---|---|
-| Review Verdict | PENDING |
+| Review Verdict | ACCEPTED |
 | Document Status before review | Draft（本 packet）；项目 lock 处于 draft.21 |
 | Requested Document Status after review | Approved（仅指本 packet 记录的升级决定） |
 | Runtime Activation requested | `false` |
@@ -107,8 +107,8 @@
 
 | 字段 | 值 |
 |---|---|
-| Review Verdict | PENDING（待 Piko Project Owner） |
-| Reviewer | 待填 |
-| Decided At | 待填 |
+| Review Verdict | ACCEPTED |
+| Reviewer | User / Piko Project Owner |
+| Decided At | `2026-09-21` |
 | 条件 | 无 |
 | Runtime Activation | `false`（本升级不授权任何运行时变更） |

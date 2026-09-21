@@ -20,7 +20,7 @@
   "domain": [
     "mixed"
   ],
-  "status": "draft",
+  "status": "accepted",
   "visibility": "project",
   "source_repository": "corezilla/piko",
   "source_path": "tests/integration/reports/piko-llmtier-contract-20260920.md",
@@ -28,5 +28,5 @@
   "parent_document_id": "piko-agent-runtime-test-specification-v0.3",
   "supersedes": null,
   "created_at": "2026-09-20",
-  "last_modified_at": "2026-09-20"
+  "last_modified_at": "2026-09-21"
 }
