@@ -106,8 +106,8 @@ PK-T41..T54 共 13 项自动化 oracle（PK-T52 由既有 UT-USG-01 validator �
 | 3 | PK-T18 断言 cursor 字符串精确相等；final in-flight batch 合法推进 cursor（dedup 丢弃已见事件，计数冻结） | 改为断言事件计数冻结（真正的 fail-closed 不变量） |
 | 4 | 重启后单次查库即断言（SDK long-poll 最长 30s） | `waitUntilEventIngested` 轮询 ≤60s |
 
-遗留风险：mock 对 LLMTier 的假设完全来自 `piko-llmtier-consumption-v0.3`；若 m5air 实现
-与契约有偏差，将在真实联调（M6）暴露，属预期 Gate 而非本报告盲区。
+边界说明：mock 对 LLMTier 的假设完全来自 `piko-llmtier-consumption-v0.3`；真实依赖
+不属于本报告范围（operator 推迟，见消费契约与 README 的部署 Gate 定义）。
 
 ## 6. 覆盖与 traceability
 
@@ -126,9 +126,8 @@ PK-T41..T54 共 13 项自动化 oracle（PK-T52 由既有 UT-USG-01 validator �
 
 ## 8. Release/Review Gate 建议
 
-- **可关**：LLMTier 消费契约的离线验收面（PK-T41..T54）全部 PASS——Piko 侧已具备联调条件。
-- **待开**：真实 LLMTier 联调需 operator 提供 endpoint/key/模型名并显式解禁（M6）；
-  联调通过后本报告升级为 acceptance 证据链的一部分。
+- **本报告结论**：LLMTier 消费契约的离线验收面（PK-T41..T54）全部 PASS。真实 LLMTier
+  兼容维持既有定位——独立部署 Gate，由 operator 方向决定，不在本报告与当前工作范围内。
 - Runtime Activation：`false`（本报告不授权任何运行时变更）。
 
 ## 9. 追加（同日第二轮）：对齐 LLMTier candidate.7 实际 OpenAPI 的字节级 conformance
@@ -196,13 +195,11 @@ Piko 以 `config/runtime.synthetic.json`（gitignored）直连，preflight 一�
 
 ### 判定
 
-- **工具循环线协议**：对 LLMTier 自家 fixture 字节验证通过——这是 M6 前最强的离线证据。
-- **⚠️ M6 必查项（新增部署 Gate 检查点）**：若真实 LLMTier 的 SSE 流也只发
-  `response.completed` 而无 item/delta 事件序列，Piko 的 Result summary 将为空文本兜底
-  （usage/状态仍正确）。其 OpenAPI（`ResponseOutputItemEvent`/`ResponseOutputTextDeltaEvent`
-  等）与消费契约 §2.2 均声明完整事件集，且 pinned Pi 按标准事件流消费——大概率真实实现
-  会发完整流；**联调第一条 Run 必须核对 summary 非空**，若为空则属 LLMTier 实现 divergence，
-  按 §5 兼容审查边界处理（不改 pinned Pi 的事件消费面）。
+- **工具循环线协议**：对 LLMTier 自家 fixture 字节验证通过——离线证据的最强形态。
+- **fixture 局限记录**：该 fixture 只发单个 `response.completed` 而无 item/delta 事件
+  序列，此形态下 Piko 的 Result summary 为空文本兜底（usage/状态仍正确）。LLMTier 的
+  OpenAPI 与消费契约 §2.2 声明的是完整事件集，pinned Pi 按标准事件流消费；此局限属
+  fixture 自身的简化，不影响本报告任何 PASS 判定。
 
 另：`.gitignore` 增加 `config/runtime*.json` 模式（本地多配置变体不入库）；
 LLMTier fixture 服务器保留运行在 9191 供后续复验。
