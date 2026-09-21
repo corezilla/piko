@@ -1,0 +1,16 @@
+{
+  "mapping_version": "0.1",
+  "purpose": "LLMTier service-level (tier) to local oMLX model mapping. Used only for the direct-oMLX test path: Piko calls the local oMLX endpoint instead of LLMTier, so any tier name that would be sent as the Responses `model` field is converted to a real oMLX model id. No LLMTier is called.",
+  "target": {
+    "provider": "local-oMLX",
+    "base_url": "http://127.0.0.1:9000/v1/"
+  },
+  "tiers": {
+    "Worker": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed",
+    "Senior": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed",
+    "Junior": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed",
+    "Associate": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed",
+    "Engineer": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed"
+  },
+  "default_model": "Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed"
+}

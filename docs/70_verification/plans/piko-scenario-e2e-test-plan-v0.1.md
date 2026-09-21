@@ -78,6 +78,11 @@
 - **进程卫生（实验教训）**：重启必须确认 8787 端口归属新进程（`lsof` + 进程 start time），孤儿 tsx/node 进程会令新实例 EADDRINUSE 静默死亡；清理顺序 = `pkill -9 -f "tsx src/main.ts"` + `pkill -9 -f "node.*src/main.ts"` + 端口清零验证。
 - **pytest 调用形态**：宿主机无 `pytest` CLI（PATH），bash 场景一律使用 `python3 -m pytest`（profile 白名单已含 python3）。
 - **参考输入**：Slinky 侧任务场景定义 `corezilla/slinky` 的 `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）；本计划 SC-01..SC-06 为其中 PTS-02/04/05/09 子集的本地可执行映射（详见规格 §2）。
+- **tier→模型转换（直连 oMLX 测试路径）**：Piko 的 `config.agent.model` 在对接 LLMTier 时承载 service level（tier）名（如 `Worker`）；本测试路径直连本地 oMLX、**不调用 LLMTier**，因此必须先转换：
+  - 映射表 `config/model-mapping.json`：全部 tier（Worker/Senior/Junior/Associate/Engineer）→ `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`，并给出本地 oMLX base_url。
+  - 转换器 `scripts/for-omlx.mjs`：`--tier <name>` 输出映射模型；`--config <tier.json> --out <omlx.json>` 重写 `agent.model` 与 `llmtier.base_url`（保留 secret refs 等其余字段）。
+  - 测试解析器 `tests/common/model-mapping.ts`（`resolveTierModel` / `convertConfigToOMlx`），单元测试 `tests/unit/model-mapping.test.ts`。
+  - 已验证：tier 配置（`Worker` + LLMTier 占位 URL）转换后由 Piko 直连 oMLX 运行，任务 `Completed`（`run-855800e6-d22c-4418-a57f-0569e59e5be4`，summary `tier-mapping-ok`），未产生任何 LLMTier 调用。
 - **Pass**：Run `Completed` 且该 Case 全部 Oracle 满足（见规格 §3/§8）。
 - **Fail**：Run 非 Completed，或任一 Oracle 不满足。
 - **Rerun**：每 Case 允许 1 次重跑（模型非确定性），两次均败判 FAIL；RERUN 记录在案。

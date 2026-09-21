@@ -34,7 +34,7 @@
 ## 2. 引用基线、环境与前置条件
 
 - 基线：Piko @ `5b9b34d`；Pi `9767ba27`；oMLX Qwen3.6-35B（`127.0.0.1:9000`）；Piko API `127.0.0.1:8787`。
-- **LLMTier 映射**：全部 tier 调用映射到本地 oMLX 的 `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`（`llmtier.base_url=http://127.0.0.1:9000/v1/`），不接触真实 LLMTier。
+- **LLMTier 映射（tier→模型转换）**：全部 tier 映射到本地 oMLX 的 `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`（`llmtier.base_url=http://127.0.0.1:9000/v1/`），不接触真实 LLMTier。机制：`config/model-mapping.json`（映射表）+ `scripts/for-omlx.mjs`（配置转换）+ `tests/common/model-mapping.ts`（测试解析）。转换示例：`agent.model: "Worker"` → `"Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed"`。
 - **Slinky 参考文档**：`corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）。SC-01↔PTS-08 子集（文档产出）、SC-02↔PTS-05、SC-03↔PTS-02 子集、SC-04↔PTS-05、SC-05↔PTS-04、SC-06↔PTS-02/09。
 - **Schema 差异报告**（按 Slinky 文档 §7 要求）：其 §2 所列 `client_task_id` 在 Piko `0.3.0-simplified.6` Schema 中的权威字段为 **`task_id`**（Slinky 提交前生成、语义等同：客户端唯一逻辑任务 ID，重发幂等锚点）；其余字段（instruction/workspace_ref/permissions/limits/output_paths/discussion）一一对应，无缺失字段。
 - 环境：本机 loopback（详见测试计划 §2/§5）；种子目录 `var/acc/scen/`。
