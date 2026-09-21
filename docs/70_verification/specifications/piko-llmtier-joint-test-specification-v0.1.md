@@ -108,8 +108,8 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | Case | 层 | 维度 | 输入/操作 | 独立 Oracle | 状态 | 对照 |
 |---|---|---|---|---|---|---|
 | JT-01 | L1 | normal/wire | `POST /runs`（8788）纯文本指令，`max_model_calls=2,max_tool_calls=0` | Run `Completed`；LLMTier 账本新增 `model=Worker,measurement_status=measured` 记录且 tokens>0 | PASS | `run-47311c90…`；账本 846/2/848 |
-| JT-02 | L1 | wire/tool-loop | 允许 `read` 的最小任务，指令要求读 `var/scenario-seeds/pts-01/inputs/requirements.md` 后作答 | `Completed`；LLMTier 收到 ≥2 次请求（第二轮含工具结果历史）且均接受 | NOT_RUN | PK-T44/45 |
-| JT-03 | L1 | wire/reasoning | 触发推理输出的任务（与 JT-01 同指令即可，模型带 reasoning） | SSE/结果正常；下一轮历史含 opaque reasoning item 时仍被接受（以 JT-02 第二轮成功佐证） | NOT_RUN | PK-T46/47 |
+| JT-02 | L1 | wire/tool-loop | 允许 `read` 的最小任务，指令要求读 `var/scenario-seeds/pts-01/inputs/requirements.md` 后作答 | `Completed`；LLMTier 收到 ≥2 次请求（第二轮含工具结果历史）且均接受 | PASS | `run-cdfe7fa5…`；attempts=2，账本 2 条 |
+| JT-03 | L1 | wire/reasoning | 触发推理输出的任务（与 JT-01 同指令即可，模型带 reasoning） | SSE/结果正常；下一轮历史含 opaque reasoning item 时仍被接受（以 JT-02 第二轮成功佐证） | PASS | `run-d6b07de8…`；reasoning_tokens=2 |
 | JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | PASS | listening 日志；`Worker in models: True` |
 | JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 后以 nohup 后台启动 joint Piko（macOS 无 `timeout(1)`，禁用），读启动日志后 kill 残留并恢复配置重启 | 启动即失败：日志含 `configured model is not available: NoSuchModel`，且 8788 不监听 | NOT_RUN | ICD §6 |
 | JT-06 | L2 | negative/auth | 以错误 token 调 `POST /v1/responses` 与 `GET /v1/models` | 认证被拒（实测 **403**；ICD §6 写 `401 auth`——偏差记入联调报告，作为对 LLMTier ICD 的 review 发现；401/403 均判 PASS） | PASS | 403/403 实测 |
