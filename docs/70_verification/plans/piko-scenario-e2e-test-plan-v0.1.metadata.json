@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-scenario-e2e-test-plan-v0.1",
   "document_type": "assurance.test-plan",
-  "document_version": "0.1.0",
+  "document_version": "0.2.0",
   "title": "Piko 场景端到端测试计划（设计/评审/编码/代码评审/测试执行/调试）",
   "document_owner": "corezilla",
   "authors": [

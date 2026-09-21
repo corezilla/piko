@@ -1,12 +1,12 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko 场景端到端测试规格（SC-01..SC-06）
+# Piko 场景测试规格（PTS-01..PTS-10）
 
 > STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -29,70 +29,160 @@
 
 ## 1. 目标、范围与被测对象
 
-验证 Piko v0.3（`0.3.0-simplified.6`，profile `workspace-exec`）端到端执行六类真实任务场景的能力：多文件读写的设计文档流、代码生成与代码评审、bash 执行测试、调试修复。**不证明**模型内容质量、真实 LLMTier 依赖、生产隔离。
+验证 Piko v0.3（`0.3.0-simplified.6`）经四项任务 API（`POST /runs`、`GET /runs/{run_id}`、
+`POST /runs/{run_id}:cancel`、`GET /runs/{run_id}/result`）执行 Slinky 场景文档
+（`corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`，PTS-01..PTS-10）
+所描述任务的能力。**不证明**模型内容质量、真实 LLMTier 依赖、生产隔离。
+
+本规格按**场景**组织，每个场景下设多个 **case**，覆盖 normal / boundary / negative /
+permission / budget / timeout / cancel / dedup / membership / idempotency / invariant /
+recovery / usage 等不同维度。
 
 ## 2. 引用基线、环境与前置条件
 
-- 基线：Piko @ `5b9b34d`；Pi `9767ba27`；oMLX Qwen3.6-35B（`127.0.0.1:9000`）；Piko API `127.0.0.1:8787`。
-- **LLMTier 映射（tier→模型转换）**：全部 tier 映射到本地 oMLX 的 `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`（`llmtier.base_url=http://127.0.0.1:9000/v1/`），不接触真实 LLMTier。机制：`config/model-mapping.json`（映射表）+ `scripts/for-omlx.mjs`（配置转换）+ `tests/common/model-mapping.ts`（测试解析）。转换示例：`agent.model: "Worker"` → `"Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed"`。
-- **Slinky 参考文档**：`corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）。SC-01↔PTS-08 子集（文档产出）、SC-02↔PTS-05、SC-03↔PTS-02 子集、SC-04↔PTS-05、SC-05↔PTS-04、SC-06↔PTS-02/09。
-- **Schema 差异报告**（按 Slinky 文档 §7 要求）：其 §2 所列 `client_task_id` 在 Piko `0.3.0-simplified.6` Schema 中的权威字段为 **`task_id`**（Slinky 提交前生成、语义等同：客户端唯一逻辑任务 ID，重发幂等锚点）；其余字段（instruction/workspace_ref/permissions/limits/output_paths/discussion）一一对应，无缺失字段。
-- 环境：本机 loopback（详见测试计划 §2/§5）；种子目录 `var/acc/scen/`。
-- 前置：服务健康；`npm run check` 绿；种子由执行步骤重建。
-- 入门实验（已完成，2026-09-20）：`demo-bash-003`（run-d1b6d8d4）验证 write+bash+outputs 全链路，写入并执行 `hello.py` 输出 `hello-piko-demo`，2 ToolCall + 3 ModelCall 全 Completed。
-- 公共任务参数：`profile=workspace-exec`；`limits={deadline:+15min, max_model_calls:24, max_tool_calls:24}`；`workspace_ref="piko"`；路径均相对 `var/acc/scen/`。
+- 基线：Piko @ branch `docs/piko-system-design-std26`；Pi `9767ba27`；oMLX `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`（`127.0.0.1:9000`）；Piko API `127.0.0.1:8787`。
+- **tier→模型转换**：测试路径直连本地 oMLX、不调用 LLMTier；`config/model-mapping.json` + `scripts/for-omlx.mjs` + `tests/common/model-mapping.ts` 把 tier（如 `Worker`）转为 oMLX 模型名。
+- 公共任务参数：`profile=workspace-exec`（read/write/edit/bash）；`limits` 按 case 指定（默认 `deadline:+15min, max_model_calls:24, max_tool_calls:24`）。
+- 环境：本机 loopback；Matrix 场景用测试 homeserver + 测试房间；种子在临时目录构造。
+- 前置：服务健康、`npm run check` 绿、Piko 进程启动晚于任何 profile/配置变更。
 
-## 3. Case Matrix
+## 3. Case Matrix（按场景组织，35 case）
 
-| Case ID | Requirement/成员 | 场景/输入 | 独立 Oracle | 环境 | 状态 | Run/证据 |
-|---|---|---|---|---|---|---|
-| SC-01 | 写设计文档 | 输入 `requirements-notes.md`（≥3 条带关键词需求）→ 产出 `design.md` | Completed；`design.md` 存在且 ≥2KB；逐条包含每个需求关键词；`known_actions` 含 read+write；outputs 含该文件 | oMLX live | PASS | `run-fc067216-b97d-4aae-b0bd-7274ffc97fa6`；design.md 5641B，三关键词覆盖 |
-| SC-02 | review 设计文档 | 输入 `design-flawed.md`（矛盾：需求 token 30min vs 设计 24h）→ 产出 `design-review.md` | Completed；findings 文件存在；内容提及 token/有效期矛盾概念；read 被调用 | oMLX live | PASS | `run-c6761fb5-b73c-4ecf-93cb-245707f7863e`；design-review.md 命中 token 有效期缺陷 |
-| SC-03 | 编写代码（python/html/ts） | 产出 `src/fib.py`、`web/index.html`、`src/util.ts` | 三文件存在；`python3 -m py_compile fib.py` 通过；html 含 `<!DOCTYPE html>`；util.ts 含 `export` | oMLX live | PASS | `run-bbf6b476-39a1-456e-908a-62891bfdfb94`；三文件本地复核（py_compile/fib(10)=55/DOCTYPE/export） |
-| SC-04 | review 代码 | 输入 `code/calc.py`（植入 bug：偶数长度 median 整除错误）→ 产出 `code/calc-review.md` | findings 文件存在；内容提及 median/偶数/整除 概念 | oMLX live | PASS | `run-1375d509-71c4-4304-bf25-57d0bdc4cd7b`；calc-review.md 命中偶数 median bug |
-| SC-05 | 执行测试 | 输入 `pkg/calc.py`（正确）+ `pkg/test_calc.py`（3 用例）→ bash 运行 pytest → 产出 `pkg/test-report.md` | Completed；known_actions 含 bash；report 或 summary 含 `3 passed` | oMLX live | PASS | `run-5e37b0a7-cb80-418b-b318-8ee4ea5b58a9`；bash pytest 报告 3 用例通过 |
-| SC-06 | debug 修复 | 输入 `pkg/calc.py` broken 版（同 SC-04 bug）+ 失败测试 → 修复并复跑 | Completed；`pkg/calc.py` 被修改（edit 观测）；**执行后本地复跑 `pytest` = 3 passed** | oMLX live | PASS | `run-14b18841-112a-424b-8c88-b998b68bd4f5`；edit 修复后本地 pytest 3 passed |
+### PTS-01 只读材料分析
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-01-C1 | normal | 固定材料 `inputs/requirements.md`+`design.md`+`evidence.json`；只读路径 | 逐项 finding 含材料引用与定位；无未授权写/工具调用 | NOT_RUN | — |
+| PTS-01-C2 | boundary | 上述材料之一缺失 | 明确失败/partial，不编造已读内容 | NOT_RUN | — |
+| PTS-01-C3 | negative-permission | 只读路径 + 试图写非授权路径 | 写入被拒（ScopeDenied），无副作用 | NOT_RUN | — |
+
+### PTS-02 源码实现或修复
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-02-C1 | normal | 最小仓库 + 确定性 failing test + 允许 src/tests/reports | 仅允许路径变更；指定测试实际通过；报告与最终字节匹配 | PASS | v0.1 `run-14b18841…`（修复+复跑 3 passed） |
+| PTS-02-C2 | negative-permission | 试图改禁改路径（依赖锁/CI/权限配置） | 修改被拒，禁改路径字节不变 | NOT_RUN | — |
+| PTS-02-C3 | negative-budget | 预算不足以完成修复 | `Failed`/partial，保留 known actions 与部分输出 | NOT_RUN | — |
+| PTS-02-C4 | boundary | 矛盾需求/不可修复缺陷 | 明确 `Failed` 并说明，不伪报成功 | NOT_RUN | — |
+
+### PTS-03 测试设计与测试资产编写
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-03-C1 | normal | 已有实现 + 接口说明 + 测试框架；写权限仅 `tests/`、`reports/test-design.json` | 产出可检查的测试设计/fixture/oracle + 未覆盖风险 | NOT_RUN | — |
+| PTS-03-C2 | negative-permission | 试图写 `src/` | 拒绝；产品源码字节不变 | NOT_RUN | — |
+| PTS-03-C3 | boundary | 测试框架不可用 | 不把 `NotRun` 报为通过；明确失败事实 | NOT_RUN | — |
+
+### PTS-04 受控测试执行和报告
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-04-C1 | normal | 批准 checker + 只读输入 + `reports/result.json` | 报告含实际结束时间/实际值/error(null)/cleanup | PASS | v0.1 `run-5e37b0a7…`（bash pytest，3 用例通过） |
+| PTS-04-C2 | negative | checker 非零退出 | 记录为执行失败事实，不伪报通过 | NOT_RUN | — |
+| PTS-04-C3 | timeout | checker 超时 | 超时 + 报告缺失均为失败事实 | NOT_RUN | — |
+| PTS-04-C4 | cancel | 执行中取消 | 先返回 cancel receipt，终态说明是否停止及 partial | NOT_RUN | — |
+
+### PTS-05 独立代码/设计评审
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-05-C1 | normal | 植入 bug 的 `calc.py`（偶数 median） | findings 含 severity/location/evidence/impact/fix，命中植入缺陷 | PASS | v0.1 `run-1375d509…` |
+| PTS-05-C2 | normal | 植入矛盾的设计文档（token 有效期） | findings 命中矛盾 | PASS | v0.1 `run-c6761fb5…` |
+| PTS-05-C3 | boundary | 无缺陷的干净材料 | 明确「无发现」，非空成功 | NOT_RUN | — |
+| PTS-05-C4 | negative-permission | 试图修改被审文件 | 拒绝；被审文件字节不变 | NOT_RUN | — |
+
+### PTS-06 多 IR 房间评审
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-06-C1 | normal | 测试房间 + trigger event + 成员身份 | 原生 reply relation；讨论产物落库 | NOT_RUN | — |
+| PTS-06-C2 | dedup | 自身发送事件经 sync 回流 | self-echo 不形成新 turn | NOT_RUN | — |
+| PTS-06-C3 | membership | 撤回 membership | 停止读/发，以 `DiscussionAccessLost` 结束 | NOT_RUN | — |
+| PTS-06-C4 | boundary | 空闲房间消息/邀请 | 不创建隐式 Run；终态后不再回复 | NOT_RUN | — |
+
+### PTS-07 Memory 更新建议
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-07-C1 | normal | 基线版本 + scope + 来源材料；无正式 Memory 写权 | 产出 `memory-proposal.json`；authority 哈希不变 | NOT_RUN | — |
+| PTS-07-C2 | boundary | 基线版本不匹配/来源不足 | 以 conflict/partial 表达，不伪完整 | NOT_RUN | — |
+| PTS-07-C3 | negative-permission | 试图写正式 Memory/index | 拒绝；authority 不变 | NOT_RUN | — |
+
+### PTS-08 研究与方案比较
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-08-C1 | normal | RFC/实验材料 + 受控检索 + 候选方案 | 结论与引用可追溯；假设与未决项明确 | NOT_RUN | — |
+| PTS-08-C2 | negative | 材料不可访问 | partial/failure，不编造来源 | NOT_RUN | — |
+
+### PTS-09 失败诊断与修复建议
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-09-C1 | normal | 失败日志 + 已知操作 + 只读检查 | 失败分类 + known actions + partial + 下一步 | NOT_RUN | — |
+| PTS-09-C2 | normal | 允许受限修复 | 修改范围与验证报告遵守 PTS-02 约束 | NOT_RUN | — |
+| PTS-09-C3 | negative | 外部工具状态未知 | `UnsafeRetryBlocked`/`ExecutionStateUnknown`，不重放副作用 | NOT_RUN | — |
+
+### PTS-10 任务协议韧性
+
+| Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
+|---|---|---|---|---|---|
+| PTS-10-C1 | idempotency | 同 task_id 同定义重发；同 task_id 异定义 | 原 Run；`409 TaskConflict` | NOT_RUN | — |
+| PTS-10-C2 | cancel | Queued/Running/终态三种取消 | `CancelledBeforeStart`/`StopRequested`/`AlreadyTerminal`，均读终态 | NOT_RUN | — |
+| PTS-10-C3 | invariant | 状态流转观测 | `Queued→Running→(Cancelling)→终态` 与 `result_available` 不变量 | NOT_RUN | — |
+| PTS-10-C4 | recovery | Piko 重启后查询同 Run | 安全 checkpoint 恢复，不重复工具副作用 | NOT_RUN | — |
+| PTS-10-C5 | usage | 缺 usage / 真实零 / 迟到 usage | `Complete/Partial/Unknown` 正确；迟到不改已发布 Result | NOT_RUN | — |
+
+**合计：10 场景 / 35 case；已执行 PASS 4（PTS-02-C1、PTS-04-C1、PTS-05-C1、PTS-05-C2），NOT_RUN 31。**
+
+### v0.1 执行证据映射
+
+v0.1 规格的 SC-01..SC-06 六次执行（报告 `piko-scenario-e2e-report-20260921`）映射：
+SC-06→PTS-02-C1、SC-05→PTS-04-C1、SC-04→PTS-05-C1、SC-02→PTS-05-C2（均 PASS）；
+SC-01（设计文档产出）与 SC-03（多语言代码产出）为**补充证据**，分别邻近 PTS-08/PTS-02，
+未按本规格种子执行，故对应 case 仍记 NOT_RUN。
 
 ## 4. 正常、边界、负向与并发场景
 
-- SC-02/04/06 为 seeded-defect 负向输入：Oracle 是"评审/修复行为发生且客观可证"，不是"模型必然发现全部问题"；SC-06 以最终 `pytest` 实测为准。
-- 输出 budget：24 model/24 tool calls 内未完成 → FAIL（预算 CAS 即设计行为，PK-T37）。
-- 并发：不适用（单执行槽设计，PK-T15）；场景间串行执行。
+- **normal**：PTS-01-C1、PTS-02-C1、PTS-03-C1、PTS-04-C1、PTS-05-C1/C2、PTS-06-C1、PTS-07-C1、PTS-08-C1、PTS-09-C1/C2、PTS-10-C1..C5。
+- **boundary**：PTS-01-C2、PTS-02-C4、PTS-03-C3、PTS-05-C3、PTS-06-C4、PTS-07-C2。
+- **negative（权限）**：PTS-01-C3、PTS-02-C2、PTS-03-C2、PTS-05-C4、PTS-07-C3。
+- **negative（预算/超时/失败）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
+- **cancel**：PTS-04-C4、PTS-10-C2。
+- **dedup/membership**：PTS-06-C2/C3。
+- **idempotency/invariant/recovery/usage**：PTS-10-C1/C3/C4/C5。
+- **并发**：本规格不引入并发 case（单执行槽为设计，PK-T15）；场景间串行。
 
 ## 5. Recovery、重放、幂等与故障注入
 
-本规格不重复注入：崩溃/重放/幂等由 PK-T05/06/07/20（09-18 live）与 PK-T48（mock 截断）覆盖。SC-06 的"从失败到修复"经由正常 edit 工具路径，非故障注入。
+PTS-10-C4（重启恢复）、PTS-09-C3（未知副作用阻塞）、PTS-04-C4/PTS-10-C2（取消）为本规格
+的恢复类 case；更细的崩溃/重放语义由 `piko-agent-runtime-test-specification-v0.3` 的
+PK-T05/06/07/20/48 承担，本规格不重复。
 
 ## 6. 性能、容量、功耗或时序测试
 
-裁剪：无设计预算阈值可对照。仅记录每 Case wall-clock 耗时作参考观测。
+裁剪：无设计预算阈值可对照；仅记录每 case wall-clock 耗时作参考观测。
 
 ## 7. 执行步骤与自动化入口
 
-每 Case：
-1. 重建种子（规格 §3 的输入内容）。
-2. `POST /runs`（指令见执行报告，含明确的目标文件路径与步骤要求）。
-3. 轮询 `GET /runs/{id}` 至终态（≤15min）。
-4. `GET /runs/{id}/result` 采集 state/summary/outputs/known_actions/usage。
-5. 执行本 Case 的本地复核命令（py_compile / pytest / node --check / shasum / grep）。
-6. 记录 `run_id` + 复核输出到执行报告。
+每 case：① 按 §3 重建种子 → ② `POST /runs`（指令含目标文件、步骤与禁止事项）→
+③ 轮询 `GET /runs/{id}` 至终态 → ④ `GET /runs/{id}/result` 采集 → ⑤ 执行该 case 的本地
+复核命令（py_compile / pytest / node --check / shasum / grep / Matrix API）→ ⑥ 记录 run_id 与复核输出。
 
 ## 8. Pass/Fail/Blocked/Invalid 判定
 
-- PASS = Run Completed ∧ 全部 Oracle 满足。
-- FAIL = 非 Completed，或任一 Oracle 不满足（含两次 RERUN 后）。
-- RERUN = 模型非确定性导致的失败允许重跑 1 次，须记录两次 Run。
-- BLOCKED = oMLX/Piko 不可用或种子无法建立。
+- PASS = Run Completed ∧ 该 case 全部 Oracle 满足。
+- FAIL = 非 Completed，或任一 Oracle 不满足（含 1 次 RERUN 后）。
+- RERUN = 模型非确定性允许重跑 1 次，须记录两次 Run。
+- BLOCKED = 环境/依赖不可用（oMLX/Piko/Matrix 不可用）。
 - INVALID = 种子/步骤偏离本规格（重置后重跑，不计分母）。
 
 ## 9. Artifact、日志、测量与证据保存
 
-- 每 Case：run_id、终态 JSON、`var/acc/scen/` 产物文件、本地复核命令原文与输出、wall-clock 耗时。
-- 汇总为 `tests/integration/reports/` 下 STD test-report；引用 run_id 而非复述结果。
-- 失败现场：保留 Piko stdout 片段与种子快照。
+每 case：run_id、终态 JSON、种子与产物文件、本地复核命令与输出、耗时；汇总为 STD
+test-report。失败现场保留 Piko stdout 片段与种子快照。
 
 ## 10. 安全、清理与可重复性
 
-- 所有产物隔离在 `var/acc/scen/`；结束后整目录删除即复位。
-- bash 工具以 Piko 进程权限在 workspace cwd 执行——开发机假设；executables 白名单（python3/pytest/node/npm/cat/ls/mkdir）由 profile 声明，生产隔离属 operator Gate。
-- 种子文件均为本计划定义的确定内容，可重复重建。
+产物隔离在临时目录，结束即删除；bash 以 Piko 进程权限在 workspace cwd 执行（开发机假设，
+生产隔离属 operator Gate）；种子为本规格定义的确定内容，可重复重建。

@@ -1,12 +1,12 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko 场景端到端测试计划（设计/评审/编码/代码评审/测试执行/调试）
+# Piko 场景测试计划（PTS-01..PTS-10）
 
 > STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
 
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -29,84 +29,101 @@
 
 ## 1. 目标、范围与测试层级
 
-- **层级**：integration / end-to-end（真实进程、真实 oMLX 模型、真实工具执行，经 HTTP API 驱动）。
-- **目标**：验证 Piko 端到端可承载 Slinky 型真实任务场景：写设计文档、评审设计文档、编写代码（python/html/ts）、评审代码、执行测试、调试修复——覆盖多文件输入/输出与 bash 执行。
-- **不证明**：模型生成内容的 subject-matter 质量（Oracle 只做客观判定：文件存在、语法可编译、pytest 实测通过、authority 哈希不变）；真实 LLMTier 依赖（operator 推迟的部署 Gate）；多实例/生产规模。
+- **层级**：integration / end-to-end（真实进程、真实本地 oMLX、真实工具执行，经四项任务 API 驱动）。
+- **组织方式**：以 **场景（scenario）** 为顶层，每个场景下设多个 **case**，覆盖不同维度
+  （normal / boundary / negative-permission / negative-budget / timeout / cancel / dedup /
+  membership / idempotency / invariant / recovery / usage）。
+- **场景来源**：Slinky 场景文档 `corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）。
+- **目标**：验证 Piko 可承载这些场景所描述的真实任务，并验证权限/预算/取消/恢复等边界行为。
+- **不证明**：模型内容质量（Oracle 只做客观判定）、真实 LLMTier 依赖（operator 推迟的部署 Gate）、多实例/生产规模。
 
 ## 2. 被测基线、排除项与依赖
 
 | 项 | 值 |
 |---|---|
-| Piko | branch `docs/piko-system-design-std26` @ `5b9b34d`（含 workspace-exec profile） |
+| Piko | branch `docs/piko-system-design-std26`（含 `workspace-exec` profile 与 tier→模型转换） |
 | Pi AgentHarness | v0.85.1 / `9767ba27`（pinned + patched） |
 | LLM | oMLX `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed` @ `127.0.0.1:9000/v1/` |
-| Piko API | `http://127.0.0.1:8787`（bearer，file-backed secrets） |
-| 工具 profile | `workspace-exec`：read/write/edit + bash（effect=process, replay=never, executables 白名单 python3/pytest/node/npm/cat/ls/mkdir） |
-| 排除 | LLMTier 真实依赖、Matrix intake（已由 20260919/0920 报告覆盖）、federation、多实例 |
+| Piko API | `127.0.0.1:8787`（bearer） |
+| 工具 profile | `workspace-exec`（read/write/edit/bash；bash effect=process、replay=never、executables 白名单） |
+| tier→模型转换 | `config/model-mapping.json` + `scripts/for-omlx.mjs` + `tests/common/model-mapping.ts`（tier 如 `Worker` → oMLX 模型名；不调用 LLMTier） |
+| 排除 | LLMTier 真实依赖、federation、多实例、生产隔离 |
 
-依赖前置：Piko/oMLX 进程健康；`npm run check` 全绿；种子目录可写。
+**Entry criteria**：服务健康探测通过；`npm run check` 绿；Piko 进程启动晚于任何 profile/配置变更
+（registry 启动时加载）；重启须核对 8787 端口归属（孤儿进程致 EADDRINUSE 静默失败）；pytest 用 `python3 -m pytest`。
 
 ## 3. Test Strategy 与 Coverage Model
 
-- 每场景一次真实 `POST /runs` 全链路：HTTP → Store → Worker（单执行槽）→ Pi AgentHarness → oMLX Responses → 工具循环（read/write/edit/bash）→ Result 发布。
-- **客观 Oracle 原则**：只断言可机器复核的事实（产物存在、`py_compile`/`pytest` 实测、哈希不变、内容包含需求关键词），不评判文本主观质量。
-- Coverage model = 6 场景 × 工具路径（read / write / edit / bash）× 多文件 × 多轮工具循环；budget 上限 `max_model_calls=24`、`max_tool_calls=24`、deadline 15min。
+- 每个 case 一次真实 `POST /runs` 全链路：HTTP → Store → Worker（单执行槽）→ Pi AgentHarness →
+  oMLX Responses → 工具循环（read/write/edit/bash）→ Result 发布。
+- **客观 Oracle 原则**：只断言可机器复核的事实（文件存在与字节、`py_compile`/`pytest` 实测、
+  哈希不变、内容含关键词、HTTP 状态与错误码），不评判文本主观质量。
+- **覆盖模型** = 10 场景 × 多维度 case（见规格 §3，共 35 case）：正常路径、权限拒绝、预算/超时、
+  取消、去重、成员资格、幂等、状态不变量、恢复、usage 语义。
 
-## 4. Test Item、Feature 与 Requirement Matrix
+## 4. Test Item、Feature 与 Requirement Matrix（按场景）
 
-见测试规格 `piko-scenario-e2e-test-specification-v0.1` §3 Case Matrix（SC-01..SC-06）。运行时约束承接：PK-T03（身份幂等）、PK-T08（部分输出）、PK-T37（预算）、PK-T40（路径/配置拒绝）。
+| 场景 | case 数 | 维度覆盖 | case 前缀 |
+|---|---:|---|---|
+| PTS-01 只读材料分析 | 3 | normal / boundary / negative-permission | PTS-01-C1..C3 |
+| PTS-02 源码实现或修复 | 4 | normal / negative-permission / negative-budget / boundary | PTS-02-C1..C4 |
+| PTS-03 测试设计与测试资产编写 | 3 | normal / negative-permission / boundary | PTS-03-C1..C3 |
+| PTS-04 受控测试执行和报告 | 4 | normal / negative / timeout / cancel | PTS-04-C1..C4 |
+| PTS-05 独立代码/设计评审 | 4 | normal(code) / normal(design) / boundary / negative-permission | PTS-05-C1..C4 |
+| PTS-06 多 IR 房间评审 | 4 | normal / dedup / membership / boundary | PTS-06-C1..C4 |
+| PTS-07 Memory 更新建议 | 3 | normal / boundary / negative-permission | PTS-07-C1..C3 |
+| PTS-08 研究与方案比较 | 2 | normal / negative | PTS-08-C1..C2 |
+| PTS-09 失败诊断与修复建议 | 3 | normal(diagnose) / normal(fix) / negative | PTS-09-C1..C3 |
+| PTS-10 任务协议韧性 | 5 | idempotency / cancel / invariant / recovery / usage | PTS-10-C1..C5 |
+| **合计** | **35** | | |
+
+详细 case 定义（输入/种子/独立 Oracle）见 `piko-scenario-e2e-test-specification-v0.1` §3。
 
 ## 5. 环境、设备、拓扑、数据和工具
 
-- 单机 loopback 拓扑（同 20260920 报告 §2）。
-- 种子目录 `var/acc/scen/`（gitignore 范围内，执行前由 procedure 重建）：
-  - `requirements-notes.md`（SC-01 输入）
-  - `design-flawed.md`（SC-02 输入，植入矛盾：需求 token 有效期 30min vs 设计写 24h）
-  - `code/calc.py`（SC-04 输入，植入 bug：偶数长度 median 取整错误）
-  - `pkg/calc.py` + `pkg/test_calc.py`（SC-05 正确实现 + 3 个 pytest 用例；SC-06 换入 broken 版）
-- 复核工具：本机 `python3 -m py_compile`、`pytest`、`node --check`、`shasum`。
+- 单机 loopback 拓扑；种子按场景在临时目录构造（只读材料、最小仓库、失败测试、植入缺陷材料、
+  Matrix 房间等）。
+- 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、Matrix Client-Server API。
+- 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min。
 
-## 6. Test Types 与 Case Families
+## 6. Test Types 与 Case Families（按场景）
 
-- normal：SC-01/03/05。
-- negative/seeded-defect：SC-02（文档缺陷评审）、SC-04（代码缺陷评审）、SC-06（故障调试修复）。
-- concurrency / performance / endurance：**裁剪**——单执行槽为既定设计（PK-T15），性能指标无设计预算可对照，仅记录耗时作参考。
+- **normal**：PTS-01-C1、PTS-02-C1、PTS-03-C1、PTS-04-C1、PTS-05-C1/C2、PTS-06-C1、PTS-07-C1、PTS-08-C1、PTS-09-C1/C2、PTS-10-C1..C5。
+- **boundary**：PTS-01-C2、PTS-02-C4、PTS-03-C3、PTS-05-C3、PTS-06-C4、PTS-07-C2。
+- **negative-permission**：PTS-01-C3、PTS-02-C2、PTS-03-C2、PTS-05-C4、PTS-07-C3。
+- **negative（预算/超时/失败/材料缺失）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
+- **cancel**：PTS-04-C4、PTS-10-C2。
+- **dedup / membership**：PTS-06-C2/C3。
+- **idempotency / invariant / recovery / usage**：PTS-10-C1/C3/C4/C5。
+- concurrency/performance/endurance：裁剪——单执行槽为既定设计（PK-T15），无预算阈值可对照。
 
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
-- **Entry**：三个服务健康探测通过；`npm run check` 绿；种子就绪；**Piko 进程启动时间晚于任何 profile/配置变更**（registry 仅在启动时加载——实验教训：旧进程会以旧 registry 应答 `UnknownToolProfile`）。
-- **进程卫生（实验教训）**：重启必须确认 8787 端口归属新进程（`lsof` + 进程 start time），孤儿 tsx/node 进程会令新实例 EADDRINUSE 静默死亡；清理顺序 = `pkill -9 -f "tsx src/main.ts"` + `pkill -9 -f "node.*src/main.ts"` + 端口清零验证。
-- **pytest 调用形态**：宿主机无 `pytest` CLI（PATH），bash 场景一律使用 `python3 -m pytest`（profile 白名单已含 python3）。
-- **参考输入**：Slinky 侧任务场景定义 `corezilla/slinky` 的 `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）；本计划 SC-01..SC-06 为其中 PTS-02/04/05/09 子集的本地可执行映射（详见规格 §2）。
-- **tier→模型转换（直连 oMLX 测试路径）**：Piko 的 `config.agent.model` 在对接 LLMTier 时承载 service level（tier）名（如 `Worker`）；本测试路径直连本地 oMLX、**不调用 LLMTier**，因此必须先转换：
-  - 映射表 `config/model-mapping.json`：全部 tier（Worker/Senior/Junior/Associate/Engineer）→ `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`，并给出本地 oMLX base_url。
-  - 转换器 `scripts/for-omlx.mjs`：`--tier <name>` 输出映射模型；`--config <tier.json> --out <omlx.json>` 重写 `agent.model` 与 `llmtier.base_url`（保留 secret refs 等其余字段）。
-  - 测试解析器 `tests/common/model-mapping.ts`（`resolveTierModel` / `convertConfigToOMlx`），单元测试 `tests/unit/model-mapping.test.ts`。
-  - 已验证：tier 配置（`Worker` + LLMTier 占位 URL）转换后由 Piko 直连 oMLX 运行，任务 `Completed`（`run-855800e6-d22c-4418-a57f-0569e59e5be4`，summary `tier-mapping-ok`），未产生任何 LLMTier 调用。
-- **Pass**：Run `Completed` 且该 Case 全部 Oracle 满足（见规格 §3/§8）。
+- **Entry**：§2 Entry criteria 满足。
+- **Pass**：case 对应 Run `Completed` 且该 case 全部 Oracle 满足。
 - **Fail**：Run 非 Completed，或任一 Oracle 不满足。
-- **Rerun**：每 Case 允许 1 次重跑（模型非确定性），两次均败判 FAIL；RERUN 记录在案。
-- **Blocked**：环境/依赖不可用（如 oMLX 离线）。
-- **Invalid**：种子/步骤未按规格执行（不计入分母，重置后重跑）。
+- **Rerun**：每 case 允许 1 次重跑（模型非确定性）；两次均败判 FAIL，RERUN 记录在案。
+- **Blocked**：环境/依赖不可用。
+- **Invalid**：种子/步骤未按规格执行（重置后重跑，不计分母）。
 
 ## 8. 组织、职责、排期和资源
 
-执行：opencode（驱动 HTTP + 本地复核）；审批：Piko Project Owner。单机单轮，预计 6×1–5 分钟 Run + 复核。
+执行：opencode（HTTP 驱动 + 本地复核）；审批：Piko Project Owner。按场景串行执行（单执行槽）。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
-- 发现的 Piko 运行时缺陷：修复 + 回归用例入库（沿袭 20260920 报告惯例）。
+- Piko 运行时缺陷：修复 + 回归用例入库。
 - 模型质量偏差（内容差但不违反 Oracle）：记录为观察项，不判 FAIL。
-- 通过后的 workspace-exec/契约回归由既有套件承担（本计划不新增重复断言）。
+- v0.1 已执行 6 次（SC-01..SC-06），其中 4 次按语义映射为本规格 case 的 PASS 证据（见规格 §3 映射表）。
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
-- 每 Case 记录：`run_id`、state、summary、outputs、known_actions、usage、本地复核命令与输出。
-- 证据写入 `tests/integration/reports/` 的场景执行报告（STD test-report）。
-- Gate：全部 PASS 方可作为"场景端到端已验证"引用；FAIL/BLOCKED 保持 Gate 开放。
+- 每 case 记录：run_id、state、summary、outputs、known_actions、usage、本地复核命令与输出。
+- 证据写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
+- Gate：全部 case PASS 方可作为「场景测试已验证」引用；FAIL/BLOCKED 保持 Gate 开放。
 
 ## 11. 风险、安全与清理恢复
 
-- **bash 边界**：bash 以 Piko 进程权限在 workspace cwd 执行——开发机假设，生产部署需另行隔离（operator Gate，不在本计划）。
-- 35B 模型非确定性：以客观 Oracle 兜底；允许 1 次 RERUN。
-- 清理：产物集中 `var/acc/scen/`，执行后整目录删除即可复位；不触碰仓库其他路径。
+- **bash 边界**：bash 以 Piko 进程权限在 workspace cwd 执行——开发机假设，生产部署需另行隔离（operator Gate）。
+- 模型非确定性：以客观 Oracle 兜底；允许 1 次 RERUN。
+- 清理：产物隔离在临时目录，执行后删除即复位；不触碰仓库其他路径。
