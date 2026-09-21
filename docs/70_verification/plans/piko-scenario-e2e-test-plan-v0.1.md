@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-plan-v0.1` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -51,6 +51,19 @@
 
 **Entry criteria**：服务健康探测通过；`npm run check` 绿；Piko 进程启动晚于任何 profile/配置变更
 （registry 启动时加载）；重启须核对 8787 端口归属（孤儿进程致 EADDRINUSE 静默失败）；pytest 用 `python3 -m pytest`。
+
+**Matrix 场景环境准备（PTS-06）**：运行 `scripts/scenario-env.sh` 创建专用场景房间
+（piko-bot `power_level=0`，使 admin 可撤销其 membership）；piko-bot 的权威 token 取自
+`~/piko-secrets/matrix-piko-bot`（`users.json` 中的 token 在历次 PK-T18 重置后可能过期）。
+
+**可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断；27 个直接执行、5 个需收紧
+Oracle（模型不确定性）、1 个需故障注入时序（PTS-09-C3）、4 个依赖场景房间脚本。bash 子进程
+在 deadline/取消时经实测会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
+
+**执行期已实测的两个陷阱（须遵守）**：① 含工具的 profile 配 `max_tool_calls=0` 会导致
+`BudgetExceeded`——讨论/纯文本 case 用 `max_tool_calls≥2` 或声明「不使用工具」；
+② 讨论多轮需紧跟发送（首轮过快会先关 intake，followup 不入 turn），C1 的 Oracle 定为
+「≥1 turn Consumed」；③ 权限拒绝 case 的终态是 `Failed/ToolFailure`，Oracle 不得要求 `Completed`。
 
 ## 3. Test Strategy 与 Coverage Model
 

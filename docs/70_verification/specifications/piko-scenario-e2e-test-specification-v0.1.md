@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -79,7 +79,7 @@ recovery / usage 等不同维度。
 |---|---|---|---|---|---|
 | PTS-04-C1 | normal | 批准 checker + 只读输入 + `reports/result.json` | 报告含实际结束时间/实际值/error(null)/cleanup | PASS | v0.1 `run-5e37b0a7…`（bash pytest，3 用例通过） |
 | PTS-04-C2 | negative | checker 非零退出 | 记录为执行失败事实，不伪报通过 | NOT_RUN | — |
-| PTS-04-C3 | timeout | checker 超时 | 超时 + 报告缺失均为失败事实 | NOT_RUN | — |
+| PTS-04-C3 | timeout | checker 超时 | 超时 + 报告缺失均为失败事实 | PASS | 可行性探针 `run-1f8fda3d…`（deadline 20s 到点 → `Failed/DeadlineExceeded`，`ToolCall/Unknown`，子进程已清理） |
 | PTS-04-C4 | cancel | 执行中取消 | 先返回 cancel receipt，终态说明是否停止及 partial | NOT_RUN | — |
 
 ### PTS-05 独立代码/设计评审
@@ -186,3 +186,42 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 
 产物隔离在临时目录，结束即删除；bash 以 Piko 进程权限在 workspace cwd 执行（开发机假设，
 生产隔离属 operator Gate）；种子为本规格定义的确定内容，可重复重建。
+
+## 11. 可行性 Review（dry-run 结论，2026-09-21）
+
+在正式执行前对 35 个 case 逐一推断「能否顺利执行并得到期望结果」，含环境与工具链核验。
+**结论：0 个阻断性缺口**；8 个 case 需收紧 Oracle 表述（模型不确定性），其余可直接执行。
+
+### 11.1 环境与工具链核验（实测）
+
+| 项 | 结果 |
+|---|---|
+| Piko `127.0.0.1:8787` / oMLX `9000` / Synapse `8448` | 全部在线（401/200/200） |
+| `workspace-exec` profile（read/write/edit/bash） | 已加载；bash 实测可执行并回收输出 |
+| bash 子进程清理 | **已验证**：deadline 到点后 `sleep` 子进程被终止 |
+| 工具链 | python3(3.14)、`python3 -m pytest`(9.1.0)、node/npm、cat/ls/mkdir/shasum 均在 PATH |
+| tier→模型转换 | `scripts/for-omlx.mjs` + `tests/common/model-mapping.ts` 已验证（`Worker`→oMLX 模型，不调用 LLMTier） |
+| Matrix 测试身份 | Synapse + 三账号在线；**piko-bot 权威 token 在 `~/piko-secrets/matrix-piko-bot`**（`users.json` 中的 token 在历次 PK-T18 重置后可能过期） |
+| Matrix 场景房间 | **已修复缺口**：原房间三人 power 均为 100，ben 无法踢 piko-bot。改用 `scripts/scenario-env.sh` 创建专用房间（piko-bot power=0）；实测 ben 可 kick（返回 `{}`） |
+
+### 11.2 逐 case 可行性判定
+
+| 判定 | case |
+|---|---|
+| ✅ 可直接执行 | PTS-01-C1/C3、PTS-02-C1/C2/C3、PTS-03-C1/C2/C3、PTS-04-C1/C2/C4、PTS-05-C1/C2/C4、PTS-06-C1/C2/C3/C4、PTS-07-C1/C3、PTS-08-C2、PTS-09-C1/C2、PTS-10-C1..C5（共 27） |
+| ⚠️ 可执行，需收紧 Oracle（模型不确定性） | PTS-01-C2（接受 `Failed` 或 summary 显式声明缺失，不编造内容）、PTS-02-C4（接受 `Failed` 或显式「无法修复」）、PTS-05-C3（接受显式「无发现」）、PTS-07-C2（接受 conflict/partial 表述）、PTS-08-C1（Oracle 校验引用材料名 + 未决项，不评主观质量）（共 5） |
+| ⚠️ 可执行，需故障注入时序 | PTS-09-C3（SIGKILL 需落在 never-replay 工具效果进行中；时序敏感，允许 1 次 RERUN；**Piko 被 SIGKILL 时子进程不保证被回收，执行后需清理残留**）（1） |
+| 🔧 需环境准备（已提供脚本） | PTS-06-C1..C4 依赖 `scripts/scenario-env.sh` 的专用房间；执行前先运行该脚本（2 个新房间已建） |
+
+### 11.3 已获得的 PASS 证据（含可行性探针）
+
+PTS-02-C1（`run-14b18841…`）、PTS-04-C1（`run-5e37b0a7…`）、PTS-04-C3（`run-1f8fda3d…`）、
+PTS-05-C1（`run-1375d509…`）、PTS-05-C2（`run-c6761fb5…`）。
+
+### 11.4 执行前置清单（每次执行前）
+
+1. 服务健康（Piko/oMLX/Synapse）；
+2. Piko 进程启动晚于任何 profile/配置变更；
+3. Matrix 场景先跑 `scripts/scenario-env.sh` 并确认房间成员；
+4. 确认 `~/piko-secrets/matrix-piko-bot` 的 whoami 有效；
+5. 清理上次 SIGKILL 可能残留的 bash 子进程。
