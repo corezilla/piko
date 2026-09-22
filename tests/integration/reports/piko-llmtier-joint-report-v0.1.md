@@ -114,6 +114,9 @@
 | R-T-2 数据面统计计数器 | LLMTier | 同上 LT-OBS-2 | 复核 JT-13 |
 | R-T-3 审计范围明示 | LLMTier | 同上 LT-OBS-3 | 复核 JT-13 |
 | R-T-4 readyz 占位语义 | LLMTier | 需求已提交（LT-OBS-4）；**症状已由配置解决**（2026-09-22 挂载真实 embedding 部署，`readyz=ready`），语义硬化仍为改进项 | 已复核：S0-2 现 `ready`（JT-16 一并验证） |
+| R-T-5 故障/时延/限流/流注入开关 | LLMTier | 需求已提交（LT-OBS-5，draft.3 扩展流终止/畸形流注入） | 实现后执行 JT-17（① 502 带体 ② 时延 ③ 429 ④ 流终止 ⑤ 畸形流）并由本方 review |
+| R-T-6 单请求全生命周期 trace | LLMTier | 需求已提交（LT-OBS-6：逐阶段时间戳/导出 JSON/保留 ≥7 天） | 实现后复核：给定 x-request-id 单次查全（对照 Piko provider_calls） |
+| R-T-7 consumer 关联标识透传 | LLMTier | 需求已提交（LT-OBS-7：logs/usage/trace 回显） | 实现后复核：带标识请求双向可查 |
 
 ## 6. 覆盖与 traceability
 

@@ -173,8 +173,10 @@ JT-07 恢复段）；concurrency：JT-09；统计：JT-13/15；embeddings：JT-1
 - **可观测性需求状态**：R-P-1/2/3（Piko）**已实现并实测**（provider 环回开关 + `provider_calls`
   持久化；x-request-id==账本 request_id 实测一致）；R-T-1..4（LLMTier）已正式提需求
   `llmtier-observability-debug-requirements-v0.1`（LT-OBS-1..4），由 LLMTier 实施，**完成后由本方
-  review 并复核对应 case**（复核记录回填报告）。**R-T-5（LT-OBS-5）**：确定性故障/时延/限流
-  注入开关（白盒流程开关），已提需求；实现后执行 JT-17 并由本方 review。
+  review 并复核对应 case**（复核记录回填报告）。**R-T-5（LT-OBS-5）**：确定性故障/时延/限流/
+  流注入开关（白盒流程开关），已提需求；实现后执行 JT-17 并由本方 review。
+  **R-T-6（LT-OBS-6）**：单请求全生命周期 trace（逐阶段时间戳/导出 JSON/保留 ≥7 天）——供三方定位与报告证据。
+  **R-T-7（LT-OBS-7）**：consumer 关联标识透传（logs/usage/trace 回显）——供双向定位。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
