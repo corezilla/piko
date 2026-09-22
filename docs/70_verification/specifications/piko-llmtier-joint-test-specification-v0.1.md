@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.2.0-draft.5` |
+| Document Version | `0.2.0-draft.6` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -226,7 +226,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 | JT-14（校验负向） | B:logs | 直接 POST 两种非法请求 | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json` | 码不符→B 校验层问题（对照 ICD §6）；Piko 不产生此类请求 |
 | JT-15（usage 快照） | B:usage | 同查询带 `cursor=<snap>:0` 复查 | `snapshot_id` 一致、`has_more=False`、记录数一致 | 不一致→B 快照/游标缺陷（对账不可信，升级 R-T-2） |
 | JT-16（embeddings） | B:probe+logs+readyz；C 直连 | float 2×1024、base64 字符串、`readyz=ready` | `unsupported_model`→deployment 未挂/能力错（对照 admin 配置）；dims 不符→capability 与后端不一致（对照 C 直连） |
-| JT-17（注入开关） | B:注入开关+logs+usage；A:Result/JSONL | 注入状态在 B logs/usage 可见（502/429/时延）；A 侧处置符合重试/预算语义 | 注入未生效→开关状态查 admin；A 侧表现与预期码不符→Piko 分类缺陷（对照 §7.1） |
+| JT-17（注入开关） | **B:注入开关（§5.1 程序开/关/回读）**+logs+usage；A:Result/JSONL | 注入状态在 B logs/usage 可见（502/429/时延）；A 侧处置符合重试/预算语义 | 打开后 GET 回读非 enabled→B 开关缺陷；注入未生效（流量无差异）→注入点实现缺陷；A 侧表现与预期码不符→Piko 分类缺陷（对照 §7.1） |
 
 ## 4. 正常、边界、负向与并发场景
 
@@ -246,6 +246,29 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
   oMLX 为外部系统，观测不足在 LLMTier 端补偿）。
 - 更细的 Piko 内部崩溃/重放语义由 `piko-agent-runtime-test-specification-v0.3` 与 scenario 套件
   承担，本规格不重复。
+
+### 5.1 JT-17 注入开关操作程序（打开/验证/执行/关闭/验证恢复）
+
+开关本体：`PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer；
+契约以 LLMTier 实现 freeze 后的文档为准，设计稿见 LLMTier 设计 §5.5）。`deployment_id` 取
+`deployment_omlx_qwen36`。**每个注入模式的完整闭环**：
+
+```bash
+ADMIN=$(cat ~/piko-secrets/llmtier-joint-admin-token)
+DID=deployment_omlx_qwen36; BASE=http://192.168.1.8:8180
+# ① 打开（按模式；五种 config 见 LLMTier 设计 §3.2）
+curl -X PATCH -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json"   -d '[{"type":"fault_502","config":{"error_body":"injected"},"enabled":true}]'   $BASE/tier/admin/v1/deployments/$DID/diagnostics
+# ② 回读确认（GET 该接口，enabled=true）
+# ③ 执行 case 操作（Piko run / 直接请求）并采集证据
+# ④ 关闭
+curl -X PATCH -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json"   -d '[{"type":"fault_502","enabled":false}]'   $BASE/tier/admin/v1/deployments/$DID/diagnostics
+# ⑤ 回读确认 enabled=false + 复跑一次正常请求（应 Completed）→ 注入影响已消除
+```
+
+五种模式与断言：① `fault_502`（error_body 注入）② `fault_503` ③ `delay`（delay_ms=5000，
+观测时延增加且不误判）④ `rate_limit`（retry_after_sec）⑤ `stream_terminate`/`malformed_event`
+（LT-OBS-5 Phase 5b，实现后补做）。**纪律**：打开后必须 GET 回读确认；case 结束必须关闭并复跑
+对照；注入配置变更事件应可在 audit/logs 查到（LT-OBS-3/5）。
 
 ## 6. 性能、容量、功耗或时序测试
 
