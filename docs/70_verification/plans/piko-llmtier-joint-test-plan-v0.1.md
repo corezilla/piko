@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.11` |
+| Document Version | `0.1.0-draft.12` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |

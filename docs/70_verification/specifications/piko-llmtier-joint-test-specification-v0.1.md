@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.2.0-draft.3` |
+| Document Version | `0.2.0-draft.5` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -157,7 +157,9 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | B LLMTier | 数据快照 | state SQLite + usage 账本（逐请求）✅ | 缺 per-request 上游响应快照（并入 R-T-1） | R-T-1 |
 | B LLMTier | 统计 | usage 账本 ✅；audit（仅管理动作）✅ | 缺数据面计数器（按 model/status 的请求数、错误数、时延分布，管理面可查） | **R-T-2** |
 | B LLMTier | 审计语义 | audit 仅记管理动作（实测证实） | 数据面是否审计需在管理控制文档**明示** | **R-T-3** |
-| B LLMTier | 流程改变开关 | provider endpoint PATCH（改路由/断链）✅ | 缺**确定性故障/时延/限流注入开关**（按 deployment 注入上游 502/503/429/时延，admin 控制、运行时可切）——否则 429/慢响应/带体 5xx 无法确定性触达 consumer | **R-T-5** |
+| B LLMTier | 流程改变开关 | provider endpoint PATCH（改路由/断链）✅ | 缺**确定性故障/时延/限流/流注入开关**（按 deployment 注入上游 502/503/429/时延/流终止/畸形流，admin 控制、运行时可切）——否则 429/慢响应/带体 5xx/流异常无法确定性触达 consumer | **R-T-5** |
+| B LLMTier | 单请求 trace | 无（需按 request_id 查全生命周期：逐阶段时间戳/上游快照/SSE 终止原因/usage，导出 JSON，保留 ≥7 天） | **R-T-6** |
+| B LLMTier | consumer 关联透传 | 可选接收 `X-Correlation-ID`/`traceparent` 并在 logs/usage/trace 回显 | **R-T-7** |
 | A Piko | 流程改变开关 | 配置改写（base_url/model/matrix）、`PIKO_PROVIDER_DEBUG`、进程级注入（kill）✅ | — | — |
 | A/B | 探针 | healthz/readyz/probes/API 探活 ✅ | — | — |
 | B LLMTier | readyz | 占位 `Embedding-v1` 曾致全局 `degraded` → **已解决**（2026-09-22 挂载真实 embedding 部署，`readyz=ready`）；「占位不得降级全局」的语义硬化仍建议保留 | R-T-4（配置已解决；LT-OBS-4 语义硬化为改进项） |
@@ -196,7 +198,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400（对照 ICD §6） |
 | JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条（对照 PK-T53） |
 | JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024、base64 5464 字符、readyz=ready（对照管理面控制文档） |
-| JT-17 | L4 | 白盒注入（故障/时延/限流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在预算/重试语义内处置（重试成功或明确失败）；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49 |
+| JT-17 | L4 | 白盒注入（故障/时延/限流/流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After ④ 上游流提前终止 ⑤ 畸形流事件 | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在预算/重试语义内处置 ④⑤ 流中断/畸形事件有明确错误处置，**不悬挂、不伪报**；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49/48 |
 
 **合计 17 case；执行顺序：按 JT 编号递增（JT-01 → JT-17）一步一步执行，不分必做/可选。每完成一个
 case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序执行完毕（全 PASS）；0.2.0 重构后的

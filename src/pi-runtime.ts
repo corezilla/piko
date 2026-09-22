@@ -74,13 +74,15 @@ export class PiRuntime {
     const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
     const debugFile=process.env.PIKO_PROVIDER_DEBUG_FILE??`${this.config.pi.session_root}/provider-debug.jsonl`;
     const debugLine=(obj:Record<string,unknown>)=>{if(!providerDebug)return;try{appendFileSync(debugFile,JSON.stringify({ts:new Date().toISOString(),run_id:runId,...obj})+"\n")}catch{/* debug writes must not break execution */}};
-    if(providerDebug)created.harness.hooks.on("before_payload",event=>{const payload=(event as {payload?:unknown}).payload;debugLine({kind:"request",model,bytes:JSON.stringify(payload??null).length});return undefined;});
+    let payloadSentAt=0;
+    created.harness.hooks.on("before_payload",event=>{payloadSentAt=Date.now();if(providerDebug){const payload=(event as {payload?:unknown}).payload;debugLine({kind:"request",model,bytes:JSON.stringify(payload??null).length})}return undefined;});
     created.harness.hooks.on("after_response",event=>{
       if(active)this.store.terminalModel(runId,active.op,active.step,active.attempt);
       const ev=event as {runId?:string;status?:number;headers?:Record<string,string>};
       const requestId=ev.headers?.["x-request-id"]??ev.headers?.["X-Request-ID"]??null;
-      try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,"")}catch{/* observability must not break execution */}
-      debugLine({kind:"response",operation_id:ev.runId??runId,status:ev.status??null,request_id:requestId});
+      const latencyMs=payloadSentAt?Date.now()-payloadSentAt:null;payloadSentAt=0;
+      try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,"",latencyMs)}catch{/* observability must not break execution */}
+      debugLine({kind:"response",operation_id:ev.runId??runId,status:ev.status??null,request_id:requestId,latency_ms:latencyMs});
       return undefined;
     });
     created.harness.hooks.on("before_tool",async event=>{
