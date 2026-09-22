@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.2.0-draft.6` |
+| Document Version | `0.2.0-draft.7` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -277,6 +277,103 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 每 case：① 按 §2.6 确认/打开调试选项 → ② 按 §3 操作/注入 → ③ 采集各节点中间证据（§3.1 预期）→
 ④ 判定 Oracle → ⑤ 不符时走 §3.1 定位预案 / §7.1 决策树 → ⑥ 回填并提交。
 Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/scenario-run.sh`。
+
+### 7.0 接口字典（字段级——脚本编写与失败归类的唯一依据）
+
+> 联调是白盒调试：结果不符预期时，必须能判定是**测试脚本错 / Piko 错 / LLMTier 错 / oMLX 错**。
+> 判定前提是本节字段级契约——脚本按它构造请求与预期，失败按 §7.3 矩阵归类。
+> 约定：时间一律 ISO8601 UTC `Z`；鉴权 admin/data 两类 Bearer 不可混用（混用 → 401/403）；
+> 错误响应统一 `{"error":{"message","type","code","param","retryable"}}`。
+
+#### 7.0.1 LLMTier 注入开关（LT-OBS-5，需 LT-OBS-5 实现后可用）
+
+`PATCH|GET /tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+
+- 请求体（PATCH）：`[{"type":<enum>,"config":{…},"enabled":<bool>}]`
+- type/config 定义：
+
+| type | config 字段（名称:类型:范围） | consumer 可见效果 |
+|---|---|---|
+| fault_502 | error_body:string ≤512B | HTTP 502 + 标准错误壳（message=error_body，code=provider_failure，retryable=true） |
+| fault_503 | error_body:string ≤512B | HTTP 503 + 标准错误壳（code=provider_unavailable） |
+| delay | delay_ms:int 0–60000 | 上游调用前延迟 N ms 后正常继续 |
+| rate_limit | retry_after_sec:int 0–300 | HTTP 429 + `Retry-After: N` 头 |
+| stream_terminate | stream_terminate_after_events:int 1–10000 | SSE 转发 N 事件后断连（无 terminal/无 [DONE]） |
+| malformed_event | malformed_after_events:int 0–10000；malformed_event_type:invalid_json\|unknown_event_type | 第 N 事件后注入畸形事件后断连 |
+
+- GET 响应 200：`[{"type","config","enabled","updated_at"}]`（全量）；无注入 → `[]`。
+- 错误：未知 type/缺字段/越界/超长 → `400 invalid_injection`；未知 deployment → `404`；
+  data token → `403`。**无 If-Match**（最后写入生效）；启停写 audit；关闭立即恢复。
+- 注入请求不产生上游调用、不产生正常 usage 计量（如记账则 `source=injected`）。
+- 同 deployment 多开关 enabled：前置阶段优先级 fault_502→fault_503→rate_limit→delay（首个命中）；
+  流阶段 stream_terminate→malformed_event。
+
+#### 7.0.2 LLMTier 快照查询（LT-OBS-1）
+
+`GET /tier/admin/v1/diagnostics/snapshots?since&until&deployment_id&model&limit&cursor`（admin）
+
+- 过滤：since/until 为 `captured_at` **闭区间**；deployment_id/model 精确匹配；limit 1–500 默认 50；
+  cursor=上页末条 id（keyset）。
+- 响应 200：`{"items":[{id:str, request_id:str, captured_at:str, upstream_url:str(无 query),
+  backend_model:str|null, http_status:int|null, latency_ms:real|null(>0=有上游响应),
+  error_summary:str|null(≤256B UTF-8 安全截断), model:str|null, deployment_id:str,
+  snapshot_type:"upstream"|"error"}], "next_cursor":str|null, "has_more":bool}`
+- 不变式：`snapshot_type="error"` ⇔ `http_status=null ∧ error_summary≠null`；排序
+  `captured_at DESC, id DESC`；保留 7 天。
+
+#### 7.0.3 LLMTier 统计查询（LT-OBS-2）
+
+`GET /tier/admin/v1/diagnostics/stats?since&until&deployment_id&model`（admin）
+
+- 响应 200：`{"windows":[{stat_hour:str(UTC 小时，按请求完成时间), deployment_id:str|null,
+  model:str|null, status_breakdown:{"200":int,"503":int,…,"upstream_error":int},
+  request_count:int, error_count:int(=Σstatus≥400+upstream_error), latency_p50_ms:real,
+  latency_p95_ms:real, latency_min_ms:real, latency_max_ms:real, latency_sum_ms:real}]}`
+- 空窗：`windows:[]`。百分位 nearest-rank（样本=1 取该值）。保留 7 天。
+
+#### 7.0.4 LLMTier 单请求 trace（LT-OBS-6）
+
+`GET /tier/admin/v1/trace/{request_id}`（admin）
+
+- 200：`{"request_id", "correlation_id":str|null(consumer 未提供→null),
+  "stages":[{"stage":enum(received,validated,routed,upstream_started,upstream_ended,completed,error,aborted),
+  "timestamp":str,"detail":obj|null}], "snapshot":obj|null(=7.0.2 item),
+  "usage":obj|null{record_version,is_final,model,input_tokens,output_tokens,total_tokens,measurement_status,source}}`
+- `received.detail` **白名单**：仅 `x-correlation-id`/`traceparent` 键值 + content-type/content-length 长度；
+  其余 header（含 Authorization）**禁止落盘**。
+- 404：无 trace 的 request_id。保留 7 天。
+
+#### 7.0.5 LLMTier Data Plane（既有，脚本面重述）
+
+- `POST /v1/responses`（data Bearer）：成功 200 SSE（`response.created→…→response.completed`+[DONE]）；
+  失败：`400 invalid_json`｜`404 model_not_found`｜`401/403 auth`｜`429+Retry-After`｜
+  `502/503`（错误壳，code=provider_failure/provider_unavailable）。
+- `POST /v1/embeddings`（model=Embedding-v1）：float 向量数组 / base64 字符串。
+- `GET /v1/models`：`{"data":[{"id","availability","capabilities"}]}`。
+- correlation（R-T-7 实现后）：`X-Correlation-ID` 请求头 → logs/usage/trace 回显 + 响应头回显。
+
+#### 7.0.6 Piko 任务 API（脚本面重述）
+
+- `POST /runs`：202（body 含 run_id）；`GET /runs/{id}`：200 `{state∈{Queued,Running,Cancelling,
+  Completed,Failed,Cancelled}, progress:{model_calls,tool_calls}}`；
+  `GET /runs/{id}/result`：200 `{state,partial,summary,outputs,failure:{code,cause_class,message},usage}`；
+  `POST /runs/{id}:cancel`：202 StopRequested/200 CancelledBeforeStart|AlreadyTerminal。
+- 鉴权：`~/piko-secrets/piko-api-bearer`。
+
+### 7.0.7 失败定位矩阵（结果不符预期 → 归属）
+
+| 症状 | 第一证据（查什么） | 归属 | 次级验证 |
+|---|---|---|---|
+| 注入 PATCH 返回 400 | 响应 `error.param`（指出哪个字段） | **测试脚本**：config 字段/范围错 | 对照 §7.0.1 表修正 |
+| 注入 PATCH 返回 403 | token 类型用错（data≠admin） | **测试脚本**：token 混用 | 换 admin token |
+| 注入开关 enabled=true 但流量无差异 | `GET` 回读 enabled；B logs 是否有该请求 | 回读=false→**LLMTier**（开关未生效）；回读=true 但无差异→注入点实现缺陷（**LLMTier**） | LT-OBS-5 验收 |
+| Piko `Failed/ModelUnavailable` + B 窗口有 5xx 上游快照 | §7.0.2 快照 http_status/error_summary | **oMLX**（上游失败） | 直连 oMLX 复现 |
+| Piko `Failed/ModelUnavailable` + B 窗口**无**该请求记录 | trace/logs 无此 request_id | **LLMTier**（未收到/未启动）或 Piko→B 网络 | healthz、端口探活 |
+| Piko `Failed` 且 failure.code=`ModelResponseInvalid/ModelProtocol` | 对照 A:JSONL 请求形状 | 形状违规→**Piko 装配**；形状正常而体异常→**LLMTier** | D-1/D-2 修复后不应再出现 |
+| Piko `Completed` 但期望失败（注入场景） | B 注入开关 enabled？注入点在请求前？ | 注入未命中/时序错 | 修正注入步骤（INVALID 重跑） |
+| `ToolFailure`/`Budget/Deadline` | Piko 自身语义 | **Piko** | 会话 JSONL 看工具参数 |
+| usage 账本与 Piko usage 不一致 | JT-10 对账（按 request 求和） | 计量缺陷（**LLMTier**）或窗口/时区错（**脚本**） | 固定窗口重查 |
+| 经 Piko 失败但直接调 B 成功 | 同一请求双跑对比 | **Piko**（装配/处理/预算） | 会话 JSONL + §7.1 |
 
 ### 7.1 失败定位流程（诊断入口）
 
