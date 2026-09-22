@@ -100,7 +100,8 @@
 | F-2 | 全局 `readyz=degraded`（内置 `Embedding-v1` 占位无部署） | **已解决（2026-09-22）**：oMLX 加载 Qwen3-Embedding-0.6B 后，LLMTier 增配 embedding deployment 挂 `Embedding-v1`（冻结空间 bge-m3-dense-1024-v1），`readyz=ready`；embeddings 数据面纳入 JT-16 | 无需进一步动作；LT-OBS-4 语义硬化保留为改进项 |
 | F-3 | oMLX 不回报 `cache_write_tokens` → Piko `usage.quality=Partial` | 契约允许；与 direct-oMLX 路径一致 | 无需动作；升级 oMLX 后可转 Complete |
 | F-4 | LLMTier `audit` 仅覆盖管理面动作，数据面请求不产生审计事件 | 联调中无法用 audit 追踪数据面；是否补数据面审计由 LLMTier 设计决定 | LLMTier 侧确认语义；若需数据面审计则扩展（本联调按 logs+usage 承担数据面统计） |
-| F-5 | Piko↔LLMTier 无端到端 request_id 关联、无逐跳时延统计；`logs` 仅 HTTP 访问日志（无上游细节） | 失败定位需依赖 Pi 会话 JSONL + 时间窗关联（已工具化：`scripts/joint-diagnose.sh`） | 后续：Piko 发送 `traceparent`/记录 LLMTier request_id（需 adapter patch），LLMTier logs 增加上游调用明细 |
+| F-5 | Piko↔LLMTier 无端到端 request_id 关联、无逐跳时延统计；`logs` 仅 HTTP 访问日志（无上游细节） | 失败定位需依赖 Pi 会话 JSONL + 时间窗关联（已工具化：`scripts/joint-diagnose.sh`） | **部分已解决（Piko）**：`PIKO_PROVIDER_DEBUG` 环回 + `provider_calls` 持久化（x-request-id==账本 request_id 实测一致）；剩余逐跳时延/上游明细 → LT-OBS-1 |
+| F-6 | 缺确定性**故障/时延/限流注入开关**（白盒方法：流程改变的开关）——真实实例无法确定性触达 429、带体 5xx、慢响应 | JT-17 无法执行（已记 BLOCKED，待实现后补执行） | 需求已提交 LLMTier：LT-OBS-5（admin 控制、按 deployment、运行时可切、不污染账本语义）；实现后 Piko review 并补执行 JT-17 |
 
 ## 5.3 可观测性需求追踪（Owner 指令：调试能力制度化）
 
