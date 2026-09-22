@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-report-v0.1` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -29,8 +29,9 @@
 
 ## 1. 执行摘要与结论
 
-- **结论：Piko ↔ LLMTier 首次联合调试通过。** 规格定义的 13 个联调 case 全部执行、全部 PASS
-  （0 FAIL、0 SKIP、0 BLOCKED；JT-13 为 review 后增补的管理面统计检查）；S3 联合多维度回归全绿；
+- **结论：Piko ↔ LLMTier 首次联合调试通过。** 规格定义的 16 个联调 case 全部执行、全部 PASS
+  （0 FAIL、0 SKIP、0 BLOCKED；JT-13/14/15/16 为 review 后增补：管理面统计、请求校验负向、
+  usage 快照、embeddings 数据面）；S3 联合多维度回归全绿；
   过程中发现并修复 2 个 Piko 侧真实缺陷，新增失败定位工具 `scripts/joint-diagnose.sh`。
 - **执行依据**：方案 `piko-llmtier-joint-test-specification-v0.1`（draft.3）+ 计划
   `piko-llmtier-joint-test-plan-v0.1`（draft.5，S0→S1→S2→S3→S4）。
@@ -69,6 +70,9 @@
 | JT-11 场景切片回归 | L3 | **PASS** | PTS-01/02/04/05 → joint 实例 15/15 |
 | JT-12 全量回归 | L3 | **PASS** | scenario 套件经 joint 实例 **31/31**（`SCENARIO_MATRIX=0`） |
 | JT-13 管理面统计变化 | L2 | **PASS** | 数据面 run（`run-e6cf0850…`）后 logs +4、usage +1（audit 不变属预期——audit 仅记管理动作）；admin probe 后 audit 8→9（`deployment.probe healthy`） |
+| JT-14 请求校验负向 | L2 | **PASS** | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json`（与 ICD §6 一致） |
+| JT-15 usage 快照稳定性 | L2 | **PASS** | 带 `cursor=snap:0` 复查 snapshot_id 一致、has_more=False、4 条记录 |
+| JT-16 embeddings 数据面 | L2 | **PASS** | 经 LLMTier `Embedding-v1`（真实 oMLX Qwen3-Embedding 后端）：float 2×1024、base64 正常；`readyz=ready` |
 
 ## 4. 偏差、无效执行与重测
 
@@ -92,7 +96,7 @@
 | ID | 发现 | 影响 | 建议 |
 |---|---|---|---|
 | F-1 | 认证拒绝实测返回 **403**，ICD §6 写 `401 auth` | consumer 兼容性语义（401 应触发重认证，403 不应） | LLMTier 侧评审：统一为 401 或在 ICD 明示 403 |
-| F-2 | 全局 `readyz=degraded`（内置 `Embedding-v1` 占位无部署） | 不影响 chat 数据面（`Worker=available`） | LLMTier 侧考虑默认剔除占位 service level |
+| F-2 | 全局 `readyz=degraded`（内置 `Embedding-v1` 占位无部署） | **已解决（2026-09-22）**：oMLX 加载 Qwen3-Embedding-0.6B 后，LLMTier 增配 embedding deployment 挂 `Embedding-v1`（冻结空间 bge-m3-dense-1024-v1），`readyz=ready`；embeddings 数据面纳入 JT-16 | 无需进一步动作；LT-OBS-4 语义硬化保留为改进项 |
 | F-3 | oMLX 不回报 `cache_write_tokens` → Piko `usage.quality=Partial` | 契约允许；与 direct-oMLX 路径一致 | 无需动作；升级 oMLX 后可转 Complete |
 | F-4 | LLMTier `audit` 仅覆盖管理面动作，数据面请求不产生审计事件 | 联调中无法用 audit 追踪数据面；是否补数据面审计由 LLMTier 设计决定 | LLMTier 侧确认语义；若需数据面审计则扩展（本联调按 logs+usage 承担数据面统计） |
 | F-5 | Piko↔LLMTier 无端到端 request_id 关联、无逐跳时延统计；`logs` 仅 HTTP 访问日志（无上游细节） | 失败定位需依赖 Pi 会话 JSONL + 时间窗关联（已工具化：`scripts/joint-diagnose.sh`） | 后续：Piko 发送 `traceparent`/记录 LLMTier request_id（需 adapter patch），LLMTier logs 增加上游调用明细 |
@@ -107,7 +111,7 @@
 | R-T-1 上游调用捕获 | LLMTier | 需求已提交：`llmtier-observability-debug-requirements-v0.1` LT-OBS-1 | LLMTier 实现后由本方 review 并复核 JT-07/08 |
 | R-T-2 数据面统计计数器 | LLMTier | 同上 LT-OBS-2 | 复核 JT-13 |
 | R-T-3 审计范围明示 | LLMTier | 同上 LT-OBS-3 | 复核 JT-13 |
-| R-T-4 readyz 占位语义 | LLMTier | 同上 LT-OBS-4 | 复核 S0-2 |
+| R-T-4 readyz 占位语义 | LLMTier | 需求已提交（LT-OBS-4）；**症状已由配置解决**（2026-09-22 挂载真实 embedding 部署，`readyz=ready`），语义硬化仍为改进项 | 已复核：S0-2 现 `ready`（JT-16 一并验证） |
 
 ## 6. 覆盖与 traceability
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.2.0-draft.1` |
+| Document Version | `0.2.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -51,7 +51,7 @@ usage 采集与对账、错误映射、故障恢复，以及 Piko 任务语义�
 | 项 | 值 |
 |---|---|
 | Piko joint | `127.0.0.1:8788`，`PIKO_CONFIG=config/runtime.llmtier.json`（gitignored），独立 `var/piko-llmtier-joint.sqlite` / `pi-sessions-llmtier-joint` / `staging-llmtier-joint`，`matrix.enabled=false` |
-| LLMTier joint | `0.3.0-dev`，`PYTHONPATH=src python3 -m llmtier_v03 --host 0.0.0.0 --port 8180 --database state/llmtier-piko-joint.sqlite3 --settings config/settings.json`，库已 bootstrap（6 个 service level + `deployment_omlx_qwen36`） |
+| LLMTier joint | `0.3.0-dev`，`PYTHONPATH=src python3 -m llmtier_v03 --host 0.0.0.0 --port 8180 --database state/llmtier-piko-joint.sqlite3 --settings config/settings.json`，库已 bootstrap（6 个 chat service level + `deployment_omlx_qwen36`；2026-09-22 增配 `deployment_e496a5ebb3834e6e`=Qwen3-Embedding-0.6B-4bit-DWQ，1024 维，挂 `Embedding-v1` 冻结空间 bge-m3-dense-1024-v1） |
 | 模型后端 | oMLX `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed` @ `127.0.0.1:9000/v1` |
 | 隔离红线 | 不触碰 8787（生产 Piko）、18999（他人 llmtier_v03）、m5air 8181 |
 
@@ -114,6 +114,8 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
  LLMTier ──6──▶ 【节点C：oMLX（外部系统）】 127.0.0.1:9000
      6a POST /v1/responses（上游推理，Bearer OMLX_API_KEY）
      6b GET  /v1/models（上游模型清单）
+     6c POST /v1/embeddings（上游 embedding 推理）
+ Operator ──7──▶ LLMTier：POST /v1/embeddings（embedding 数据面验证，JT-16；Piko 无 embedding consumer，不经 Piko）
 ```
 
 | 节点 | 角色 | 本节点内部可观测载体（现状） |
@@ -137,7 +139,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | B LLMTier | 数据快照 | state SQLite + usage 账本（逐请求）✅ | 缺 per-request 上游响应快照（并入 R-T-1） | R-T-1 |
 | B LLMTier | 统计 | usage 账本 ✅；audit（仅管理动作）✅ | 缺数据面计数器（按 model/status 的请求数、错误数、时延分布，管理面可查） | **R-T-2** |
 | B LLMTier | 审计语义 | audit 仅记管理动作（实测证实） | 数据面是否审计需在管理控制文档**明示** | **R-T-3** |
-| B LLMTier | readyz | 占位 `Embedding-v1` 致全局 `degraded` | 占位 service level 剔除或标注 | **R-T-4** |
+| B LLMTier | readyz | 占位 `Embedding-v1` 曾致全局 `degraded` → **已解决**（2026-09-22 挂载真实 embedding 部署，`readyz=ready`）；「占位不得降级全局」的语义硬化仍建议保留 | R-T-4（配置已解决；LT-OBS-4 语义硬化为改进项） |
 | C oMLX（外部） | 全部 | **外部系统：只依赖现状**（`/v1/models`、`/v1/responses`、Bearer） | 任何观测不足**在节点 B 补偿**（R-T-1 的上游捕获即为其补偿点）；可用性探测用节点 B 的 probes | — |
 
 需求管理：R-T-1..R-T-4 已作为正式需求提交至 LLMTier 仓库
@@ -148,7 +150,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 ### 2.6 前置条件（每次执行前）
 
 1. 两个联调实例存活（8180、8788），oMLX 健康（9000）；
-2. LLMTier `readyz` 中 `Worker` 为 `available`（全局 `degraded` 系 `Embedding-v1` 占位所致，不作门禁）；
+2. LLMTier `readyz` 全局 `ready`（2026-09-22 起；chat 与 embedding 均 `available`）；
 3. `npm run check` 绿；
 4. 不携带无关环境变量启动（避免误连生产配置）；
 5. 按 §3.1 确认本 case 的调试选项：已实现的打开；未实现的（R-*）记录"替代证据"标注。
@@ -170,8 +172,11 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15 |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped |
 | JT-13 | L2 | 管理面统计变化 | 前值采样（audit/logs/usage）→ ① Piko run（数据面）② admin probe（管理面）→ 复读 | 数据面：logs ≥+1 ∧ usage +1（audit 不变属预期，audit 仅管理动作）；管理面：probe 后 audit +1 | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
+| JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400 | ICD §6 |
+| JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条 | PK-T53 |
+| JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024；base64 5464 字符；readyz=ready | 管理面控制文档 |
 
-**合计 13 case；执行顺序：按 JT 编号递增（JT-01 → JT-13）一步一步执行，不分必做/可选。每完成一个
+**合计 16 case；执行顺序：按 JT 编号递增（JT-01 → JT-16）一步一步执行，不分必做/可选。每完成一个
 case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序执行完毕（全 PASS）；0.2.0 重构后的
 复核执行见 §3.1 各 case 的调试选项与中间结果预期。**
 
@@ -194,11 +199,14 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 | JT-10（usage 对账） | B:usage；A:Result.usage | 单次调用：账本==Piko（input 含 cached）；多次：按 request 求和 | 不一致→先比对窗口（时区/边界），再对照 B2 逐条与 A1 attempts 数 |
 | JT-11/12（回归） | 全默认 | 套件计数：15/15、31/31；失败 case 转 §7.1 定位 | 任一失败 case → `joint-diagnose.sh` → 按其层位结论处置 |
 | JT-13（统计变化） | B:audit/logs/usage 三面 | 数据面：logs ≥+1、usage +1（audit 不变属预期）；管理动作（probe）：audit +1 | logs 不增→请求未到 B；usage 不增→上游未完成计量（对照 B1 状态）；probe 后 audit 不增→B 审计缺陷（R-T-3） |
+| JT-14（校验负向） | B:logs | 直接 POST 两种非法请求 | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json` | 码不符→B 校验层问题（对照 ICD §6）；Piko 不产生此类请求 |
+| JT-15（usage 快照） | B:usage | 同查询带 `cursor=<snap>:0` 复查 | `snapshot_id` 一致、`has_more=False`、记录数一致 | 不一致→B 快照/游标缺陷（对账不可信，升级 R-T-2） |
+| JT-16（embeddings） | B:probe+logs+readyz；C 直连 | float 2×1024、base64 字符串、`readyz=ready` | `unsupported_model`→deployment 未挂/能力错（对照 admin 配置）；dims 不符→capability 与后端不一致（对照 C 直连） |
 
 ## 4. 正常、边界、负向与并发场景
 
-- **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12、JT-13。
-- **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）。
+- **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12、JT-13、JT-15、JT-16。
+- **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）、JT-14（请求校验）。
 - **故障注入/恢复**：JT-08（LLMTier 进程级）、JT-07 恢复段。
 - **并发**：JT-09（Piko 单执行槽 × LLMTier 并发保护）。
 - **性能/容量**：裁剪——无 SLA 基线；仅按 §6 记录观测值。
