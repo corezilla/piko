@@ -166,7 +166,7 @@ JT-07 恢复段）；concurrency：JT-09；统计：JT-13/15；embeddings：JT-1
 
 - 执行：opencode（主导：环境、驱动、判定、缺陷定位）；审批：Piko Project Owner。
 - 资源：本机 8180/8788 端口、oMLX、`~/piko-secrets/` 联调凭据；不占用 8787/18999/8181。
-- 当前进度（2026-09-22）：**JT-01..JT-16 16/16 全 PASS，JT-17 待 R-T-5**（S2 修复缺陷 D-1/D-2；S3 回归全绿：
+- 当前进度（2026-09-22）：**JT-01..JT-16 全 PASS；JT-17 BLOCKED（待 R-T-5 实现后补执行）**（S2 修复缺陷 D-1/D-2；S3 回归全绿：
   scenario 31/31 joint、check 95、test:live 41/41；S4 报告已产出）。0.2.0 review 后：
   ① oMLX 已加载 embedding 模型，LLMTier 增配 embedding deployment 并挂 `Embedding-v1`（readyz=ready，F-2 关闭）；
   ② 增补并执行 JT-14/15/16（校验负向/快照稳定/embeddings）。

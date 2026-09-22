@@ -193,9 +193,9 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15 |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped |
 | JT-13 | L2 | 管理面统计变化 | 前值采样（audit/logs/usage）→ ① Piko run（数据面）② admin probe（管理面）→ 复读 | 数据面：logs ≥+1 ∧ usage +1（audit 不变属预期，audit 仅管理动作）；管理面：probe 后 audit +1 | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
-| JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400 | ICD §6 |
-| JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条 | PK-T53 |
-| JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024；base64 5464 字符；readyz=ready | 管理面控制文档 |
+| JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400（对照 ICD §6） |
+| JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条（对照 PK-T53） |
+| JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024、base64 5464 字符、readyz=ready（对照管理面控制文档） |
 | JT-17 | L4 | 白盒注入（故障/时延/限流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在预算/重试语义内处置（重试成功或明确失败）；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49 |
 
 **合计 17 case；执行顺序：按 JT 编号递增（JT-01 → JT-17）一步一步执行，不分必做/可选。每完成一个

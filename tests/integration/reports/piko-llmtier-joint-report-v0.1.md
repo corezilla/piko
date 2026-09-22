@@ -29,9 +29,9 @@
 
 ## 1. 执行摘要与结论
 
-- **结论：Piko ↔ LLMTier 首次联合调试通过。** 规格定义的 16 个联调 case 全部执行、全部 PASS
-  （0 FAIL、0 SKIP、0 BLOCKED；JT-13/14/15/16 为 review 后增补：管理面统计、请求校验负向、
-  usage 快照、embeddings 数据面）；S3 联合多维度回归全绿；
+- **结论：Piko ↔ LLMTier 首次联合调试通过。** 规格定义的 17 个联调 case：16 个 PASS，1 个
+  （JT-17 白盒注入）BLOCKED 待 LLMTier 实现 R-T-5/LT-OBS-5 后补执行（0 FAIL、0 SKIP；
+  JT-13..16 为 review 后增补）；S3 联合多维度回归全绿；
   过程中发现并修复 2 个 Piko 侧真实缺陷，新增失败定位工具 `scripts/joint-diagnose.sh`。
 - **执行依据**：方案 `piko-llmtier-joint-test-specification-v0.1`（draft.3）+ 计划
   `piko-llmtier-joint-test-plan-v0.1`（draft.5，S0→S1→S2→S3→S4）。
