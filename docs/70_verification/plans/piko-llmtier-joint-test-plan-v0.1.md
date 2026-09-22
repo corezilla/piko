@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.8` |
+| Document Version | `0.1.0-draft.9` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -28,7 +28,7 @@
 <!-- STD_DOCUMENT_COVER_END -->
 
 > 本计划依据联调方案 `piko-llmtier-joint-test-specification-v0.1`（下称「规格」）制定，覆盖
-> **从开始到结束**的全过程：启动检查 → 12 个 case 按序逐步执行 → 收敛 → 输出成果归档。
+> **从开始到结束**的全过程：启动检查 → 13 个 case 按序逐步执行 → 收敛 → 联合多维度测试 → 输出成果归档。
 > 规格定义「测什么、怎么测、怎么判」；本计划定义「按什么顺序、每步产出什么、出现各种情况如何处置」。
 > 执行原则：**只按本计划与规格执行，不引入计划外步骤；计划/规格有问题时先修订文档并提交，再继续执行。**
 > **计划一经开始不得随意停止**：遇阻先修复、回归、直到调通（修复手段允许修改 Piko 与 LLMTier
@@ -78,9 +78,15 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-13 ──▶ S2 缺陷修
 
 ### 3.2 S1 单个 case 的六个标准动作（每个 case 完全相同）
 
-1. **操作**：按规格 §3 该 case 的「输入/操作」列执行（含故障注入）；
-2. **采集**：Piko `Result` JSON、LLMTier 账本记录、相关日志片段；
-3. **判定**：对照该 case「独立 Oracle」，得出 PASS / FAIL / RERUN / INVALID / BLOCKED；
+1. **开调试**：按规格 §3.1 该 case 行打开调试选项（已实现的；R-* 未实现项记录替代证据）；
+2. **操作**：按规格 §3 该 case 的「输入/操作」列执行（含故障注入）；
+3. **核对中间结果**：逐节点对照规格 §3.1「中间结果预期」（A:JSONL/SQLite、B:logs/usage/audit）；
+4. **采集**：Piko `Result` JSON、LLMTier 账本记录、相关日志片段；
+5. **判定**：对照该 case「独立 Oracle」，得出 PASS / FAIL / RERUN / INVALID / BLOCKED；
+6. **不符即定位**：数据/统计/日志与预期不符 → 走规格 §3.1 定位预案 / §7.1 决策树（或 `joint-diagnose.sh`）；
+7. **回填**：立即更新规格 §3 该行的「状态」与「Run/证据」两列；
+8. **提交**：`git commit` + `push`（证据不落地不下一个）；
+9. **流转**：PASS → 下一个 case；其余按 §4 情况处置后再流转。
 4. **回填**：立即更新规格 §3 该行的「状态」与「Run/证据」两列；
 5. **提交**：`git commit` + `push`（证据不落地不下一个）；
 6. **流转**：PASS → 下一个 case；其余按 §4 情况处置后再流转。
@@ -138,14 +144,14 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-13 ──▶ S2 缺陷修
 
 | 成果 | 落点 |
 |---|---|
-| 规格 §3 全部 12 case 状态为终态判定 | 规格文档 |
+| 规格 §3 全部 13 case 状态为终态判定 | 规格文档 |
 | 联调报告（STD test-report：结果汇总、缺陷清单、对 LLMTier ICD 的 review 发现、观测数据、**所有未通过点（FAIL/SKIP）及原因与证据**） | `tests/integration/reports/piko-llmtier-joint-report-*.md`（new-design 生成） |
 | 缺陷/偏差记录（含已发生的 schema 放宽、403 vs 401） | 报告 §缺陷 + 计划 §9 |
 | 证据保留 | 联调库、两侧日志保留至 Gate 签批；之后按规格 §10 清理 |
 
 ## 6. Test Types 与 Case Families
 
-normal：JT-01/02/03/04/09/10/11/12；negative：JT-05/06/07；recovery/fault-injection：JT-08（及
+normal：JT-01/02/03/04/09/10/11/12/13；negative：JT-05/06/07；recovery/fault-injection：JT-08（及
 JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6，仅记录观测值）。
 
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
@@ -176,7 +182,7 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
   （Owner 批准 2026-09-21）。
 - **已知预期（不判缺陷）**：usage `quality=Partial`（oMLX 无 `cache_write_tokens`）；LLMTier
   全局 `readyz=degraded`（`Embedding-v1` 占位）；认证拒绝返回 403（vs ICD 401，作 ICD review 发现）。
-- 回归基线：`npm run check`（93 passed / 0 skipped）与 `npm run test:live`（41/41）保持绿。
+- 回归基线：`npm run check`（95 passed / 0 skipped）与 `npm run test:live`（41/41）保持绿。
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
