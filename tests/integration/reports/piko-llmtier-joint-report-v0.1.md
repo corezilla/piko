@@ -137,6 +137,10 @@
 
 ## 8. Release/Review Gate 建议
 
-- 联调 Gate：**建议判定通过**（12/12 PASS + 多维度回归全绿 + 缺陷已修复带回归），提请 Owner 签批。
+- 联调 Gate：**建议条件通过**——17 个 case 中 16 个 PASS（多维度回归全绿、缺陷已修复带回归）；
+  **JT-17（白盒注入）BLOCKED**，依赖 LLMTier 实现 R-T-5/LT-OBS-5 注入开关（需求已提交
+  `llmtier-observability-debug-requirements-v0.1`，LLMTier 设计 `llmtier-observability-subsystem-design-v0.1`
+  已评审、含 2 项阻断意见待其修订）。**LT-OBS-5 实现并经本方 review 后补执行 JT-17，Gate 方可正式关闭。**
+  提请 Owner 知悉该阻塞链并推动 LLMTier 侧排期。
 - 该结论**不构成** LLMTier `runtime_activation` 或 production TLS/auth 激活；m5air 部署联调
   （跨主机）建议作为下一步，复用本方案 §5 步骤（端口/数据库/凭据独立）。
