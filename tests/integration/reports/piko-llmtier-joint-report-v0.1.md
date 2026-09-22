@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-report-v0.1` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -96,6 +96,18 @@
 | F-3 | oMLX 不回报 `cache_write_tokens` → Piko `usage.quality=Partial` | 契约允许；与 direct-oMLX 路径一致 | 无需动作；升级 oMLX 后可转 Complete |
 | F-4 | LLMTier `audit` 仅覆盖管理面动作，数据面请求不产生审计事件 | 联调中无法用 audit 追踪数据面；是否补数据面审计由 LLMTier 设计决定 | LLMTier 侧确认语义；若需数据面审计则扩展（本联调按 logs+usage 承担数据面统计） |
 | F-5 | Piko↔LLMTier 无端到端 request_id 关联、无逐跳时延统计；`logs` 仅 HTTP 访问日志（无上游细节） | 失败定位需依赖 Pi 会话 JSONL + 时间窗关联（已工具化：`scripts/joint-diagnose.sh`） | 后续：Piko 发送 `traceparent`/记录 LLMTier request_id（需 adapter patch），LLMTier logs 增加上游调用明细 |
+
+## 5.3 可观测性需求追踪（Owner 指令：调试能力制度化）
+
+| 需求 | 承接方 | 状态 | 复核动作 |
+|---|---|---|---|
+| R-P-1 provider 响应环回（开关） | Piko | **已实现**（`PIKO_PROVIDER_DEBUG(_FILE)`，实测 request/response 行） | — |
+| R-P-2 per-run DEBUG 开关 | Piko | **已实现**（同上，默认关闭零开销） | — |
+| R-P-3 run↔request_id 关联 | Piko | **已实现**（`provider_calls` 表；实测 x-request-id==账本 request_id） | `joint-diagnose.sh` §4.5 已消费 |
+| R-T-1 上游调用捕获 | LLMTier | 需求已提交：`llmtier-observability-debug-requirements-v0.1` LT-OBS-1 | LLMTier 实现后由本方 review 并复核 JT-07/08 |
+| R-T-2 数据面统计计数器 | LLMTier | 同上 LT-OBS-2 | 复核 JT-13 |
+| R-T-3 审计范围明示 | LLMTier | 同上 LT-OBS-3 | 复核 JT-13 |
+| R-T-4 readyz 占位语义 | LLMTier | 同上 LT-OBS-4 | 复核 S0-2 |
 
 ## 6. 覆盖与 traceability
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -160,9 +160,12 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 
 - 执行：opencode（主导：环境、驱动、判定、缺陷定位）；审批：Piko Project Owner。
 - 资源：本机 8180/8788 端口、oMLX、`~/piko-secrets/` 联调凭据；不占用 8787/18999/8181。
-- 当前进度（2026-09-22）：JT-01..JT-12 **12/12 全 PASS**（S2 修复缺陷 2 项 D-1/D-2；S3 回归全绿：
-  scenario 31/31 joint、check 95、test:live 41/41；S4 报告已产出）。JT-13（管理面统计变化检查）
-  增补后执行中。
+- 当前进度（2026-09-22）：**JT-01..JT-13 13/13 全 PASS**（S2 修复缺陷 D-1/D-2；S3 回归全绿：
+  scenario 31/31 joint、check 95、test:live 41/41；S4 报告已产出）。
+- **可观测性需求状态**：R-P-1/2/3（Piko）**已实现并实测**（provider 环回开关 + `provider_calls`
+  持久化；x-request-id==账本 request_id 实测一致）；R-T-1..4（LLMTier）已正式提需求
+  `llmtier-observability-debug-requirements-v0.1`（LT-OBS-1..4），由 LLMTier 实施，**完成后由本方
+  review 并复核对应 case**（复核记录回填报告）。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
