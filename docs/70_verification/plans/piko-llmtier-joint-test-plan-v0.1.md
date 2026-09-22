@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -120,6 +120,7 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-13 ──▶ S2 缺陷修
 | B-5 凭据失效/泄露 | 全部请求 401/403；或 token 入了日志/git | 重置 LLMTier 库 → 重新 bootstrap → 换 token → 重跑受影响 case |
 | B-6 悬挂 | run 超 deadline 仍未终态 | 判 FAIL；保留两侧日志进 S2 |
 | B-7 断言脚本自身错误 | 命令语法/路径错误 | 属执行器问题：修正脚本，case 记 INVALID 重跑 |
+| B-8 失败原因不明（不知哪层出错） | case FAIL 且层位不清 | 运行 `scripts/joint-diagnose.sh <run_id>`（规格 §7.1 决策树）定位层位 → 按层位修复（双侧可改）→ 回归；观测缺口本身记为发现（F-4/F-5） |
 
 ## 5. 中间与最终输出成果（规范性）
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -119,7 +119,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15（vitest 实测） |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped（vitest 实测） |
-| JT-13 | L2 | 管理面统计变化 | 前值采样：`/tier/admin/v1/audit` 条数、`/tier/admin/v1/logs`（2h 窗口）条数、`/tier/v1/usage` 记录数 → 经 8788 执行一次 Piko run → 复读三处 | 三处均较前值增加：logs ≥+1、audit ≥+1、usage 新增记录且 tokens>0；新增 log 能关联到该请求 | NOT_RUN | 管理面控制文档 |
+| JT-13 | L2 | 管理面统计变化 | 前值采样（audit 条数 / logs 条数 / usage 记录数）→ ① 经 8788 执行一次 Piko run（数据面）② 触发一次 admin probe（管理面）→ 复读三处 | 数据面：logs ≥+1 ∧ usage 新增记录且 tokens>0（**audit 不变属预期**——audit 仅记管理动作，实测 8 条全为 `provider.update`）；管理面：probe 后 audit +1（`deployment.probe`） | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
 
 **合计 13 case；执行顺序：按 JT 编号递增（JT-01 → JT-13）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
 
@@ -147,6 +147,24 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 `usage` 字段作参考观测；不设 Pass/Fail 阈值。
 
 ## 7. 执行步骤与自动化入口
+
+### 7.1 失败定位流程（诊断入口）
+
+失败时先运行 `scripts/joint-diagnose.sh <run_id>`（无需调试开关，五层证据一次拉取）：
+① Piko run/Result（码+message+known_actions）→ ② Pi 会话 JSONL（**Piko 组装的完整 prompt 历史**，
+判定"prompt 组织对不对"）→ ③ LLMTier logs（run 时间窗，请求是否到达/返回码）→ ④ LLMTier usage
+（上游是否完成计量）→ ⑤ oMLX/LLMTier 直连探活，最后输出层位结论：
+
+| failure.code | 层位 | 再区分 |
+|---|---|---|
+| `ModelUnavailable` | 依赖可用性（LLMTier 或 oMLX） | 窗口内有 5xx/provider_unavailable → 上游(oMLX)；窗口内无日志行 → LLMTier 未收到（挂/网络） |
+| `ModelResponseInvalid/ModelProtocol` | Piko prompt 或 LLMTier 协议 | 对照 ②：请求形状违规 → Piko；形状正常而响应体异常 → LLMTier |
+| `ToolFailure` | Piko 工具/权限 | — |
+| `BudgetExceeded`/`DeadlineExceeded` | Piko 任务限额 | — |
+| `UnsafeRetryBlocked` | Piko 恢复语义 | — |
+
+已知缺口（S4 报告 F-4/F-5 跟踪）：Piko 与 LLMTier 之间无端到端 request_id 关联、数据面无审计、
+无逐跳时延统计；`logs` 仅为 HTTP 访问日志（不含上游调用细节）。
 
 - **LLMTier 面**：`curl` + `jq`，Bearer 取 `~/piko-secrets/llmtier-joint-data-token`（data）或
   `llmtier-joint-admin-token`（admin/probe）。
