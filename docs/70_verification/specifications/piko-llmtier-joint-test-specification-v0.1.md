@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.2.0-draft.2` |
+| Document Version | `0.2.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -31,6 +31,24 @@
 > 本版新增：§2.4 控制通道/数据通道架构与节点清单、§2.5 节点调试能力矩阵与需求（未实现项提需求）、
 > §3.1 每用例调试选项/中间结果预期/定位预案。oMLX 为**外部系统**：只依赖其现有能力
 > （`/v1/models`、`/v1/responses`、Bearer），任何观测不足一律在 **LLMTier 端补偿**。
+
+## 0. 联调性质与方法论（白盒原则）
+
+**联调是白盒联合调试，不是黑盒系统测试。** 允许并鼓励通过**改变实现与配置**来发现和定位问题——
+Piko 与 LLMTier 双侧的代码、设计、配置、数据均可修改。目标是**最快调通功能、发现并消灭问题**，
+而非在固定实现下验证“能用”。因此本规格把六类白盒方法作为**第一等方法**贯穿设计与执行：
+
+| 方法 | 用途 | 本规格落点 |
+|---|---|---|
+| 探针 | 快速判定某节点/某路径是否存活与可用 | §3.1 S0、各 case 探活步骤 |
+| 流程改变的调试开关 | 改走故障/替代路径，让问题**确定性地**暴露 | JT-05 配置改写、JT-07 endpoint PATCH、JT-08 kill、`PIKO_PROVIDER_DEBUG`、R-T-5 注入开关 |
+| 统计 | 前后增量/计数对账，暴露丢失与重复 | JT-10/13/15、usage 账本、`provider_calls` |
+| 日志 | 过程事实与错误现场 | 两侧 stdout、会话 JSONL、`/admin/v1/logs` |
+| 数据快照 | 任意时刻的证据定格与事后比对 | 双侧 SQLite、SSE 原文、`joint-diagnose.sh` |
+| 环回 | 捕获节点收发的原始数据 | 会话 JSONL（prompt 级）、provider 响应环回（R-P-1）；上游捕获 R-T-1 |
+
+**禁止“知道有问题却定位不出/观测不到”的状态**：任何观测缺口一律当场转为需求（R-P-*/R-T-*，
+§2.5），先以替代证据继续执行，实现后复核。
 
 ## 1. 目标、范围与被测对象
 
@@ -124,7 +142,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | B：LLMTier joint | 模型网关（鉴权、路由 service level、透传 SSE、usage 计量） | state SQLite（usage 账本）；`/admin/v1/logs`（HTTP 访问行，含 request_id）；`/admin/v1/audit`（管理动作）；service stdout |
 | C：oMLX（外部系统） | 模型推理后端 | 仅其现有 HTTP API；**不可要求其新增观测**，不足在节点 B 补偿（见 §2.5 R-T-1） |
 
-### 2.5 节点调试能力矩阵与需求（未实现项 → 提需求）
+### 2.5 节点调试能力与白盒方法库（未实现项 → 提需求）
 
 每节点四类调试能力：**环回**（收发捕获）、**日志**、**数据快照**、**统计**。
 
@@ -139,6 +157,9 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | B LLMTier | 数据快照 | state SQLite + usage 账本（逐请求）✅ | 缺 per-request 上游响应快照（并入 R-T-1） | R-T-1 |
 | B LLMTier | 统计 | usage 账本 ✅；audit（仅管理动作）✅ | 缺数据面计数器（按 model/status 的请求数、错误数、时延分布，管理面可查） | **R-T-2** |
 | B LLMTier | 审计语义 | audit 仅记管理动作（实测证实） | 数据面是否审计需在管理控制文档**明示** | **R-T-3** |
+| B LLMTier | 流程改变开关 | provider endpoint PATCH（改路由/断链）✅ | 缺**确定性故障/时延/限流注入开关**（按 deployment 注入上游 502/503/429/时延，admin 控制、运行时可切）——否则 429/慢响应/带体 5xx 无法确定性触达 consumer | **R-T-5** |
+| A Piko | 流程改变开关 | 配置改写（base_url/model/matrix）、`PIKO_PROVIDER_DEBUG`、进程级注入（kill）✅ | — | — |
+| A/B | 探针 | healthz/readyz/probes/API 探活 ✅ | — | — |
 | B LLMTier | readyz | 占位 `Embedding-v1` 曾致全局 `degraded` → **已解决**（2026-09-22 挂载真实 embedding 部署，`readyz=ready`）；「占位不得降级全局」的语义硬化仍建议保留 | R-T-4（配置已解决；LT-OBS-4 语义硬化为改进项） |
 | C oMLX（外部） | 全部 | **外部系统：只依赖现状**（`/v1/models`、`/v1/responses`、Bearer） | 任何观测不足**在节点 B 补偿**（R-T-1 的上游捕获即为其补偿点）；可用性探测用节点 B 的 probes | — |
 
@@ -175,8 +196,9 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400 | ICD §6 |
 | JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条 | PK-T53 |
 | JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024；base64 5464 字符；readyz=ready | 管理面控制文档 |
+| JT-17 | L4 | 白盒注入（故障/时延/限流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在预算/重试语义内处置（重试成功或明确失败）；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49 |
 
-**合计 16 case；执行顺序：按 JT 编号递增（JT-01 → JT-16）一步一步执行，不分必做/可选。每完成一个
+**合计 17 case；执行顺序：按 JT 编号递增（JT-01 → JT-17）一步一步执行，不分必做/可选。每完成一个
 case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序执行完毕（全 PASS）；0.2.0 重构后的
 复核执行见 §3.1 各 case 的调试选项与中间结果预期。**
 
@@ -202,11 +224,12 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 | JT-14（校验负向） | B:logs | 直接 POST 两种非法请求 | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json` | 码不符→B 校验层问题（对照 ICD §6）；Piko 不产生此类请求 |
 | JT-15（usage 快照） | B:usage | 同查询带 `cursor=<snap>:0` 复查 | `snapshot_id` 一致、`has_more=False`、记录数一致 | 不一致→B 快照/游标缺陷（对账不可信，升级 R-T-2） |
 | JT-16（embeddings） | B:probe+logs+readyz；C 直连 | float 2×1024、base64 字符串、`readyz=ready` | `unsupported_model`→deployment 未挂/能力错（对照 admin 配置）；dims 不符→capability 与后端不一致（对照 C 直连） |
+| JT-17（注入开关） | B:注入开关+logs+usage；A:Result/JSONL | 注入状态在 B logs/usage 可见（502/429/时延）；A 侧处置符合重试/预算语义 | 注入未生效→开关状态查 admin；A 侧表现与预期码不符→Piko 分类缺陷（对照 §7.1） |
 
 ## 4. 正常、边界、负向与并发场景
 
 - **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12、JT-13、JT-15、JT-16。
-- **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）、JT-14（请求校验）。
+- **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）、JT-14（请求校验）、JT-17（注入故障/限流/时延，待 R-T-5）。
 - **故障注入/恢复**：JT-08（LLMTier 进程级）、JT-07 恢复段。
 - **并发**：JT-09（Piko 单执行槽 × LLMTier 并发保护）。
 - **性能/容量**：裁剪——无 SLA 基线；仅按 §6 记录观测值。

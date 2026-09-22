@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-report-v0.1` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -73,6 +73,7 @@
 | JT-14 请求校验负向 | L2 | **PASS** | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json`（与 ICD §6 一致） |
 | JT-15 usage 快照稳定性 | L2 | **PASS** | 带 `cursor=snap:0` 复查 snapshot_id 一致、has_more=False、4 条记录 |
 | JT-16 embeddings 数据面 | L2 | **PASS** | 经 LLMTier `Embedding-v1`（真实 oMLX Qwen3-Embedding 后端）：float 2×1024、base64 正常；`readyz=ready` |
+| JT-17 白盒注入（故障/时延/限流） | L4 | **BLOCKED**（待 R-T-5/LT-OBS-5） | 注入开关由 LLMTier 实现后补执行：① 502 带体→`ModelUnavailable/Dependency` ② 时延→可观测不误判 ③ 429→预算/重试语义内处置 |
 
 ## 4. 偏差、无效执行与重测
 
