@@ -247,28 +247,25 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 - 更细的 Piko 内部崩溃/重放语义由 `piko-agent-runtime-test-specification-v0.3` 与 scenario 套件
   承担，本规格不重复。
 
-### 5.1 JT-17 注入开关操作程序（打开/验证/执行/关闭/验证恢复）
+### 5.1 JT-17 注入开关操作程序（脚本级；契约 = LLMTier 需求文档 §5.1，normative）
 
-开关本体：`PATCH /tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer；
-契约以 LLMTier 实现 freeze 后的文档为准，设计稿见 LLMTier 设计 §5.5）。`deployment_id` 取
-`deployment_omlx_qwen36`。**每个注入模式的完整闭环**：
+前置变量：`ADMIN`/`DATA`=两侧 token；`DID=deployment_omlx_qwen36`；`BASE=http://192.168.1.8:8180`。
+以 `fault_502` 为例（其余模式仅替换 type/config 与预期状态码，见注）：
 
-```bash
-ADMIN=$(cat ~/piko-secrets/llmtier-joint-admin-token)
-DID=deployment_omlx_qwen36; BASE=http://192.168.1.8:8180
-# ① 打开（按模式；五种 config 见 LLMTier 设计 §3.2）
-curl -X PATCH -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json"   -d '[{"type":"fault_502","config":{"error_body":"injected"},"enabled":true}]'   $BASE/tier/admin/v1/deployments/$DID/diagnostics
-# ② 回读确认（GET 该接口，enabled=true）
-# ③ 执行 case 操作（Piko run / 直接请求）并采集证据
-# ④ 关闭
-curl -X PATCH -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json"   -d '[{"type":"fault_502","enabled":false}]'   $BASE/tier/admin/v1/deployments/$DID/diagnostics
-# ⑤ 回读确认 enabled=false + 复跑一次正常请求（应 Completed）→ 注入影响已消除
-```
+| 步 | 请求 | 预期响应 |
+|---|---|---|
+| 1 打开 | `PATCH $BASE/tier/admin/v1/deployments/$DID/diagnostics`，体=`[{"type":"fault_502","config":{"error_body":"injected backend error"},"enabled":true}]` | `200`，体含该注入项（type/config/enabled=true） |
+| 2 回读 | `GET 同路径` | `200`，数组含 `{"type":"fault_502",…,"enabled":true}` |
+| 3 触发（数据面直接） | `POST $BASE/v1/responses`，model=Worker，正常 input | `503` 不出现；**`502`** + body 含 `injected backend error` |
+| 4 触发（经 Piko） | `POST /runs`（8788，纯文本指令） | Piko run 终态 `Failed` + `failure.code=ModelUnavailable`、`cause_class=Dependency` |
+| 5 关闭 | `PATCH` 同路径，体=`[{"type":"fault_502","enabled":false}]` | `200`，enabled=false |
+| 6 恢复验证 | 复跑步骤 4 | `Completed`（注入影响消除） |
 
-五种模式与断言：① `fault_502`（error_body 注入）② `fault_503` ③ `delay`（delay_ms=5000，
-观测时延增加且不误判）④ `rate_limit`（retry_after_sec）⑤ `stream_terminate`/`malformed_event`
-（LT-OBS-5 Phase 5b，实现后补做）。**纪律**：打开后必须 GET 回读确认；case 结束必须关闭并复跑
-对照；注入配置变更事件应可在 audit/logs 查到（LT-OBS-3/5）。
+其余模式（替换步骤 1 的 type/config 与步骤 3/4 预期）：
+`fault_503`→同 502；`delay {"delay_ms":5000}`→响应时延 ≥5s 且请求不判失败；
+`rate_limit {"retry_after_sec":N}`→`429`+`Retry-After: N` 头；
+`stream_terminate`/`malformed_event`（Phase 5b）→consumer 收到不完整/畸形流且**有明确错误处置**。
+**纪律**：每步失败即停，按计划 §4.2 B-4 修订后再执行；结束态必须关闭全部注入并回读确认。
 
 ## 6. 性能、容量、功耗或时序测试
 
