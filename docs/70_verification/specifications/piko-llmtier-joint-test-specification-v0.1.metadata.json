@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-llmtier-joint-test-specification-v0.1",
   "document_type": "assurance.test-specification",
-  "document_version": "0.1.0-draft.5",
+  "document_version": "0.2.0-draft.1",
   "title": "Piko ↔ LLMTier 联调方案（联合调试规格）",
   "document_owner": "corezilla",
   "authors": [

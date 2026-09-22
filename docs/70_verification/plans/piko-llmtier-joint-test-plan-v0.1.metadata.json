@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-llmtier-joint-test-plan-v0.1",
   "document_type": "assurance.test-plan",
-  "document_version": "0.1.0-draft.7",
+  "document_version": "0.1.0-draft.8",
   "title": "Piko ↔ LLMTier 联调计划",
   "document_owner": "corezilla",
   "authors": [
