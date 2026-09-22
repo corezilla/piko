@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -36,7 +36,7 @@
 
 ## 1. 目标、范围与测试层级
 
-- **目标**：完成 Piko ↔ 真实 LLMTier 的首次联合调试（规格 §3 全部 12 个 case，按 JT 编号递增
+- **目标**：完成 Piko ↔ 真实 LLMTier 的首次联合调试（规格 §3 全部 13 个 case，按 JT 编号递增
   一步一步执行，不分必做/可选）。**总体目的：调通所有功能、消灭所有已知 bug**——发现问题即
   修复（Piko/LLMTier 双侧代码、设计、配置均可改）并回归，直到调通；确实修不好的记 SKIP，
   最终报告说明原因与证据。全部 case 结束后进行联合多维度测试（S3）。
@@ -61,7 +61,7 @@
 ## 3. 执行总流程（从开始到结束）
 
 ```text
-S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 缺陷修复与收敛 ──▶ S3 联合多维度测试 ──▶ S4 报告与归档
+S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-13 ──▶ S2 缺陷修复与收敛 ──▶ S3 联合多维度测试 ──▶ S4 报告与归档
    (每阶段开始      (每 case 六个标准动作,           (FAIL 复测、       (中间+最终成果,
     重复 S0)         见 §3.2)                         缺陷清单)          见 §5)
 ```
@@ -94,7 +94,7 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-12 ──▶ S2 缺陷修
   并汇总 wire/usage/错误映射/恢复/并发各维度观测。
 - **S4 报告与归档**：输出联调报告，**必须列出所有未通过点（FAIL/SKIP）及原因与证据**。
 
-执行顺序固定：**JT-01 → JT-02 → … → JT-12**（已完成的 JT-01/04/06/10 保留结果，其余按编号序）。
+执行顺序固定：**JT-01 → JT-02 → … → JT-13**（已完成 JT-01/02/03/04/06/07/08/09/10/11/12；JT-13 增补后执行）。
 同一时刻只执行一个 case（Piko 单执行槽 + 共享 oMLX）；**禁止**并行运行 `npm run test:live`。
 
 ## 4. 情况与阻塞处置（判定 → 动作）
@@ -150,7 +150,7 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 ## 7. Entry、Exit、Pass、Fail、Blocked 和 Invalid Criteria
 
 - **Entry**：§2 Entry criteria（= S0 全过）。
-- **Exit（联调 Gate）**：12 个 case 全部执行完毕且有终态判定 ∧ S3 联合多维度测试完成
+- **Exit（联调 Gate）**：13 个 case 全部执行完毕且有终态判定 ∧ S3 联合多维度测试完成
   （scenario 31/31 + `npm run check` + `npm run test:live` 41/41）∧ 联调报告产出（含所有
   未通过点及原因）并送 Owner 签批。修不好的点以 SKIP+原因进入报告，不阻塞 Gate 评审。
 - 单 case PASS/FAIL/RERUN/INVALID/BLOCKED 定义见 §4.1（与规格 §8 一致）。
@@ -159,9 +159,9 @@ JT-07 恢复段）；concurrency：JT-09；性能/容量：裁剪（规格 §6�
 
 - 执行：opencode（主导：环境、驱动、判定、缺陷定位）；审批：Piko Project Owner。
 - 资源：本机 8180/8788 端口、oMLX、`~/piko-secrets/` 联调凭据；不占用 8787/18999/8181。
-- 当前进度（2026-09-22，已完结）：**12/12 case 全部 PASS**（0 FAIL / 0 SKIP）；S2 修复缺陷 2 项
-  （D-1/D-2，见报告 §5.1）；S3 多维度回归全绿（scenario 31/31 joint、check 95、test:live 41/41）；
-  S4 报告已产出：`tests/integration/reports/piko-llmtier-joint-report-v0.1.md`。待 Owner 签批 Gate。
+- 当前进度（2026-09-22）：JT-01..JT-12 **12/12 全 PASS**（S2 修复缺陷 2 项 D-1/D-2；S3 回归全绿：
+  scenario 31/31 joint、check 95、test:live 41/41；S4 报告已产出）。JT-13（管理面统计变化检查）
+  增补后执行中。
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 

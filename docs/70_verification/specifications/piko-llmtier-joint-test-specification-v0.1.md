@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -119,12 +119,13 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15（vitest 实测） |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped（vitest 实测） |
+| JT-13 | L2 | 管理面统计变化 | 前值采样：`/tier/admin/v1/audit` 条数、`/tier/admin/v1/logs`（2h 窗口）条数、`/tier/v1/usage` 记录数 → 经 8788 执行一次 Piko run → 复读三处 | 三处均较前值增加：logs ≥+1、audit ≥+1、usage 新增记录且 tokens>0；新增 log 能关联到该请求 | NOT_RUN | 管理面控制文档 |
 
-**合计 12 case；执行顺序：按 JT 编号递增（JT-01 → JT-12）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
+**合计 13 case；执行顺序：按 JT 编号递增（JT-01 → JT-13）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
 
 ## 4. 正常、边界、负向与并发场景
 
-- **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12。
+- **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12、JT-13。
 - **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）。
 - **故障注入/恢复**：JT-08（LLMTier 进程级）、JT-07 恢复段（oMLX 重启）。
 - **并发**：JT-09（Piko 单执行槽 × LLMTier 并发保护）。
