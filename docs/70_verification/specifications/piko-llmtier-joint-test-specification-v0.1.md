@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-llmtier-joint-test-specification-v0.1` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.2.0-draft.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -27,13 +27,19 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
+> 0.2.0 重构说明（Owner review 结论）：联调必须具备**节点级可观测性设计**，而非事后补短板。
+> 本版新增：§2.4 控制通道/数据通道架构与节点清单、§2.5 节点调试能力矩阵与需求（未实现项提需求）、
+> §3.1 每用例调试选项/中间结果预期/定位预案。oMLX 为**外部系统**：只依赖其现有能力
+> （`/v1/models`、`/v1/responses`、Bearer），任何观测不足一律在 **LLMTier 端补偿**。
+
 ## 1. 目标、范围与被测对象
 
 验证 Piko 与**真实 LLMTier 服务**在 Data Plane 契约（`llmtier-piko-data-plane-control`
 v0.3.2-draft.3 + LLMTier V0.3 OpenAPI）下的端到端行为：请求/SSE wire 形状、模型解析、
 usage 采集与对账、错误映射、故障恢复，以及 Piko 任务语义（工具环/deadline/budget/cancel）
-在真实模型依赖下的保持。**不证明**：m5air 生产部署、production TLS/auth 激活、embeddings、
-Slinky capacity、模型输出质量。
+在真实模型依赖下的保持。**每个 case 都必须：声明打开哪些调试选项、写明各节点中间结果预期、
+给出数据/统计/日志不符时的定位预案**（§3.1）。**不证明**：m5air 生产部署、production TLS/auth
+激活、embeddings、Slinky capacity、模型输出质量。
 
 被测对象为双服务联合链路；Piko 侧既有 PK-T41..T54（mock，wire 基线 **candidate.7**）是本规格
 的契约对照基线。联调通过不改变 `overall.runtime_activation=false`。
@@ -41,14 +47,6 @@ Slinky capacity、模型输出质量。
 ## 2. 引用基线、环境与前置条件
 
 ### 2.1 拓扑与实例
-
-```text
-调用方 ──POST /runs(bearer piko-api-bearer)──▶ Piko joint 127.0.0.1:8788
-    Piko joint ──/v1/responses(SSE,model="Worker",Bearer data-token)──▶ LLMTier joint
-    Piko joint ──GET /v1/models（启动 preflight）──▶ LLMTier joint
-    Piko joint ──GET /tier/v1/usage（用量对账）──▶ LLMTier joint
-LLMTier joint 0.0.0.0:8180（loopback 与 192.168.1.8 均可达）──OMLX_API_KEY──▶ oMLX 127.0.0.1:9000
-```
 
 | 项 | 值 |
 |---|---|
@@ -78,9 +76,8 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
   （Data Plane Bearer，Piko `api_key_secret_ref` 指向它）、oMLX key 经 `OMLX_API_KEY=$(cat
   ~/piko-secrets/piko-llm-key)` 注入 LLMTier。全部 0600，不入库不入日志。
 - **Owner 决定（2026-09-21）**：模型 endpoint 允许明文 `http://`（trusted-LAN）。Piko schema
-  `llmtier.base_url` 已放宽为 `^https?://`（`interfaces/schemas/piko-runtime-config-v0.3.schema.json`），
-  负面样例改 `ftp://`；`config/runtime.llmtier.json` 因此直用 LAN IP `http://192.168.1.8:8180/v1/`
-  （符合 LLMTier 测试规范 TS-003 的 LAN 要求）。
+  `llmtier.base_url` 已放宽为 `^https?://`，负面样例改 `ftp://`；`config/runtime.llmtier.json`
+  直用 LAN IP `http://192.168.1.8:8180/v1/`（符合 LLMTier 测试规范 TS-003 的 LAN 要求）。
 
 ### 2.3 环境就绪证据（已完成，2026-09-21）
 
@@ -89,19 +86,72 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | V1 | `GET /healthz` | 200 `{"status":"ok","version":"0.3.0-dev"}` |
 | V2 | `POST /tier/admin/v1/probes`（deployment_omlx_qwen36） | `{"status":"healthy"}` |
 | V3 | `GET /v1/models`（data token） | OpenAI 形状，`data[].id` 含 `Worker` 等 6 个 service level |
-| V4 | 真实 `POST /v1/responses`（`stream:true,store:false`） | 10 个 SSE 事件至 `response.completed`；usage `input 18/output 1/total 19`、`cached_tokens=0`、`reasoning_tokens=1` |
-| V5 | `GET /tier/v1/usage?from&to` | 记录含 `request_id/record_version=2/is_final/measurement_status=measured`；`cache_write_tokens=null` |
+| V4 | 真实 `POST /v1/responses`（`stream:true,store:false`） | 10 个 SSE 事件至 `response.completed`；usage `input 18/output 1/total 19` |
+| V5 | `GET /tier/v1/usage?from&to` | 记录含 `request_id/record_version=2/is_final/measurement_status=measured` |
 | V6 | Piko joint 启动 preflight | `/v1/models` 含 `Worker`，启动成功 |
-| V7 | Piko→LLMTier→oMLX 端到端 run | `Completed`，`usage.quality=Partial`（缺 `cache_write_tokens`，契约允许）、`usage_observed_attempts=1` |
+| V7 | Piko→LLMTier→oMLX 端到端 run | `Completed`，`usage.quality=Partial`（缺 `cache_write_tokens`，契约允许） |
 | V8 | LAN 可达 | `http://192.168.1.8:8180/healthz` 200 |
-| V9 | Piko 回归 | `npm run check` 93 passed / 0 skipped |
+| V9 | Piko 回归 | `npm run check` 绿 |
 
-### 2.4 前置条件（每次执行前）
+### 2.4 通道与节点架构（控制通道 / 数据通道）
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━ 控制通道（任务与管理） ━━━━━━━━━━━━━━━━━━━━━━━
+ Operator/测试执行器 ──1──▶ 【节点A：Piko joint】 127.0.0.1:8788
+     1a POST /runs            （提交任务）
+     1b GET  /runs/{id}       （状态轮询）
+     1c POST /runs/{id}:cancel（取消）
+     1d GET  /runs/{id}/result（结果）
+ Operator/测试执行器 ──2──▶ 【节点B：LLMTier joint】 192.168.1.8:8180
+     2a /tier/admin/v1/providers|deployments|service-levels（CRUD，If-Match ETag）
+     2b /tier/admin/v1/probes  （部署探活）
+     2c /tier/admin/v1/audit|logs|usage（管理面观测）
+ Piko ──3──▶ LLMTier：GET /v1/models（启动 preflight，配置校验）
+
+━━━━━━━━━━━━━━━━━━━━━━━ 数据通道（模型推理） ━━━━━━━━━━━━━━━━━━━━━━━━
+ Piko ──4──▶ LLMTier：POST /v1/responses（SSE；model=Worker；stream:true,store:false）
+ Piko ──5──▶ LLMTier：GET /tier/v1/usage（用量对账查询）
+ LLMTier ──6──▶ 【节点C：oMLX（外部系统）】 127.0.0.1:9000
+     6a POST /v1/responses（上游推理，Bearer OMLX_API_KEY）
+     6b GET  /v1/models（上游模型清单）
+```
+
+| 节点 | 角色 | 本节点内部可观测载体（现状） |
+|---|---|---|
+| A：Piko joint | Agent runtime（prompt 装配、工具环、任务状态机） | Pi 会话 JSONL（prompt/响应/工具历史）；SQLite（runs/results/model_attempts/tool_calls）；stdout 日志 |
+| B：LLMTier joint | 模型网关（鉴权、路由 service level、透传 SSE、usage 计量） | state SQLite（usage 账本）；`/admin/v1/logs`（HTTP 访问行，含 request_id）；`/admin/v1/audit`（管理动作）；service stdout |
+| C：oMLX（外部系统） | 模型推理后端 | 仅其现有 HTTP API；**不可要求其新增观测**，不足在节点 B 补偿（见 §2.5 R-T-1） |
+
+### 2.5 节点调试能力矩阵与需求（未实现项 → 提需求）
+
+每节点四类调试能力：**环回**（收发捕获）、**日志**、**数据快照**、**统计**。
+
+| 节点 | 维度 | 现状 | 缺口 → 需求 ID | 承接方 |
+|---|---|---|---|---|
+| A Piko | 环回 | Pi 会话 JSONL 捕获完整 prompt/响应/工具历史（会话级）✅；provider 响应环回（status/x-request-id，调试开关）✅ **已实现** | 原始请求体贴捕获（现以字节数+会话 JSONL 替代） | R-P-1（主体已实现） |
+| A Piko | 日志 | stdout（info）；`observability.log_level` 可配 ✅；**已实现** `PIKO_PROVIDER_DEBUG`/`PIKO_PROVIDER_DEBUG_FILE` 开关（逐请求出站明细落 JSONL） | — | R-P-2（已实现） |
+| A Piko | 数据快照 | SQLite（runs/results/model_attempts.raw_usage/tool_calls）✅ | — | — |
+| A Piko | 统计 | progress 计数 + Result.usage 聚合 ✅；**已实现** `provider_calls` 表持久化出站调用（ts/status/x-request-id） | — | R-P-3（已实现，实测 x-request-id==账本 request_id） |
+| B LLMTier | 环回 | ❌ 无上游(oMLX)调用捕获 | 每请求记录上游 URL/status/时延/错误体（调试开关控制，管理面可查） | **R-T-1** |
+| B LLMTier | 日志 | `/admin/v1/logs` HTTP 访问行（含 request_id）✅；stdout ✅ | 上游错误细节不落日志（并入 R-T-1） | R-T-1 |
+| B LLMTier | 数据快照 | state SQLite + usage 账本（逐请求）✅ | 缺 per-request 上游响应快照（并入 R-T-1） | R-T-1 |
+| B LLMTier | 统计 | usage 账本 ✅；audit（仅管理动作）✅ | 缺数据面计数器（按 model/status 的请求数、错误数、时延分布，管理面可查） | **R-T-2** |
+| B LLMTier | 审计语义 | audit 仅记管理动作（实测证实） | 数据面是否审计需在管理控制文档**明示** | **R-T-3** |
+| B LLMTier | readyz | 占位 `Embedding-v1` 致全局 `degraded` | 占位 service level 剔除或标注 | **R-T-4** |
+| C oMLX（外部） | 全部 | **外部系统：只依赖现状**（`/v1/models`、`/v1/responses`、Bearer） | 任何观测不足**在节点 B 补偿**（R-T-1 的上游捕获即为其补偿点）；可用性探测用节点 B 的 probes | — |
+
+需求管理：R-T-1..R-T-4 已作为正式需求提交至 LLMTier 仓库
+（`docs/10_requirements/llmtier-observability-debug-requirements-v0.1`）；R-P-1..R-P-3 由 Piko
+承接（记录于本节，实现后在本表回填状态）。**未实现的需求不阻塞 case 执行**——case 以现有能力
+的替代证据执行，并在证据中标注"R-* 待实现后复核"。
+
+### 2.6 前置条件（每次执行前）
 
 1. 两个联调实例存活（8180、8788），oMLX 健康（9000）；
 2. LLMTier `readyz` 中 `Worker` 为 `available`（全局 `degraded` 系 `Embedding-v1` 占位所致，不作门禁）；
 3. `npm run check` 绿；
-4. 不携带无关环境变量启动（避免误连生产配置）。
+4. 不携带无关环境变量启动（避免误连生产配置）；
+5. 按 §3.1 确认本 case 的调试选项：已实现的打开；未实现的（R-*）记录"替代证据"标注。
 
 ## 3. Case Matrix
 
@@ -111,35 +161,58 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-02 | L1 | wire/tool-loop | 允许 `read` 的最小任务，指令要求读 `var/scenario-seeds/pts-01/inputs/requirements.md` 后作答 | `Completed`；LLMTier 收到 ≥2 次请求（第二轮含工具结果历史）且均接受 | PASS | `run-cdfe7fa5…`；attempts=2，账本 2 条 |
 | JT-03 | L1 | wire/reasoning | 触发推理输出的任务（与 JT-01 同指令即可，模型带 reasoning） | SSE/结果正常；下一轮历史含 opaque reasoning item 时仍被接受（以 JT-02 第二轮成功佐证） | PASS | `run-d6b07de8…`；reasoning_tokens=2 |
 | JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | PASS | listening 日志；`Worker in models: True` |
-| JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 后以 nohup 后台启动 joint Piko（macOS 无 `timeout(1)`，禁用），读启动日志后 kill 残留并恢复配置重启 | 启动即失败：日志含 `configured model is not available: NoSuchModel`，且 8788 不监听 | NOT_RUN | ICD §6 |
-| JT-06 | L2 | negative/auth | 以错误 token 调 `POST /v1/responses` 与 `GET /v1/models` | 认证被拒（实测 **403**；ICD §6 写 `401 auth`——偏差记入联调报告，作为对 LLMTier ICD 的 review 发现；401/403 均判 PASS） | PASS | 403/403 实测 |
-| JT-07 | L2 | negative/dependency | 经 admin API 把 provider `provider_omlx_m5mac` 的 endpoint PATCH 为死地址（`http://127.0.0.1:9299/v1`，If-Match ETag）后提交 run；断言后 PATCH 回 `http://127.0.0.1:9000/v1` | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；恢复 endpoint 后新 run `Completed`。**禁止 kill oMLX 进程**（共享资源，18999 实例同用） | PASS | 首跑暴露 Piko 分类缺陷（503→ModelResponseInvalid），**已修复**（`isProviderUnavailableMessage`，含单测）；回归 `run-fa5d604a…` PASS，恢复后 `run-edff2ce3…` Completed |
-| JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | PASS | `run-fceab2d8…` Failed/ModelUnavailable/Dependency；重启后 `run-5a4395f4…` Completed。首跑暴露 `Connection error.` 分类缺陷，**已修复**（分类器扩展+单测） |
-| JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | PASS | R1=Running/R2=Queued → 双 `Completed`（`jt-09-a/b`） |
+| JT-05 | L2 | negative/model | `agent.model="NoSuchModel"` 后以 nohup 后台启动 joint Piko（macOS 无 `timeout(1)`，禁用），读启动日志后 kill 残留并恢复配置重启 | 启动即失败：日志含 `configured model is not available: NoSuchModel`，且 8788 不监听 | PASS | 日志实测命中报错；8788 无监听；恢复后正常 |
+| JT-06 | L2 | negative/auth | 以错误 token 调 `POST /v1/responses` 与 `GET /v1/models` | 认证被拒（实测 **403**；ICD §6 写 `401 auth`——偏差记入联调报告 F-1；401/403 均判 PASS） | PASS | 403/403 实测 |
+| JT-07 | L2 | negative/dependency | 经 admin API 把 provider `provider_omlx_m5mac` 的 endpoint PATCH 为死地址（`http://127.0.0.1:9299/v1`，If-Match ETag）后提交 run；断言后 PATCH 回 `http://127.0.0.1:9000/v1` | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；恢复 endpoint 后新 run `Completed`。**禁止 kill oMLX 进程**（共享资源，18999 实例同用） | PASS | `run-fa5d604a…` PASS；恢复后 `run-edff2ce3…` Completed。首跑暴露 D-1 分类缺陷，已修复 |
+| JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | PASS | `run-fceab2d8…` Failed/ModelUnavailable/Dependency；重启后 `run-5a4395f4…` Completed。首跑暴露 D-2 分类缺陷，已修复 |
+| JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | PASS | R1=Running/R2=Queued → 双 `Completed` |
 | JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
-| JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15（vitest 实测） |
-| JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped（vitest 实测） |
-| JT-13 | L2 | 管理面统计变化 | 前值采样（audit 条数 / logs 条数 / usage 记录数）→ ① 经 8788 执行一次 Piko run（数据面）② 触发一次 admin probe（管理面）→ 复读三处 | 数据面：logs ≥+1 ∧ usage 新增记录且 tokens>0（**audit 不变属预期**——audit 仅记管理动作，实测 8 条全为 `provider.update`）；管理面：probe 后 audit +1（`deployment.probe`） | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
+| JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15 |
+| JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped |
+| JT-13 | L2 | 管理面统计变化 | 前值采样（audit/logs/usage）→ ① Piko run（数据面）② admin probe（管理面）→ 复读 | 数据面：logs ≥+1 ∧ usage +1（audit 不变属预期，audit 仅管理动作）；管理面：probe 后 audit +1 | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
 
-**合计 13 case；执行顺序：按 JT 编号递增（JT-01 → JT-13）一步一步执行，不分必做/可选。每完成一个 case，立即回填本表「状态/Run·证据」两列并提交。**
+**合计 13 case；执行顺序：按 JT 编号递增（JT-01 → JT-13）一步一步执行，不分必做/可选。每完成一个
+case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序执行完毕（全 PASS）；0.2.0 重构后的
+复核执行见 §3.1 各 case 的调试选项与中间结果预期。**
+
+### 3.1 每用例调试选项、中间结果预期与定位预案
+
+**通用默认（所有 case 均打开）**：节点A 会话 JSONL（prompt 环回，会话级）、节点A SQLite 快照、
+节点B `logs`、节点B `usage` 账本；失败即运行 `scripts/joint-diagnose.sh <run_id>`（§7.1）。
+**R-P-1/R-P-2/R-P-3/R-T-1/R-T-2 实现后**，对应 case 复核时增开：provider HTTP 环回、per-run
+DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回填报告）。
+
+| Case（族） | 打开的调试选项（节点） | 中间结果预期（节点 → 证据） | 定位预案（数据/统计/日志不符时） |
+|---|---|---|---|
+| JT-01/03（wire-文本） | A:JSONL+SQLite；B:logs+usage | A1 Piko attempts=1、usage.observed=1；A2 JSONL 含完整 system/user 历史与 assistant 输出；B1 logs 有 `POST /v1/responses 200`；B2 usage +1 且 tokens>0 | 无 B1 行→Piko→B 网络/B 挂（探活区分）；B1 4xx→请求形状（对照 A2 判 Piko 装配）；B1 5xx→上游（B→C，见 JT-07 预案）；A2 prompt 异常→Piko 装配 |
+| JT-02（wire-工具环） | 同上 + A:known_actions | A1 attempts=2、tool_calls≥1；A2 第二轮历史含 `function_call`+`function_call_output`；B1 两条 200；B2 usage +2 | attempts=1→工具未被调用（查 A2 模型输出是否 function_call）；B 只收 1 条→Piko 二轮装配缺陷（对照 A2） |
+| JT-04/05（配置/模型解析） | A:启动日志；B:logs(/v1/models) | 正常：A listening（preflight 200）；异常：A 日志含 `configured model is not available` | preflight 非 200→查 B `/v1/models` 实际返回（service level 是否配置/启用） |
+| JT-06（认证） | B:logs | `POST /v1/responses` 与 `/v1/models` 均认证拒绝（401/403） | 200→token 未生效（B 端凭据状态）；对照 §2.2 token 文件 |
+| JT-07（依赖断链） | B:audit（PATCH 记录）+logs；A:Result | audit +1（`provider.update`）；logs 5xx `provider_unavailable`；A `Failed/ModelUnavailable/Dependency` | A 得 ModelResponseInvalid→Piko 分类缺陷（已修 D-1）；audit 无记录→PATCH 未生效（查 ETag）；恢复后不 Completed→B 端 provider 状态未刷新（probe） |
+| JT-08（LLMTier 进程级） | A:JSONL（retry 记录）；B:logs/探活 | A JSONL 含 `assistant.retry_wait`×2 → `assistant_error: Connection error.`；A `Failed/ModelUnavailable`；B 重启前 healthz 000 | A 悬挂不终态→Piko 重试/取消路径缺陷；B 重启后 healthz 非 200→bootstrap/env 问题（§2.1）；误判 Completed→注入未命中 INVALID |
+| JT-09（并发） | A:两 run 状态轮询；B:logs | 立即态 Running+Queued；终态双 Completed；B logs 无 5xx | B 5xx/429→B 并发保护触发（对账 R-T-2 计数器，未实现前以 logs 佐证）；双 Running→Piko 单槽破坏 |
+| JT-10（usage 对账） | B:usage；A:Result.usage | 单次调用：账本==Piko（input 含 cached）；多次：按 request 求和 | 不一致→先比对窗口（时区/边界），再对照 B2 逐条与 A1 attempts 数 |
+| JT-11/12（回归） | 全默认 | 套件计数：15/15、31/31；失败 case 转 §7.1 定位 | 任一失败 case → `joint-diagnose.sh` → 按其层位结论处置 |
+| JT-13（统计变化） | B:audit/logs/usage 三面 | 数据面：logs ≥+1、usage +1（audit 不变属预期）；管理动作（probe）：audit +1 | logs 不增→请求未到 B；usage 不增→上游未完成计量（对照 B1 状态）；probe 后 audit 不增→B 审计缺陷（R-T-3） |
 
 ## 4. 正常、边界、负向与并发场景
 
 - **normal**：JT-01、JT-02、JT-03、JT-04、JT-09、JT-10、JT-11、JT-12、JT-13。
 - **negative**：JT-05（配置错误）、JT-06（认证失败）、JT-07（依赖不可用）。
-- **故障注入/恢复**：JT-08（LLMTier 进程级）、JT-07 恢复段（oMLX 重启）。
+- **故障注入/恢复**：JT-08（LLMTier 进程级）、JT-07 恢复段。
 - **并发**：JT-09（Piko 单执行槽 × LLMTier 并发保护）。
 - **性能/容量**：裁剪——无 SLA 基线；仅按 §6 记录观测值。
 
 ## 5. Recovery、重放、幂等与故障注入
 
-- **JT-08 注入程序**：① 提交长任务（`deadline=+5min`）；② 轮询 8788 至 `Running`；③
-  `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；④ 按 §2.1 命令重启 LLMTier（同库、同 env）；
-  ⑤ 轮询 run 至终态并断言失败码；⑥ 复跑 JT-01 验证恢复。允许 1 次 RERUN。
-- **JT-07 注入程序**：`kill` oMLX 进程 → 提交 run → 断言失败映射 → 重启 oMLX → 复跑验证。
-  oMLX 启动方式以当前宿主运行方式为准（不新写启动脚本）。
-- 更细的 Piko 内部崩溃/重放语义（Harness 提交点崩溃、旧 worker 迟到写等）由
-  `piko-agent-runtime-test-specification-v0.3` 与 scenario 套件承担，本规格不重复。
+- **JT-08 注入程序**：① 提交长任务（`deadline=+5min`）；② 轮询 8788 至 `Running`（`model_calls≥1`）；
+  ③ `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；④ **等 run 终态**；⑤ 按 §2.1 重启 LLMTier
+  （同库、同 env：`OMLX_API_KEY`+两 token）；⑥ 复跑 JT-01。允许 1 次 RERUN。
+- **JT-07 注入程序**：admin API PATCH provider endpoint → 死地址（If-Match ETag）→ 提交 run →
+  断言失败映射 → PATCH 恢复 → 复跑验证。**禁止 kill oMLX 进程**（共享资源，18999 实例同用；
+  oMLX 为外部系统，观测不足在 LLMTier 端补偿）。
+- 更细的 Piko 内部崩溃/重放语义由 `piko-agent-runtime-test-specification-v0.3` 与 scenario 套件
+  承担，本规格不重复。
 
 ## 6. 性能、容量、功耗或时序测试
 
@@ -148,12 +221,15 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 
 ## 7. 执行步骤与自动化入口
 
+每 case：① 按 §2.6 确认/打开调试选项 → ② 按 §3 操作/注入 → ③ 采集各节点中间证据（§3.1 预期）→
+④ 判定 Oracle → ⑤ 不符时走 §3.1 定位预案 / §7.1 决策树 → ⑥ 回填并提交。
+Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/scenario-run.sh`。
+
 ### 7.1 失败定位流程（诊断入口）
 
-失败时先运行 `scripts/joint-diagnose.sh <run_id>`（无需调试开关，五层证据一次拉取）：
-① Piko run/Result（码+message+known_actions）→ ② Pi 会话 JSONL（**Piko 组装的完整 prompt 历史**，
-判定"prompt 组织对不对"）→ ③ LLMTier logs（run 时间窗，请求是否到达/返回码）→ ④ LLMTier usage
-（上游是否完成计量）→ ⑤ oMLX/LLMTier 直连探活，最后输出层位结论：
+失败时先运行 `scripts/joint-diagnose.sh <run_id>`（五层证据一次拉取）：
+① Piko run/Result → ② Pi 会话 JSONL（**Piko 组装的完整 prompt 历史**）→ ③ LLMTier logs（时间窗）→
+④ LLMTier usage → ⑤ oMLX/LLMTier 直连探活，输出层位结论：
 
 | failure.code | 层位 | 再区分 |
 |---|---|---|
@@ -163,41 +239,29 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | `BudgetExceeded`/`DeadlineExceeded` | Piko 任务限额 | — |
 | `UnsafeRetryBlocked` | Piko 恢复语义 | — |
 
-已知缺口（S4 报告 F-4/F-5 跟踪）：Piko 与 LLMTier 之间无端到端 request_id 关联、数据面无审计、
-无逐跳时延统计；`logs` 仅为 HTTP 访问日志（不含上游调用细节）。
-
-- **LLMTier 面**：`curl` + `jq`，Bearer 取 `~/piko-secrets/llmtier-joint-data-token`（data）或
-  `llmtier-joint-admin-token`（admin/probe）。
-- **Piko 面**：`POST /runs`/`GET /runs/{id}`/`GET /runs/{id}/result` 指向 `http://127.0.0.1:8788`；
-  场景回归复用 `tests/integration/scenario-e2e.test.ts`，以 env
-  `PIKO_URL=http://127.0.0.1:8788`（runner/harness 已支持 `PIKO_URL`）将全部流量指向 joint 实例。
-- **每 case 步骤**：① 前置检查（§2.4）→ ② 按 §3 操作/注入 → ③ 采集两侧证据（Piko Result JSON、
-  LLMTier 账本记录、必要时的 SSE 原文）→ ④ 断言 Oracle → ⑤ 记录 run_id 与观测值。
-- **实例重启命令**（见 §2.1；LLMTier 重启必须带 `OMLX_API_KEY` 与两个 token env）。
+已知观测缺口（需求 R-P-1..3 / R-T-1..4 承接）：Piko 与 LLMTier 之间无端到端 request_id 关联、
+数据面无审计与计数器、无逐跳时延、`logs` 仅为 HTTP 访问日志。
 
 ## 8. Pass/Fail/Blocked/Invalid 判定
 
 - **PASS** = 该 case 全部 Oracle 满足（错误映射类以「明确失败码 + 及时终态」为 PASS，不要求 Completed）。
-- **FAIL** = 任一 Oracle 不满足，或出现悬挂（超过 deadline 未终态）、错误码错乱、账本与响应不一致。
+- **FAIL** = 任一 Oracle 不满足，或出现悬挂（超 deadline 未终态）、错误码错乱、账本与响应不一致。
 - **RERUN** = 模型非确定性或注入时序敏感，允许 1 次重跑并记录两次运行。
-- **BLOCKED** = 联调实例/oMLX 不可用（此时相关 case 记 BLOCKED，不计 Fail）。
+- **BLOCKED** = 联调实例/oMLX 不可用（相关 case 记 BLOCKED，不计 Fail）。
 - **INVALID** = 步骤偏离本规格（重置后重跑，不计分母）。
 
 ## 9. Artifact、日志、测量与证据保存
 
-每 case 记录：Piko `run_id` 与 Result JSON（state/summary/usage/failure/known_actions）、
-LLMTier 账本记录（`request_id/record_version/measurement_status/tokens`）、注入与恢复时间点、
-wall-clock。SSE 原文仅在 wire 类 case（JT-01..03）保留样例。汇总为 STD test-report
-（`tests/integration/reports/piko-llmtier-joint-report-*.md`，经 new-design 生成）。
-失败现场保留两侧进程日志片段（LLMTier `state/llmtier-piko-joint.log`、Piko
-`var/piko-llmtier-joint.log`）。
+每 case 记录：Piko `run_id` 与 Result JSON、LLMTier 账本记录、注入与恢复时间点、wall-clock；
+wire 类 case 保留 SSE 原文样例。汇总为 STD test-report（`tests/integration/reports/
+piko-llmtier-joint-report-v0.1.md`）。失败现场保留两侧进程日志片段（`LLMTier/state/
+llmtier-piko-joint.log`、`piko/var/piko-llmtier-joint.log`）。
 
 ## 10. 安全、清理与可重复性
 
-- 凭据仅存 `~/piko-secrets/`（0600）；报告与日志不得包含 token 明文；疑似泄露即按「删库→重新
+- 凭据仅存 `~/piko-secrets/`（0600）；报告与日志不得包含 token 明文；疑似泄露即「删库→重新
   bootstrap→换 token」处置。
-- 全部 kill 操作按端口定位进程（`lsof -nP -iTCP:<port> -t`），**禁止**按进程名批量杀（保护
-  8787/18999 上的无关实例）。
-- 种子/指令不依赖外部状态；环境可由 §2.1 命令完整重建（重置=删 `state/llmtier-piko-joint.sqlite3*`
-  后重新 bootstrap）。联调结束后卸载步骤：杀 8180/8788 进程、删联调库与日志、删两个联调 token；
-  既有 `piko-llm-key`/`piko-api-bearer` 等凭据不得删除或覆盖。
+- 全部 kill 操作按端口定位进程（`lsof -nP -iTCP:<port> -t`），**禁止**按进程名批量杀。
+- 环境可由 §2.1 命令完整重建（重置=删 `state/llmtier-piko-joint.sqlite3*` 后重新 bootstrap）。
+  联调结束后卸载：杀 8180/8788 进程、删联调库/日志/token；既有 `piko-llm-key`/`piko-api-bearer`
+  等凭据不得删除或覆盖。

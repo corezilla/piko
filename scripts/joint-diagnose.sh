@@ -74,6 +74,9 @@ print(f'窗口内 usage 记录 {len(d)} 条')
 for x in d[-5:]: print(' ', x['request_id'][:18], x['model'], x['measurement_status'], f\"in={x['input_tokens']} out={x['output_tokens']}\")"
 fi
 
+echo "== 4.5 provider_calls（Piko 持久化的出站调用，含 x-request-id）=="
+sqlite3 "${PIKO_SQLITE_PATH:-$DB}" "SELECT ts,status,coalesce(request_id,'-') FROM provider_calls WHERE run_id='$RID' ORDER BY ts;" 2>/dev/null || true
+
 echo "== 5. oMLX 直连 =="
 echo "models -> $(curl -s -m 3 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $OMLX_KEY" http://127.0.0.1:9000/v1/models)"
 echo "LLMTier healthz -> $(curl -s -m 3 -o /dev/null -w '%{http_code}' "$TIER/healthz")"

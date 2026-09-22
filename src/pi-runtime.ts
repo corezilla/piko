@@ -9,6 +9,7 @@ import { openAIResponsesApi } from "../upstream/pi/packages/ai/src/api/openai-re
 import { envApiKeyAuth } from "../upstream/pi/packages/ai/src/auth/helpers.ts";
 import type { Model } from "../upstream/pi/packages/ai/src/types.ts";
 import type { AgentResult, RuntimeConfig, TaskRequest } from "./types.js";
+import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { ToolRegistry } from "./config.js";
@@ -70,8 +71,16 @@ export class PiRuntime {
       if(!this.store.reserveModel(runId,event.runId,step,event.attempt)){budgetExceeded=true;throw new Error("ModelCallLimitExceeded")}
       return {streamOptions:{maxRetries:0}};
     });
+    const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
+    const debugFile=process.env.PIKO_PROVIDER_DEBUG_FILE??`${this.config.pi.session_root}/provider-debug.jsonl`;
+    const debugLine=(obj:Record<string,unknown>)=>{if(!providerDebug)return;try{appendFileSync(debugFile,JSON.stringify({ts:new Date().toISOString(),run_id:runId,...obj})+"\n")}catch{/* debug writes must not break execution */}};
+    if(providerDebug)created.harness.hooks.on("before_payload",event=>{const payload=(event as {payload?:unknown}).payload;debugLine({kind:"request",model,bytes:JSON.stringify(payload??null).length});return undefined;});
     created.harness.hooks.on("after_response",event=>{
       if(active)this.store.terminalModel(runId,active.op,active.step,active.attempt);
+      const ev=event as {runId?:string;status?:number;headers?:Record<string,string>};
+      const requestId=ev.headers?.["x-request-id"]??ev.headers?.["X-Request-ID"]??null;
+      try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,"")}catch{/* observability must not break execution */}
+      debugLine({kind:"response",operation_id:ev.runId??runId,status:ev.status??null,request_id:requestId});
       return undefined;
     });
     created.harness.hooks.on("before_tool",async event=>{
