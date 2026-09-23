@@ -102,10 +102,10 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | # | 检查 | 实测 |
 |---|---|---|
 | V1 | `GET /healthz` | 200 `{"status":"ok","version":"0.3.0-dev"}` |
-| V2 | `POST /tier/admin/v1/probes`（deployment_omlx_qwen36） | `{"status":"healthy"}` |
+| V2 | `POST /v1/probes`（deployment_omlx_qwen36） | `{"status":"healthy"}` |
 | V3 | `GET /v1/models`（data token） | OpenAI 形状，`data[].id` 含 `Worker` 等 6 个 service level |
 | V4 | 真实 `POST /v1/responses`（`stream:true,store:false`） | 10 个 SSE 事件至 `response.completed`；usage `input 18/output 1/total 19` |
-| V5 | `GET /tier/v1/usage?from&to` | 记录含 `request_id/record_version=2/is_final/measurement_status=measured` |
+| V5 | `GET /v1/usage?from&to` | 记录含 `request_id/record_version=2/is_final/measurement_status=measured` |
 | V6 | Piko joint 启动 preflight | `/v1/models` 含 `Worker`，启动成功 |
 | V7 | Piko→LLMTier→oMLX 端到端 run | `Completed`，`usage.quality=Partial`（缺 `cache_write_tokens`，契约允许） |
 | V8 | LAN 可达 | `http://192.168.1.8:8180/healthz` 200 |
@@ -121,14 +121,14 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
      1c POST /runs/{id}:cancel（取消）
      1d GET  /runs/{id}/result（结果）
  Operator/测试执行器 ──2──▶ 【节点B：LLMTier joint】 192.168.1.8:8180
-     2a /tier/admin/v1/providers|deployments|service-levels（CRUD，If-Match ETag）
-     2b /tier/admin/v1/probes  （部署探活）
-     2c /tier/admin/v1/audit|logs|usage（管理面观测）
+     2a /v1/providers|deployments|service-levels（CRUD，If-Match ETag）
+     2b /v1/probes  （部署探活）
+     2c /v1/audit|logs|usage（管理面观测）
  Piko ──3──▶ LLMTier：GET /v1/models（启动 preflight，配置校验）
 
 ━━━━━━━━━━━━━━━━━━━━━━━ 数据通道（模型推理） ━━━━━━━━━━━━━━━━━━━━━━━━
  Piko ──4──▶ LLMTier：POST /v1/responses（SSE；model=Worker；stream:true,store:false）
- Piko ──5──▶ LLMTier：GET /tier/v1/usage（用量对账查询）
+ Piko ──5──▶ LLMTier：GET /v1/usage（用量对账查询）
  LLMTier ──6──▶ 【节点C：oMLX（外部系统）】 127.0.0.1:9000
      6a POST /v1/responses（上游推理，Bearer OMLX_API_KEY）
      6b GET  /v1/models（上游模型清单）
@@ -191,7 +191,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-07 | L2 | negative/dependency | 经 admin API 把 provider `provider_omlx_m5mac` 的 endpoint PATCH 为死地址（`http://127.0.0.1:9299/v1`，If-Match ETag）后提交 run；断言后 PATCH 回 `http://127.0.0.1:9000/v1` | Run 终态 `Failed` 且 `failure.code=ModelUnavailable`（`cause_class=Dependency`），无悬挂；恢复 endpoint 后新 run `Completed`。**禁止 kill oMLX 进程**（共享资源，18999 实例同用） | PASS | `run-fa5d604a…` PASS；恢复后 `run-edff2ce3…` Completed。首跑暴露 D-1 分类缺陷，已修复 |
 | JT-08 | L4 | recovery | run 执行中 `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；**等 run 到终态后再**按 §2.1 重启（同库同 token） | 在飞 run 到达明确终态：`Failed` 且 failure 非空；若为 `Completed` 视为注入未命中 → INVALID 重跑。重启后 JT-01 复跑 `Completed` | PASS | `run-fceab2d8…` Failed/ModelUnavailable/Dependency；重启后 `run-5a4395f4…` Completed。首跑暴露 D-2 分类缺陷，已修复 |
 | JT-09 | L4 | concurrency | 同时提交 2 个 run | 一个 `Running` 一个 `Queued`，均达终态；LLMTier 无 5xx | PASS | R1=Running/R2=Queued → 双 `Completed` |
-| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /tier/v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
+| JT-10 | L2 | usage 对账 | JT-01 完成后取 `GET /v1/usage` 最新记录 | 单次模型调用时账本 tokens 与 Piko `Result.usage` 一致（Piko `input_tokens` 含 cached）；多次调用按 request 求和后一致；`record_version` 单调不减 | PASS | 账本==Piko 846/2/848 |
 | JT-11 | L3 | regression/切片 | scenario suite 指向 8788，跑 PTS-01/02/04/05 切片 | 切片全 PASS；`usage.quality=Partial` 符合预期 | PASS | 15/15 |
 | JT-12 | L3 | regression/全量 | 按 §2.1.1 env 契约运行 scenario 套件（`SCENARIO_MATRIX=0`） | **31/31 PASS**（35 − PTS-06×4；PTS-06 已在生产实例 41/41 中覆盖） | PASS | 31 passed / 4 skipped |
 | JT-13 | L2 | 管理面统计变化 | 前值采样（audit/logs/usage）→ ① Piko run（数据面）② admin probe（管理面）→ 复读 | 数据面：logs ≥+1 ∧ usage +1（audit 不变属预期，audit 仅管理动作）；管理面：probe 后 audit +1 | PASS | run=`run-e6cf0850…`；logs +4、usage +1；probe 后 audit 8→9 |
@@ -254,7 +254,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 
 | 步 | 请求 | 预期响应 |
 |---|---|---|
-| 1 打开 | `PATCH $BASE/tier/admin/v1/deployments/$DID/diagnostics`，体=`[{"type":"fault_502","config":{"error_body":"injected backend error"},"enabled":true}]` | `200`，体含该注入项（type/config/enabled=true） |
+| 1 打开 | `PATCH $BASE/v1/deployments/$DID/diagnostics`，体=`[{"type":"fault_502","config":{"error_body":"injected backend error"},"enabled":true}]` | `200`，体含该注入项（type/config/enabled=true） |
 | 2 回读 | `GET 同路径` | `200`，数组含 `{"type":"fault_502",…,"enabled":true}` |
 | 3 触发（数据面直接） | `POST $BASE/v1/responses`，model=Worker，正常 input | `503` 不出现；**`502`** + body 含 `injected backend error` |
 | 4 触发（经 Piko） | `POST /runs`（8788，纯文本指令） | Piko run 终态 `Failed` + `failure.code=ModelUnavailable`、`cause_class=Dependency` |
@@ -287,7 +287,7 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 
 #### 7.0.1 LLMTier 注入开关（LT-OBS-5，需 LT-OBS-5 实现后可用）
 
-`PATCH|GET /tier/admin/v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
+`PATCH|GET /v1/deployments/{deployment_id}/diagnostics`（admin Bearer）
 
 - 请求体（PATCH）：`[{"type":<enum>,"config":{…},"enabled":<bool>}]`
 - type/config 定义：
@@ -310,7 +310,7 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 
 #### 7.0.2 LLMTier 快照查询（LT-OBS-1）
 
-`GET /tier/admin/v1/diagnostics/snapshots?since&until&deployment_id&model&limit&cursor`（admin）
+`GET /v1/diagnostics/snapshots?since&until&deployment_id&model&limit&cursor`（admin）
 
 - 过滤：since/until 为 `captured_at` **闭区间**；deployment_id/model 精确匹配；limit 1–500 默认 50；
   cursor=上页末条 id（keyset）。
@@ -323,7 +323,7 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 
 #### 7.0.3 LLMTier 统计查询（LT-OBS-2）
 
-`GET /tier/admin/v1/diagnostics/stats?since&until&deployment_id&model`（admin）
+`GET /v1/diagnostics/stats?since&until&deployment_id&model`（admin）
 
 - 响应 200：`{"windows":[{stat_hour:str(UTC 小时，按请求完成时间), deployment_id:str|null,
   model:str|null, status_breakdown:{"200":int,"503":int,…,"upstream_error":int},
@@ -333,7 +333,7 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 
 #### 7.0.4 LLMTier 单请求 trace（LT-OBS-6）
 
-`GET /tier/admin/v1/trace/{request_id}`（admin）
+`GET /v1/trace/{request_id}`（admin）
 
 - 200：`{"request_id", "correlation_id":str|null(consumer 未提供→null),
   "stages":[{"stage":enum(received,validated,routed,upstream_started,upstream_ended,completed,error,aborted),

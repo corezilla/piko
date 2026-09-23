@@ -55,7 +55,7 @@ to=(t+datetime.timedelta(minutes=10)).isoformat().replace("+00:00","Z")
 print(urllib.parse.quote(f)+"&to="+urllib.parse.quote(to))
 EOF
 )
-  curl -s -m 5 -H "Authorization: Bearer $ADMIN" "$TIER/tier/admin/v1/logs?from=$W" \
+  curl -s -m 5 -H "Authorization: Bearer $ADMIN" "$TIER/v1/logs?from=$W" \
     | python3 -c "
 import json,sys
 d=json.load(sys.stdin).get('data',[])
@@ -66,7 +66,7 @@ fi
 
 echo "== 4. LLMTier usage（窗口内记录）=="
 if [ -n "$ACCEPTED" ]; then
-  curl -s -m 5 -H "Authorization: Bearer $DATA" "$TIER/tier/v1/usage?from=$W" \
+  curl -s -m 5 -H "Authorization: Bearer $DATA" "$TIER/v1/usage?from=$W" \
     | python3 -c "
 import json,sys
 d=json.load(sys.stdin).get('data',[])
