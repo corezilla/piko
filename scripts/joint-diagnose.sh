@@ -66,7 +66,7 @@ fi
 
 echo "== 4. LLMTier usage（窗口内记录）=="
 if [ -n "$ACCEPTED" ]; then
-  curl -s -m 5 -H "Authorization: Bearer $DATA" "$TIER/v1/usage?from=$W" \
+  curl -s -m 5 -H "Authorization: Bearer $DATA" "$TIER/tier/v1/usage?from=$W" \
     | python3 -c "
 import json,sys
 d=json.load(sys.stdin).get('data',[])
