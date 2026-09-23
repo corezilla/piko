@@ -63,13 +63,13 @@ export class PiRuntime {
     const available:any={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
-    let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let budgetExceeded=false;let unsafeRetry=false;let toolFailure:string|undefined;
-    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)this.store.observeUsage(runId,active.op,active.step,active.attempt,normalizeRawUsage(usage))}},BACKGROUND_CONTEXT);
+    let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let budgetExceeded=false;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
+    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)this.store.observeUsage(runId,active.op,active.step,active.attempt,normalizeRawUsage(usage));latestUsage=usage}},BACKGROUND_CONTEXT);
     const lane=await created.harness.lane("main",BACKGROUND_CONTEXT);
     created.harness.hooks.on("before_request",event=>{
       const step=event.stepId;active={op:event.runId,step,attempt:event.attempt};
       if(!this.store.reserveModel(runId,event.runId,step,event.attempt)){budgetExceeded=true;throw new Error("ModelCallLimitExceeded")}
-      return {streamOptions:{maxRetries:0}};
+      return {streamOptions:{maxRetries:0,headers:{"X-Correlation-ID":runId}}};
     });
     const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
     const debugFile=process.env.PIKO_PROVIDER_DEBUG_FILE??`${this.config.pi.session_root}/provider-debug.jsonl`;
@@ -81,7 +81,7 @@ export class PiRuntime {
       const ev=event as {runId?:string;status?:number;headers?:Record<string,string>};
       const requestId=ev.headers?.["x-request-id"]??ev.headers?.["X-Request-ID"]??null;
       const latencyMs=payloadSentAt?Date.now()-payloadSentAt:null;payloadSentAt=0;
-      try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,"",latencyMs)}catch{/* observability must not break execution */}
+      const note=latestUsage?.source==="injected"?"injected":"";latestUsage=undefined;try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,note,latencyMs)}catch{/* observability must not break execution */}
       debugLine({kind:"response",operation_id:ev.runId??runId,status:ev.status??null,request_id:requestId,latency_ms:latencyMs});
       return undefined;
     });
