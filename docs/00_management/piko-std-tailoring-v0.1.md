@@ -41,9 +41,9 @@
 |---|---|---|---|---|
 | `management.project-plan` | software | 是 | `piko-std-migration-plan-v0.1.md` | Piko Project Owner |
 | `management.tailoring` | software | 是 | `piko-std-tailoring-v0.1.md` | Piko |
-| `design.system` | software/system | 是 | `piko-agent-runtime-design-v0.3.md` | Piko |
-| `design.system-mechanism` | software/cross-level | 否 | 当前没有经确认的自定义跨系统机制 | Piko |
-| `design.definition` | software/subsystem/implementation-unit | 是 | `piko-agent-runtime-core-internal-design-v0.3.md`；`piko-runtime-implementation-design-v0.3.md` | Piko |
+| `design.software-system` | software/system | 是 | `piko-agent-runtime-design-v0.3.md` | Piko |
+| `design.system-mechanism` | software/cross-level | 是 | 7 份机制文档 `piko-agent-runtime-mechanism-{run,usage,matrix,startup,cancel,config,recovery}-v0.3.md`（路径 `docs/20_system_design/mechanisms/`） | Piko |
+| `design.definition` | software/module | 是 | 10 份模块定义 `piko-{module}-definition-v0.3.md`（路径 `docs/40_module_design/`） | Piko |
 | `contracts.specification` | software | 是 | `piko-agent-runtime-contract-v0.3.md` | Piko |
 | `requirements.traceability` | systems/software | 是 | `piko-requirements-traceability-v0.3.md` | Piko |
 | `assurance.vv-plan` | software | 是 | `piko-agent-runtime-vv-plan-v0.3.md` | Piko |
@@ -57,7 +57,7 @@
 | ID | 模板/章节 | keep / simplify / omit | 理由 | 风险 | 批准人 | ADR |
 |---|---|---|---|---|---|---|
 | ~~TAIL-P-001~~ 已撤销 | ~~`design.system` 章节映射~~ | ~~keep/tailor~~ | ~~Piko Agent Runtime 作为本项目 system；当前简化 authority 为9节，映射见 migration map~~ | ~~章节编号不与模板逐字相同~~ | ~~User / Piko Project Owner（2026-09-07）~~ | ~~N/A~~ | 撤销理由：TAIL-P-001 把"tailored"误用为"可自定章节"，违背 STD draft.35 模板结构强约束；本次 draft.26→draft.35 升级已按 `design.software-system` 1.0.0 17+2 节、`design.subsystem` 1.0.0 14+2 节、`design.implementation` 1.0.0 10 节重写设计正文。撤销人：User / Piko Project Owner（2026-09-25）；相关新决定：TAIL-P-101..TAIL-P-105 |
-| TAIL-P-002 | `design.system-mechanism` | omit | 用户已撤回自定义 CollaborationBridge；Matrix 使用主流 SDK/协议并纳入 runtime core | 不得借模板恢复产品消息协议 | User / Piko Project Owner（2026-09-17） | N/A |
+| ~~TAIL-P-002~~ 已撤销 | ~~`design.system-mechanism`~~ | ~~omit~~ | ~~用户已撤回自定义 CollaborationBridge；Matrix 使用主流 SDK/协议并纳入 runtime core~~ | ~~不得借模板恢复产品消息协议~~ | ~~User / Piko Project Owner（2026-09-17）~~ | ~~N/A~~ | 撤销理由：user 2026-09-25 明确"系统设计、系统机制设计是必须有的"；system 设计 §3.5 已识别 7 个跨模块共同机制（run / usage / matrix / startup / cancel / config / recovery），每机制 1 份 `design.system-mechanism` 3.0.0 文档落地。撤销人：User / Piko Project Owner（2026-09-25）。 |
 | TAIL-P-003 | `requirements.specification` | simplify | 本轮建立 traceability matrix，不复制 Slinky 需求 authority | 需求来源仍有外部 authority | User / Piko Project Owner（2026-09-07） | N/A |
 | TAIL-P-004 | `interfaces.control` | simplify | 当前单一调用方与接口面已由 OpenAPI/Schema 描述；使用 contract spec 聚合 | 跨部署网络参数后续可能需要 ICD | User / Piko Project Owner（2026-09-07） | N/A |
 | TAIL-P-005 | `contracts.specification` | keep | OpenAPI、Schema、error 和 fixture 是字段级权威 | 无 | User / Piko Project Owner（2026-09-07） | N/A |
@@ -73,6 +73,7 @@
 | TAIL-P-103 | `design.software-system` §9.3 硬件/固件接口 | omit · 纯软件 | — | User / Piko Project Owner（2026-09-25） | N/A |
 | TAIL-P-104 | `design.software-system` §6.3 多实例/横向扩展 | omit · 单实例单 slot | 替代位置：§3.3 关键决定 2 | User / Piko Project Owner（2026-09-25） | N/A |
 | TAIL-P-105 | `design.software-system` §11.1 副本/HA | omit · 单实例 | 替代位置：§3.3 关键决定 2 | User / Piko Project Owner（2026-09-25） | N/A |
+| TAIL-P-NEW-S1 | `design.software-system` §5 子系统概要 | omit · Piko 无 subsystem（1 个 subsystem 是架构代码坏味道，选 0 而非 ≥2） | 替代位置：§3.2 直属模块表 + 各模块 ISD §5 | User / Piko Project Owner（2026-09-25） | N/A |
 
 ## 4. 禁止裁剪项
 
