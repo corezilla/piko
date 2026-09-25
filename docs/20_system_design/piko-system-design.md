@@ -40,6 +40,10 @@ Piko 是 Pi 的薄任务外壳。一个 Piko 实例拥有一个独立 Agent；Sl
 
 **用户**：Slinky 项目经理（也是 Piko 实例的唯一外部调用方）。**核心任务**：把 Slinky 任务组织中产生的、需要长期运行的 AI 任务交给一个独立 Agent 执行并取得结果。**痛点**：模型调用、工具循环、context 管理、断点恢复若由 Slinky 端重复实现会与 Pi upstream 升级路径持续脱节，且与 Slinky 的项目流程语义纠缠。**价值**：Slinky 只负责"派一个 Run、读一个 Result"，Piko 把模型执行 + 状态持久化 + 故障恢复封装为稳定的 Run 事务。
 
+![SW-1](assets/diagrams/SW-1.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
+
 ```mermaid
 sequenceDiagram
   participant U as Slinky 项目经理<br/>(任务派发者)
@@ -69,11 +73,17 @@ sequenceDiagram
   U->>SL: 基于 Result 决定下一步（验收 / 重派 / 升级）
 ```
 
+</details>
+
 图 SW-1 · `system-design` v0.7.0 / Target / NOT_BUILT。代表场景：Slinky 派一个新 Run → Piko 持久化并执行 → 返回 Result。Slinky 与 Piko 之间的所有交互是同步 HTTP；Piko 与执行栈（Pi/LLMTier/Matrix）是异步执行；Piko 与 FS 是同步持久化。
 
 ### 2.1.2 应用环境与外部对象
 
 按 STD §2.1 示例图样式：左侧 Slinky 用户环境 → 中间本软件 → 右侧外部依赖；箭头标注业务数据传递。
+
+![SW-2](assets/diagrams/SW-2.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 flowchart LR
@@ -103,6 +113,8 @@ flowchart LR
   PIKO -- "SQLite WAL + JSONL + fsync" --> FS
 ```
 
+</details>
+
 图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。三栏环境视图：左侧 Slinky PM + Slinky 业务流程（外部项目） → 中间 Piko Agent Runtime（蓝框 = 本文责任边界） → 右侧 3 个外部依赖（LLMTier / Matrix / FS）。虚线双向箭头 = 与 Slinky 的 HTTP API（用户业务输入/输出：RunSubmitRequest / AgentResult），实线箭头 = Piko 对外部依赖的本地 API 调用。Pi SDK 已作为进程内集成被 Piko 框吸收，不在外部依赖栏单列。详细职责映射：Slinky ↔ Piko 见 §9.1 HTTP 四项 operation；Piko ↔ LLMTier 见 §9.2 Pi `openai-responses` provider；Piko ↔ Matrix 见 §9.2 `matrix-js-sdk` Client-Server；Piko ↔ FS 见 §6.1 本地 FS + §7.1 启动 SQLite migration。
 
 ### 2.2 目标、范围与可观察成功条件
@@ -129,6 +141,10 @@ Piko 启动时按顺序：parse → schema validate → bind tool/recovery regis
 ### 3.1 软件系统架构
 
 Piko 采用纯软件无 subsystem 结构：system 下直接挂 10 个直属模块（M000-M009）。无 subsystem 是因为：单一 subsystem 是架构代码坏味道（要么 ≥ 2 要么 0）；bootstrap 与其他模块同进程同生命周期，不具备独立 subsystem 资格。模块的功能分组（启动 / 受理 / 事务 / 适配 / 横切）仅在正文 §3.2 / §3.4 中描述，不在架构图上分区分层（按 STD `software-design-composition.svg` 示例：仅表达包含关系，不按对象类型或目录深度判定层级）。
+
+![SW-3](assets/diagrams/SW-3.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 flowchart TD
@@ -168,6 +184,8 @@ flowchart TD
   style M008 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
   style M009 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
 ```
+
+</details>
 
 图 SW-3 · `system-design` v0.7.0 / Target / NOT_BUILT。SW-P（软件系统，蓝框）下挂 10 个直属模块（灰底 module），无 subsystem、无 UI 层（无 Web/桌面入口）、无递归。本图仅表达包含关系；模块间协作通过 §3.5 列出的 5 份 `design.system-mechanism` 文档独立描述（不靠图连线）。
 
@@ -306,6 +324,10 @@ Piko 采用"无 subsystem"结构（1 个 subsystem 是架构代码坏味道，�
 
 ## 6. 运行组织与部署设计
 
+![SW-4](assets/diagrams/SW-4.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
+
 ```mermaid
 flowchart LR
   classDef process fill:#e0e7ff,stroke:#4338ca,color:#1f2937
@@ -325,6 +347,8 @@ flowchart LR
   P -- "Task Store + JSONL session" --> FS
   P -.进程内集成.-> Pi
 ```
+
+</details>
 
 图 SW-4 · `system-design` v0.7.0 / Target / NOT_BUILT。单进程集成所有模块；外部依赖为 LLMTier、Matrix、本地 FS。
 
@@ -365,6 +389,10 @@ flowchart LR
 
 ### 7.1 启动与就绪过程
 
+![SW-5](assets/diagrams/SW-5.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
+
 ```mermaid
 flowchart TD
   S1["S1 解析启动参数"] --> Q1{"有效?"}
@@ -391,6 +419,8 @@ flowchart TD
   W["W1 启动监督超时"] --> X["终止进程;等待退出确认;未确认则阻塞"]
 ```
 
+</details>
+
 图 SW-5 · P-START 路径。`bootstrap` 是统筹者，部署工具是外部监督 W1。S8 READY 才接受 Run；S5 之前失败不会 listen。
 
 **正常路径及就绪判据**：S1-S5 全部成功且在应用预算内（本设计不声明预算数值，由 bootstrap 实现决定）；S6 必须证明 Pi 上游 commit 与 adapter patch manifest 哈希匹配；S7 至少返回 LLMTier 可达 + Matrix whoami OK + store writable；S8 输出 READY 消息并 listen 端口。
@@ -398,6 +428,10 @@ flowchart TD
 **失败与清理**：任一阶段失败走 F1，记录失败阶段、原因，关闭已得句柄，释放内存，进程非零退出。S6 不匹配时不进入 S7；S7 部分失败立即 F1 不接受部分就绪。W1 启动监督超时未收到 READY 触发强制终止并等待退出确认；未确认保持阻塞，不启动第二份进程。
 
 ### 7.2 一次业务处理的完整过程
+
+![SW-6](assets/diagrams/SW-6.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 sequenceDiagram
@@ -445,6 +479,8 @@ sequenceDiagram
   W->>W: Result 两步提交 (见 §7.4 / ISD §6.5)
 ```
 
+</details>
+
 图 SW-6 · P-BIZ 正常路径。`task-api` 受理 + 202 ack；scheduler 后台领 slot 并交 worker 驱动 Pi；Result 两步提交细节见 §7.2.1。
 
 **正常路径及就绪判据**：J1-J5 完整走完后返回 202；Run 状态由 `tasks`+`runs` 表承担事实；worker 取得 lease 后切 Running 并 accept Pi operation；Result 由 `results` 表 generation 唯一持有事实。
@@ -454,6 +490,10 @@ sequenceDiagram
 #### 7.2.1 Result 两步提交协议（`MECH-RUN` 关键过程）
 
 Pi operation 完成后 worker 进入 Result 两步提交：第一步把 immutable Result generation 写入 `results` 表（原子事务），第二步把 `runs.state` 与 `runs.generation` 写入终态（原子事务）。两步间崩溃时恢复器只补第二步（绝不重跑 Pi）。
+
+![SW-6a](assets/diagrams/SW-6a.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 sequenceDiagram
@@ -499,11 +539,17 @@ sequenceDiagram
   end
 ```
 
+</details>
+
 图 SW-6a · `system-design` v0.7.0 / Target / NOT_BUILT。两事务分开（不是合并单事务）；第一步 INSERT results 后 Result generation 即冻结；第二步 UPDATE runs.state 与 generation。Discussion run 同事务改 intake `Closed` + 未消费 turn `Abandoned`。
 
 ### 7.3 配置生效与模式切换过程
 
 采用**重启生效**策略。理由：本软件为单实例单进程事务层，无水平扩展；接受停止切换换取简单的一致性边界。配置字段由 §10.1 描述，过程由本节串联。
+
+![SW-7](assets/diagrams/SW-7.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 flowchart TD
@@ -515,6 +561,8 @@ flowchart TD
   C3 -- 是 --> S1["S1 启动协调模块: 读取并校验启动参数"] --> S2["S2 schema 校验"] --> S3["S3 绑定 tool/recovery"] --> S4["S4 canonicalize paths"] --> S5["S5 open/migrate store"] --> S6["S6 verify Pi upstream + patch manifest"] --> S7["S7 preflight"] --> S8["S8 bind 端口;READY"]
 ```
 
+</details>
+
 图 SW-7 · P-CONFIG 路径。本软件明确选择"部署者先校验新参数 → 关闭旧服务并确认退出 → 以新参数完整执行 P-START"；C0 不允许"参数已提交即生效"。
 
 **正常路径及就绪判据**：C1 校验通过后 C2 停止旧进程；C3 收到旧进程退出确认后启动新进程 S1-S8。新进程 READY 才证明新配置可服务；旧进程在停止前仍使用旧配置；不存在混合版本。
@@ -522,6 +570,10 @@ flowchart TD
 **失败与清理**：C1 无效保留旧服务；C3 旧进程退出未确认阻塞不启动新进程；C0 之后新进程启动失败时整个服务不可用，修复后再启动，不自动回退到旧目录。本图不写"参数已提交即生效"或"自动回滚"等快捷路径。
 
 ### 7.4 停止、取消、重启与异常恢复
+
+![SW-8](assets/diagrams/SW-8.png)
+
+<details><summary>mermaid 源码（编辑用）</summary>
 
 ```mermaid
 flowchart TD
@@ -544,6 +596,8 @@ flowchart TD
     R5 -- 否 --> R7["R7 inspect Pi session 不可恢复 → InternalError"]
   end
 ```
+
+</details>
 
 图 SW-8 · P-STOP 与恢复路径。`bootstrap` 是统筹者；T4 进程退出确认后部署工具才允许 P-START。
 
