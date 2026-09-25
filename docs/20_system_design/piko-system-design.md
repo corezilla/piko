@@ -155,10 +155,6 @@ flowchart TD
     M009["observability · M009 · 结构化日志 / metric / audit"]:::module
   end
 
-  subgraph Obs["观测"]
-    OBS["observability · M009 · structured log / metric / audit"]
-  end
-
   BOOT --> API
   BOOT --> POL
   BOOT --> REPO
@@ -180,9 +176,7 @@ flowchart TD
   USAGE --> OBS
   WORKER --> OBS
 
-  class API,POL,REPO,SCHED,WORKER module
-  class PI,USAGE,MX adapter
-  class BOOT,OBS subsystem
+  class M000,M001,M002,M003,M004,M005,M006,M007,M008,M009 module
 ```
 
 图 SW-3 · `system-design` v0.7.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
@@ -450,7 +444,7 @@ sequenceDiagram
   Sch->>Repo: acquireSlot
   Repo-->>Sch: Lease
   Sch->>W: dispatch Run
-  W->>Repo: BEGIN IMMEDIATE;UPDATE runs SET state='Running', gen+=1
+  W->>Repo: BEGIN IMMEDIATE;UPDATE runs SET state Running, generation = generation + 1
   W->>PI: openOrCreateRunSession
   PI-->>W: handle
   W->>PI: accept typedInstruction [+ PikoDiscussionMessage]
