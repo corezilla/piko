@@ -97,10 +97,19 @@
 
 | 处置 | 数量 | 范围 |
 |---|---|---|
-| A. cover + metadata 同步，正文保留 | 33 | management / requirements / system-design / subsystem-design / contracts / interfaces / assurance / operations / reviews 中除 ISD 外的全部文档 |
-| B. 完整重写到新模板 | 1 | `piko-runtime-implementation-design-v0.3` → `design.implementation` 1.0.0 → `piko-runtime-implementation-design-v0.3.isd.md` |
-| C. 文件改名 (.md → .isd.md) | 1 | 同上 |
-| D. metadata 新字段（implementation_view_of_document_id / volume_of_document_id） | 1 | 同上 |
+| A. cover + metadata 同步，正文保留 | 33 | management / requirements / contracts / interfaces / assurance / operations / reviews 中除 ISD 外的全部文档 |
+| B. 完整重写到新模板 | 3 | `piko-runtime-implementation-design-v0.3.isd.md`（design.implementation 1.0.0）、`piko-agent-runtime-design-v0.3.md`（design.software-system 1.0.0，17+2 节结构）、`piko-agent-runtime-core-internal-design-v0.3.md`（design.subsystem 1.0.0，14+2 节结构） |
+| C. 文件改名 (.md → .isd.md) | 1 | `piko-runtime-implementation-design-v0.3.md` → `piko-runtime-implementation-design-v0.3.isd.md` |
+| D. metadata 新字段（implementation_view_of_document_id / volume_of_document_id） | 1 | `piko-runtime-implementation-design-v0.3.isd.metadata.json` |
+| E. tailoring 决定更新 | 1 | 撤销 TAIL-P-001（旧的 9 节简化背书），新增 TAIL-P-101..105（design.software-system 5 个 omit 决定） |
+| F. template_id 修正 | 1 | `piko-agent-runtime-core-internal-design-v0.3` 由原误用的 `design.definition` 2.1.1 修正为 `design.subsystem` 1.0.0 |
+
+**设计理由**：
+
+- Piko 文档主体使用 `template_conformance=tailored`（`tailoring_ref=piko-std-tailoring-v0.1`），章节结构由 tailoring 决定，不由模板版本逐字决定。33 份正文结构由 tailoring TAIL-P-001 / TAIL-P-003 / TAIL-P-005 等背书；本次升级不改变 tailoring 决定，因此正文逐字保留。
+- `design.implementation` 是 ISD 专用新模板（与 `design.definition` 3.x 并存），1.0.0 起为代码就绪模板，必须含函数并发契约、错误传播、算法流程图与配置实现落点；当前 piko `piko-runtime-implementation-design-v0.3` 仅使用 `design.definition` 2.1.1 的精简章节，不满足 ISD 1.0.0 强制项。按用户 2026-09-25 决定，本次完整重写到新模板。
+- `design.software-system` 1.0.0 与 `design.subsystem` 1.0.0 均为 major bump（系统 8.3.1→9.0.0、子系统 0.6.2→1.0.0）。原 TAIL-P-001 把"tailored"误用为"可自定章节"，本次升级撤销 TAIL-P-001，按模板强约束重写两篇正文为完整 17+2 / 14+2 节结构；新增 TAIL-P-101..105 记录 omit 的 §4.3 / §8.x / §9.3 / §6.3 / §11.1 等不适用的章节及其替代位置。
+- 升级消除 lock 与 manifest 的版本漂移，使 `validate-design` 恢复"仅剩历史遗留"的可判定状态。
 
 **设计理由**：
 
