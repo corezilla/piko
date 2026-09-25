@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-design` |
-| Document Version | `0.6.0` |
+| Document Version | `0.7.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -136,21 +136,21 @@ flowchart TD
 
 ### 3.2 组成与职责
 
-Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分区（启动 / 受理 / 事务 / 适配）+ 1 个横切分区（观测）。每个模块对应 1 份 `design.definition`（模块定义）+ 1 份 `design.implementation`（ISD）。模块之间协作的 7 个共同机制另建 7 份 `design.system-mechanism` 文档（见 §3.5）。
+Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分区（启动 / 受理 / 事务 / 适配）+ 1 个横切分区（观测）。每个模块对应 1 份 `design.definition`（模块定义）+ 1 份 `design.implementation`（ISD）。模块之间跨 ≥ 2 模块的共同机制另建 5 份 `design.system-mechanism` 文档（见 §3.5）。
 
 | 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供/消费接口 | Document ID / 文件名 / 状态 |
 |---|---|---|---|---|
 | `SW-P` 软件系统 / `system-design` | 承担 Piko Agent Runtime V0.3 完整软件设计 / 不承担 Slinky 业务流程、Memory authority、LLMTier Agent 状态 | — | — | `docs/20_system_design/piko-system-design.md` / Approved |
-| M000 `bootstrap` 模块 / `SW-P` | 启动顺序 + preflight + 配置绑定 + 进程生命周期 / 不运行业务、不持有 Run 状态 | 进程寿命；SQLite 句柄；Pi 上游 commit 锚定 | 消费：`config/`；提供：READY / fatal | definition `piko-bootstrap-definition-v0.3.md` + impl `piko-bootstrap-impl-v0.3.isd.md` / Approved |
-| M001 `task-api` 模块 / `SW-P` | 四项 HTTP operation：submit/status/cancel/result / 不持久化业务、不直接操作 adapter | 请求寿命；TypeScript handlers | 消费：`HTTPClient`、`policy`；提供：`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result` | definition `piko-task-api-definition-v0.3.md` + impl `piko-task-api-impl-v0.3.isd.md` / Approved |
-| M002 `policy` 模块 / `SW-P` | request/path/tool/deadline/budget 判定 / 不持状态 | 启动绑定 | 提供：`ValidatedTaskSubmission`、`BoundToolProfile`；消费：原始请求 + config + registry | definition `piko-policy-definition-v0.3.md` + impl `piko-policy-impl-v0.3.isd.md` / Approved |
-| M003 `task-repository` 模块 / `SW-P` | Run/lease/session/result/ledger 事务 + fenced write / 不持有 Run 业务编排 | 进程寿命；SQLite connection | 提供：`createOrGetRun`、`mutateRun`、`publishResult`；消费：`scheduler` / `worker` | definition `piko-task-repository-definition-v0.3.md` + impl `piko-task-repository-impl-v0.3.isd.md` / Approved |
-| M004 `scheduler` 模块 / `SW-P` | 单 slot 领取/续租/fence / 不决策业务 | 进程寿命 | 提供：`acquireSlot`、`renewLease`、`fence`；消费：tick + `task-repository` | definition `piko-scheduler-definition-v0.3.md` + impl `piko-scheduler-impl-v0.3.isd.md` / Approved |
-| M005 `worker` 模块 / `SW-P` | Run 事务协调、取消、deadline、Result 两步发布 / 不镜像 Pi Agent loop | Run 寿命；持有 lease | 提供：`Result generation`；消费：Pi/Matrix/Usage/Repo | definition `piko-worker-definition-v0.3.md` + impl `piko-worker-impl-v0.3.isd.md` / Approved |
-| M006 `pi-adapter` 模块 / `SW-P` | AgentHarness session/lane/operation/abort/raw usage hook / 不替换 Pi provider adapter | Run 寿命；Pi session 句柄 | 提供：`PiRuntime`；消费：Pi SDK + 固定 adapter patch manifest | definition `piko-pi-adapter-definition-v0.3.md` + impl `piko-pi-adapter-impl-v0.3.isd.md` / Approved |
-| M007 `usage` 模块 / `SW-P` | Usage 聚合 + Result 语义校验 / 不在 publish 后修改 generation | 进程寿命；UsageSnapshot 缓存 | 提供：`UsageAggregator`、`ResultValidator`；消费：`pi-adapter.onRawUsage`、`worker` | definition `piko-usage-definition-v0.3.md` + impl `piko-usage-impl-v0.3.isd.md` / Approved |
-| M008 `matrix-adapter` 模块 / `SW-P` | `matrix-js-sdk` Client-Server 封装 + discussion intake CAS / 不启用 AS 路径、不管理 homeserver 内部 | 进程寿命；single identity | 提供：`MatrixRuntime`；消费：Matrix homeserver + `task-repository` | definition `piko-matrix-adapter-definition-v0.3.md` + impl `piko-matrix-adapter-impl-v0.3.isd.md` / Approved |
-| M009 `observability` 模块 / `SW-P` | 结构化日志 + metric + audit / 不反向控制业务 | 进程寿命 | 消费：所有模块事件；提供：redacted log / metric 端点 | definition `piko-observability-definition-v0.3.md` + impl `piko-observability-impl-v0.3.isd.md` / Approved |
+| M000 `bootstrap` 模块 / `SW-P` | 启动顺序 + preflight + 配置绑定 + 进程生命周期 / 不运行业务、不持有 Run 状态 | 进程寿命；SQLite 句柄；Pi 上游 commit 锚定 | 消费：`config/`；提供：READY / fatal | definition `piko-bootstrap-design.md` + impl `piko-bootstrap-impl.isd.md` / Approved |
+| M001 `task-api` 模块 / `SW-P` | 四项 HTTP operation：submit/status/cancel/result / 不持久化业务、不直接操作 adapter | 请求寿命；TypeScript handlers | 消费：`HTTPClient`、`policy`；提供：`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result` | definition `piko-task-api-design.md` + impl `piko-task-api-impl.isd.md` / Approved |
+| M002 `policy` 模块 / `SW-P` | request/path/tool/deadline/budget 判定 / 不持状态 | 启动绑定 | 提供：`ValidatedTaskSubmission`、`BoundToolProfile`；消费：原始请求 + config + registry | definition `piko-policy-design.md` + impl `piko-policy-impl.isd.md` / Approved |
+| M003 `task-repository` 模块 / `SW-P` | Run/lease/session/result/ledger 事务 + fenced write / 不持有 Run 业务编排 | 进程寿命；SQLite connection | 提供：`createOrGetRun`、`mutateRun`、`publishResult`；消费：`scheduler` / `worker` | definition `piko-task-repository-design.md` + impl `piko-task-repository-impl.isd.md` / Approved |
+| M004 `scheduler` 模块 / `SW-P` | 单 slot 领取/续租/fence / 不决策业务 | 进程寿命 | 提供：`acquireSlot`、`renewLease`、`fence`；消费：tick + `task-repository` | definition `piko-scheduler-design.md` + impl `piko-scheduler-impl.isd.md` / Approved |
+| M005 `worker` 模块 / `SW-P` | Run 事务协调、取消、deadline、Result 两步发布 / 不镜像 Pi Agent loop | Run 寿命；持有 lease | 提供：`Result generation`；消费：Pi/Matrix/Usage/Repo | definition `piko-worker-design.md` + impl `piko-worker-impl.isd.md` / Approved |
+| M006 `pi-adapter` 模块 / `SW-P` | AgentHarness session/lane/operation/abort/raw usage hook / 不替换 Pi provider adapter | Run 寿命；Pi session 句柄 | 提供：`PiRuntime`；消费：Pi SDK + 固定 adapter patch manifest | definition `piko-pi-adapter-design.md` + impl `piko-pi-adapter-impl.isd.md` / Approved |
+| M007 `usage` 模块 / `SW-P` | Usage 聚合 + Result 语义校验 / 不在 publish 后修改 generation | 进程寿命；UsageSnapshot 缓存 | 提供：`UsageAggregator`、`ResultValidator`；消费：`pi-adapter.onRawUsage`、`worker` | definition `piko-usage-design.md` + impl `piko-usage-impl.isd.md` / Approved |
+| M008 `matrix-adapter` 模块 / `SW-P` | `matrix-js-sdk` Client-Server 封装 + discussion intake CAS / 不启用 AS 路径、不管理 homeserver 内部 | 进程寿命；single identity | 提供：`MatrixRuntime`；消费：Matrix homeserver + `task-repository` | definition `piko-matrix-adapter-design.md` + impl `piko-matrix-adapter-impl.isd.md` / Approved |
+| M009 `observability` 模块 / `SW-P` | 结构化日志 + metric + audit / 不反向控制业务 | 进程寿命 | 消费：所有模块事件；提供：redacted log / metric 端点 | definition `piko-observability-design.md` + impl `piko-observability-impl.isd.md` / Approved |
 
 ### 3.3 总体方案、选择依据与替代方案
 
@@ -185,7 +185,7 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 |---|---|---|---|---|---|
 | PK-01 单 slot + 独立 Pi session | `task-repository` M003 + `scheduler` M004 + `pi-adapter` M006 | lease epoch 唯一 fencing；`pi_session_id=run_id` 确定性绑定 | worker 内部不引入并行阶段 | mechanism `MECH-RUN` + M003/M004/M006 ISD | 集成测试 + cross-check Result→Run→lease→Pi session→Harness |
 | PK-02 任务事务稳定身份 | `task-api` M001 + `policy` M002 + `task-repository` M003 | tombstone 永久拒绝；同 ID 同内容不重新检查动态条件 | path 集合字段按集合比较、时间按 UTC instant、对象成员顺序忽略 | contract `piko-agent-runtime-contract-v0.3` §1 | 契约测试 PK-T03 / PK-T15 |
-| PK-03 截止与预算 | `policy` M002 + `pi-adapter` M006 | request `deadline_at` + `max_model_calls` + `max_tool_calls` | worker 不修改 deadline 语义；budget CAS 在 `before_tool` | mechanism `MECH-CANCEL` + M002/M006 ISD | fault 注入 PK-T05 |
+| PK-03 截止与预算 | `policy` M002 + `pi-adapter` M006 | request `deadline_at` + `max_model_calls` + `max_tool_calls` | worker 不修改 deadline 语义；budget CAS 在 `before_tool` | M002/M006 ISD（含 §5 worker 取消分流）；非机制 | fault 注入 PK-T05 |
 | PK-04 Responses SSE 唯一路径 | `pi-adapter` M006 | `stream:true`、`store:false`、`maxRetries=0` | 不替换 provider adapter；不静默切 non-stream | contract `0.3.0-simplified.6` | LLMTier 联调 PK-T09/PK-T10 |
 | PK-05/06 工具 CAS + `replay:safe` 绑定 | `pi-adapter` M006 + `policy` M002 | `tool_calls` 表 CAS；启动时 `recovery_contract_ref` 必须解析 | runtime 不新增 `safe` 声明 | M006 ISD | PK-T06 / PK-T17 |
 | PK-07 Result 两步提交 | `task-repository` M003 + `worker` M005 | 写 `results` 与写终态不可合并 | 恢复器只补第二步 | mechanism `MECH-RUN` + M003/M005 ISD | PK-T05 / PK-T15 |
@@ -200,13 +200,13 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 
 | Mechanism ID / 用途 | 上级 Mechanism ID | 参与对象 / Process 或 Constraint | 前置依赖 | Document ID / 计划文件名 | Planned 或实际基线 / 未决项 |
 |---|---|---|---|---|---|
-| MECH-RUN · 单 Run 提交 → 完成闭环 | — | `task-api` M001 + `policy` M002 + `task-repository` M003 + `scheduler` M004 + `worker` M005 + `pi-adapter` M006 + `usage` M007；Constraint PK-01/02/03/07 | §6.1 / §7.2 | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-run-v0.3.md` | Approved（设计阶段）/ PK-T05/PK-T13/PK-T15 |
-| MECH-USAGE · Usage 字段汇总与冻结 | MECH-RUN | `pi-adapter` M006 + `usage` M007；Constraint PK-09/10 | MECH-RUN | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-usage-v0.3.md` | Approved / PK-T10/PK-T16 |
-| MECH-MATRIX · Discussion intake + sync | MECH-RUN | `matrix-adapter` M008 + `worker` M005；Constraint PK-08 | MECH-RUN | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-matrix-v0.3.md` | Approved / PK-T08 |
-| MECH-STARTUP · 进程启动 → READY | — | `bootstrap` M000；Constraint PK-12 | — | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-startup-v0.3.md` | Approved / PK-T12 |
-| MECH-CANCEL · Run 取消分流 | MECH-RUN | `worker` M005；Constraint §3.4 PK-03 | MECH-RUN | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-cancel-v0.3.md` | Approved / PK-T05 |
-| MECH-CONFIG · 配置加载/绑定/生效 | MECH-STARTUP | `bootstrap` M000 + `policy` M002；Constraint §10 | — | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-config-v0.3.md` | Approved / PK-T12 |
-| MECH-RECOVERY · 进程崩溃后恢复 | MECH-RUN | `worker` M005 + `task-repository` M003 + `pi-adapter` M006；Constraint PK-12 | MECH-RUN | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-recovery-v0.3.md` | Approved / PK-T12 |
+| MECH-RUN · 单 Run 提交 → 完成闭环 | — | `task-api` M001 + `policy` M002 + `task-repository` M003 + `scheduler` M004 + `worker` M005 + `pi-adapter` M006 + `usage` M007；Constraint PK-01/02/03/07 | §6.1 / §7.2 | `piko-run.md` | Approved（设计阶段）/ PK-T05/PK-T13/PK-T15 |
+| MECH-USAGE · Usage 字段汇总与冻结 | MECH-RUN | `pi-adapter` M006 + `usage` M007；Constraint PK-09/10 | MECH-RUN | `piko-usage.md` | Approved / PK-T10/PK-T16 |
+| MECH-MATRIX · Discussion intake + sync | MECH-RUN | `matrix-adapter` M008 + `worker` M005；Constraint PK-08 | MECH-RUN | `piko-matrix.md` | Approved / PK-T08 |
+| MECH-CONFIG · 配置加载/绑定/生效 | MECH-RUN | `bootstrap` M000 + `policy` M002；Constraint §10 | MECH-RUN | `piko-config.md` | Approved / PK-T12 |
+| MECH-RECOVERY · 进程崩溃后恢复 | MECH-RUN | `worker` M005 + `task-repository` M003 + `pi-adapter` M006；Constraint PK-12 | MECH-RUN | `piko-recovery.md` | Approved / PK-T12 |
+
+> 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-STARTUP（仅 M000 bootstrap）和 MECH-CANCEL（仅 M005 worker）曾列入本表，2026-09-25 用户反馈后删除并下沉到模块设计（`piko-bootstrap-design.md` §5 启动顺序 / `piko-worker-design.md` §5 取消分流）。
 
 ## 4. 功能与用户交互设计
 
@@ -254,16 +254,16 @@ Piko 采用"无 subsystem"结构（1 个 subsystem 是架构代码坏味道，�
 
 | 模块 | Definition 文档 | ISD 文档 |
 |---|---|---|
-| M000 `bootstrap` | `docs/40_module_design/piko-bootstrap-definition-v0.3.md` | `docs/50_implementation_design/piko-bootstrap-impl-v0.3.isd.md` |
-| M001 `task-api` | `docs/40_module_design/piko-task-api-definition-v0.3.md` | `docs/50_implementation_design/piko-task-api-impl-v0.3.isd.md` |
-| M002 `policy` | `docs/40_module_design/piko-policy-definition-v0.3.md` | `docs/50_implementation_design/piko-policy-impl-v0.3.isd.md` |
-| M003 `task-repository` | `docs/40_module_design/piko-task-repository-definition-v0.3.md` | `docs/50_implementation_design/piko-task-repository-impl-v0.3.isd.md` |
-| M004 `scheduler` | `docs/40_module_design/piko-scheduler-definition-v0.3.md` | `docs/50_implementation_design/piko-scheduler-impl-v0.3.isd.md` |
-| M005 `worker` | `docs/40_module_design/piko-worker-definition-v0.3.md` | `docs/50_implementation_design/piko-worker-impl-v0.3.isd.md` |
-| M006 `pi-adapter` | `docs/40_module_design/piko-pi-adapter-definition-v0.3.md` | `docs/50_implementation_design/piko-pi-adapter-impl-v0.3.isd.md` |
-| M007 `usage` | `docs/40_module_design/piko-usage-definition-v0.3.md` | `docs/50_implementation_design/piko-usage-impl-v0.3.isd.md` |
-| M008 `matrix-adapter` | `docs/40_module_design/piko-matrix-adapter-definition-v0.3.md` | `docs/50_implementation_design/piko-matrix-adapter-impl-v0.3.isd.md` |
-| M009 `observability` | `docs/40_module_design/piko-observability-definition-v0.3.md` | `docs/50_implementation_design/piko-observability-impl-v0.3.isd.md` |
+| M000 `bootstrap` | `piko-bootstrap-design.md` | `piko-bootstrap-impl.isd.md` |
+| M001 `task-api` | `piko-task-api-design.md` | `piko-task-api-impl.isd.md` |
+| M002 `policy` | `piko-policy-design.md` | `piko-policy-impl.isd.md` |
+| M003 `task-repository` | `piko-task-repository-design.md` | `piko-task-repository-impl.isd.md` |
+| M004 `scheduler` | `piko-scheduler-design.md` | `piko-scheduler-impl.isd.md` |
+| M005 `worker` | `piko-worker-design.md` | `piko-worker-impl.isd.md` |
+| M006 `pi-adapter` | `piko-pi-adapter-design.md` | `piko-pi-adapter-impl.isd.md` |
+| M007 `usage` | `piko-usage-design.md` | `piko-usage-impl.isd.md` |
+| M008 `matrix-adapter` | `piko-matrix-adapter-design.md` | `piko-matrix-adapter-impl.isd.md` |
+| M009 `observability` | `piko-observability-design.md` | `piko-observability-impl.isd.md` |
 
 模块之间的关系与各自概要在各模块 ISD §1.7 + §5 维护；本文不重复维护。
 
@@ -472,7 +472,7 @@ flowchart TD
 
 #### 8.1.N `RunState`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。固定来源 `system-design` §3 + `piko-agent-runtime-contract-v0.3` §6 + `piko-task-repository-impl-v0.3.isd.md` §4.1.1（M003 module ISD）。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。固定来源 `system-design` §3 + `piko-agent-runtime-contract-v0.3` §6 + `piko-task-repository-impl.isd.md` §4.1.1（M003 module ISD）。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：每值代表 Run 的当前事务层阶段；与 `cancel_requested`、`discussion_intake_state` 跨字段约束见 M003 ISD §4.2 `RunRecord`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：唯一写入者 M003 `task-repository`；可见点为 `runs.state` 字段；寿命 = Run 寿命；不允许从 `Completed`/`Failed`/`Cancelled` 回退。
 - **合法与拒绝实例、V/Case 与证据状态**：合法转移：`Queued→Running|Cancelled`、`Running→Cancelling|Completed|Failed`、`Cancelling→Cancelled|Failed`。非法转移返回内部 `FencedWrite`，不影响 HTTP。Case：M003/M005 ISD §9.1。
@@ -827,10 +827,10 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 
 | 阶段 | 输入与前置依赖 | 任务 / 承接对象 / Owner | 交付物 | 局部及集成出口 | 未决项 / 影响 |
 |---|---|---|---|---|---|
-| PHASE-M 7 mechanism 文档 | §3.5 机制清单 | 7 份 `design.system-mechanism` 3.0.0 docs；Owner: Piko Architecture | `docs/20_system_design/mechanisms/piko-agent-runtime-mechanism-{run,usage,matrix,startup,cancel,config,recovery}-v0.3.md` | 每份包含完整 §1-§16 + 附录 A/B；机制 ID 与 §3.5 一致 | — |
-| PHASE-D 10 module definitions | system 设计 + 7 mechanism docs | 10 份 `design.definition` 3.0.0 docs；Owner: Piko Implementation | `docs/40_module_design/piko-{bootstrap,task-api,policy,task-repository,scheduler,worker,pi-adapter,usage,matrix-adapter,observability}-definition-v0.3.md` | 每份包含完整模块定义 + `implementation_specification.mode=self` 引用对应 ISD | — |
-| PHASE-I 10 module ISDs | 10 definitions + 7 mechanisms | 10 份 `design.implementation` 1.0.0 docs (.isd.md)；Owner: Piko Implementation | `docs/50_implementation_design/piko-{...}-impl-v0.3.isd.md` | 每份含完整 §1-§10；与 mechanism + definition 一致 | — |
-| PHASE-O 7 mechanism 联合评审 | PHASE-M/D/I 完成 | 机制 + 模块 + 系统四方组合验证；Owner: Piko Project Owner | review packet `piko-system-design-std35-review-packet` 续 | 系统组合验收 + 下游实现 Gate | — |
+| PHASE-M 5 mechanism 文档 | §3.5 机制清单 | 5 份 `design.system-mechanism` 3.0.0 docs；Owner: Piko Architecture | `docs/20_system_design/mechanisms/piko-{run,usage,matrix,config,recovery}.md` | 每份包含完整 §1-§16 + 附录 A/B；机制 ID 与 §3.5 一致 | — |
+| PHASE-D 10 module definitions | system 设计 + 5 mechanism docs | 10 份 `design.definition` 3.0.0 docs；Owner: Piko Implementation | `docs/40_module_design/piko-{bootstrap,task-api,policy,task-repository,scheduler,worker,pi-adapter,usage,matrix-adapter,observability}-design.md` | 每份包含完整模块定义 + `implementation_specification.mode=self` 引用对应 ISD | — |
+| PHASE-I 10 module ISDs | 10 definitions + 5 mechanisms | 10 份 `design.implementation` 1.0.0 docs (.isd.md)；Owner: Piko Implementation | `docs/50_implementation_design/piko-{...}-impl.isd.md` | 每份含完整 §1-§10；与 mechanism + definition 一致 | — |
+| PHASE-O 5 mechanism 联合评审 | PHASE-M/D/I 完成 | 机制 + 模块 + 系统四方组合验证；Owner: Piko Project Owner | review packet `piko-system-design-std35-review-packet` 续 | 系统组合验收 + 下游实现 Gate | — |
 
 阶段顺序：先机制（横向）→ 后模块定义与 ISD（纵向）→ 联合评审。下游实现顺序由 10 份 ISD §9 自定义（每份内部按各自任务拆分）。
 
@@ -842,16 +842,16 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 
 | 模块 / 父对象 | Definition 文档 | ISD 文档 | 固定输入 / Constraint / 接口 | 自由度 / 不可改变 | 局部用例 / 组合义务 / 接收方 | 缺口与反馈 |
 |---|---|---|---|---|---|---|
-| M000 `bootstrap` / `SW-P` | `piko-bootstrap-definition-v0.3.md` | `piko-bootstrap-impl-v0.3.isd.md` | PK-12 / §6 / §7.1 / §11.3 + `MECH-STARTUP` / `MECH-CONFIG` | 进程内启动顺序可调整；preflight 项集合可增 | 局部 + 组合 PK-T12 / receiver: SW-P 系统层 + ops | ISSUE-RUNTIME-001 Pi upstream commit 锁定 |
-| M001 `task-api` / `SW-P` | `piko-task-api-definition-v0.3.md` | `piko-task-api-impl-v0.3.isd.md` | PK-02 / contract §1-§2 / CAP-SUBMIT/STATUS/CANCEL/RESULT + `MECH-RUN` | HTTP 中间件顺序可调；error map 与 catalog 双向一致性不可破 | 局部 + 组合 PK-T03 / receiver: SW-P 系统层 | — |
-| M002 `policy` / `SW-P` | `piko-policy-definition-v0.3.md` | `piko-policy-impl-v0.3.isd.md` | PK-03 / §6.1 path policy + `MECH-CONFIG` / `MECH-CANCEL` | 字段校验顺序可调；`recovery_contract_ref` 不可热注册 | 局部 + 组合 PK-T03 / receiver: SW-P | — |
-| M003 `task-repository` / `SW-P` | `piko-task-repository-definition-v0.3.md` | `piko-task-repository-impl-v0.3.isd.md` | PK-01/02/07/12 / §3.4 PK-01/02/07/12 + `MECH-RUN` / `MECH-CANCEL` / `MECH-RECOVERY` | fenced write 接口稳定；SQLite DDL 单调整数 | 局部 + 组合 PK-T01/PK-T05/PK-T15 / receiver: SW-P | — |
-| M004 `scheduler` / `SW-P` | `piko-scheduler-definition-v0.3.md` | `piko-scheduler-impl-v0.3.isd.md` | PK-01 / §3.4 PK-01 + `MECH-RUN` | 调度策略不可引入优先级/抢占 | 局部 + 组合 PK-T01 / receiver: SW-P | — |
-| M005 `worker` / `SW-P` | `piko-worker-definition-v0.3.md` | `piko-worker-impl-v0.3.isd.md` | PK-01/03/07/12 + `MECH-RUN` / `MECH-CANCEL` / `MECH-MATRIX` / `MECH-RECOVERY` | 不镜像 Pi Agent loop；不复活旧权威 | 局部 + 组合 PK-T05 / receiver: SW-P | — |
-| M006 `pi-adapter` / `SW-P` | `piko-pi-adapter-definition-v0.3.md` | `piko-pi-adapter-impl-v0.3.isd.md` | PK-04/05/06 / contract §3 + `MECH-RUN` / `MECH-USAGE` | 不替换 Pi provider adapter；`maxRetries=0` 不变 | 局部 + 组合 PK-T04/PK-T09/PK-T10 / receiver: SW-P | ISSUE-RUNTIME-001 |
-| M007 `usage` / `SW-P` | `piko-usage-definition-v0.3.md` | `piko-usage-impl-v0.3.isd.md` | PK-09/10 / contract §3 + `MECH-USAGE` | semantic validator 版本绑定不可变 | 局部 + 组合 PK-T10/PK-T16 / receiver: SW-P | ISSUE-RUNTIME-002 |
-| M008 `matrix-adapter` / `SW-P` | `piko-matrix-adapter-definition-v0.3.md` | `piko-matrix-adapter-impl-v0.3.isd.md` | PK-08 / §3.4 PK-08 + `MECH-MATRIX` | 不启用 AS 路径；txn_id 确定性派生 | 局部 + 组合 PK-T08 / receiver: SW-P | — |
-| M009 `observability` / `SW-P` | `piko-observability-definition-v0.3.md` | `piko-observability-impl-v0.3.isd.md` | PK-11 / §11.2 / §14.1 + 7 mechanism 全部 | 不反向控制业务；脱敏 policy 不可破 | 局部 + 组合 PK-T11 / receiver: SW-P | — |
+| M000 `bootstrap` / `SW-P` | `piko-bootstrap-design.md` | `piko-bootstrap-impl.isd.md` | PK-12 / §6 / §7.1 / §11.3 + `MECH-CONFIG`；启动顺序归模块设计 §5（非机制） | 进程内启动顺序可调整；preflight 项集合可增 | 局部 + 组合 PK-T12 / receiver: SW-P 系统层 + ops | ISSUE-RUNTIME-001 Pi upstream commit 锁定 |
+| M001 `task-api` / `SW-P` | `piko-task-api-design.md` | `piko-task-api-impl.isd.md` | PK-02 / contract §1-§2 / CAP-SUBMIT/STATUS/CANCEL/RESULT + `MECH-RUN` | HTTP 中间件顺序可调；error map 与 catalog 双向一致性不可破 | 局部 + 组合 PK-T03 / receiver: SW-P 系统层 | — |
+| M002 `policy` / `SW-P` | `piko-policy-design.md` | `piko-policy-impl.isd.md` | PK-03 / §6.1 path policy + `MECH-CONFIG` | 字段校验顺序可调；`recovery_contract_ref` 不可热注册 | 局部 + 组合 PK-T03 / receiver: SW-P | — |
+| M003 `task-repository` / `SW-P` | `piko-task-repository-design.md` | `piko-task-repository-impl.isd.md` | PK-01/02/07/12 / §3.4 PK-01/02/07/12 + `MECH-RUN` / `MECH-RECOVERY` | fenced write 接口稳定；SQLite DDL 单调整数 | 局部 + 组合 PK-T01/PK-T05/PK-T15 / receiver: SW-P | — |
+| M004 `scheduler` / `SW-P` | `piko-scheduler-design.md` | `piko-scheduler-impl.isd.md` | PK-01 / §3.4 PK-01 + `MECH-RUN` | 调度策略不可引入优先级/抢占 | 局部 + 组合 PK-T01 / receiver: SW-P | — |
+| M005 `worker` / `SW-P` | `piko-worker-design.md` | `piko-worker-impl.isd.md` | PK-01/03/07/12 + `MECH-RUN` / `MECH-MATRIX` / `MECH-RECOVERY`；取消分流归模块设计 §5（非机制） | 不镜像 Pi Agent loop；不复活旧权威 | 局部 + 组合 PK-T05 / receiver: SW-P | — |
+| M006 `pi-adapter` / `SW-P` | `piko-pi-adapter-design.md` | `piko-pi-adapter-impl.isd.md` | PK-04/05/06 / contract §3 + `MECH-RUN` / `MECH-USAGE` | 不替换 Pi provider adapter；`maxRetries=0` 不变 | 局部 + 组合 PK-T04/PK-T09/PK-T10 / receiver: SW-P | ISSUE-RUNTIME-001 |
+| M007 `usage` / `SW-P` | `piko-usage-design.md` | `piko-usage-impl.isd.md` | PK-09/10 / contract §3 + `MECH-USAGE` | semantic validator 版本绑定不可变 | 局部 + 组合 PK-T10/PK-T16 / receiver: SW-P | ISSUE-RUNTIME-002 |
+| M008 `matrix-adapter` / `SW-P` | `piko-matrix-adapter-design.md` | `piko-matrix-adapter-impl.isd.md` | PK-08 / §3.4 PK-08 + `MECH-MATRIX` | 不启用 AS 路径；txn_id 确定性派生 | 局部 + 组合 PK-T08 / receiver: SW-P | — |
+| M009 `observability` / `SW-P` | `piko-observability-design.md` | `piko-observability-impl.isd.md` | PK-11 / §11.2 / §14.1 + 5 mechanism 全部 | 不反向控制业务；脱敏 policy 不可破 | 局部 + 组合 PK-T11 / receiver: SW-P | — |
 
 下游关闭条件：PHASE-M/D/I/O 全部 PASS + 系统组合验收 (operator auth + restore + matrix joint + cross-mechanism) PASS。
 
@@ -895,7 +895,8 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 |---|---|---|
 | v0.4.0 / 2026-09-17 | 现有 9 节结构；Approved by User / Piko Project Owner | corezilla |
 | v0.5.0 / 2026-09-25 | 按 STD draft.35 模板 `design.software-system` 1.0.0 重写为 17 + 2 节结构；保留 PK-T01..PK-T40 oracle 与机器契约不变 | corezilla, opencode |
-| v0.6.0 (本次修订) / 2026-09-25 | 移除"1 个 subsystem"反模式；删除 `piko-runtime-implementation-design-v0.3.isd.md`（拆分到 10 份模块 ISD）；模块按 4 分区重新组织；§3.5 机制清单指向 7 份独立 `design.system-mechanism` 文档；附录 A 增加 TAIL-P-NEW-S1（无 subsystem）；修订号升 v0.6.0 | corezilla, opencode |
+| v0.6.0 (本次修订) / 2026-09-25 | 移除"1 个 subsystem"反模式；删除 `piko-runtime-implementation-design-v0.3.isd.md`（拆分到 10 份模块 ISD）；模块按 4 分区重新组织；§3.5 机制清单指向 5 份独立 `design.system-mechanism` 文档；附录 A 增加 TAIL-P-NEW-S1（无 subsystem）；修订号升 v0.6.0 | corezilla, opencode |
+| v0.7.0 (本次修订) / 2026-09-25 | 删除 MECH-STARTUP / MECH-CANCEL（仅单模块，不构成跨模块机制，归入 `piko-bootstrap-design.md` §5 / `piko-worker-design.md` §5）；机制清单从 7 项收敛为 5 项（MECH-RUN / MECH-USAGE / MECH-MATRIX / MECH-CONFIG / MECH-RECOVERY）；按 STD 命名重命名文件（`<name>-design.md` / `<name>.isd.md` / `<name>.md`）；修订号升 v0.7.0 | corezilla, opencode |
 
 交付检查：
 - [x] 开篇可独立解释产品、输入输出、工作原理与边界（§1 + §2 + §3）
