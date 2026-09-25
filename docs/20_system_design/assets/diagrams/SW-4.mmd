@@ -1,0 +1,17 @@
+flowchart LR
+  classDef process fill:#e0e7ff,stroke:#4338ca,color:#1f2937
+  classDef ext fill:#fee2e2,stroke:#b91c1c,color:#1f2937
+  classDef store fill:#fef9c3,stroke:#a16207,color:#1f2937
+
+  P["Piko 进程（API/scheduler/worker 同进程）"]:::process
+  FS["本地可靠文件系统"]:::store
+  LLMTier["LLMTier"]:::ext
+  Matrix["Matrix homeserver"]:::ext
+  Slinky["Slinky"]:::ext
+  Pi["Pi SDK（进程内）"]:::process
+
+  Slinky -- "四项 HTTP API" --> P
+  P -- "OpenAI Responses SSE" --> LLMTier
+  P -- "Client-Server API" --> Matrix
+  P -- "Task Store + JSONL session" --> FS
+  P -.进程内集成.-> Pi

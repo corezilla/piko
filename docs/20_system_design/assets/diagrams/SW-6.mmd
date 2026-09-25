@@ -1,0 +1,43 @@
+sequenceDiagram
+  participant S as Slinky
+  participant API as task-api M001
+  participant POL as policy M002
+  participant Repo as task-repository M003
+  participant Sch as scheduler M004
+  participant W as worker M005
+  participant PI as pi-adapter M006
+  participant Use as usage M007
+
+  S->>API: POST /runs (task_id, task, ...)
+  API->>API: JSON/Schema + bearer principal
+  API->>POL: validateSubmission
+  POL-->>API: ValidatedTaskSubmission
+  API->>Repo: BEGIN IMMEDIATE
+  Repo->>Repo: SELECT tasks WHERE task_id = ?
+  alt Tombstone
+    Repo-->>API: 410 Gone
+  else active + 字段比较同
+    Repo-->>API: 202 + 原 Run
+  else active + 不同
+    Repo-->>API: 409 TaskConflict
+  else 不存在
+    Repo->>Repo: check deadline/policy/discussion/queue
+    Repo->>Repo: INSERT tasks + Queued runs
+    Repo-->>API: 202 + 新 Run
+  end
+  Repo->>Repo: COMMIT
+  API-->>S: 202 Accepted
+
+  Note over Sch: scheduler tick
+  Sch->>Repo: acquireSlot
+  Repo-->>Sch: Lease
+  Sch->>W: dispatch Run
+  W->>Repo: BEGIN IMMEDIATE update runs state Running and bump generation
+  W->>PI: openOrCreateRunSession
+  PI-->>W: handle
+  W->>PI: accept typedInstruction [+ PikoDiscussionMessage]
+  PI->>W: stream events
+  PI->>Use: onRawUsage
+  Use->>Repo: model_attempts 写入
+  PI->>W: operation result
+  W->>W: Result 两步提交 (见 §7.4 / ISD §6.5)

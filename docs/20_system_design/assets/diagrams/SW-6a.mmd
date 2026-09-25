@@ -1,0 +1,41 @@
+sequenceDiagram
+  participant W as worker M005
+  participant R as task-repository M003
+  participant V as ResultValidator M007
+  participant U as UsageAggregator M007
+  participant FS as SQLite
+
+  Note over W,FS: 第一步：写 immutable Result generation
+  W->>R: BEGIN IMMEDIATE (fence new steps)
+  W->>R: SELECT pending tool_calls/attempts for run
+  W->>U: snapshot(runId)
+  U-->>W: UsageSnapshot (6 字段 sum/null + missing_fields)
+  W->>V: validateBeforePublish(result, "0.3.0-simplified.6")
+  alt FAIL
+    V-->>W: SemanticCheck {ok: false, reason: "..."}
+    W->>R: ROLLBACK
+    W-->>W: throw InternalError("semantic-validator-fail")
+    Note over W: 不写 results，不写终态
+  end
+  V-->>W: SemanticCheck {ok: true}
+  W->>R: INSERT results (run_id, generation, result_json, sha256)
+  W->>R: COMMIT
+  Note over W: Result generation N 已发布；Result 内容不可变
+
+  Note over W,FS: 第二步：写终态 + discussion intake Closed
+  W->>R: BEGIN IMMEDIATE (state transition)
+  W->>R: UPDATE runs SET state='Completed', generation = generation + 1
+  W->>R: release execution_slot
+  alt Discussion run
+    W->>R: UPDATE runs SET discussion_intake_state='Closed'
+    W->>R: UPDATE discussion_turns SET status='Abandoned' WHERE status IN ('Pending','QueuedInPi')
+  end
+  W->>R: COMMIT
+  Note over W: Run 终态发布；Result 对外可查
+
+  Note over W,R: 两步间崩溃的恢复
+  alt 进程在第一步 commit 后第二步 commit 前崩溃
+    R-->>R: 重启时 R1 检测到 results 有 N 但 runs.state 非终态
+    R->>R: 仅补写第二步（同 fencing 验证）
+    Note over R: 绝不重跑 Pi
+  end

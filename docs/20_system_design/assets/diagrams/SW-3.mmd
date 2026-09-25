@@ -1,0 +1,36 @@
+flowchart TD
+  SWP["SW-P · Piko Agent Runtime<br/>对象类型：system · 父对象：无（纯软件顶层）"]
+
+  M000["M000 · bootstrap<br/>对象类型：module · 父：SW-P<br/>启动顺序 + preflight + 配置绑定"]
+  M001["M001 · task-api<br/>对象类型：module · 父：SW-P<br/>四项 HTTP operation"]
+  M002["M002 · policy<br/>对象类型：module · 父：SW-P<br/>request / path / tool / deadline / budget 校验"]
+  M003["M003 · task-repository<br/>对象类型：module · 父：SW-P<br/>Run / lease / session / result / ledger 事务"]
+  M004["M004 · scheduler<br/>对象类型：module · 父：SW-P<br/>单 slot 领取 / 续租 / fence"]
+  M005["M005 · worker<br/>对象类型：module · 父：SW-P<br/>Run 事务协调 + Result 两步发布"]
+  M006["M006 · pi-adapter<br/>对象类型：module · 父：SW-P<br/>Harness session / lane / operation / raw usage"]
+  M007["M007 · usage<br/>对象类型：module · 父：SW-P<br/>UsageAggregator + ResultValidator"]
+  M008["M008 · matrix-adapter<br/>对象类型：module · 父：SW-P<br/>matrix-js-sdk Client-Server + discussion CAS"]
+  M009["M009 · observability<br/>对象类型：module · 父：SW-P<br/>结构化日志 / metric / audit"]
+
+  SWP --> M000
+  SWP --> M001
+  SWP --> M002
+  SWP --> M003
+  SWP --> M004
+  SWP --> M005
+  SWP --> M006
+  SWP --> M007
+  SWP --> M008
+  SWP --> M009
+
+  style SWP fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
+  style M000 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M001 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M002 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M003 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M004 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M005 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M006 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M007 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M008 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M009 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px

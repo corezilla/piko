@@ -1,0 +1,19 @@
+flowchart TD
+  T1["T1 SIGTERM"] --> F1["F2 停止新受理 (HTTP handler 拒绝 write)"]
+  F1 --> F3["F3 fence lease/writer (scheduler.fence)"]
+  F3 --> T2["T2 等待有界 drain"]
+  T2 --> Q1{"超时?"}
+  Q1 -- 否 --> F4["F4 Pi requestAbort + 对账 in-flight tool"]
+  F4 --> T3["T3 关闭 store/journal"]
+  T3 --> T4["T4 进程退出"]
+  Q1 -- 是 --> T5["T5 强制 abort"]
+  T5 --> T4
+
+  subgraph REC["崩溃恢复 (下次启动)"]
+    R1["R1 SELECT tasks WHERE tombstone"] --> R2["R2 SELECT runs WHERE state NOT IN (终态)"]
+    R2 --> R3{"有 open Harness operation?"}
+    R3 -- 是 --> R4["R4 drive/getResult, 不重复 accept"]
+    R3 -- 否 --> R5["R5 有 operation result?"]
+    R5 -- 是 --> R6["R6 封装 Result, 走两步提交"]
+    R5 -- 否 --> R7["R7 inspect Pi session 不可恢复 → InternalError"]
+  end

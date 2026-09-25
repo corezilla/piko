@@ -1,0 +1,25 @@
+flowchart LR
+  subgraph USER_ZONE["客户工作环境（外部项目方）"]
+    direction TB
+    USER["Slinky 项目经理<br/>(人工决策)"]
+    SLINKY["Slinky 业务流程<br/>(派 Run / 读 Result)"]
+    USER --> SLINKY
+  end
+
+  PIKO["Piko Agent Runtime<br/>(本文)"]
+
+  subgraph EXT_ZONE["外部依赖（不在本文范围）"]
+    direction TB
+    LLMTier["LLMTier<br/>(OpenAI-compatible Responses SSE)"]
+    Matrix["Matrix homeserver<br/>(Client-Server API)"]
+    FS["本地可靠文件系统<br/>(SQLite WAL + JSONL + staging)"]
+  end
+
+  style USER_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
+  style PIKO fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
+  style EXT_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
+
+  SLINKY <--> PIKO
+  PIKO -- "OpenAI Responses SSE" --> LLMTier
+  PIKO -- "Client-Server API" --> Matrix
+  PIKO -- "SQLite WAL + JSONL + fsync" --> FS

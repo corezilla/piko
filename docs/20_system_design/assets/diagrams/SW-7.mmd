@@ -1,0 +1,7 @@
+flowchart TD
+  C1["C1 部署者: 校验新参数"] --> Q1{"新参数有效?"}
+  Q1 -- 否 --> R0["R0 保留旧服务;不进入停止"]
+  Q1 -- 是 --> C2["C2 SIGTERM 旧进程"]
+  C2 --> C3{"旧进程退出确认?"}
+  C3 -- 否 --> R1["R1 阻塞;不启动新进程"]
+  C3 -- 是 --> S1["S1 启动协调模块: 读取并校验启动参数"] --> S2["S2 schema 校验"] --> S3["S3 绑定 tool/recovery"] --> S4["S4 canonicalize paths"] --> S5["S5 open/migrate store"] --> S6["S6 verify Pi upstream + patch manifest"] --> S7["S7 preflight"] --> S8["S8 bind 端口;READY"]

@@ -434,7 +434,7 @@ sequenceDiagram
   Sch->>Repo: acquireSlot
   Repo-->>Sch: Lease
   Sch->>W: dispatch Run
-  W->>Repo: BEGIN IMMEDIATE;UPDATE runs SET state Running, generation = generation + 1
+  W->>Repo: BEGIN IMMEDIATE update runs state Running and bump generation
   W->>PI: openOrCreateRunSession
   PI-->>W: handle
   W->>PI: accept typedInstruction [+ PikoDiscussionMessage]

@@ -1,0 +1,26 @@
+sequenceDiagram
+  participant U as Slinky 项目经理<br/>(任务派发者)
+  participant SL as Slinky<br/>(业务流程方)
+  participant P as Piko<br/>(任务事务层)
+  participant M as Pi Agent + LLMTier + Matrix<br/>(执行 + 集成)
+  participant FS as 本地 FS<br/>(持久层)
+
+  Note over SL,P: 一次性业务场景：派一个新 AI 任务
+  U->>SL: 决定派一个新 Run（task_id 由 Slinky 生成）
+  SL->>P: POST /runs (task_id, task, workspace, perms, deadline, ...)
+  P->>P: 校验 + 持久化 tasks/runs
+  P-->>SL: 202 Accepted (run_id, state=Queued)
+  Note over SL: Slinky 不阻塞；通过后续 status/result 查询
+
+  Note over P,M: 异步执行阶段（后台 worker）
+  P->>M: 启动 Pi session；驱动 Harness operation
+  M->>M: 模型调用 + 工具循环 + Matrix discussion
+  M->>FS: 持久化 operation/usage/tool facts
+  M->>P: operation result + usage + known_actions
+  P->>P: fence + 对账 + 固定 Result
+  P->>FS: 写入 results generation
+
+  Note over SL,P: 结果查询与决策
+  SL->>P: GET /runs/:run_id/result
+  P-->>SL: AgentResult (state=Completed/Failed/Cancelled + summary + outputs + usage)
+  U->>SL: 基于 Result 决定下一步（验收 / 重派 / 升级）
