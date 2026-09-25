@@ -73,33 +73,42 @@ sequenceDiagram
 
 ### 2.1.2 应用环境与外部对象
 
+按 STD §2.1 示例图样式：左侧 Slinky 用户环境 → 中间本软件（Piko Agent Runtime） → 右侧外部依赖；蓝色业务箭头标注实际数据传递。
+
 ```mermaid
 flowchart LR
-  classDef user fill:#fef3c7,stroke:#92400e,color:#1f2937
-  classDef piko fill:#dbeafe,stroke:#1e40af,color:#1f2937
-  classDef ext fill:#fee2e2,stroke:#b91c1c,color:#1f2937
-
-  USER["Slinky 项目经理<br/>（人工决策：派任务 / 验收结果）"]:::user
-  SLINKY["Slinky 业务流程<br/>（派 Run / 读 Result）"]:::user
-  P["Piko Agent Runtime（本文）"]:::piko
-
-  subgraph EXT["外部依赖（不在本软件范围）"]
-    PI["Pi AgentHarness + JsonlSessionRepo<br/>（进程内 SDK 集成）"]:::ext
-    LLMTier["LLMTier<br/>（OpenAI-compatible Responses SSE）"]:::ext
-    Matrix["Matrix homeserver<br/>（Client-Server API）"]:::ext
-    FS["本地可靠文件系统<br/>（SQLite + JSONL + workspace staging）"]:::ext
+  subgraph USER_ZONE["客户工作环境（外部项目）"]
+    direction TB
+    USER["Slinky 项目经理<br/>(人工决策：派任务 / 验收 Result)"]
+    SLINKY["Slinky 业务流程<br/>(派 Run / 读 Result / 调 cancel)"]
+    USER --> SLINKY
   end
 
-  USER --> SLINKY
-  SLINKY -- "四项 HTTP operation<br/>（CAP-SUBMIT/STATUS/CANCEL/RESULT）" --> P
-  P -- "AgentHarness 公共面<br/>（lane accept/drive/getResult）" --> PI
-  PI -- "OpenAI Responses SSE<br/>stream:true / store:false / maxRetries:0" --> LLMTier
-  P -- "Client-Server API<br/>(sync/send/receive/sendWithStableTxn)" --> Matrix
-  PI -- "durable session/operation<br/>(fsync JSONL append + fsync parent dir)" --> FS
-  P -- "SQLite WAL + fsync<br/>(tasks/runs/results/run_sessions/...)" --> FS
+  PIKO_ZONE["Piko Agent Runtime（本文责任边界）"]
+  P["Piko Agent Runtime<br/>· 四项 HTTP operation<br/>· 单 Agent execution slot<br/>· Task Store + Pi/Matrix/LLMTier 适配<br/>· 稳定 Result publisher"]
+
+  subgraph EXT_ZONE["外部依赖（不在本文范围）"]
+    direction TB
+    PI["Pi SDK<br/>AgentHarness + JsonlSessionRepo<br/>(进程内集成)"]
+    LLMTier["LLMTier<br/>OpenAI-compatible Responses SSE<br/>stream:true / store:false / maxRetries:0"]
+    Matrix["Matrix homeserver<br/>Client-Server API<br/>single identity"]
+    FS["本地可靠文件系统<br/>SQLite WAL + JSONL session + workspace staging"]
+  end
+
+  style PIKO_ZONE fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
+  style USER_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px,color:#53667b
+  style EXT_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px,color:#53667b
+
+  SLINKY -. "四项 HTTP operation<br/>CAP-SUBMIT / STATUS / CANCEL / RESULT" .-> P
+  P -. "RunSubmitRequest / AgentResult" .-> SLINKY
+  P -- "AgentHarness 公共面<br/>lane accept / drive / getResult / requestAbort" --> PI
+  PI -- "OpenAI Responses SSE" --> LLMTier
+  P -- "Client-Server API<br/>sync / send / receive / sendWithStableTxn" --> Matrix
+  PI -- "durable session JSONL<br/>fsync append + fsync parent dir" --> FS
+  P -- "SQLite WAL + fsync<br/>tasks / runs / results / model_attempts / tool_calls / ..." --> FS
 ```
 
-图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。环境视图：人工 Slinky 用户 → Slinky 业务流程（外部项目） → Piko（本文） → Pi（进程内）/ LLMTier（外部模型）/ Matrix homeserver（外部协作）/ FS（本地）。黄底 = 外部项目方；蓝底 = 本文；红底 = 外部依赖（不在本文设计范围）。
+图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。三栏环境视图：左侧客户环境（Slinky PM + Slinky 流程，外部项目） → 中间 Piko（本文，蓝框 = 责任边界） → 右侧 4 个外部依赖（Pi SDK 进程内集成 / LLMTier 模型服务 / Matrix 协作服务 / 本地 FS 持久化）。虚线箭头 = 与 Slinky 的 HTTP API（业务输入/输出），实线箭头 = 与外部依赖的本地 API 调用。客户环境和外部依赖不是本文责任边界，本软件不替代其内部。
 
 ### 2.2 目标、范围与可观察成功条件
 
@@ -124,62 +133,48 @@ Piko 启动时按顺序：parse → schema validate → bind tool/recovery regis
 
 ### 3.1 软件系统架构
 
-Piko 采用纯软件无 subsystem 结构：system 下直接挂 10 个直属模块（M000-M009），按职责分 4 个功能分区（启动 / 受理 / 事务 / 适配 + 横切观测）。无 subsystem 是因为：单一 subsystem 是架构代码坏味道（要么 ≥ 2 要么 0）；bootstrap 与其他模块同进程同生命周期，不具备独立 subsystem 资格。
+Piko 采用纯软件无 subsystem 结构：system 下直接挂 10 个直属模块（M000-M009）。无 subsystem 是因为：单一 subsystem 是架构代码坏味道（要么 ≥ 2 要么 0）；bootstrap 与其他模块同进程同生命周期，不具备独立 subsystem 资格。模块的功能分组（启动 / 受理 / 事务 / 适配 / 横切）仅在正文 §3.2 / §3.4 中描述，不在架构图上分区分层（按 STD `software-design-composition.svg` 示例：仅表达包含关系，不按对象类型或目录深度判定层级）。
 
 ```mermaid
 flowchart TD
-  classDef module fill:#dbeafe,stroke:#1e40af,color:#1f2937
+  SWP["SW-P · Piko Agent Runtime<br/>对象类型：system<br/>父对象：无（纯软件顶层）<br/>承担：四项 HTTP API / 单 Agent execution slot / Task Store / Pi/Matrix 适配 / 稳定 Result / 内部诊断"]
 
-  subgraph Boot["启动分区"]
-    M000["bootstrap · M000 · 配置加载 / SQLite migration / preflight / 进程生命周期"]:::module
-  end
+  M000["M000 · bootstrap<br/>对象类型：module · 父：SW-P<br/>配置加载 / SQLite migration / preflight / 进程生命周期"]
+  M001["M001 · task-api<br/>对象类型：module · 父：SW-P<br/>四项 HTTP operation"]
+  M002["M002 · policy<br/>对象类型：module · 父：SW-P<br/>request/path/tool/deadline/budget 校验"]
+  M003["M003 · task-repository<br/>对象类型：module · 父：SW-P<br/>Run/lease/session/result/ledger 事务 + fenced write"]
+  M004["M004 · scheduler<br/>对象类型：module · 父：SW-P<br/>单 slot 领取 / 续租 / fence"]
+  M005["M005 · worker<br/>对象类型：module · 父：SW-P<br/>Run 事务协调 / 取消 / Result 两步发布"]
+  M006["M006 · pi-adapter<br/>对象类型：module · 父：SW-P<br/>AgentHarness session/lane/operation/abort/raw usage"]
+  M007["M007 · usage<br/>对象类型：module · 父：SW-P<br/>UsageAggregator + ResultValidator"]
+  M008["M008 · matrix-adapter<br/>对象类型：module · 父：SW-P<br/>matrix-js-sdk Client-Server + discussion intake CAS"]
+  M009["M009 · observability<br/>对象类型：module · 父：SW-P<br/>结构化日志 / metric / audit"]
 
-  subgraph Intake["受理分区"]
-    M001["task-api · M001 · 四项 HTTP operation"]:::module
-    M002["policy · M002 · request/path/tool 校验"]:::module
-  end
+  SWP --> M000
+  SWP --> M001
+  SWP --> M002
+  SWP --> M003
+  SWP --> M004
+  SWP --> M005
+  SWP --> M006
+  SWP --> M007
+  SWP --> M008
+  SWP --> M009
 
-  subgraph Store["事务分区"]
-    M003["task-repository · M003 · Run/lease/session/result/ledger 事务"]:::module
-    M004["scheduler · M004 · 单 slot 领取 / 续租 / fence"]:::module
-    M005["worker · M005 · Run 事务协调 / 取消 / Result 发布"]:::module
-  end
-
-  subgraph Adapt["适配分区"]
-    M006["pi-adapter · M006 · Harness session/lane/operation/abort/raw usage"]:::module
-    M007["usage · M007 · UsageAggregator + ResultValidator"]:::module
-    M008["matrix-adapter · M008 · matrix-js-sdk Client-Server"]:::module
-  end
-
-  subgraph Obs["横切分区"]
-    M009["observability · M009 · 结构化日志 / metric / audit"]:::module
-  end
-
-  BOOT --> API
-  BOOT --> POL
-  BOOT --> REPO
-  BOOT --> SCHED
-  BOOT --> PI
-  API --> POL
-  API --> REPO
-  POL --> REPO
-  SCHED --> REPO
-  WORKER --> REPO
-  WORKER --> PI
-  WORKER --> MX
-  WORKER --> USAGE
-  PI --> USAGE
-  PI --> MX
-  PI --> OBS
-  REPO --> OBS
-  API --> OBS
-  USAGE --> OBS
-  WORKER --> OBS
-
-  class M000,M001,M002,M003,M004,M005,M006,M007,M008,M009 module
+  style SWP fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
+  style M000 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M001 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M002 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M003 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M004 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M005 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M006 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M007 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M008 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
+  style M009 fill:#e0e7ed,stroke:#9aafbf,stroke-width:1px
 ```
 
-图 SW-3 · `system-design` v0.7.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
+图 SW-3 · `system-design` v0.7.0 / Target / NOT_BUILT。SW-P（软件系统，蓝框）下挂 10 个直属模块（灰底 module），无 subsystem、无 UI 层（无 Web/桌面入口）、无递归。本图仅表达包含关系；模块间协作通过 §3.5 列出的 5 份 `design.system-mechanism` 文档独立描述（不靠图连线）。
 
 ### 3.2 组成与职责
 
