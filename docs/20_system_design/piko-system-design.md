@@ -36,17 +36,70 @@ Piko 是 Pi 的薄任务外壳。一个 Piko 实例拥有一个独立 Agent；Sl
 
 唯一调用方是已配置的 Slinky principal（一个 bearer credential 引用）。Slinky 通过四项 HTTP operation 提交任务并查询结果；Piko 通过 SSE responses 把每次模型调用交给 LLMTier，并通过 `matrix-js-sdk` Client-Server API 接收/发送 Matrix 房间讨论与附件。客户端、LLMTier、Matrix homeserver、Pi SDK 均为外部依赖；Piko 不重写它们。
 
+### 2.1.1 代表用户场景与价值流
+
+**用户**：Slinky 项目经理（也是 Piko 实例的唯一外部调用方）。**核心任务**：把 Slinky 任务组织中产生的、需要长期运行的 AI 任务交给一个独立 Agent 执行并取得结果。**痛点**：模型调用、工具循环、context 管理、断点恢复若由 Slinky 端重复实现会与 Pi upstream 升级路径持续脱节，且与 Slinky 的项目流程语义纠缠。**价值**：Slinky 只负责"派一个 Run、读一个 Result"，Piko 把模型执行 + 状态持久化 + 故障恢复封装为稳定的 Run 事务。
+
 ```mermaid
-flowchart LR
-  S["Slinky（外部 IR 组织方）"] -- HTTP四项API --> P["Piko Agent Runtime（本文）"]
-  P -- "fixed Pi upstream commit" --> Pi["Pi AgentHarness + JsonlSessionRepo（进程内）"]
-  Pi -- "OpenAI-compatible Responses SSE" --> L["LLMTier（外部模型服务）"]
-  P -- "Client-Server API" --> M["Matrix homeserver（外部）"]
-  Pi -- "durable session/operation" --> FS["本地可靠文件系统（Task Store + JSONL + workspace staging）"]
-  P -- "输出 + usage + known_actions" --> S
+sequenceDiagram
+  participant U as Slinky 项目经理<br/>(任务派发者)
+  participant SL as Slinky<br/>(业务流程方)
+  participant P as Piko<br/>(任务事务层)
+  participant M as Pi Agent + LLMTier + Matrix<br/>(执行 + 集成)
+  participant FS as 本地 FS<br/>(持久层)
+
+  Note over SL,P: 一次性业务场景：派一个新 AI 任务
+  U->>SL: 决定派一个新 Run（task_id 由 Slinky 生成）
+  SL->>P: POST /runs (task_id, task, workspace, perms, deadline, ...)
+  P->>P: 校验 + 持久化 tasks/runs
+  P-->>SL: 202 Accepted (run_id, state=Queued)
+  Note over SL: Slinky 不阻塞；通过后续 status/result 查询
+
+  Note over P,M: 异步执行阶段（后台 worker）
+  P->>M: 启动 Pi session；驱动 Harness operation
+  M->>M: 模型调用 + 工具循环 + Matrix discussion
+  M->>FS: 持久化 operation/usage/tool facts
+  M->>P: operation result + usage + known_actions
+  P->>P: fence + 对账 + 固定 Result
+  P->>FS: 写入 results generation
+
+  Note over SL,P: 结果查询与决策
+  SL->>P: GET /runs/:run_id/result
+  P-->>SL: AgentResult (state=Completed/Failed/Cancelled + summary + outputs + usage)
+  U->>SL: 基于 Result 决定下一步（验收 / 重派 / 升级）
 ```
 
-图 SW-1 · `system-design` v0.4.0 / Target / NOT_BUILT。Slinky → Piko → Pi/LLMTier/Matrix/FS 的逻辑交接；外部组件由各自系统设计负责，本软件不替代其内部。
+图 SW-1 · `system-design` v0.7.0 / Target / NOT_BUILT。代表场景：Slinky 派一个新 Run → Piko 持久化并执行 → 返回 Result。Slinky 与 Piko 之间的所有交互是同步 HTTP；Piko 与执行栈（Pi/LLMTier/Matrix）是异步执行；Piko 与 FS 是同步持久化。
+
+### 2.1.2 应用环境与外部对象
+
+```mermaid
+flowchart LR
+  classDef user fill:#fef3c7,stroke:#92400e,color:#1f2937
+  classDef piko fill:#dbeafe,stroke:#1e40af,color:#1f2937
+  classDef ext fill:#fee2e2,stroke:#b91c1c,color:#1f2937
+
+  USER["Slinky 项目经理<br/>（人工决策：派任务 / 验收结果）"]:::user
+  SLINKY["Slinky 业务流程<br/>（派 Run / 读 Result）"]:::user
+  P["Piko Agent Runtime（本文）"]:::piko
+
+  subgraph EXT["外部依赖（不在本软件范围）"]
+    PI["Pi AgentHarness + JsonlSessionRepo<br/>（进程内 SDK 集成）"]:::ext
+    LLMTier["LLMTier<br/>（OpenAI-compatible Responses SSE）"]:::ext
+    Matrix["Matrix homeserver<br/>（Client-Server API）"]:::ext
+    FS["本地可靠文件系统<br/>（SQLite + JSONL + workspace staging）"]:::ext
+  end
+
+  USER --> SLINKY
+  SLINKY -- "四项 HTTP operation<br/>（CAP-SUBMIT/STATUS/CANCEL/RESULT）" --> P
+  P -- "AgentHarness 公共面<br/>（lane accept/drive/getResult）" --> PI
+  PI -- "OpenAI Responses SSE<br/>stream:true / store:false / maxRetries:0" --> LLMTier
+  P -- "Client-Server API<br/>(sync/send/receive/sendWithStableTxn)" --> Matrix
+  PI -- "durable session/operation<br/>(fsync JSONL append + fsync parent dir)" --> FS
+  P -- "SQLite WAL + fsync<br/>(tasks/runs/results/run_sessions/...)" --> FS
+```
+
+图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。环境视图：人工 Slinky 用户 → Slinky 业务流程（外部项目） → Piko（本文） → Pi（进程内）/ LLMTier（外部模型）/ Matrix homeserver（外部协作）/ FS（本地）。黄底 = 外部项目方；蓝底 = 本文；红底 = 外部依赖（不在本文设计范围）。
 
 ### 2.2 目标、范围与可观察成功条件
 
@@ -132,7 +185,7 @@ flowchart TD
   class BOOT,OBS subsystem
 ```
 
-图 SW-2 · `system-design` v0.5.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
+图 SW-3 · `system-design` v0.7.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
 
 ### 3.2 组成与职责
 
@@ -289,7 +342,7 @@ flowchart LR
   P -.进程内集成.-> Pi
 ```
 
-图 SW-3 · Target / NOT_BUILT。单进程集成所有模块；外部依赖为 LLMTier、Matrix、本地 FS。
+图 SW-4 · `system-design` v0.7.0 / Target / NOT_BUILT。单进程集成所有模块；外部依赖为 LLMTier、Matrix、本地 FS。
 
 ### 6.1 执行上下文、调度与并发
 
@@ -321,10 +374,10 @@ flowchart LR
 
 | Process ID / 模式 | 触发 / 目标 | 统筹者 / 参与方 | 前提事实来源 | 阶段 / 结果可见点 | 失败及清理 / 机制引用 | 图号 / 图内路径 / 正文位置 |
 |---|---|---|---|---|---|---|
-| P-START · 冷启动 | 部署工具拉起进程 / READY 受理 | `bootstrap` M000（统筹）；`task-repository` M003（store）；`pi-adapter` M006（verify upstream）；`matrix-adapter` M008（whoami） | config + 固定上游 commit + 本地 FS 可写 | S1 parse → S2 schema → S3 bind tool/recovery → S4 canonicalize paths → S5 open/migrate store → S6 verify Pi upstream + patch manifest → S7 preflight → S8 listen | 任一阶段失败：F1 关闭已得句柄并 `InternalError`；进程非零退出；不进入 listen | 图 SW-4 / §7.1 |
-| P-BIZ · 一次业务受理 | Slinky `POST /runs` | `task-api` M001（统筹）；`policy` M002；`task-repository` M003；`scheduler` M004；`worker` M005；`pi-adapter` M006；`usage` M007；`matrix-adapter` M008（discussion only） | 已 READY；bearer principal 一致；task_id 唯一性已知 | J1 JSON/Schema → J2 bearer → J3 task_id 查 → J4 比较/创建 → J5 ack 202 | 422/410/409/429/503：J4 直接返回，事务回滚 | 图 SW-5 / §7.2 |
-| P-CONFIG · 配置生效（重启生效） | 部署工具拉起新进程 | `bootstrap` M000；`policy` M002（tool 绑定） | 旧进程已停止确认 | C1 校验新参数 → C2 关闭旧服务并等待退出确认 → C3 C1 重新执行 → C8 listen | 旧进程退出未确认：阻塞；新参数无效：保留旧服务 | 图 SW-6 / §7.3 |
-| P-STOP · 停止 / 重启 / 异常恢复 | 部署工具发 SIGTERM 或失败恢复 | `bootstrap` M000（统筹）；`worker` M005（drain） | P-START 已成功 | T1 停止新受理 → T2 fence lease/writer → T3 等待有界 drain → T4 abort → T5 退出确认 | T3 超时 → T4 强制 abort；未确认退出 → 阻塞不启动新进程 | 图 SW-7 / §7.4 |
+| P-START · 冷启动 | 部署工具拉起进程 / READY 受理 | `bootstrap` M000（统筹）；`task-repository` M003（store）；`pi-adapter` M006（verify upstream）；`matrix-adapter` M008（whoami） | config + 固定上游 commit + 本地 FS 可写 | S1 parse → S2 schema → S3 bind tool/recovery → S4 canonicalize paths → S5 open/migrate store → S6 verify Pi upstream + patch manifest → S7 preflight → S8 listen | 任一阶段失败：F1 关闭已得句柄并 `InternalError`；进程非零退出；不进入 listen | 图 SW-5 / §7.1 |
+| P-BIZ · 一次业务受理 | Slinky `POST /runs` | `task-api` M001（统筹）；`policy` M002；`task-repository` M003；`scheduler` M004；`worker` M005；`pi-adapter` M006；`usage` M007；`matrix-adapter` M008（discussion only） | 已 READY；bearer principal 一致；task_id 唯一性已知 | J1 JSON/Schema → J2 bearer → J3 task_id 查 → J4 比较/创建 → J5 ack 202 | 422/410/409/429/503：J4 直接返回，事务回滚 | 图 SW-6 / §7.2 |
+| P-CONFIG · 配置生效（重启生效） | 部署工具拉起新进程 | `bootstrap` M000；`policy` M002（tool 绑定） | 旧进程已停止确认 | C1 校验新参数 → C2 关闭旧服务并等待退出确认 → C3 C1 重新执行 → C8 listen | 旧进程退出未确认：阻塞；新参数无效：保留旧服务 | 图 SW-7 / §7.3 |
+| P-STOP · 停止 / 重启 / 异常恢复 | 部署工具发 SIGTERM 或失败恢复 | `bootstrap` M000（统筹）；`worker` M005（drain） | P-START 已成功 | T1 停止新受理 → T2 fence lease/writer → T3 等待有界 drain → T4 abort → T5 退出确认 | T3 超时 → T4 强制 abort；未确认退出 → 阻塞不启动新进程 | 图 SW-8 / §7.4 |
 
 ### 7.1 启动与就绪过程
 
@@ -354,7 +407,7 @@ flowchart TD
   W["W1 启动监督超时"] --> X["终止进程;等待退出确认;未确认则阻塞"]
 ```
 
-图 SW-4 · P-START 路径。`bootstrap` 是统筹者，部署工具是外部监督 W1。S8 READY 才接受 Run；S5 之前失败不会 listen。
+图 SW-5 · P-START 路径。`bootstrap` 是统筹者，部署工具是外部监督 W1。S8 READY 才接受 Run；S5 之前失败不会 listen。
 
 **正常路径及就绪判据**：S1-S5 全部成功且在应用预算内（本设计不声明预算数值，由 bootstrap 实现决定）；S6 必须证明 Pi 上游 commit 与 adapter patch manifest 哈希匹配；S7 至少返回 LLMTier 可达 + Matrix whoami OK + store writable；S8 输出 READY 消息并 listen 端口。
 
@@ -408,11 +461,61 @@ sequenceDiagram
   W->>W: Result 两步提交 (见 §7.4 / ISD §6.5)
 ```
 
-图 SW-5 · P-BIZ 正常路径。`task-api` 受理 + 202 ack；scheduler 后台领 slot 并交 worker 驱动 Pi；Result 两步提交另见图 SW-7。
+图 SW-6 · P-BIZ 正常路径。`task-api` 受理 + 202 ack；scheduler 后台领 slot 并交 worker 驱动 Pi；Result 两步提交细节见 §7.2.1。
 
 **正常路径及就绪判据**：J1-J5 完整走完后返回 202；Run 状态由 `tasks`+`runs` 表承担事实；worker 取得 lease 后切 Running 并 accept Pi operation；Result 由 `results` 表 generation 唯一持有事实。
 
 **失败与清理**：J3 tombstone 立即 410 退出事务；J4 字段不同 409 退出事务；J4 字段同直接返回原 Run，不重新检查动态条件（PK-02）；J5 deadline/queue/discussion 任一失败 422/429/503 退出事务，不创建 Run；J5 后到 scheduler 的失败由 worker 修复或 abort，不会回到 J4 冒充成功。
+
+#### 7.2.1 Result 两步提交协议（`MECH-RUN` 关键过程）
+
+Pi operation 完成后 worker 进入 Result 两步提交：第一步把 immutable Result generation 写入 `results` 表（原子事务），第二步把 `runs.state` 与 `runs.generation` 写入终态（原子事务）。两步间崩溃时恢复器只补第二步（绝不重跑 Pi）。
+
+```mermaid
+sequenceDiagram
+  participant W as worker M005
+  participant R as task-repository M003
+  participant V as ResultValidator M007
+  participant U as UsageAggregator M007
+  participant FS as SQLite
+
+  Note over W,FS: 第一步：写 immutable Result generation
+  W->>R: BEGIN IMMEDIATE (fence new steps)
+  W->>R: SELECT pending tool_calls/attempts for run
+  W->>U: snapshot(runId)
+  U-->>W: UsageSnapshot (6 字段 sum/null + missing_fields)
+  W->>V: validateBeforePublish(result, "0.3.0-simplified.6")
+  alt FAIL
+    V-->>W: SemanticCheck {ok: false, reason: "..."}
+    W->>R: ROLLBACK
+    W-->>W: throw InternalError("semantic-validator-fail")
+    Note over W: 不写 results，不写终态
+  end
+  V-->>W: SemanticCheck {ok: true}
+  W->>R: INSERT results (run_id, generation, result_json, sha256)
+  W->>R: COMMIT
+  Note over W: Result generation N 已发布；Result 内容不可变
+
+  Note over W,FS: 第二步：写终态 + discussion intake Closed
+  W->>R: BEGIN IMMEDIATE (state transition)
+  W->>R: UPDATE runs SET state='Completed', generation = generation + 1
+  W->>R: release execution_slot
+  alt Discussion run
+    W->>R: UPDATE runs SET discussion_intake_state='Closed'
+    W->>R: UPDATE discussion_turns SET status='Abandoned' WHERE status IN ('Pending','QueuedInPi')
+  end
+  W->>R: COMMIT
+  Note over W: Run 终态发布；Result 对外可查
+
+  Note over W,R: 两步间崩溃的恢复
+  alt 进程在第一步 commit 后第二步 commit 前崩溃
+    R-->>R: 重启时 R1 检测到 results 有 N 但 runs.state 非终态
+    R->>R: 仅补写第二步（同 fencing 验证）
+    Note over R: 绝不重跑 Pi
+  end
+```
+
+图 SW-6a · `system-design` v0.7.0 / Target / NOT_BUILT。两事务分开（不是合并单事务）；第一步 INSERT results 后 Result generation 即冻结；第二步 UPDATE runs.state 与 generation。Discussion run 同事务改 intake `Closed` + 未消费 turn `Abandoned`。
 
 ### 7.3 配置生效与模式切换过程
 
@@ -428,7 +531,7 @@ flowchart TD
   C3 -- 是 --> S1["S1 启动协调模块: 读取并校验启动参数"] --> S2["S2 schema 校验"] --> S3["S3 绑定 tool/recovery"] --> S4["S4 canonicalize paths"] --> S5["S5 open/migrate store"] --> S6["S6 verify Pi upstream + patch manifest"] --> S7["S7 preflight"] --> S8["S8 bind 端口;READY"]
 ```
 
-图 SW-6 · P-CONFIG 路径。本软件明确选择"部署者先校验新参数 → 关闭旧服务并确认退出 → 以新参数完整执行 P-START"；C0 不允许"参数已提交即生效"。
+图 SW-7 · P-CONFIG 路径。本软件明确选择"部署者先校验新参数 → 关闭旧服务并确认退出 → 以新参数完整执行 P-START"；C0 不允许"参数已提交即生效"。
 
 **正常路径及就绪判据**：C1 校验通过后 C2 停止旧进程；C3 收到旧进程退出确认后启动新进程 S1-S8。新进程 READY 才证明新配置可服务；旧进程在停止前仍使用旧配置；不存在混合版本。
 
@@ -458,7 +561,7 @@ flowchart TD
   end
 ```
 
-图 SW-7 · P-STOP 与恢复路径。`bootstrap` 是统筹者；T4 进程退出确认后部署工具才允许 P-START。
+图 SW-8 · P-STOP 与恢复路径。`bootstrap` 是统筹者；T4 进程退出确认后部署工具才允许 P-START。
 
 **正常路径及就绪判据**：T1-F4-T3-T4 顺序执行；F4 完成后所有 in-flight tool 已确认状态；T4 进程退出码 0。部署工具拿到退出码后才允许新进程启动。
 
