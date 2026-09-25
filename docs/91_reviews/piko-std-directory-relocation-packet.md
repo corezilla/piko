@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko STD Default Directory Relocation Review Packet
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-directory-relocation-packet` |
@@ -10,20 +12,19 @@
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner; STD reviewer |
 | Created Date | `2026-09-08` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
-| Migration Map Reference | `docs/98_migration/piko-std-migration-map.md` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
+| Migration Map Reference | docs/98_migration/piko-std-migration-map.md |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-std-directory-relocation-packet.md` |
 | Supersedes | none |
 
-> DIR-01 仅把已迁移、已 promotion 的 Piko 文档和机器 artifact 一次搬到 STD 默认软件目录树，
-> 并修复路径引用；不改变业务语义、authority、Document Status 或 Runtime Activation。
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 决定目标与 immutable input

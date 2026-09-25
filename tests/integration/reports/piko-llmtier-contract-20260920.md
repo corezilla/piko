@@ -18,7 +18,7 @@
 | Created Date | `2026-09-20` |
 | Last Modified Date | `2026-09-21` |
 | Template ID | `assurance.test-report` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |

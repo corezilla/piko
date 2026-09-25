@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko STD draft.21 升级 Review Packet
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-draft21-upgrade-packet` |
@@ -11,18 +13,18 @@
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-09` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-std-draft21-upgrade-packet.md` |
 | Supersedes | none |
 
-> 本 packet 只请求评审 STD draft.21 adoption 与两份上层设计的结构升级。它不改变机器契约、
-> 已冻结业务决定、RAG canonical snapshot 或 Runtime Activation。
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 请求的决定

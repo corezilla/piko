@@ -1,27 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Agent Runtime Core 内部设计
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-core-internal-design-v0.3` |
 | Document Version | `0.1.0` |
 | Status | `Approved` |
 | Project | `piko` |
-| Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-17` |
-| Created Date | `2026-09-16` |
-| Last Modified Date | `2026-09-17` |
-| Template ID | `design.definition` |
-| Template Version | `2.1.1` |
-| Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md` |
-| Supersedes | none |
+| Last Modified Date | `2026-09-25` |
+| Template ID | `design.subsystem` |
+| Template Version | `1.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-agent-runtime-core-internal-design-v0.3`
@@ -73,3 +64,20 @@ Harness `before_request` hook 是预算入口；Piko 的固定 adapter patch 为
 ## 6. 运维
 
 部署 supervisor 负责进程启动/重启。诊断检查本实例 Task Store/schema、scheduler lease、Pi session/Harness operation、sandbox、Matrix identity/sync cursor 和标准 LLMTier endpoint。只读诊断与状态改变操作分离；启动、重启、credential 修改和强制 lease 回收需要 operator authorization。恢复确认必须证明 store 可写、旧 lease 已 fence、session/operation/transcript 可读和依赖可达；不提供 Slinky 可编排的通用恢复状态机。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | piko |
+| Authors | corezilla |
+| Created Date | 2026-09-16 |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md` |
+| Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_CONTROL_END -->

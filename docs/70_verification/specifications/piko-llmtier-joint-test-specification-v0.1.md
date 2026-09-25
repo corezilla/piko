@@ -13,7 +13,7 @@
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
 | Created Date | `2026-09-22` |
-| Last Modified Date | `2026-09-22` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `assurance.test-specification` |
 | Template Version | `0.2.1` |
 | Template Conformance | `native` |

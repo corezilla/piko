@@ -9,11 +9,9 @@
   "authors": [
     "corezilla"
   ],
-  "source_repository": "corezilla/piko",
-  "source_path": "docs/91_reviews/piko-std-publication-packet.md",
   "template_id": "review.packet",
-  "template_version": "0.1.1",
-  "template_sha256": "743cc6f2bfd4550dae6d5d3675a060a6b10b0722996b1de8989977043fb5868a",
+  "template_version": "0.2.0",
+  "template_sha256": "7272a93143e7a13a923344fe5bdeaa0c1d21c64823e3fbaee7f1fcb94a3964e6",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
@@ -25,9 +23,11 @@
   ],
   "status": "accepted",
   "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/91_reviews/piko-std-publication-packet.md",
   "reviewed_commit": null,
   "parent_document_id": "piko-std-canonical-promotion-packet",
   "supersedes": null,
   "created_at": "2026-09-08",
-  "last_modified_at": "2026-09-21"
+  "last_modified_at": "2026-09-25"
 }

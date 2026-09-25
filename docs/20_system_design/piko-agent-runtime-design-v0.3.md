@@ -1,27 +1,18 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Agent Runtime 总体系统设计
+
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-design-v0.3` |
 | Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
-| Authority | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-17` |
-| Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `design.system` |
-| Template Version | `8.3.1` |
-| Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/20_system_design/piko-agent-runtime-design-v0.3.md` |
-| Supersedes | `docs/99_reference/design/agent-runtime-service-design-v0.2.md` |
+| Template Version | `9.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-agent-runtime-design-v0.3`
@@ -99,3 +90,20 @@ Piko/Pi 的 session store、worker、工具 sandbox 与 LLMTier 连通性诊断�
 ## 9. 跨方接口基线
 
 Piko 对 LLMTier 的需求限定为固定 Pi 实际使用的 OpenAI-compatible Responses 子集：models 查询、SSE response events、function tool call/result 和标准 usage。任何差异必须以 LLMTier 实际机器字节复审；不得为此新增会话、调用方管理或自定义恢复面。
+
+<!-- STD_DOCUMENT_CONTROL_BEGIN -->
+| 文档字段 | 值 |
+|---|---|
+| Authority | piko |
+| Authors | corezilla |
+| Created Date | 2026-09-07 |
+| Template Conformance | `tailored` |
+| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Migration Map Reference | none |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/20_system_design/piko-agent-runtime-design-v0.3.md` |
+| Supersedes | `docs/99_reference/design/agent-runtime-service-design-v0.2.md` |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+<!-- STD_DOCUMENT_CONTROL_END -->

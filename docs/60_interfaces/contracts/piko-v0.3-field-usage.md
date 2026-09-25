@@ -1,5 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko V0.3 字段使用表
+# Piko V0.3 跨系统字段使用表
+
+> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-field-usage` |
@@ -9,19 +12,19 @@
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-16` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `contracts.specification` |
-| Template Version | `0.3.1` |
+| Template Version | `0.4.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/60_interfaces/contracts/piko-v0.3-field-usage.md` |
 | Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 - Document ID: `piko-v0.3-field-usage`

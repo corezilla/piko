@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko V0.3 实现级设计 Review Packet
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-v0.3-implementation-design-review-packet` |
@@ -10,21 +12,19 @@
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-v0.3-implementation-design-review-packet.md` |
 | Supersedes | none |
 
-> 本 packet 只请求批准实现级内部设计，不请求实现、发布或 Runtime Activation。
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. Review 目标

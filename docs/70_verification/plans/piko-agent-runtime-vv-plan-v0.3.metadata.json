@@ -9,11 +9,9 @@
   "authors": [
     "corezilla"
   ],
-  "source_repository": "corezilla/piko",
-  "source_path": "docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md",
   "template_id": "assurance.vv-plan",
-  "template_version": "0.1.1",
-  "template_sha256": "bebf2a86c918b6e4a777b75fa46fa9e2df0c96e568c4e869c5e692d0e68af5eb",
+  "template_version": "0.2.0",
+  "template_sha256": "dd437f81fd4ce5acbb575fd60e4eafb765e57de763d0002ed78c7de79dad8a6c",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
@@ -23,9 +21,11 @@
   ],
   "status": "accepted",
   "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/plans/piko-agent-runtime-vv-plan-v0.3.md",
   "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
   "parent_document_id": "piko-agent-runtime-design-v0.3",
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-25"
 }

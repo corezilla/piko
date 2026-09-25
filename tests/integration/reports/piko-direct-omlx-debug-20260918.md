@@ -18,7 +18,7 @@
 | Created Date | `2026-09-18` |
 | Last Modified Date | `2026-09-21` |
 | Template ID | `assurance.test-report` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `legacy-mapped` |
 | Tailoring Reference | none |
 | Migration Map Reference | docs/98_migration/piko-std-migration-map.md |

@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko STD 迁移裁剪清单
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-tailoring-v0.1` |
@@ -10,13 +12,10 @@
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-17` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-17` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `management.tailoring` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |
@@ -24,8 +23,8 @@
 | Canonical Path | `docs/00_management/piko-std-tailoring-v0.1.md` |
 | Supersedes | none |
 
-> 内部 repository identifier 为 `piko`，canonical GitHub repository 为 `corezilla/piko`。
-> 本裁剪清单已完成文档批准；项目当前仍处于设计阶段。
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 适用背景

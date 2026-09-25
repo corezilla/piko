@@ -9,11 +9,9 @@
   "authors": [
     "corezilla"
   ],
-  "source_repository": "corezilla/piko",
-  "source_path": "docs/00_management/piko-std-tailoring-v0.1.md",
   "template_id": "management.tailoring",
-  "template_version": "0.1.1",
-  "template_sha256": "18e407a882d56f6dc4b86a92e36fb2d7cf0bc244d3295fbe37ef560fd0df210f",
+  "template_version": "0.2.0",
+  "template_sha256": "ea464ac869946983b4e0077cef396f70ad650600043a4327894b19aa073cc74b",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,
@@ -23,9 +21,11 @@
   ],
   "status": "accepted",
   "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/00_management/piko-std-tailoring-v0.1.md",
   "reviewed_commit": "8b8e2d3b367af0db265520f3ac19915e6e6646dd",
   "parent_document_id": null,
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-25"
 }

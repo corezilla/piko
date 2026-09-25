@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "assurance.test-report",
-  "template_version": "0.1.1",
-  "template_sha256": "c8d7e48fe5de3bccf2381d66e20019170a63e7bbbaa7e273d0ef327950eb54fd",
+  "template_version": "0.2.0",
+  "template_sha256": "a7ca431fb4441c1a3cbeb2a510afd6e6b05e68be10bbedcb96dc4abb7de1a04e",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

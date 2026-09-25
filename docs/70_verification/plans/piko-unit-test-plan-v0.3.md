@@ -12,13 +12,10 @@
 | Authority | `piko` |
 | Document Owner | corezilla |
 | Authors | corezilla, opencode |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-21` |
 | Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-21` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `assurance.test-plan` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |

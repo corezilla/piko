@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko 系统设计模板与轻量任务提案评审包
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-system-design-std26-review-packet` |
@@ -11,15 +13,18 @@
 | Document Owner | Piko Architecture Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-15` |
-| Last Modified Date | `2026-09-15` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-system-design-std26-review-packet.md` |
 | Supersedes | none |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 评审范围

@@ -9,11 +9,9 @@
   "authors": [
     "corezilla"
   ],
-  "source_repository": "corezilla/piko",
-  "source_path": "docs/80_operations/piko-runtime-release-and-operations-v0.3.md",
   "template_id": "operations.release",
-  "template_version": "0.1.1",
-  "template_sha256": "bc6ac8e7f207b636ea67155f46c47b6ffa4c60b93e3c21d6fec7449ead03b2b6",
+  "template_version": "0.2.0",
+  "template_sha256": "3b22cde4da22c6fe2ea9ec9a532424b71ffa9bd2d96e58712a6646250544f1d8",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
@@ -23,9 +21,11 @@
   ],
   "status": "accepted",
   "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/80_operations/piko-runtime-release-and-operations-v0.3.md",
   "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
   "parent_document_id": "piko-agent-runtime-design-v0.3",
   "supersedes": null,
   "created_at": "2026-09-17",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-25"
 }

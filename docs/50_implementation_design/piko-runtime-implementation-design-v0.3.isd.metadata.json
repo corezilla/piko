@@ -1,0 +1,53 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-runtime-implementation-design-v0.3",
+  "document_type": "design.implementation",
+  "document_version": "0.2.0",
+  "title": "Piko Runtime V0.3 实现级设计 (ISD 1.0.0)",
+  "document_owner": "Piko Implementation Owner",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/50_implementation_design/piko-runtime-implementation-design-v0.3.isd.md",
+  "template_id": "design.implementation",
+  "template_version": "1.0.0",
+  "template_sha256": "500666d87f4491fa7cb3c580019b1d7b697deb5b00d6c6545858206d57df0c50",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "reviewed_commit": "8b8e2d3b367af0db265520f3ac19915e6e6646dd",
+  "parent_document_id": "piko-agent-runtime-core-internal-design-v0.3",
+  "supersedes": "piko-runtime-implementation-design-v0.3",
+  "created_at": "2026-09-17",
+  "last_modified_at": "2026-09-25",
+  "design_object_id": "piko-runtime",
+  "implementation_view_of_document_id": "piko-agent-runtime-core-internal-design-v0.3",
+  "volume_of_document_id": null,
+  "implementation_specification": {
+    "mode": "embedded",
+    "document_id": "piko-runtime-implementation-design-v0.3",
+    "coverage_mapping": [
+      {"item": "scope", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "isd-scope", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "structure", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "file-components", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "data", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "data-structures", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "functions", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "software-interfaces", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "algorithms", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "processes-algorithms", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "lifecycle", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "lifecycle", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "resources", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "resources", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "security", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "security", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "persistence", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "persistence", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"},
+      {"item": "verification", "document_id": "piko-runtime-implementation-design-v0.3", "anchor": "verification", "applicability": "applicable", "reason": null, "decision_ref": "TAIL-P-008"}
+    ],
+    "reason": "ISD 与直属父对象设计合并（mode=embedded）；由 design.implementation 1.0.0 承担完整模块实现规格。",
+    "decision_ref": "TAIL-P-008"
+  }
+}

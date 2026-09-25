@@ -1,6 +1,8 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko STD Migration Review Packet
 
+> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-std-migration-review-packet` |
@@ -10,22 +12,19 @@
 | Authority | `piko` |
 | Document Owner | Piko Project Owner |
 | Authors | corezilla |
-| Reviewer | User / Piko Project Owner |
-| Approver | User / Piko Project Owner |
-| Approval Date | `2026-09-07` |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-08` |
+| Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.1.1` |
+| Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
-| Tailoring Reference | `piko-std-tailoring-v0.1` |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-std-migration-review-packet.md` |
 | Supersedes | none |
 
-> 本 packet 是 MR-01 的 Approved audit record。其 `ACCEPTED` verdict 固定内容候选；后续 CP-01
-> 由独立授权执行，PUB-01 与 Runtime Activation 仍是分离 Gate。
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. Review 目标与期望决定

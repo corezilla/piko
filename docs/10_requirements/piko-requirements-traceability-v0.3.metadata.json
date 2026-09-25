@@ -9,11 +9,9 @@
   "authors": [
     "corezilla"
   ],
-  "source_repository": "corezilla/piko",
-  "source_path": "docs/10_requirements/piko-requirements-traceability-v0.3.md",
   "template_id": "requirements.traceability",
-  "template_version": "0.1.1",
-  "template_sha256": "82273407325cbb134d752b7e2f9f8267295ca7faefe3aa3001f615efb8bb54d3",
+  "template_version": "0.2.0",
+  "template_sha256": "1f9fd1726663d0bcf668f3e6846e631345cb5bc8a3b6655ed301a5101be1dfa2",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
@@ -25,9 +23,11 @@
   ],
   "status": "accepted",
   "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/10_requirements/piko-requirements-traceability-v0.3.md",
   "reviewed_commit": "e721ac098652e4cc02630661a56c72ddc05d7613",
   "parent_document_id": "piko-agent-runtime-design-v0.3",
   "supersedes": null,
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-17"
+  "last_modified_at": "2026-09-25"
 }
