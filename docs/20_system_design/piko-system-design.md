@@ -5,19 +5,20 @@
 
 | 文档字段 | 值 |
 |---|---|
-| Document ID | `piko-agent-runtime-design-v0.3` |
-| Document Version | `0.4.0` |
+| Document ID | `system-design` |
+| Document Version | `0.6.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-25` |
-| Template ID | `design.system` |
-| Template Version | `9.0.0` |
+| Template ID | `design.software-system` |
+| Template Version | `1.0.0` |
 <!-- STD_DOCUMENT_COVER_END -->
+
 
 ## 1. 文档说明
 
-Piko 仓库只有一份顶层软件设计：`piko-agent-runtime-design-v0.3`（本文）。模板采用 `design.software-system` 1.0.0，纯软件项目顶层模式（无总体系统父稿）；项目 `parent_document_id` 为空。Template ID 记录在 cover 与 metadata，不允许把设计层级、依赖或目录层数填入 parent_document_id。
+Piko 仓库只有一份顶层软件设计：`system-design`（本文）。模板采用 `design.software-system` 1.0.0，纯软件项目顶层模式（无总体系统父稿）；项目 `parent_document_id` 为空。Template ID 记录在 cover 与 metadata，不允许把设计层级、依赖或目录层数填入 parent_document_id。
 
 本文承担 Piko Agent Runtime V0.3 完整软件系统的设计，不充当子系统或模块说明。
 
@@ -25,7 +26,7 @@ Piko 仓库只有一份顶层软件设计：`piko-agent-runtime-design-v0.3`（�
 
 | 设计位置 / 本对象 ID | 父对象 / 父 Document ID 或无父理由 | 固定输入 / Constraint ID | 承担范围 / 不承担范围 |
 |---|---|---|---|
-| `SW-P` · 软件系统 Piko Agent Runtime V0.3 · `piko-agent-runtime-design-v0.3` · `design_level=system` · `domain=[software]` | 无父对象（纯软件项目顶层，无总体系统父稿） | PK-01..PK-12（见 `piko-requirements-traceability-v0.3`）；机器契约 `0.3.0-simplified.6` | 承担：四项 HTTP API、单 Agent execution slot、Task Store、Pi session 绑定、Matrix discussion adapter、Usage 聚合、稳定 Result、内部诊断与恢复。**不承担**：Slinky 业务流程、Memory authority、LLMTier Agent 状态、Matrix homeserver、工具自身业务语义、supervisor/Secret backend、跨系统 exactly-once、产品 Topic/SID/RID、非 SSE Responses fallback。下游：10 个直属模块（M000-M009），无 subsystem（详见 §3.1 + §5）。 |
+| `SW-P` · 软件系统 Piko Agent Runtime V0.3 · `system-design` · `design_level=system` · `domain=[software]` | 无父对象（纯软件项目顶层，无总体系统父稿） | PK-01..PK-12（见 `piko-requirements-traceability-v0.3`）；机器契约 `0.3.0-simplified.6` | 承担：四项 HTTP API、单 Agent execution slot、Task Store、Pi session 绑定、Matrix discussion adapter、Usage 聚合、稳定 Result、内部诊断与恢复。**不承担**：Slinky 业务流程、Memory authority、LLMTier Agent 状态、Matrix homeserver、工具自身业务语义、supervisor/Secret backend、跨系统 exactly-once、产品 Topic/SID/RID、非 SSE Responses fallback。下游：10 个直属模块（M000-M009），无 subsystem（详见 §3.1 + §5）。 |
 
 ## 2. 产品应用与设计目标
 
@@ -45,7 +46,7 @@ flowchart LR
   P -- "输出 + usage + known_actions" --> S
 ```
 
-图 SW-1 · `piko-agent-runtime-design-v0.3` v0.4.0 / Target / NOT_BUILT。Slinky → Piko → Pi/LLMTier/Matrix/FS 的逻辑交接；外部组件由各自系统设计负责，本软件不替代其内部。
+图 SW-1 · `system-design` v0.4.0 / Target / NOT_BUILT。Slinky → Piko → Pi/LLMTier/Matrix/FS 的逻辑交接；外部组件由各自系统设计负责，本软件不替代其内部。
 
 ### 2.2 目标、范围与可观察成功条件
 
@@ -131,7 +132,7 @@ flowchart TD
   class BOOT,OBS subsystem
 ```
 
-图 SW-2 · `piko-agent-runtime-design-v0.3` v0.5.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
+图 SW-2 · `system-design` v0.5.0 / Target / NOT_BUILT。`task-api` (M001) 与 `policy` (M002) 是直属软件模块；`task-repository`/`scheduler`/`worker` 是事务层模块；`pi-adapter`/`usage`/`matrix-adapter` 是适配层模块；`bootstrap`/`observability` 是横切模块（与其他模块同进程同生命周期，不是独立 subsystem）。无 UI 层（无 Web/桌面入口）。
 
 ### 3.2 组成与职责
 
@@ -139,7 +140,7 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 
 | 对象 ID / 类型 / 父对象 | 职责 / 非职责 | 状态与资源 | 提供/消费接口 | Document ID / 文件名 / 状态 |
 |---|---|---|---|---|
-| `SW-P` 软件系统 / `piko-agent-runtime-design-v0.3` | 承担 Piko Agent Runtime V0.3 完整软件设计 / 不承担 Slinky 业务流程、Memory authority、LLMTier Agent 状态 | — | — | `docs/20_system_design/piko-agent-runtime-design-v0.3.md` / Approved |
+| `SW-P` 软件系统 / `system-design` | 承担 Piko Agent Runtime V0.3 完整软件设计 / 不承担 Slinky 业务流程、Memory authority、LLMTier Agent 状态 | — | — | `docs/20_system_design/piko-system-design.md` / Approved |
 | M000 `bootstrap` 模块 / `SW-P` | 启动顺序 + preflight + 配置绑定 + 进程生命周期 / 不运行业务、不持有 Run 状态 | 进程寿命；SQLite 句柄；Pi 上游 commit 锚定 | 消费：`config/`；提供：READY / fatal | definition `piko-bootstrap-definition-v0.3.md` + impl `piko-bootstrap-impl-v0.3.isd.md` / Approved |
 | M001 `task-api` 模块 / `SW-P` | 四项 HTTP operation：submit/status/cancel/result / 不持久化业务、不直接操作 adapter | 请求寿命；TypeScript handlers | 消费：`HTTPClient`、`policy`；提供：`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result` | definition `piko-task-api-definition-v0.3.md` + impl `piko-task-api-impl-v0.3.isd.md` / Approved |
 | M002 `policy` 模块 / `SW-P` | request/path/tool/deadline/budget 判定 / 不持状态 | 启动绑定 | 提供：`ValidatedTaskSubmission`、`BoundToolProfile`；消费：原始请求 + config + registry | definition `piko-policy-definition-v0.3.md` + impl `piko-policy-impl-v0.3.isd.md` / Approved |
@@ -471,7 +472,7 @@ flowchart TD
 
 #### 8.1.N `RunState`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。固定来源 `piko-agent-runtime-design-v0.3` §3 + `piko-agent-runtime-contract-v0.3` §6 + `piko-task-repository-impl-v0.3.isd.md` §4.1.1（M003 module ISD）。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。固定来源 `system-design` §3 + `piko-agent-runtime-contract-v0.3` §6 + `piko-task-repository-impl-v0.3.isd.md` §4.1.1（M003 module ISD）。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：每值代表 Run 的当前事务层阶段；与 `cancel_requested`、`discussion_intake_state` 跨字段约束见 M003 ISD §4.2 `RunRecord`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：唯一写入者 M003 `task-repository`；可见点为 `runs.state` 字段；寿命 = Run 寿命；不允许从 `Completed`/`Failed`/`Cancelled` 回退。
 - **合法与拒绝实例、V/Case 与证据状态**：合法转移：`Queued→Running|Cancelled`、`Running→Cancelling|Completed|Failed`、`Cancelling→Cancelled|Failed`。非法转移返回内部 `FencedWrite`，不影响 HTTP。Case：M003/M005 ISD §9.1。
@@ -715,7 +716,7 @@ Piko 配置由 `interfaces/schemas/piko-runtime-config-v0.3.schema.json` + `inte
 
 ### 11.4 升级与回滚
 
-- 版本矩阵：本文 `0.4.0` 绑定机器契约 `0.3.0-simplified.6` + Pi upstream `0.85.1` @ commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`。
+- 版本矩阵：本文 `0.6.0` 绑定机器契约 `0.3.0-simplified.6` + Pi upstream `0.85.1` @ commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`。
 - 升级顺序：先升级配置（如 secret 轮换）→ 重启生效；再升级 Piko 进程 → 重启生效；最后升级 Matrix homeserver / LLMTier 端点版本（如其兼容矩阵允许）。
 - 数据迁移：`PRAGMA user_version` 单调整数；v1→v2 增加 `Abandoned` discussion turn 状态。
 - 回滚：配置可回退；Piko 进程可回退到上次 known-good 镜像；数据 schema 不允许从 v2 回退到 v1（`Abandoned` 状态无法在 v1 表示）。Operator 必须接受"无法回退"条件并保留数据备份。
@@ -913,13 +914,13 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 | 文档字段 | 值 |
 |---|---|
 | Authority | piko |
-| Authors | corezilla |
+| Authors | corezilla, opencode |
 | Created Date | 2026-09-07 |
 | Template Conformance | `tailored` |
 | Tailoring Reference | `piko-std-tailoring-v0.1` |
 | Migration Map Reference | none |
 | Repository | `corezilla/piko` |
-| Canonical Path | `docs/20_system_design/piko-agent-runtime-design-v0.3.md` |
+| Canonical Path | `docs/20_system_design/piko-system-design.md` |
 | Supersedes | `docs/99_reference/design/agent-runtime-service-design-v0.2.md` |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
