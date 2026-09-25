@@ -73,42 +73,37 @@ sequenceDiagram
 
 ### 2.1.2 应用环境与外部对象
 
-按 STD §2.1 示例图样式：左侧 Slinky 用户环境 → 中间本软件（Piko Agent Runtime） → 右侧外部依赖；蓝色业务箭头标注实际数据传递。
+按 STD §2.1 示例图样式：左侧 Slinky 用户环境 → 中间本软件 → 右侧外部依赖；箭头标注业务数据传递。
 
 ```mermaid
 flowchart LR
-  subgraph USER_ZONE["客户工作环境（外部项目）"]
+  subgraph USER_ZONE["客户工作环境（外部项目方）"]
     direction TB
-    USER["Slinky 项目经理<br/>(人工决策：派任务 / 验收 Result)"]
-    SLINKY["Slinky 业务流程<br/>(派 Run / 读 Result / 调 cancel)"]
+    USER["Slinky 项目经理<br/>(人工决策)"]
+    SLINKY["Slinky 业务流程<br/>(派 Run / 读 Result)"]
     USER --> SLINKY
   end
 
-  PIKO_ZONE["Piko Agent Runtime（本文责任边界）"]
-  P["Piko Agent Runtime<br/>· 四项 HTTP operation<br/>· 单 Agent execution slot<br/>· Task Store + Pi/Matrix/LLMTier 适配<br/>· 稳定 Result publisher"]
+  PIKO["Piko Agent Runtime<br/>(本文)"]
 
   subgraph EXT_ZONE["外部依赖（不在本文范围）"]
     direction TB
-    PI["Pi SDK<br/>AgentHarness + JsonlSessionRepo<br/>(进程内集成)"]
-    LLMTier["LLMTier<br/>OpenAI-compatible Responses SSE<br/>stream:true / store:false / maxRetries:0"]
-    Matrix["Matrix homeserver<br/>Client-Server API<br/>single identity"]
-    FS["本地可靠文件系统<br/>SQLite WAL + JSONL session + workspace staging"]
+    LLMTier["LLMTier<br/>(OpenAI-compatible Responses SSE)"]
+    Matrix["Matrix homeserver<br/>(Client-Server API)"]
+    FS["本地可靠文件系统<br/>(SQLite WAL + JSONL + staging)"]
   end
 
-  style PIKO_ZONE fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
-  style USER_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px,color:#53667b
-  style EXT_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px,color:#53667b
+  style USER_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
+  style PIKO fill:#dceafb,stroke:#7299c3,stroke-width:2px,color:#20344b
+  style EXT_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
 
-  SLINKY -. "四项 HTTP operation<br/>CAP-SUBMIT / STATUS / CANCEL / RESULT" .-> P
-  P -. "RunSubmitRequest / AgentResult" .-> SLINKY
-  P -- "AgentHarness 公共面<br/>lane accept / drive / getResult / requestAbort" --> PI
-  PI -- "OpenAI Responses SSE" --> LLMTier
-  P -- "Client-Server API<br/>sync / send / receive / sendWithStableTxn" --> Matrix
-  PI -- "durable session JSONL<br/>fsync append + fsync parent dir" --> FS
-  P -- "SQLite WAL + fsync<br/>tasks / runs / results / model_attempts / tool_calls / ..." --> FS
+  SLINKY <--> PIKO
+  PIKO -- "OpenAI Responses SSE" --> LLMTier
+  PIKO -- "Client-Server API" --> Matrix
+  PIKO -- "SQLite WAL + JSONL + fsync" --> FS
 ```
 
-图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。三栏环境视图：左侧客户环境（Slinky PM + Slinky 流程，外部项目） → 中间 Piko（本文，蓝框 = 责任边界） → 右侧 4 个外部依赖（Pi SDK 进程内集成 / LLMTier 模型服务 / Matrix 协作服务 / 本地 FS 持久化）。虚线箭头 = 与 Slinky 的 HTTP API（业务输入/输出），实线箭头 = 与外部依赖的本地 API 调用。客户环境和外部依赖不是本文责任边界，本软件不替代其内部。
+图 SW-2 · `system-design` v0.7.0 / Target / NOT_BUILT。三栏环境视图：左侧 Slinky PM + Slinky 业务流程（外部项目） → 中间 Piko Agent Runtime（蓝框 = 本文责任边界） → 右侧 3 个外部依赖（LLMTier / Matrix / FS）。虚线双向箭头 = 与 Slinky 的 HTTP API（用户业务输入/输出：RunSubmitRequest / AgentResult），实线箭头 = Piko 对外部依赖的本地 API 调用。Pi SDK 已作为进程内集成被 Piko 框吸收，不在外部依赖栏单列。详细职责映射：Slinky ↔ Piko 见 §9.1 HTTP 四项 operation；Piko ↔ LLMTier 见 §9.2 Pi `openai-responses` provider；Piko ↔ Matrix 见 §9.2 `matrix-js-sdk` Client-Server；Piko ↔ FS 见 §6.1 本地 FS + §7.1 启动 SQLite migration。
 
 ### 2.2 目标、范围与可观察成功条件
 
@@ -137,17 +132,17 @@ Piko 采用纯软件无 subsystem 结构：system 下直接挂 10 个直属模�
 
 ```mermaid
 flowchart TD
-  SWP["SW-P · Piko Agent Runtime<br/>对象类型：system<br/>父对象：无（纯软件顶层）<br/>承担：四项 HTTP API / 单 Agent execution slot / Task Store / Pi/Matrix 适配 / 稳定 Result / 内部诊断"]
+  SWP["SW-P · Piko Agent Runtime<br/>对象类型：system · 父对象：无（纯软件顶层）"]
 
-  M000["M000 · bootstrap<br/>对象类型：module · 父：SW-P<br/>配置加载 / SQLite migration / preflight / 进程生命周期"]
+  M000["M000 · bootstrap<br/>对象类型：module · 父：SW-P<br/>启动顺序 + preflight + 配置绑定"]
   M001["M001 · task-api<br/>对象类型：module · 父：SW-P<br/>四项 HTTP operation"]
-  M002["M002 · policy<br/>对象类型：module · 父：SW-P<br/>request/path/tool/deadline/budget 校验"]
-  M003["M003 · task-repository<br/>对象类型：module · 父：SW-P<br/>Run/lease/session/result/ledger 事务 + fenced write"]
+  M002["M002 · policy<br/>对象类型：module · 父：SW-P<br/>request / path / tool / deadline / budget 校验"]
+  M003["M003 · task-repository<br/>对象类型：module · 父：SW-P<br/>Run / lease / session / result / ledger 事务"]
   M004["M004 · scheduler<br/>对象类型：module · 父：SW-P<br/>单 slot 领取 / 续租 / fence"]
-  M005["M005 · worker<br/>对象类型：module · 父：SW-P<br/>Run 事务协调 / 取消 / Result 两步发布"]
-  M006["M006 · pi-adapter<br/>对象类型：module · 父：SW-P<br/>AgentHarness session/lane/operation/abort/raw usage"]
+  M005["M005 · worker<br/>对象类型：module · 父：SW-P<br/>Run 事务协调 + Result 两步发布"]
+  M006["M006 · pi-adapter<br/>对象类型：module · 父：SW-P<br/>Harness session / lane / operation / raw usage"]
   M007["M007 · usage<br/>对象类型：module · 父：SW-P<br/>UsageAggregator + ResultValidator"]
-  M008["M008 · matrix-adapter<br/>对象类型：module · 父：SW-P<br/>matrix-js-sdk Client-Server + discussion intake CAS"]
+  M008["M008 · matrix-adapter<br/>对象类型：module · 父：SW-P<br/>matrix-js-sdk Client-Server + discussion CAS"]
   M009["M009 · observability<br/>对象类型：module · 父：SW-P<br/>结构化日志 / metric / audit"]
 
   SWP --> M000
