@@ -1,0 +1,35 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-scheduler-impl",
+  "document_type": "design.implementation",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko 实现规格：scheduler（M004）",
+  "document_owner": "Piko Implementation Owner",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "template_id": "design.implementation",
+  "template_version": "1.2.0",
+  "template_sha256": "c53ccf8ae585222101e0aba019638005b314271354d79a068a0a9fde9c5c1616",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "software"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/50_implementation_design/piko-scheduler-impl.isd.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-design",
+  "supersedes": null,
+  "created_at": "2026-09-27",
+  "last_modified_at": "2026-09-27",
+  "design_object_id": "M004",
+  "implementation_view_of_document_id": "piko-scheduler",
+  "volume_of_document_id": null
+}

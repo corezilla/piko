@@ -1,10 +1,10 @@
 {
   "project": "piko",
   "authority": "piko",
-  "document_id": "piko-scheduler",
+  "document_id": "piko-matrix-adapter",
   "document_type": "design.definition",
   "document_version": "0.1.0-draft.1",
-  "title": "Piko 模块设计：scheduler（M004）",
+  "title": "Piko 模块设计：matrix-adapter（M008）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
     "corezilla",
@@ -23,20 +23,20 @@
   "status": "draft",
   "visibility": "project",
   "source_repository": "corezilla/piko",
-  "source_path": "docs/40_module_design/piko-scheduler-design.md",
+  "source_path": "docs/40_module_design/piko-matrix-adapter-design.md",
   "reviewed_commit": null,
   "parent_document_id": "system-design",
   "supersedes": null,
-  "created_at": "2026-09-26",
-  "last_modified_at": "2026-09-26",
-  "design_object_id": "M004",
+  "created_at": "2026-09-27",
+  "last_modified_at": "2026-09-27",
+  "design_object_id": "M008",
   "implementation_specification": {
     "mode": "separate",
-    "document_id": "piko-scheduler-impl",
+    "document_id": "piko-matrix-adapter-impl",
     "coverage_mapping": [
       {
         "item": "scope",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-scope",
         "applicability": "applicable",
         "reason": null,
@@ -44,7 +44,7 @@
       },
       {
         "item": "structure",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-structure",
         "applicability": "applicable",
         "reason": null,
@@ -52,7 +52,7 @@
       },
       {
         "item": "data",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-data",
         "applicability": "applicable",
         "reason": null,
@@ -60,7 +60,7 @@
       },
       {
         "item": "functions",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-functions",
         "applicability": "applicable",
         "reason": null,
@@ -68,7 +68,7 @@
       },
       {
         "item": "algorithms",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-algorithms",
         "applicability": "applicable",
         "reason": null,
@@ -76,7 +76,7 @@
       },
       {
         "item": "lifecycle",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-lifecycle",
         "applicability": "applicable",
         "reason": null,
@@ -84,7 +84,7 @@
       },
       {
         "item": "resources",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-resources",
         "applicability": "applicable",
         "reason": null,
@@ -92,7 +92,7 @@
       },
       {
         "item": "security",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-security",
         "applicability": "applicable",
         "reason": null,
@@ -100,7 +100,7 @@
       },
       {
         "item": "verification",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-verification",
         "applicability": "applicable",
         "reason": null,
@@ -108,10 +108,10 @@
       },
       {
         "item": "persistence",
-        "document_id": "piko-scheduler-impl",
+        "document_id": "piko-matrix-adapter-impl",
         "anchor": "isd-persistence",
         "applicability": "not_applicable",
-        "reason": "scheduler 不拥有持久状态：execution_slot/run_sessions 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-SCHED-STORE 端口，不生成数据库/schema 策略",
+        "reason": "matrix-adapter 不拥有持久状态：matrix_state/matrix_events/matrix_sends/discussion_turns 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-MX-STORE 端口，不生成数据库/schema 策略",
         "decision_ref": "system-design#m003-ddl-authority"
       }
     ],

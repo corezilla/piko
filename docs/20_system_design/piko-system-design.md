@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-design` |
-| Document Version | `0.11.1` |
+| Document Version | `0.11.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.software-system` |
 | Template Version | `2.1.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -667,6 +667,7 @@ flowchart TD
 
 ### 7.7 数据库表结构
 
+<a id="m003-ddl-authority"></a>
 **N/A · 见 M003 ISD §4.7**：`tasks` / `runs` / `run_sessions` / `execution_slot` / `results` / `model_attempts` / `tool_calls` / `matrix_state` / `matrix_events` / `discussion_turns` / `matrix_sends` / `audit_events` / `instance_meta` DDL 见 M003 ISD §4.7.1（`PRAGMA user_version=2` 为当前基线）；本系统层不重复 DDL。
 
 ### 7.8 错误码与错误结构
@@ -1055,6 +1056,7 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 文档控制信息见文末 STD 文档控制块（Authority/Authors/Created Date/Template Conformance/Tailoring Reference/Migration Map Reference/Repository/Canonical Path/Supersedes）。
 
 | 文档版本 / 日期 | 变更和设计影响 | 作者 / 评审记录 |
+| v0.11.2 / 2026-09-27 | 为 M004 scheduler ISD 的 persistence `not_applicable` 决定提供稳定锚点（见 §9 数据节，锚点 id `m003-ddl-authority`，持久化 authority 属 M003）；无正文语义变化 | corezilla, opencode |
 |---|---|---|
 | v0.11.1 / 2026-09-26 | review 修复（AMENDMENT P1/P2）：§3.5.1 依赖矩阵区分上级机制/设计前置/运行时消费/恢复读取（仅设计前置参与无环检查）；7 份机制 §A.1/§16 同步；MATRIX 截断回补 + E2EE 唯一结果；CANCEL 停止未知隔离；接口闭合 + 可执行验证向量；§15 交付计划 5→7 修正 | corezilla, opencode |
 | v0.4.0 / 2026-09-17 | 现有 9 节结构；Approved by User / Piko Project Owner | corezilla |
