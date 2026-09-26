@@ -1,41 +1,11 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.38",
+  "std_version": "0.1.0-draft.39",
   "source_repository": "corezilla/STD",
-  "source_revision": "c59bf1fccb427420b28ef6b4419e5773be808e1d",
+  "source_revision": "24e1ff97531e5bf118dca0fec60e5fd162fc0c35",
   "source_tag": null,
-  "generated_at": "2026-09-25",
+  "generated_at": "2026-09-26",
   "artifacts": [
-    {
-      "path": ".github/CODEOWNERS.example",
-      "role": "guidance",
-      "sha256": "5e855ef450267e47a2d054cf5f2b3031546b4390db25ddb5d476b8c413981f98"
-    },
-    {
-      "path": ".github/PULL_REQUEST_TEMPLATE/document-change.md",
-      "role": "guidance",
-      "sha256": "2c97a7920144155ff2a778d0ed1b65a738f2f7480bd8ca51a63d49c28f1b73da"
-    },
-    {
-      "path": ".gitignore",
-      "role": "guidance",
-      "sha256": "fd9be652f8b9fbe1c08612c1606f989616726e872edba224f001f0428318037f"
-    },
-    {
-      "path": "DATA_INTERFACE_FORMAT_HANDOFF.md",
-      "role": "guidance",
-      "sha256": "df78f03bcef9e8045768dbb3978dca4012c3df12c89acc1a688fa8715b2fdf52"
-    },
-    {
-      "path": "HANDOFF.md",
-      "role": "guidance",
-      "sha256": "fc1dfc44414101763c48fad741868eb4ec33a8f12bb2574940c3b66c16abae38"
-    },
-    {
-      "path": "KNOWLEDGE_BASE_HANDOFF.md",
-      "role": "guidance",
-      "sha256": "3bb1cd4945fca7fbe3da9918ec7a814bfaf32f875dcf90bed3303817aff6be1e"
-    },
     {
       "path": "MIGRATION_HANDOFF.md",
       "role": "guidance",
@@ -44,7 +14,7 @@
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "a170feb68c25252fbe408cc93db0ff88ea052e22a4c8bd310ea35e7c90081a5c"
+      "sha256": "65434ddf981a59c3a51b60e24e3a1de31bddd5cd77fbc7bc61d14eb9152319f2"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -54,142 +24,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "7399a13d38810af70c7f151d4e3209f7f7521ca06ac7bbc64a28d98bb61fdb1c"
-    },
-    {
-      "path": "demo/README.md",
-      "role": "guidance",
-      "sha256": "593dc6997c6e036059b95136365fa7cbc930ddfbd56d65d456040a4f9a678ba3"
-    },
-    {
-      "path": "demo/llmtier-module-design/README.md",
-      "role": "guidance",
-      "sha256": "0ec4180d7adb93051aa10575efb4820b8e4911db55969520bee65eb970aa3a1f"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/40_module_design/http-api-design.md",
-      "role": "guidance",
-      "sha256": "68d0867138b98d197a7335f13cbaa4e389e4417e2219d0914d2b6529ecc66c03"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/40_module_design/http-api-design.metadata.json",
-      "role": "guidance",
-      "sha256": "537b8910afee95ebe1ac71edf2cac4a425112e529edbff3a23a2b73f54b3831f"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/40_module_design/web-ui-design.md",
-      "role": "guidance",
-      "sha256": "69a2050990dbfaa74acca801fba918f792cd6ec1e8cdef9caf77a4379e3c4bad"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/40_module_design/web-ui-design.metadata.json",
-      "role": "guidance",
-      "sha256": "11dff71f412ccd2c1df7eba174074bbfdef3cd2cd3b5ebcde5500414f9ab36c7"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-http-api-flow.png",
-      "role": "guidance",
-      "sha256": "8e62bd01745e6c60fa0ac81af000049cf732318f753b7aa84966ba05ea121685"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-http-api-flow.svg",
-      "role": "guidance",
-      "sha256": "c45c1593e809a33e4b91719fc4557784dad1b1352fb2fc027f29460d6acb851c"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-http-api-structure.png",
-      "role": "guidance",
-      "sha256": "7ee6d1387cef3c27f1709280108dedbb7359eff9edd58844f1595524f57132b8"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-http-api-structure.svg",
-      "role": "guidance",
-      "sha256": "8ad8cba770d7f93aef3658ffc95051c6168d05afb315a59832ec0ac116258238"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-usecase.png",
-      "role": "guidance",
-      "sha256": "ac3581f53a2cf77115f4c8513359059ac4216337c9ae8acc64b83d9207387081"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m001-usecase.svg",
-      "role": "guidance",
-      "sha256": "4704f7fb6461613ba167c6a62ecfeb34e4c1b38c18f26a7cc89d800a0b39b4ed"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m002-web-ui-flow.png",
-      "role": "guidance",
-      "sha256": "a9c2bbf742f28317e288ab79151c926ad472962bdf71cd5d3e709d94c6095b8b"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m002-web-ui-flow.svg",
-      "role": "guidance",
-      "sha256": "3fd3ff0ff773ff0bcf87a9431d1425e4fab490d7456752340629878ae9cc6fd3"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m002-web-ui-structure.png",
-      "role": "guidance",
-      "sha256": "69cd3d8fc94131ed756a048c01383f52296f1cf882b5002b773f88c595150b75"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-m002-web-ui-structure.svg",
-      "role": "guidance",
-      "sha256": "c5b696de39ccf8b48ad8134a78fa0e61e6cfe50fa39192e0d68d7934fe608315"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-diag-switches.png",
-      "role": "guidance",
-      "sha256": "f8825aa25ba25169a7bc58bdb0a09ba32ef9a24d8ce282ea3a1a0dbf6b39fb01"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-diag-switches.svg",
-      "role": "guidance",
-      "sha256": "921bd1cf73631c0327132df99f0325af2acfd37cbea3f9b5619870a964ac9cb0"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-frame.png",
-      "role": "guidance",
-      "sha256": "27092a8f7dd510adb6f5b71d7bb02affa2b5078acd339db1d4d2cea783cf8f58"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-frame.svg",
-      "role": "guidance",
-      "sha256": "6b2628039e52396462537e209d5c10aa54f43eb7aa7d2b5f996c04b92c59bba9"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-nav.png",
-      "role": "guidance",
-      "sha256": "4485e075fc5c100c449cf6d7833d1addc2962a47458e01a8c02d29e59a6671f9"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/diagram-webui-nav.svg",
-      "role": "guidance",
-      "sha256": "d891b74fc40f9cd663da937dc387a849a4718fa37775a73d695e1d78ef0d5b14"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/webui-page-layouts.png",
-      "role": "guidance",
-      "sha256": "257dc34feca09488bff4cd3b66f1ec57ff4928b8f59a9eec1f7b5a10c151e658"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/diagrams/webui-page-layouts.svg",
-      "role": "guidance",
-      "sha256": "a6f08201e5677c80f1e3d48af092691815503d9c4817412b34a28bf3380b579d"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/webui/home-model-editor.png",
-      "role": "guidance",
-      "sha256": "d1083471c181452dbce83c682d6a0643c9c9a761091591afa9bd9e95d029d311"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/webui/home.png",
-      "role": "guidance",
-      "sha256": "c6fee2de44eaf77c72c5b9309b7d766c171d35006478b7464095a952faf1b118"
-    },
-    {
-      "path": "demo/llmtier-module-design/docs/assets/webui/records.png",
-      "role": "guidance",
-      "sha256": "bd90f38d0abf196def6ddcbe8b7b400e9908025e01b73963923fd3f307b9f698"
+      "sha256": "017d316d37a03ecddd0557b226dc141cd5889897c951e32c215bc11dbf02129b"
     },
     {
       "path": "docs/adoption.md",
@@ -219,7 +54,7 @@
     {
       "path": "docs/ai-guides/implementation-design.md",
       "role": "guidance",
-      "sha256": "3bdc3ebb4e7a823dabfe39d6abf4dc5576560d7433b3bcdf89f41805aa5e1cb6"
+      "sha256": "7190165f6a8d84a4e724a1f476ab44a013922f9d5e424cb88aaf1205481b1f8e"
     },
     {
       "path": "docs/ai-guides/interfaces-contracts-data.md",
@@ -254,12 +89,12 @@
     {
       "path": "docs/ai-guides/software-system.md",
       "role": "guidance",
-      "sha256": "af98ec0212fb1a9a0a21e90f59c05ec94ec7f450d254d8971dc53c93c093c92f"
+      "sha256": "2238ce6b4edb13b1de79ca69cba30f2867a86450ce3948c94bed9d3fb9d7a66b"
     },
     {
       "path": "docs/ai-guides/system-mechanism.md",
       "role": "guidance",
-      "sha256": "e42fe04eadf1ada412662368dea95718e7c3b4616cc0ff9915d1d6e7b9a7042b"
+      "sha256": "de82ff9910aa9f4db35a63596def7c529465f2a34077d84efe12b817fb4eaabf"
     },
     {
       "path": "docs/ai-guides/technical-analysis.md",
@@ -269,7 +104,7 @@
     {
       "path": "docs/ai-guides/unit-design.md",
       "role": "guidance",
-      "sha256": "7326115def0b15e90f37da1b72ba08d11ffcbc409480bc657ef68aa034146915"
+      "sha256": "62df35ac4b7739928b46efd53e7d35a09ee1b2976ab104e88ec892e3ad28a4eb"
     },
     {
       "path": "docs/ai-guides/verification.md",
@@ -279,7 +114,7 @@
     {
       "path": "docs/ai-system-design-authoring-guide.md",
       "role": "guidance",
-      "sha256": "a68599919f7289d8af288eb4aff824609ba3cb190239d3507160ce98be17f3e8"
+      "sha256": "e8406153a2b3a508b60883f66355548af84576e212854b60b7b13d5c8fdba356"
     },
     {
       "path": "docs/architecture-design-authoring-guide.md",
@@ -439,7 +274,7 @@
     {
       "path": "docs/design-data-interface-format.md",
       "role": "guidance",
-      "sha256": "45b42e2c6943ceaa71eae5780b06cf69ec5355669849f4d455dde4b07359e585"
+      "sha256": "08af020986934ab2176fc4f8d2efcb8debfbb4c6e0fdbda1c37514eb8c7511cb"
     },
     {
       "path": "docs/design-writing-guide.md",
@@ -614,17 +449,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "0ce7b56904c8f9a0cb19d0df7aec966de655cf30892b3b93cd346fa673e1a2fc"
-    },
-    {
-      "path": "rag/README.md",
-      "role": "guidance",
-      "sha256": "23ace35595dedbfd2a0e9a715d5cd3718be036cc5ceca4f858c5e73c7e31e236"
-    },
-    {
-      "path": "rag/std-ingestion-manifest.jsonl",
-      "role": "guidance",
-      "sha256": "441fa9b35a1d9fd2a9803df191072bfc3813c81d97015a3d393aad6d57af2b8a"
+      "sha256": "5a646dd24277c81e5fa7374542c4e3eb5985e00ed852db27e1292b49bbf3f69f"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -769,7 +594,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "53c8f700b4fc63b849670291588c2ce03b3b57f132d17571ca456ad3beaa86eb"
+      "sha256": "8bee9e84961c33833aa11456112d1c95e7ad14438b2f010d927d3200a0b54902"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -784,7 +609,7 @@
     {
       "path": "templates/design/architecture-design.md",
       "role": "template",
-      "sha256": "5d539a978991147e9395e67e9473b47dafa548229807d2aba71cf5885fdf8db7"
+      "sha256": "6480f6012fc721c36724c344d600510db55ed189fb29fa785aad6a52c59532f3"
     },
     {
       "path": "templates/design/data-dictionary.md",
@@ -794,7 +619,7 @@
     {
       "path": "templates/design/design-definition.md",
       "role": "template",
-      "sha256": "f8851bfb83805588740c4f82e837392573c4fac0f1c86ec86cc96689b2898a72"
+      "sha256": "bb109b09296e6a27dcf776b0bf62b11fe821f27784cdb3b6c93121709922ca82"
     },
     {
       "path": "templates/design/fpga-design.md",
@@ -809,22 +634,22 @@
     {
       "path": "templates/design/implementation-design.md",
       "role": "template",
-      "sha256": "758c4ffcb6723b9564b135853a80fe18a349d10a2b6b294bb744323755b0adbe"
+      "sha256": "c53ccf8ae585222101e0aba019638005b314271354d79a068a0a9fde9c5c1616"
     },
     {
       "path": "templates/design/software-system-design.md",
       "role": "template",
-      "sha256": "f9bb712d36957d3c3aaad749e05534beda0650b43ea894c740421d0ba1fd0da8"
+      "sha256": "094649fcf21136915dc506b5cbab759a05bd321629f48e8863471534504d4dea"
     },
     {
       "path": "templates/design/subsystem-design.md",
       "role": "template",
-      "sha256": "07c2885f9f7c2b5916f2afa87689782097ec966144ce81faaf565ddb2f1ba501"
+      "sha256": "6d5627d0784bc38432b29447626dca92b660b5bc2dcb70f83b2147792bedeea4"
     },
     {
       "path": "templates/design/system-mechanism-design.md",
       "role": "template",
-      "sha256": "e3733bac3fdefb17d8b9e532da4f72f0aaec54f1376b2dddd6c1a6dac13afcba"
+      "sha256": "1ac0bd4d6ce5a8958e02639a9581366228adc6a15d2feec15203dc65e0753111"
     },
     {
       "path": "templates/diagrams/README.md",
@@ -1215,106 +1040,6 @@
       "path": "templates/review/schematic-pcb-review-checklist.md",
       "role": "template",
       "sha256": "dbcd552be09030476d21bf77b0a993e6a2c8ff640e32f2f3d0196abfd54564af"
-    },
-    {
-      "path": "tests/fixtures/rag-lifecycle-template-retrieval-contract.json",
-      "role": "guidance",
-      "sha256": "105775dd8c6f796b19642233d1e878b864c916243fd2074544fa683d7e69a2c2"
-    },
-    {
-      "path": "tests/fixtures/rag-template-retrieval-contract.json",
-      "role": "guidance",
-      "sha256": "476d9439cda953fbeb3365ea699f3243f3af933c673b5518f24675ee20a85608"
-    },
-    {
-      "path": "tests/test_ai_authoring_guides.py",
-      "role": "guidance",
-      "sha256": "02eba58e6d9c7ecb6bcbfbd576af08e417a71953e500eb7e9ab30810737a48e9"
-    },
-    {
-      "path": "tests/test_data_chapter_alignment.py",
-      "role": "guidance",
-      "sha256": "287b272ebc87e6a0015d7702d67420378bbf32fe2c46c7a885e172fecfff7106"
-    },
-    {
-      "path": "tests/test_design_process_authoring.py",
-      "role": "guidance",
-      "sha256": "76f66305595be6bf24befc882ecd7abf019dcd5792c4c0ed06296c154f854ef9"
-    },
-    {
-      "path": "tests/test_host_fpga_example.py",
-      "role": "guidance",
-      "sha256": "fcfafcaa22ced720f03c81ce214ebf4c8bd18058b5f25bcbdf32654b157ca02e"
-    },
-    {
-      "path": "tests/test_interface_chapter_alignment.py",
-      "role": "guidance",
-      "sha256": "1184f47952ffea1470cfc04ff136ff1d54cf4d8e39ba5ca216e2fccf10c455c0"
-    },
-    {
-      "path": "tests/test_interface_mapping.py",
-      "role": "guidance",
-      "sha256": "b85c719a823bed477665503e1563f68f0d1e674c86672ef37fd7e0fa7c7d5034"
-    },
-    {
-      "path": "tests/test_isd_delivery.py",
-      "role": "guidance",
-      "sha256": "3b78f35141cc29f78f7763c493086d7067bc57f4e4f857b9fb340bbfd81bedfc"
-    },
-    {
-      "path": "tests/test_isd_template.py",
-      "role": "guidance",
-      "sha256": "f6a36978bb1044982862587fe75dcfc1a1d655b19b97fb3318e855fc0b7a16d2"
-    },
-    {
-      "path": "tests/test_mechanism_effect_example.py",
-      "role": "guidance",
-      "sha256": "90b28248a93079e0c80aaaffea9a364da23e8df0294406a1ef7bc3ef7f80aac3"
-    },
-    {
-      "path": "tests/test_module_async_example.py",
-      "role": "guidance",
-      "sha256": "f74a15de33cad150b4bcd405f66a30052fa094fb00f07fe139de6d4c080a9d82"
-    },
-    {
-      "path": "tests/test_module_template.py",
-      "role": "guidance",
-      "sha256": "cca628177bf1af51d763505ad3c958392833b141e8d8990326d0f4be456efb38"
-    },
-    {
-      "path": "tests/test_public_error_catalog.py",
-      "role": "guidance",
-      "sha256": "26e2292af56628f87dd98ef17848d44c633efcc106f798240bf26599abc65492"
-    },
-    {
-      "path": "tests/test_software_system_template.py",
-      "role": "guidance",
-      "sha256": "31af86bcba832129f6177661fd5f282bc4232e09a76d4f75cab6e1b51723c11a"
-    },
-    {
-      "path": "tests/test_std_entry.py",
-      "role": "guidance",
-      "sha256": "d60a753a88967d7ba24807d1b5b4d1fa637a9284dc86cdadc7dfbd28ffe58b25"
-    },
-    {
-      "path": "tests/test_subsystem_template.py",
-      "role": "guidance",
-      "sha256": "0b81b89a15598af5a7f498c897b0493b69e8938b1dbd887b015f1b3fbd10a267"
-    },
-    {
-      "path": "tests/test_template_guidance.py",
-      "role": "guidance",
-      "sha256": "bdb2ec9f08685e18e2d712875f0b17c4e95de3a0c1c4d295ce4590d143939386"
-    },
-    {
-      "path": "tests/test_test_report_layout.py",
-      "role": "guidance",
-      "sha256": "0e622b669052faaa85f96a06dafd2c34e00554ffd38bf982687a161f1791e227"
-    },
-    {
-      "path": "tests/test_validate_design.py",
-      "role": "guidance",
-      "sha256": "9ab101e4195c14c430b25a61b58bc4a11d0fb27bb557b21017ee1d8a57aec481"
     }
   ]
 }

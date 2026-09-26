@@ -45,4 +45,4 @@ Piko 复用 Pi AgentHarness 的 durable session、lane/operation、上下文、c
 - `interfaces/vectors/v0.3/lightweight-runtime-finalization-fixtures.json`
 - `tests/contract/validate_v03_contract.py`
 
-本项目采用 STD `0.1.0-draft.38`，由 `docs/std.lock.json` 锁定；STD 升级需独立批准。
+本项目采用 STD `0.1.0-draft.39`，由 `docs/std.lock.json` 锁定；STD 升级需独立批准。
