@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -102,6 +102,20 @@ flowchart LR
 | LLMTier endpoint | HTTPS | config `llmtier.base_url` + preflight | 独立故障域（网络） | 不可达 → `ModelUnavailable`；不静默切 |
 | Matrix homeserver | HTTPS | config `matrix.homeserver` + whoami | 独立故障域 | 不可达 → `DiscussionAccessLost` |
 
+
+#### 3.3.1 运行环境
+
+| 环境 | 进程拓扑 | 外部依赖 | 持久层 | 用途 |
+|---|---|---|---|---|
+| 开发（dev） | 单 Node.js 进程，localhost bind | 本地 LLMTier mock / 本地 Synapse | 本地 SQLite + JSONL | 本地开发与单元测试 |
+| 测试（test/CI） | 单进程 + 测试夹具 | mock LLMTier / Synapse 容器 | 独立临时 SQLite | `tests/{unit,contract,integration,fault}` |
+| 生产（prod） | 单进程（API/scheduler/worker 同进程） | 真实 LLMTier + Matrix homeserver | 本地可靠 FS（SQLite WAL + JSONL） | 实际运行 |
+
+- **进程模型**：一个逻辑 Piko 实例 = 一个 Node.js 进程；API/scheduler/worker/adapters 同进程；单 execution slot。
+- **网络**：独占本地端口；出站 HTTPS 到 LLMTier；不出站到 Matrix/（见 MECH-MATRIX）。不支持多主机/共享存储/代理。
+- **持久层**：SQLite WAL + Pi JSONL + workspace staging 必须位于本地可靠 FS；不支持 NFS 多 writer。
+- **时钟**：持久字段用 UTC ISO-8601；进程内 elapsed 用 monotonic。
+
 **统筹者退出语义**：M004 scheduler 退出 → 新 tick 以新 lease epoch 重领，旧 epoch 被 fence；M005 worker 退出 → R1-R7 恢复（见 §9），期间无新 accept；M001 退出 → HTTP 不可用，Slinky 重试同 `task_id`。统筹者退出不改变已提交持久事实，不产生第二写入者。
 
 ## 4. 数据结构设计
@@ -146,7 +160,28 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ### 4.4 通信报文结构（适用时）
 
-**N/A · 复用机器契约**：`RunSubmitRequest` / `RunView` / `AgentResult` / `UsageSnapshot` 的字段全集在 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` + `interfaces/schemas/agent-runtime-v0.3.schema.json`；本节 §4.2.2 仅给共享视图，不另建定义。
+#### 4.4.1 外部 HTTP 报文
+
+| 报文 | 方向 | 关键字段 | 机器权威 |
+|---|---|---|---|
+| `RunSubmitRequest` | Slinky → Piko | `task_id, task, workspace, permissions, deadline_at, max_model_calls, max_tool_calls, output_paths, discussion?` | `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` |
+| `RunSubmission` | Piko → Slinky | `{task_id, run_id, state}` | 同上 |
+| `RunView` | Piko → Slinky | `{run_id, state, generation, cancel_requested, discussion_intake_state, accepted_at, started_at?, finished_at?, deadline_at, max_model_calls, max_tool_calls, outputs_meta?}` | contract §1 |
+| `CancelOutcome` | Piko → Slinky | `{run_id, outcome: CancelledBeforeStart \| StopRequested \| AlreadyTerminal}` | contract §1 |
+| `AgentResult` | Piko → Slinky | `{run_id, state, partial, summary, outputs[], known_actions[], usage, failure}` | `interfaces/schemas/agent-runtime-v0.3.schema.json` |
+| `Error` | Piko → Slinky | `{code, message?, detail?}` | `interfaces/error-codes/agent-runtime-v0.3.yaml` |
+
+#### 4.4.2 内部协作报文
+
+| 报文 | 方向 | 关键字段 | 权威 |
+|---|---|---|---|
+| `ValidatedTaskSubmission` | M002 → M003 | 同 `RunSubmitRequest` 规范化后 | M002 ISD §4.2 |
+| `FencedRunCommand` | M005 → M003 | `{run_id, expected_generation, expected_state_in, expected_lease_epoch, mutation}` | M003 ISD §4.6 |
+| `FencedPublishResult` | M005 → M003 | `{run_id, generation, result_json, result_sha256}` | M003 ISD §4.6 |
+| `PiRunObservation` | M006 → M005 | `{open_operations, operation_result, lane_tip, transcript_version, durable_queues}` | M006 ISD §4.6 |
+| `UsageSnapshot` | M007 → M005 | 6 token 字段 + attempts + missing_fields + quality | contract §3 |
+
+字段全集不在此重复；本节给机制层共享视图。
 
 ### 4.5 设备与 FPGA 表项结构（适用时）
 
@@ -207,6 +242,48 @@ MECH-RUN 的对外 API 就是系统设计 §8.1 的四项 HTTP operation（`POST
 | IF-RUN-DRIVE | M005 ← M006 | operation id | `PiOperationOutcome` stream | M006 ISD §5.1 |
 | IF-RUN-PUBLISH | M005 → M003 | `FencedPublishResult` | `ResultRecord` | M003 ISD §5.1 |
 | IF-RUN-SNAPSHOT | M005 → M007 | `run_id` | `UsageSnapshot` | M007 ISD §5.1 |
+
+内部协作全部为**同进程函数调用**（非 HTTP/RPC），因此不重复 HTTP 协议；每个接口的请求/响应/错误/阻塞语义如下（完整签名在对应模块 ISD §5.1）：
+
+#### `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`（IF-RUN-CREATE）
+
+- **输入与前提**：M002 已验证的提交；`task_id` 唯一性未知。
+- **成功输出**：`{kind: "created"|"existing"|"conflict"|"tombstone", run_id, generation, state}`。
+- **错误与合法下一步**：内部 `FencedWrite` 不映射 HTTP；调用方决定。
+- **阻塞/超时**：`BEGIN IMMEDIATE` 内完成；SQLite busy → busy_timeout 后失败。
+- **实现/验证**：M003 ISD §5.1；PK-T03/PK-T15。
+
+#### `acquireSlot(ownerId) -> Lease | null`（IF-RUN-SLOT）
+
+- **输入与前提**：owner_id；singleton `execution_slot` 空闲。
+- **成功输出**：`Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 或 `null`。
+- **错误**：无；返回 null 表示排队。
+- **阻塞/超时**：单 `BEGIN IMMEDIATE`；epoch 单调 +1。
+- **实现/验证**：M004 ISD §5.1；PK-T01。
+
+#### `accept(handle, operationId, messages) -> void`（IF-RUN-ACCEPT）
+
+- **输入与前提**：`handle{session_id=run_id, lane="main"}`；`operationId=run_id:initial` 或 `run_id:turn:<n>`；`messages=[typedInstruction(PikoDiscussionMessage?)]`。
+- **成功输出**：Harness 形成 durable operation（无返回值，确认即 Pi commit）。
+- **错误**：Harness fault → M005 映射 `UnsafeRetryBlocked`/`ExecutionStateUnknown`。
+- **阻塞/超时**：异步；`drive` 拉取结果。
+- **实现/验证**：M006 ISD §5.1；PK-T04/PK-T09。
+
+#### `snapshot(runId) -> UsageSnapshot` + `validateBeforePublish(result, version) -> SemanticCheck`（IF-RUN-SNAPSHOT）
+
+- **输入与前提**：`run_id`；全部 durable attempt 已落 `model_attempts`。
+- **成功输出**：`UsageSnapshot`；`SemanticCheck{ok, reason?}`。
+- **错误**：validate FAIL → throw `InternalError("semantic-validator-fail")`。
+- **阻塞/超时**：与 publish 同事务前置；无独立超时。
+- **实现/验证**：M007 ISD §5.1；PK-T10/PK-T16。
+
+#### `publishResult(FencedPublishResult) -> ResultRecord`（IF-RUN-PUBLISH）
+
+- **输入与前提**：`{run_id, generation, result_json, result_sha256}`；两步协议第一步。
+- **成功输出**：`ResultRecord`（immutable generation）。
+- **错误**：fencing 失败 → 内部 `FencedWrite`。
+- **阻塞/超时**：单 `BEGIN IMMEDIATE`。
+- **实现/验证**：M003 ISD §5.1；PK-T05/PK-T15。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -391,18 +468,27 @@ stateDiagram-v2
 
 ## 13. 配置、兼容与部署
 
-- 配置来源：`system-design` §9.1（`storage.max_queue_depth` / `storage.retention_days` / `pi.upstream_commit` 等）；MECH-RUN 只消费。
-- 生效方式：重启生效。
-- 兼容矩阵：机器契约 `0.3.0-simplified.6`；Pi `0.85.1` @ commit `9767ba...`；升级需独立设计评审。
-- 部署：单进程；SQLite + JSONL 位于本地可靠 FS。
+配置 authority：`system-design` §9.1 + `interfaces/schemas/piko-runtime-config-v0.3.schema.json`；MECH-RUN 只消费以下项。
+
+| 配置 | 来源/默认/范围 | 生效点 | 对 MECH-RUN 的行为 |
+|---|---|---|---|
+| `storage.max_queue_depth` | config；正整数 | 重启 | 超限 → 429 `QueueFull` |
+| `storage.retention_days` | config；默认 7 | 重启 | Result/正文保留窗口 |
+| `pi.upstream_commit` | 锁定 + 构建 | 启动 S6 | fingerprint 校验 |
+| `llmtier.base_url`/`model`/`credential_ref` | config + Secret | 启动 S7 | 模型路径 |
+| `llmtier.cacheRetention`/`supportsExplicitPromptCacheMode`/`streamOptions.maxRetries` | 固定 none/false/0 | 启动 | 不可外部覆盖 |
+
+环境差异见 §3.3.1（dev/test/prod）；installed/loaded/active/verified 四态由 MECH-CONFIG 维护。
+
+兼容矩阵：
 
 | 组合 | 允许版本 | 不支持/降级 |
 |---|---|---|
 | Slinky ↔ Piko | contract `0.3.0-simplified.6` | 其他版本需独立评审 |
 | Piko ↔ Pi | `0.85.1` @ commit `9767ba...` | 不热切；升级另立设计 |
-| Piko ↔ LLMTier | OpenAI Responses SSE | 无 non-stream fallback |
-| Piko ↔ Matrix | Client-Server | 无 AS 路径 |
 | 数据类型 | schema v0.3 / SQLite `user_version=2` | v2 不可降级到 v1 |
+
+部署与升级切换引用 §9 + MECH-CONFIG；不在本节另定义切换机制。
 
 ## 14. 跨责任单元分解与接口分配（下级设计输入）
 

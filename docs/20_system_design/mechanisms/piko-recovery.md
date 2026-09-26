@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -81,6 +81,19 @@ flowchart LR
 | Pi session | `pi_session_id=run_id` | M006 | 本地 FS + SQLite | inspect 对账，不重发 |
 | results generation | results 表 | M003 | 同域 | 已存在不重写 |
 
+#### 3.3.1 运行环境
+
+| 环境 | 崩溃注入 | 持久层 | 用途 |
+|---|---|---|---|
+| 开发（dev） | 手动 SIGKILL | 本地 SQLite + JSONL | 本地调试 |
+| 测试（test/CI） | 故障注入夹具 | 独立临时 SQLite | `tests/fault/restore.test.ts` |
+| 生产（prod） | 真实进程/SQLite/FS 故障 | 本地可靠 FS | 实际运行 |
+
+- **进程模型**：恢复在重启后的同一进程内编排（M000 启动 → M005 扫描）。
+- **网络**：恢复需依赖可达（LLMTier/Matrix preflight）；不可达 → 不 READY。
+- **持久层**：SQLite（tasks/runs/results/run_sessions/ledger）+ Pi JSONL，均本地。
+- **时钟**：恢复判定用持久 UTC + monotonic；不依赖 wall clock 比较。
+
 **统筹者退出语义**：M005 恢复中退出 → 停机，不部分恢复；重启重新扫描（幂等，已补终态的不再处理）。恢复不产生第二写入者。
 
 ## 4. 数据结构设计
@@ -104,7 +117,27 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-**N/A · 复用机器契约**。
+#### 4.4.1 `RecoveryProbe`（恢复探测结果）
+
+```text
+RecoveryProbe {
+  result_exists: bool, result_generation?: uint,
+  run_state: RunState,
+  lease_epoch: uint,
+  pi_session: { session_id, exists, open_operations[], operation_result? },
+  transcript_version?: uint,
+  ledger_version: uint,
+  matrix_cursor?: string
+}
+```
+
+- **Data/Type ID**：`DATA-REC-PROBE`；来源 M005 ISD §4.6。
+- **约束**：`result_exists=true` 时 `run_state` 非终态 → `PatchedTerminal` 路径。
+- **寿命**：单次恢复调用内。
+
+#### 4.4.2 Pi 对账报文
+
+`inspect(handle) -> PiRunObservation`（见 MECH-RUN §4.4.2）；恢复读取其 `open_operations`/`operation_result`/`transcript_version`。
 
 ### 4.5 设备与 FPGA 表项结构（适用时）
 
@@ -274,13 +307,15 @@ stateDiagram-v2
 
 ## 13. 配置、兼容与部署
 
-- 消费 `storage.*` / `pi.*`；重启触发恢复。
-- 兼容：schema v2；不新增恢复协议。
+配置 authority：`system-design` §9.1；MECH-RECOVERY 消费：
 
-| 组合 | 允许版本 | 不支持/降级 |
+| 配置 | 来源 | 对恢复的行为 |
 |---|---|---|
-| schema | SQLite `user_version=2` | v2→v1 不可降级 |
-| Pi identity | 确定性 `run_id` 派生 | 不重发旧请求 |
+| `storage.sqlite_path` | config | 恢复事实源 |
+| `pi.upstream_commit` | 锁定 | inspect/getResult 可用前提 |
+| `llmtier.base_url` / `matrix.homeserver` | config | 依赖可达判定 |
+
+环境差异见 §3.3.1。兼容：SQLite `user_version=2`；v2 不可降级到 v1；Pi identity 确定性派生，不重发旧请求。
 
 ## 14. 跨责任单元分解与接口分配
 

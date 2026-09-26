@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -79,6 +79,19 @@ flowchart LR
 | `model_attempts`(`run_id`,`operation_id`,`step_id`,`attempt`) | 进程内 SQLite | M003 DDL | 与实例同域 | record_version 单调 |
 | attempt identity | M006 从 Harness 派生 | `stepId` + attempt ordinal | 同域 | 崩溃后保守计数 |
 
+#### 3.3.1 运行环境
+
+| 环境 | 模型路径 | 持久层 | 用途 |
+|---|---|---|---|
+| 开发（dev） | 本地 LLMTier mock | 本地 SQLite | 单元测试 |
+| 测试（test/CI） | mock provider | 独立临时 SQLite | `tests/unit/usage-aggregator.test.ts` |
+| 生产（prod） | 真实 LLMTier Responses SSE | 本地 SQLite | 实际运行 |
+
+- **进程模型**：M006/M007 与 Piko 主进程同进程；无独立服务。
+- **网络**：raw usage 来自 Pi provider 的模型响应，无本机制专有网络；模型路径见 MECH-RUN。
+- **持久层**：`model_attempts` 在本地 SQLite；无独立存储。
+- **时钟**：usage 为计数，无时间语义；attempt identity 用 `(pi_operation_id, step_id, attempt)`。
+
 **统筹者退出语义**：M007 退出 → 未发布的 usage 只在内存丢失；`model_attempts` 已持久故重算一致；M005 在两事务间退出由 `MECH-RECOVERY` 补第二步。聚合不产生外部副作用。
 
 ## 4. 数据结构设计
@@ -107,7 +120,25 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-**N/A · 复用机器契约**：`UsageSnapshot` 字段全集在 `interfaces/schemas/agent-runtime-v0.3.schema.json`。
+#### 4.4.1 raw usage 观察（M006 → M007）
+
+M006 `onRawUsage` 在 OpenAI Responses normalization **之前**保存原始 usage，字段存在性与值一并保留：
+
+```text
+RawUsage {
+  request_identity: { response_id, request_id },   // 去重用
+  present_fields: string[],                         // 本次实际出现的字段
+  input_tokens?, output_tokens?, total_tokens?,
+  cached_tokens?, cache_write_tokens?, reasoning_tokens?
+}
+```
+
+- **约束**：`present_fields` 必须与字段值一致；缺失字段不得填 0。
+- **寿命**：attempt 寿命；同 attempt 迟到更新以 record_version 替换。
+
+#### 4.4.2 `UsageSnapshot`（M007 → M005）
+
+字段全集在 `interfaces/schemas/agent-runtime-v0.3.schema.json`；机制层视图见 §4.2.1。
 
 ### 4.5 设备与 FPGA 表项结构（适用时）
 
@@ -282,13 +313,16 @@ operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usag
 
 ## 13. 配置、兼容与部署
 
-- 无机制专属配置；消费 `llmtier.*`（`cacheRetention=none`、`supportsExplicitPromptCacheMode=false`、`streamOptions.maxRetries=0`）。
-- 兼容：contract `0.3.0-simplified.6` 版本绑定 semantic validator。
+配置 authority：`system-design` §9.1；MECH-USAGE 不新增配置，只消费：
 
-| 组合 | 允许版本 | 不支持/降级 |
+| 配置 | 来源 | 对 MECH-USAGE 的行为 |
 |---|---|---|
-| usage 字段集 | schema v0.3（6 字段） | 新增字段需契约升级 |
-| Pi provider | `0.85.1` @ commit `9767ba...` | 不替换 provider |
+| `llmtier.cacheRetention` | 固定 `none` | 三个 prompt-cache 字段必须缺席 |
+| `llmtier.supportsExplicitPromptCacheMode` | 固定 `false` | 不得发送 prompt_cache_key |
+| `llmtier.streamOptions.maxRetries` | 固定 `0` | 一次 attempt 至多一次 dispatch |
+| 契约版本 | `0.3.0-simplified.6` | 绑定 semantic validator |
+
+环境差异见 §3.3.1。兼容：字段集合变化需契约升级；Pi provider 不替换。
 
 ## 14. 跨责任单元分解与接口分配
 

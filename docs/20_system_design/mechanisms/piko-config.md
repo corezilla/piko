@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.1.0` |
+| Document Version | `0.2.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -79,6 +79,19 @@ flowchart LR
 | Secret provider | 进程内 reference | 外部 provider | 独立域 | 解析失败 → 不 READY |
 | tool registry | 进程内绑定 | M000 | 同域 | 启动后不可热注册 |
 
+#### 3.3.1 运行环境
+
+| 环境 | config 来源 | Secret 来源 | 用途 |
+|---|---|---|---|
+| 开发（dev） | 本地 config 文件 | 本地 mock Secret provider | 本地开发 |
+| 测试（test/CI） | 测试 fixture config | 固定测试 Secret | 集成测试 |
+| 生产（prod） | Operator 维护的 config 文件 | 生产 Secret provider | 实际运行 |
+
+- **进程模型**：M000/M002 同主进程；配置在启动时读取，进程寿命内不变。
+- **网络**：Secret provider 访问（进程内 reference 或受控后端）；preflight 出站到 LLMTier/Matrix。
+- **持久层**：`instance_meta` 记 schema generation/boot id。
+- **生效方式**：重启生效（无在线热改）。
+
 **统筹者退出语义**：M000 启动中退出 → 未 READY，无业务入口；已 READY 后退出的语义等同进程退出（由 `MECH-RECOVERY` 处理）。配置快照随进程消亡，重启重读。
 
 ## 4. 数据结构设计
@@ -113,7 +126,36 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-**N/A · 复用机器契约**。
+#### 4.4.1 config 文件格式
+
+由 `interfaces/schemas/piko-runtime-config-v0.3.schema.json` 约束（JSON/YAML）。关键段：
+
+```text
+PikoRuntimeConfig {
+  api_auth: { slinky_principal: { credential_ref } },
+  workspace_root: string,
+  storage: { sqlite_path, max_queue_depth, retention_days },
+  pi: { upstream_commit, adapter_patches: { before_request_stepid, on_raw_usage } },
+  llmtier: { base_url, credential_ref, model, cacheRetention:"none",
+             supportsExplicitPromptCacheMode:false, streamOptions:{maxRetries:0} },
+  matrix: { homeserver, credential_ref, identity_localpart }
+}
+```
+
+#### 4.4.2 tool profile 格式
+
+由 `interfaces/schemas/piko-tool-profile-v0.3.schema.json` 约束：
+
+```text
+ToolProfile {
+  tools: [{ name, effect, replay:"never"|"safe", recovery_contract_ref?, implementation_ref }],
+  recovery_contracts: { <ref>: { kind, binds:{tool_name, effect, replay, implementation_ref} } }
+}
+```
+
+#### 4.4.3 Secret 引用
+
+`SecretRef` 只存名称/路径，不存明文；解析在启动时由 Secret provider 完成。
 
 ### 4.5 设备与 FPGA 表项结构（适用时）
 
@@ -267,14 +309,18 @@ stateDiagram-v2
 
 ## 13. 配置、兼容与部署
 
-- 全部 `PikoRuntimeConfig` / `ToolProfile` 字段；重启生效。
-- 兼容：schema 版本 0.3；Pi upstream commit 锁定。
+配置 authority：`system-design` §9.1 + 两个 config schema。
 
-| 组合 | 允许版本 | 不支持/降级 |
-|---|---|---|
-| config schema | `piko-runtime-config-v0.3.schema.json` | 未知字段拒绝 |
-| tool profile schema | `piko-tool-profile-v0.3.schema.json` | 未注册 ref 拒绝 |
-| 生效方式 | 重启 | 无在线热改 |
+| 配置 | 来源/默认/范围 | 校验/生效 | 无效处理 |
+|---|---|---|---|
+| `api_auth.*.credential_ref` | Secret provider；reference | S3 解析；重启 | 明文/解析失败 → F1 |
+| `workspace_root` | config；RelPath | S4 canonicalize；重启 | 越界 → F1 |
+| `storage.sqlite_path` | config；AbsPath | S5 打开 + instance lock；重启 | 不可写 → F1 |
+| `pi.upstream_commit` | 锁定 + 构建 | S6 fingerprint；重启 | 不匹配 → F1 |
+| `llmtier.*` | config + Secret；固定项不接受覆盖 | S7 preflight；重启 | FAIL → F1 |
+| `matrix.*` | config + Secret | S7 preflight；重启 | FAIL → F1 |
+
+环境差异见 §3.3.1。兼容：schema v0.3；未知字段拒绝；无在线热改。
 
 ## 14. 跨责任单元分解与接口分配
 
