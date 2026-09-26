@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -58,12 +58,22 @@ flowchart LR
 
 **authority 边界**：raw usage 权属 M006（来自 provider）；聚合结果权属 M007；Result 内嵌 usage 权属 M003（随 Result 持久化）。
 
+```mermaid
+flowchart LR
+  M006["M006 pi-adapter<br/>owner: raw usage hook"] -->|"IF-USAGE-RAW"| M007["M007 usage<br/>owner: UsageSnapshot/SemanticCheck"]
+  M007 -->|"IF-USAGE-SNAPSHOT"| M005["M005 worker"]
+  M005 -->|"IF-USAGE-VALIDATE"| M007
+  M007 -->|"frozen snapshot"| M003["M003 task-repository<br/>owner: results（含 usage）"]
+  PI["Pi provider"] --> M006
+```
+图 M-USAGE-3 · 协作图 / Target / NOT_BUILT。M006 拥有原始观察，M007 拥有聚合权威，M003 拥有持久 Result。
+
 ### 3.1 系统约束与参与方承接
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 组合验证与证据状态 |
 |---|---|---|---|---|
-| PK-09 Usage 字段完整性 · Approved | 每次 Run | 6 字段逐项 sum/null + missing_fields | M006 保存存在性；M007 聚合；自由度：内部数据结构 | PK-T10（NOT_RUN） |
-| PK-10 Result 冻结 UsageSnapshot · Approved | Result 发布后 | 迟到 usage 不改 generation | M007 只推 record_version；M003 generation 不可变 | PK-T10（NOT_RUN） |
+| CON-USAGE-001 · PK-09 Usage 字段完整性 · Approved | 每次 Run | 6 字段逐项 sum/null + missing_fields | M006 保存存在性；M007 聚合；自由度：内部数据结构 | PK-T10（NOT_RUN） |
+| CON-USAGE-002 · PK-10 Result 冻结 UsageSnapshot · Approved | Result 发布后 | 迟到 usage 不改 generation | M007 只推 record_version；M003 generation 不可变 | PK-T10（NOT_RUN） |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -113,6 +123,15 @@ flowchart LR
 - **字段与约束**：`input_tokens`/`output_tokens`/`total_tokens`/`cached_tokens`/`cache_write_tokens`/`reasoning_tokens`（int|null）、`model_attempts`（int）、`usage_observed_attempts`（int）、`missing_fields[]`、`quality`。`total = input + output`；cache ⊆ input；reasoning ⊆ output。
 - **所有权/寿命**：M007 聚合，M003 持久化；随 Result 冻结。
 - **合法/拒绝实例**：任一试字段缺失则该字段 null 并入 missing_fields，禁填下界。
+
+```mermaid
+flowchart LR
+  RAW["RawUsage<br/>（字段存在性+值）"] -->|M006 写| MA["model_attempts<br/>（record_version）"]
+  MA -->|M007 逐字段聚合| SNAP["UsageSnapshot<br/>（6 字段+missing+quality）"]
+  SNAP -->|M005 validate+publish| RES["results（frozen）"]
+  RAW -. "迟到" .-> MA
+```
+图 M-USAGE-4 · 数据对象图 / Target / NOT_BUILT。逐字段 sum/null；迟到只推 record_version，不改 Result。
 
 ### 4.3 配置与规则数据结构（适用时）
 
@@ -269,6 +288,17 @@ Run `run-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `r
 {"input_tokens":0,"output_tokens":0,"total_tokens":0,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"model_attempts":0,"usage_observed_attempts":0,"missing_fields":[],"quality":"Complete"}
 ```
 
+#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+
+| 步 | 调用方已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
+|---|---|---|---|---|---|
+| 1 | 模型已响应 attempt1 | q1 RawUsage | M006 保存存在性 | 写 model_attempts | — |
+| 2 | attempt2 缺 reasoning | q2 RawUsage | M006 | 写 attempt（present_fields 少 1） | — |
+| 3 | 想要快照 | `snapshot(run-042)` | M007 读全量 | 逐字段 sum/null → q3 | 校验 |
+| 4 | 校验 | `validateBeforePublish(result,"0.3.0-simplified.6")` | M007 | SemanticCheck ok | M005 发布 |
+
+**关键事实如何产生**：字段存在性事实=`present_fields`（M006 在归一化前写）；完整性事实=逐字段 all-attempts 判定（M007）。
+
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 | 结果 |
@@ -312,6 +342,15 @@ stateDiagram-v2
 | 孤立 reservation | 重启扫描 | 未形成 effect | 释放，不计数 |
 | orchestrator 崩溃 | 重启 | ledger 不完整 | 从已提交 attempt 汇总；不重跑 Pi |
 | semantic validation FAIL | M007 | Result 未发布 | throw `InternalError`；Run Failed |
+
+```mermaid
+flowchart TD
+  F1["attempt 缺字段"] --> R1["该字段 null + missing_fields → Partial/Unknown"]
+  F2["迟到 usage"] --> R2["只推 record_version，Result 不变"]
+  F3["算术/子集关系破坏"] --> R3["validate FAIL → InternalError，不写 Result"]
+  F4["孤立 reservation"] --> R4["恢复释放，不计数"]
+```
+图 M-USAGE-5 · 异常处置图 / Target / NOT_BUILT。缺失是事实不是错误；只有 validator FAIL 才阻断。
 
 ## 10. 并发、排序与容量
 
@@ -386,10 +425,11 @@ operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usag
 
 ### 14.4 下级设计输入清单
 
-| 下游对象 | 固定输入 | 约束 | 自由度 |
-|---|---|---|---|
-| `pi-adapter` | Harness hook + provider | PK-09 | hook 实现 |
-| `usage` | contract `0.3.0-simplified.6` | PK-09/10 | 聚合数据结构 |
+| Requirement ID | 下游对象 | 固定输入 | 约束 | 自由度 |
+|---|---|---|---|---|
+| `M-USAGE-DI-001` | `pi-adapter` | Harness hook + provider | CON-USAGE-001 | hook 实现 |
+| `M-USAGE-DI-002` | `usage` | contract `0.3.0-simplified.6` | CON-USAGE-001/002 | 聚合数据结构 |
+
 
 ## 15. 验证、上线与回滚
 
@@ -410,11 +450,21 @@ operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usag
 - 组合：M006 + M007 各自 PASS + LLMTier 联调 PASS（PK-T09/T10/T16）。
 - 旧机制退出：无。
 
+```mermaid
+flowchart LR
+  IN["3 attempts（完整/缺字段/完整）"] --> ARM["arm: attempt2 不报 reasoning"]
+  ARM --> HIT["hit 确认: present_fields 无 reasoning"]
+  HIT --> REL["release: 无（只读聚合）"]
+  REL --> CHK["断言: reasoning=null + missing_fields 含它 + quality=Partial"]
+  CHK --> CLN["cleanup: 清测试 SQLite"]
+```
+图 M-USAGE-6 · 测试路径图 / Target / NOT_BUILT。独立 Oracle=contract semantic invariants。
+
 ## 16. 风险、未决问题与决定
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| ISSUE-USAGE-001 | semantic validator 版本绑定机制 | Medium | Piko Contract + Implementation Owner | M007 实现完成 |
+| `RISK-USAGE-001` | semantic validator 版本绑定机制 | Medium | Piko Contract + Implementation Owner | M007 实现完成 |
 
 已选决定：逐字段完整才计入（§1）；冻结快照（§8）。被否决：部分求和、LLMTier 二次相加。
 

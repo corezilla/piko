@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -62,11 +62,28 @@ flowchart LR
 
 **authority 边界**：Matrix event 权属 homeserver；本地去重与 turn 权属 M003；intake 状态权属 M005；send txn 权属 M008（adapter 内部可靠性，非产品 outbox）。
 
+```mermaid
+flowchart LR
+  subgraph PIKO["Piko 进程"]
+    M008["M008 matrix-adapter<br/>owner: matrix_state/events/sends"]
+    M005["M005 worker<br/>owner: discussion_turns 推进/intake"]
+    M003["M003 task-repository<br/>owner: matrix_*/discussion_turns 事务"]
+  end
+  HS["Matrix homeserver（外部）"]
+  HS <-->|"IF-MX-SYNC / IF-MX-SEND / IF-MX-MEDIA"| M008
+  M008 -->|"IF-MX-TURN 事务"| M003
+  M005 -->|"IF-MX-TURN 状态推进"| M003
+  M005 -->|"IF-MX-VERIFY 起点"| M008
+  M005 -->|"PikoDiscussionMessage"| PI["Pi session"]
+```
+
+图 M-MX-3 · 协作图 / Target / NOT_BUILT。M008 拥有 Matrix 协议 state；M005 拥有 intake state；M003 拥有持久事务。三者不可互换 authority。
+
 ### 3.1 系统约束与参与方承接
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 流程/协议/下级落实位置 | 组合验证与证据状态 | 差距/变更影响/裁决责任 |
 |---|---|---|---|---|---|---|
-| PK-08 Matrix Client-Server · Approved | discussion Run | single identity；intake CAS Open→Closing→Closed | M008 协议封装；M005 CAS；自由度：内部数据结构；不可变：不引入 AS、不支持 E2EE 房间 | §5.2 / §6 / §8 / M008 ISD | homeserver 集成 PK-T08（NOT_RUN） | — / matrix-js-sdk 版本变化需复审 |
+| CON-MX-001 · PK-08 Matrix Client-Server · Approved | discussion Run | single identity；intake CAS Open→Closing→Closed | M008 协议封装；M005 CAS；自由度：内部数据结构；不可变：不引入 AS、不支持 E2EE 房间 | §5.2 / §6 / §8 / M008 ISD | homeserver 集成 PK-T08（NOT_RUN） | — / matrix-js-sdk 版本变化需复审 |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -135,6 +152,19 @@ flowchart LR
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`event_id` 仅在持久层保留（幂等/replay 用）；`reply_context.in_reply_to_event_id` 必须指向同 room 已见事件；`attachments[].mxc` 必须 `mxc://` 格式。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M005 构造，M006 投影；Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：`event_id` 进入 provider input 即拒绝（投影必须剥离）。
+
+```mermaid
+flowchart LR
+  EV["Matrix event<br/>（homeserver）"] -->|M008 sync| DEDUP["matrix_events<br/>（去重）"]
+  EV -->|M008| DT["discussion_turns<br/>（Pending）"]
+  DT -->|M005 领取| PDM["PikoDiscussionMessage<br/>（event_id + visible_content）"]
+  PDM -->|M006 投影| PI["Pi input<br/>（无 event_id）"]
+  PI -->|commit| DT2["discussion_turns<br/>（Consumed）"]
+  M005 -->|intake CAS| RUN["runs.discussion_intake_state"]
+  M008 -->|send| SR["matrix_sends<br/>（txn_id）"]
+```
+
+图 M-MX-4 · 数据对象图 / Target / NOT_BUILT。`event_id` 唯一来源=homeserver；本地只保留去重与 turn；`PikoDiscussionMessage` 的 `event_id` 仅持久层，投影时删除。
 
 ### 4.3 配置与规则数据结构（适用时）
 
@@ -305,7 +335,7 @@ sequenceDiagram
   loop 长轮询
     MX->>HS: GET /sync?since=cursor&timeout=30000
     HS-->>MX: next_batch + rooms.join.timeline.events[]
-    MX->>Repo: BEGIN; dedup + turn + cursor; COMMIT
+    MX->>Repo: BEGIN IMMEDIATE, dedup + turn + cursor, COMMIT
   end
   W->>Repo: Pi idle -> CAS Open->Closing
   W->>Repo: Result 两步提交
@@ -317,6 +347,19 @@ sequenceDiagram
 ```
 
 图 M-MX-1 · MECH-MATRIX 正常端到端 / Target / NOT_BUILT。
+
+```mermaid
+flowchart TD
+  P["prepare: 受理 + 初始 Pending turn（intake=Open）"] --> E["execute: accept/投喂新 turn"]
+  E --> Q{"Pi idle 且无 pending?"}
+  Q -- "是" --> CL["CAS Open→Closing"]
+  Q -- "否" --> E
+  E -. "取消/deadline/membership 丢失" .-> AB["关闭 intake"]
+  CL --> PUB["Result 两步提交"]
+  AB --> AB2["剩余 turn → Abandoned；intake Closed"]
+```
+
+图 M-MX-7 · 完整过程图（有副作用收口）/ Target / NOT_BUILT。准备（受理写 turn）→执行（投喂）→关闭（CAS）→收口（Result/Abandoned）。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -391,6 +434,30 @@ Authorization: Bearer expired
 
 → Piko 映射 `DiscussionAccessLost`，停止 intake，交 operator。
 
+```mermaid
+flowchart TD
+  CLOSE["关闭 intake（CAS Open→Closing）"] --> RES["Result 两步提交"]
+  RES --> DONE["终态"]
+  CANCEL["Failed/Cancelled"] --> AB["剩余 turn → Abandoned"] --> CLOSED["intake Closed"]
+  CLOSE -. "不等待网络 sync 完成" .-> CLOSED
+  SYNC["sync pump"] -. "closing 后只登记" .-> CLOSED
+```
+
+图 M-MX-8 · 条件依赖图 / Target / NOT_BUILT。intake 关闭不等 sync；sync 在 closing 后不附着 Run。无循环等待。
+
+#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+
+| 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
+|---|---|---|---|---|---|
+| 1 | 需要带讨论的任务 | `POST /runs` 含 `discussion{room_id,trigger_event_id}` | M001 鉴权；M008 verify（GET event + membership） | 写 run(intake=Open)+Pending turn；202 | 保存 `run_id` |
+| 2 | 已受理 | `GET /runs/{run_id}` | M003 | 返回 `RunView{discussion_intake_state:"Open"}` | 等待或投喂 |
+| 3 | 房间有新消息 | —（Matrix 侧） | M008 sync | 写 turn+cursor；事务提交 | 无需动作（自动） |
+| 4 | 想加一句话 | Matrix send | M008 sync 收到 | 生成 turn 或 closing 后登记 | — |
+| 5 | 读结果 | `GET /runs/{run_id}/result` | M003 | `AgentResult`（Completed 只在 Closing 后） | 验收 |
+| 6 | membership 丢失 | — | M008 sync 403 | intake Closed + `DiscussionAccessLost` | 交 operator |
+
+**关键事实如何产生**：turn 事实=`discussion_turns` 行（M003）；同步事实=cursor 推进（M008 事务）；关闭事实=CAS Open→Closing（M005）。不以"已收到消息"代替"已投喂"。
+
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 | 结果 |
@@ -440,6 +507,19 @@ stateDiagram-v2
 | homeserver 不可达 | preflight/运行 | discussion 不可用 | 启动失败 = 不 READY；运行中 `DiscussionAccessLost` |
 
 四类恢复动作按系统设计 §10.1：只读取原操作；同请求重放核对同一身份；执行者接管需确认旧执行者停止；新业务重试重新准入。MECH-MATRIX 的恢复顺序为 cursor → dedup → turn → intake。
+
+```mermaid
+flowchart TD
+  F1["sync 网络超时"] --> R1["cursor 不推进；重试同批（dedup 吸收）"]
+  F2["M_UNKNOWN_TOKEN(401)"] --> R2["DiscussionAccessLost；轮换 token + 重启"]
+  F3["M_FORBIDDEN(403)"] --> R2
+  F4["M_LIMIT_EXCEEDED(429)"] --> R3["按 retry_after_ms 退避"]
+  F5["Pi commit 后崩溃"] --> R4["重启扫 transcript 补标记"]
+  F6["发送响应丢失"] --> R5["复用同 txn 重试"]
+  F7["E2EE 事件"] --> R6["忽略并记录；不阻塞其他事件"]
+```
+
+图 M-MX-5 · 异常处置图 / Target / NOT_BUILT。已知/未知：sync 失败结果未知（cursor 不动）；发送响应丢失结果未知（复用 txn）；E2EE 是明确不支持。
 
 ## 10. 并发、排序与容量
 
@@ -529,11 +609,14 @@ stateDiagram-v2
 
 ### 14.4 下级设计输入清单
 
-| 下游对象 | 固定输入 | 约束 | 自由度 |
-|---|---|---|---|
-| `matrix-adapter` | matrix-js-sdk + config（homeserver/identity/token） | PK-08；Client-Server v3；无 E2EE | 封装实现、退避策略 |
-| `worker` | intake state machine | PK-08 | CAS 实现 |
-| `task-repository` | matrix_* DDL | PK-08 | 事务组织 |
+每行分配 `M-MX-DI-<nnn>`；下级模块设计附录 A 用 `piko-matrix` + 该 ID 逐行承接。
+
+| Requirement ID | 下游对象 | 固定输入 | 约束 | 自由度 |
+|---|---|---|---|---|
+| `M-MX-DI-001` | `matrix-adapter` | matrix-js-sdk + config（homeserver/identity/token） | CON-MX-001；Client-Server v3；无 E2EE | 封装实现、退避策略 |
+| `M-MX-DI-002` | `worker` | intake state machine | CON-MX-001 | CAS 实现 |
+| `M-MX-DI-003` | `task-repository` | matrix_* DDL | CON-MX-001 | 事务组织 |
+
 
 ## 15. 验证、上线与回滚
 
@@ -553,12 +636,23 @@ stateDiagram-v2
 - 组合：M003 + M005 + M008 PASS + homeserver integration PASS（PK-T08）。
 - 旧机制退出：无。
 
+```mermaid
+flowchart LR
+  IN["discussion 任务 r-7,e-7"] --> ARM["arm: 撤销 @pm:hs membership"]
+  ARM --> HIT["hit 确认: sync 返回 403/成员离开"]
+  HIT --> REL["release: 恢复 membership"]
+  REL --> CHK["断言: intake Closed + DiscussionAccessLost"]
+  CHK --> CLN["cleanup: 清测试房间/cursor/SQLite"]
+```
+
+图 M-MX-6 · 测试路径图 / Target / NOT_BUILT。注入点=membership 变更；命中=403 或成员事件；独立 Oracle=homeserver 侧事件 + Result state；真实/模拟=本地 Synapse。
+
 ## 16. 风险、未决问题与决定
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| ISSUE-MX-001 | 本地 Synapse 与生产 homeserver 行为差异（限流/权限/E2EE） | Medium | Piko Implementation Owner | homeserver 联调后 |
-| ISSUE-MX-002 | v0.3 不支持 E2EE；若生产房间加密则 discussion 不可用 | High | Piko Project Owner | 生产拓扑确定时裁决 |
+| `RISK-MX-001` | 本地 Synapse 与生产 homeserver 行为差异（限流/权限/E2EE） | Medium | Piko Implementation Owner | homeserver 联调后 |
+| `RISK-MX-002` | v0.3 不支持 E2EE；若生产房间加密则 discussion 不可用 | High | Piko Project Owner | 生产拓扑确定时裁决 |
 
 已选决定：单 Client-Server 路径（§1）；SQLite 事务内同步（§8）；不支持 E2EE（§3.3.1）。被否决：AS 路径、产品 outbox、E2EE 解密。
 
@@ -586,6 +680,7 @@ stateDiagram-v2
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
+| v0.4.0 | 2026-09-25 | 按 STD 机制指南 §3 图例表补全 8 类图：§3 协作图、§4 数据对象图、§9 异常处置图、§15 测试路径图、§6/§9 完整过程图、§6/§8/§9 条件依赖图；补 §6.1.2 双方调用演练（调用方知道什么→下一步）、§7.1 异常五轴；§14.4 用 `M-<MECH>-DI-<nnn>`、§16 用 `RISK-<MECH>-<nnn>`、§3.1 用 `CON-<MECH>-<nnn>` ID 命名空间 | corezilla, opencode |
 | v0.3.0 | 2026-09-25 | 补 §6.1.1 完整 JSON 调用实例（正常+边界+错误）与 §4.8 逐码错误 catalog（对照 STD EX-EXPORT 示例深度） | corezilla, opencode |
 | v0.2.0 | 2026-09-25 | review 修复：补实际 Matrix Client-Server 协议（sync/send/media/whoami endpoint + 请求/响应/错误/超时）；补运行环境（homeserver/身份/TLS/房间/E2EE/限流/dev-test-prod）；§4.4 从 N/A 改为实际事件与 PikoDiscussionMessage 载荷；§11/§12 按模板列格式重写 | corezilla, opencode |
 

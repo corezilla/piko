@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -60,11 +60,21 @@ flowchart LR
 
 **authority 边界**：持久事实权属 M003；Pi session 权属 M006（Harness）；新 lease 权属 M004。
 
+```mermaid
+flowchart LR
+  M000["M000 bootstrap<br/>owner: 启动顺序"] -->|"READY"| M005["M005 worker<br/>owner: 恢复编排"]
+  M005 -->|"IF-REC-SCAN"| M003["M003 task-repository<br/>owner: 持久事实"]
+  M005 -->|"IF-REC-INSPECT"| M006["M006 pi-adapter<br/>owner: Harness session/operation"]
+  M005 -->|"IF-REC-PATCH"| M003
+  M004["M004 scheduler<br/>owner: 新 lease"] -->|"IF-REC-FENCE"| M003
+```
+图 M-REC-3 · 协作图 / Target / NOT_BUILT。M005 编排恢复；M003 持持久事实；M006 持 Pi session；M004 提供新 lease。
+
 ### 3.1 系统约束与参与方承接
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 |
 |---|---|---|---|
-| PK-12 恢复边界 · Approved | 崩溃后重启 | 固定恢复顺序；不复活旧权威 | M005 编排；M003 事实；M006 对账 |
+| CON-REC-001 · PK-12 恢复边界 · Approved | 崩溃后重启 | 固定恢复顺序；不复活旧权威 | M005 编排；M003 事实；M006 对账 |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -110,6 +120,19 @@ flowchart LR
 #### 4.2.1 `RecoveryProbe`
 
 - **定义与来源**：恢复探测结果 `{result_exists, run_state, lease_epoch, pi_session, open_operation, operation_result, ledger_version, matrix_cursor}`。来源 M005 ISD §4.6。
+
+```mermaid
+flowchart LR
+  DB["SQLite: tasks/runs/results<br/>/run_sessions/ledger"] -->|M005 探测| PROBE["RecoveryProbe"]
+  PIS["Pi session JSONL"] -->|M006 inspect| PROBE
+  PROBE -->|"result_exists"| PATCH["PatchedTerminal"]
+  PROBE -->|"open_operation"| RESUME["ResumedOperation"]
+  PROBE -->|"operation_result"| WRAP["WrapResult"]
+  PATCH --> TERM["runs 终态"]
+  RESUME --> TERM
+  WRAP --> TERM
+```
+图 M-REC-4 · 数据对象图 / Target / NOT_BUILT。持久事实唯一来源=SQLite + Pi JSONL；恢复不改已发布 Result。
 
 ### 4.3 配置与规则数据结构（适用时）
 
@@ -217,10 +240,24 @@ sequenceDiagram
   Repo-->>W: r-7 Running, results gen N exists
   W->>Repo: patch terminal (gen N+1) + release slot
   Note over W: 不重跑 Pi
-  W->>PI: (no accept; inspect only)
+  W->>PI: no accept, inspect only
 ```
 
 图 M-REC-1 · MECH-RECOVERY 正常端到端 / Target / NOT_BUILT。
+
+```mermaid
+flowchart TD
+  P["重启：S1-S8 启动"] --> SC["扫描非终态 Run"]
+  SC --> Q{"探测结果"}
+  Q -- "results exists" --> A["补第二步（PatchedTerminal）"]
+  Q -- "open op" --> B["drive（ResumedOperation）"]
+  Q -- "op result" --> C["封装 Result（WrapResult）"]
+  Q -- "不可恢复" --> D["InternalError"]
+  A --> REL["release slot"]
+  B --> REL
+  C --> REL
+```
+图 M-REC-7 · 完整过程图（有副作用收口）/ Target / NOT_BUILT。恢复编排从持久事实到终态或明确失败。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -270,6 +307,28 @@ sequenceDiagram
 
 → 判定 `UnsafeRetryBlocked`：不重放未知副作用。
 
+```mermaid
+flowchart TD
+  LEASE["新 lease epoch"] --> FENCE["旧 epoch 被 fence"]
+  FENCE --> PROBE["探测（读持久事实）"]
+  PROBE --> TERM["补终态 / 明确失败"]
+  PROBE -. "不等待旧执行者自报退出" .-> TERM
+  TERM --> ACC["允许新 accept"]
+```
+图 M-REC-8 · 条件依赖图 / Target / NOT_BUILT。恢复不依赖旧执行者自报；fence 后即可探测。无循环等待。
+
+#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+
+| 步 | 调用方（Operator）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
+|---|---|---|---|---|---|
+| 1 | 进程崩溃 | 重启 | M000 S1-S8 | READY/失败 | 失败→F1 |
+| 2 | READY | — | M005 扫描 | 读非终态 Run | 逐个探测 |
+| 3 | 发现 r-7 | RecoveryProbe | M003+M006 | result_exists=true | PatchedTerminal |
+| 4 | 已补终态 | — | M003 写终态 | runs gen N+1 | 允许新任务 |
+| 5 | 不可恢复 | — | M005 判定 | InternalError | 交人工 |
+
+**关键事实如何产生**：非终态事实=`runs.state`（M003）；Pi 状态事实=Harness inspect（M006）；补终态事实=`results`+`runs` 同 generation（M003）。
+
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 | 结果 |
@@ -318,6 +377,16 @@ stateDiagram-v2
 | Pi commit 后崩溃 | transcript event | 标记未落 | 按 identity 补 |
 | session invariant 损坏 | inspect 失败 | operation 不可信 | `InternalError` |
 | 不可核实 tool | tool_calls 无 outcome | 未知副作用 | `UnsafeRetryBlocked` |
+
+```mermaid
+flowchart TD
+  F1["results 写后崩溃"] --> R1["PatchedTerminal：只补第二步"]
+  F2["Pi commit 后崩溃"] --> R2["按 identity 补标记"]
+  F3["session invariant 损坏"] --> R3["InternalError（明确失败）"]
+  F4["replay:never 无 outcome"] --> R4["UnsafeRetryBlocked（不重放）"]
+  F5["新 lease"] --> R5["旧 epoch 被 fence"]
+```
+图 M-REC-5 · 异常处置图 / Target / NOT_BUILT。已知/未知：results 存在=已知；`never` 无 outcome=未知 fail-closed；session 损坏=不可恢复。
 
 ## 10. 并发、排序与容量
 
@@ -390,11 +459,12 @@ stateDiagram-v2
 
 ### 14.4 下级设计输入清单
 
-| 下游对象 | 固定输入 | 约束 | 自由度 |
-|---|---|---|---|
-| `task-repository` | 持久事实 | PK-12 | 查询实现 |
-| `worker` | 恢复顺序 | PK-12 | 编排实现 |
-| `pi-adapter` | Harness inspect | PK-04 | 对账实现 |
+| Requirement ID | 下游对象 | 固定输入 | 约束 | 自由度 |
+|---|---|---|---|---|
+| `M-REC-DI-001` | `task-repository` | 持久事实 | CON-REC-001 | 查询实现 |
+| `M-REC-DI-002` | `worker` | 恢复顺序 | CON-REC-001 | 编排实现 |
+| `M-REC-DI-003` | `pi-adapter` | Harness inspect | CON-REC-001 | 对账实现 |
+
 
 ## 15. 验证、上线与回滚
 
@@ -414,11 +484,21 @@ stateDiagram-v2
 - 组合：M003 + M005 + M006 + M004 PASS（PK-T12）。
 - 旧机制退出：无。
 
+```mermaid
+flowchart LR
+  IN["Run r-7 执行中"] --> ARM["arm: SIGKILL 于 Result 第一步后"]
+  ARM --> HIT["hit: 重启 + 非终态 + results gen N"]
+  HIT --> REL["release: 重启进程扫描"]
+  REL --> CHK["断言: 补 gen N+1；不重跑 Pi"]
+  CHK --> CLN["cleanup: 清测试 SQLite"]
+```
+图 M-REC-6 · 测试路径图 / Target / NOT_BUILT。独立 Oracle=cross-check Result→Run→lease→session。
+
 ## 16. 风险、未决问题与决定
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| ISSUE-REC-001 | Pi session 损坏时的封结语义 | High | Piko Implementation Owner | M006 实现完成 |
+| `RISK-REC-001` | Pi session 损坏时的封结语义 | High | Piko Implementation Owner | M006 实现完成 |
 
 已选决定：固定恢复顺序（§1）；不重跑 Pi（§8）。被否决：日志推断、自动绕过未知重试。
 

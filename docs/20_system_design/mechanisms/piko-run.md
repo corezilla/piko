@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -73,14 +73,37 @@ flowchart LR
 
 **authority 边界**：`task_id` 由 Slinky 生成、权属 Slinky；Run 状态权属 M003；Pi session/operation 权属 M006（Harness）；usage 权属 M007；Result generation 权属 M003。工程 Owner 是 Piko Implementation Owner（同一人），但运行责任分属 7 个独立模块。
 
+```mermaid
+flowchart LR
+  subgraph PIKO["Piko 进程（单实例）"]
+    M001["M001 task-api<br/>owner: HTTP 入口/typed error"]
+    M002["M002 policy<br/>owner: 校验判定（无状态）"]
+    M003["M003 task-repository<br/>owner: tasks/runs/results/ledger"]
+    M004["M004 scheduler<br/>owner: execution_slot/lease"]
+    M005["M005 worker<br/>owner: Run 寿命/Result 发布"]
+    M006["M006 pi-adapter<br/>owner: Pi session/operation/raw usage"]
+    M007["M007 usage<br/>owner: UsageSnapshot/SemanticCheck"]
+  end
+  M001 -->|"IF-RUN-CREATE valid"| M002
+  M002 -->|"ValidatedTaskSubmission"| M003
+  M004 -->|"IF-RUN-SLOT Lease"| M003
+  M005 -->|"IF-RUN-SESSION/ACCEPT/DRIVE"| M006
+  M005 -->|"IF-RUN-SNAPSHOT"| M007
+  M005 -->|"IF-RUN-PUBLISH"| M003
+  M006 -->|"raw usage"| M007
+  M001 -->|"read view"| M003
+```
+
+图 M-RUN-3 · M-FLOW 协作图 / Target / NOT_BUILT。七模块各有 owned state；M002 无状态，只做判定。跨机制依赖 `MECH-MATRIX`（讨论）与 `MECH-USAGE`（用量）从 M005 出。
+
 ### 3.1 系统约束与参与方承接
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 流程/协议/下级落实位置 | 组合验证与证据状态 | 差距/变更影响/裁决责任 |
 |---|---|---|---|---|---|---|
-| PK-01 单 slot + 独立 session · Approved | 单实例单 Agent | 同实例同时至多 1 个 Running Run；`pi_session_id=run_id` | M003+M004 保证 lease epoch 唯一；M006 保证确定性 session identity；自由度：内部函数组织 | §6.1 / §8.1 / M003/M004/M006 ISD | 集成 PK-T01/PK-T13（NOT_RUN） | — / 多实例另立设计 |
-| PK-02 任务事务稳定身份 · Approved | 同 `task_id` 重复提交 | tombstone 永久拒绝；同 ID 同内容不重检动态条件 | M001+M002+M003；自由度：字段比较实现 | §6.1 / §7.2 / M003 ISD | 契约 PK-T03/PK-T15（NOT_RUN） | — / 契约版本变化需复审 |
-| PK-03 截止与预算 · Approved | 每次 Run | deadline + max_model_calls + max_tool_calls | M002+M006；自由度：内部计数实现 | §6.4 / §9 / M002/M006 ISD | fault PK-T05（NOT_RUN） | — |
-| PK-07 Result 两步提交 · Approved | Run 终态 | 写 `results` 与写终态不可合并 | M003+M005+M007；自由度：事务内语句组织 | §6.2 / §8.1 / M003/M005 ISD | fault PK-T05/PK-T15（NOT_RUN） | — |
+| CON-RUN-001 · PK-01 单 slot + 独立 session · Approved | 单实例单 Agent | 同实例同时至多 1 个 Running Run；`pi_session_id=run_id` | M003+M004 保证 lease epoch 唯一；M006 保证确定性 session identity；自由度：内部函数组织 | §6.1 / §8.1 / M003/M004/M006 ISD | 集成 PK-T01/PK-T13（NOT_RUN） | — / 多实例另立设计 |
+| CON-RUN-002 · PK-02 任务事务稳定身份 · Approved | 同 `task_id` 重复提交 | tombstone 永久拒绝；同 ID 同内容不重检动态条件 | M001+M002+M003；自由度：字段比较实现 | §6.1 / §7.2 / M003 ISD | 契约 PK-T03/PK-T15（NOT_RUN） | — / 契约版本变化需复审 |
+| CON-RUN-003 · PK-03 截止与预算 · Approved | 每次 Run | deadline + max_model_calls + max_tool_calls | M002+M006；自由度：内部计数实现 | §6.4 / §9 / M002/M006 ISD | fault PK-T05（NOT_RUN） | — |
+| CON-RUN-004 · PK-07 Result 两步提交 · Approved | Run 终态 | 写 `results` 与写终态不可合并 | M003+M005+M007；自由度：事务内语句组织 | §6.2 / §8.1 / M003/M005 ISD | fault PK-T05/PK-T15（NOT_RUN） | — |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -153,6 +176,20 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`run_id`、`state`（终态）、`partial`（bool）、`summary`（string）、`outputs[]`、`known_actions[]`、`usage: UsageSnapshot`、`failure: Failure | null`。`Completed` 强制 `partial=false/failure=null`；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M005 生产，M003 持久化 generation；可见点 `results.result_json`；发布后不可变。
 - **合法与拒绝实例、V/Case 与证据状态**：ResultValidator FAIL 拒绝发布。Case PK-T16（NOT_RUN）。
+
+```mermaid
+flowchart LR
+  REQ["RunSubmitRequest<br/>（外部）"] -->|M002 校验| VTS["ValidatedTaskSubmission"]
+  VTS -->|M003 受理事务| TASK["tasks.task_json<br/>（immutable）"]
+  VTS --> RUN["runs（Queued,gen=1）"]
+  RUN -->|M004 lease + M005| RS["run_sessions<br/>pi_session_id=run_id"]
+  RS -->|M006| PI["Pi session JSONL<br/>operation/usage/tool facts"]
+  PI -->|M006 onRawUsage| MA["model_attempts"]
+  PI -->|M005 对账| RES["results（immutable gen N）"]
+  RES -->|M005 第二步| RUN2["runs（Terminal,gen=N+1）"]
+```
+
+图 M-RUN-4 · 数据对象图 / Target / NOT_BUILT。生产/复制/变换与唯一来源：`task_json` 由 M003 唯一持有（immutable）；`results` generation 发布后不可变；`model_attempts` 由 M006 写、M007 读。
 
 ### 4.3 配置与规则数据结构（适用时）
 
@@ -361,13 +398,28 @@ sequenceDiagram
   Use->>Repo: model_attempts
   PI-->>W: operation result
   W->>Use: snapshot + validate
-  W->>Repo: INSERT results (gen N); COMMIT
-  W->>Repo: UPDATE runs state=Completed gen=N+1; release slot; COMMIT
+  W->>Repo: INSERT results gen N, COMMIT
+  W->>Repo: UPDATE runs state=Completed gen=N+1, release slot, COMMIT
   S->>API: GET /runs/t-7/result
   API-->>S: 200 AgentResult
 ```
 
 图 M-RUN-1 · MECH-RUN 正常端到端，`design.system-mechanism` 3.2.0 / Target / NOT_BUILT。输入推演 `t-7`：受理 → lease → Running → Pi → Result 两步提交 → 读取。
+
+```mermaid
+flowchart TD
+  P["prepare: createOrGetRun（受理）"] --> E["execute: lease → Pi accept/drive"]
+  E --> Q{"operation result?"}
+  Q -- "有" --> W["封装 Result + ResultValidator"]
+  Q -- "响应丢失" --> S["stop intent → abort → 对账"]
+  S --> C["collect: 从 Pi session/ledger 对账"]
+  C --> W
+  W --> PUB["两步提交 results + 终态"]
+  PUB --> REL["release slot"]
+  E -. "取消" .-> S
+```
+
+图 M-RUN-7 · 完整过程图（有副作用收口）/ Target / NOT_BUILT。准备→执行→响应丢失→停止→取证(=对账)→分支收口(Completed/Failed/Cancelled)→释放 slot。不重跑 Pi。
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
@@ -422,6 +474,31 @@ sequenceDiagram
 {"code":"TaskConflict","message":"task_id already bound to a different task","detail":"run_id=run-042"}
 ```
 
+```mermaid
+flowchart TD
+  STOP["stop: fence lease/writer"] --> ABORT["Pi requestAbort + 对账"]
+  ABORT --> TERM["终态（Failed/Cancelled）"]
+  TERM --> REL["release slot"]
+  RESULT["Result 两步"] --> TERM
+  RESULT -. "已完成" .-> TERM
+  STOP -. "不等 Result 完成" .-> TERM
+```
+
+图 M-RUN-8 · 条件依赖图（取消与回退）/ Target / NOT_BUILT。箭头=前置依赖；stop 不等待正常路径完成；release 依赖已选终态。不存在 stop 等 Release、Release 等 stop 的循环。
+
+#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+
+| 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
+|---|---|---|---|---|---|
+| 1 | 需要派 `task-042` | q1 完整 `RunSubmitRequest` | M001 JSON/Schema + bearer；M002 校验；M003 按 task_id 查 | 单事务插入 tasks+runs；返回 202 | 保存 `run_id=run-042` |
+| 2 | 已受理，不知进度 | `GET /runs/run-042` | M001 鉴权；M003 读 runs | 返回 `RunView{state:"Running",gen:3}` | 决定继续等或取消 |
+| 3 | 想取结果 | `GET /runs/run-042/result` | M001 鉴权；M003 读 results | 返回 `AgentResult` | 验收/重派/升级 |
+| 4a | 响应丢失（q1 无回复） | 保留原 `task_id` | 重发**同** `task-042` 同内容 | M003 比较 → 返回原 Run | 不新建、不换 ID |
+| 4b | 想取消 | `POST /runs/run-043:cancel` | M005 分流 | 202 `StopRequested`（意图落盘） | 轮询状态；不重复取消 |
+| 5 | 收到 `StopRequested` | 不知是否已停 | `GET /runs/run-043` | M003 读 state | 只有 `Cancelled` 才证停止 |
+
+**关键事实如何产生**：受理事实=`tasks`+`runs` 行 commit（M003）；完成事实=`results` generation 写成功（M005+M003）；停止事实=`runs.state=Cancelled` + Harness operation 已停（M006 确认）。各条件不靠"已确认"字样，而靠可定位的持久记录。
+
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 | 结果 |
@@ -434,6 +511,19 @@ sequenceDiagram
 | Running 取消 | 用户取消运行中任务 | stop intent → abort → 对账 → 终态 | `StopRequested` → `CancelledByRequest` |
 | deadline/预算耗尽 | accept/drive/tool 前耗尽 | block + terminate | `DeadlineExceeded`/`BudgetExceeded` |
 | 工具无 outcome | `replay:"never"` 无结果 | 合成 interrupted result | `UnsafeRetryBlocked`/`ExecutionStateUnknown` |
+
+#### 7.1 每个异常的五轴判定
+
+按 STD 机制指南 §7：每个异常核对五轴，不合并成单个 failed。
+
+| 异常 | 结果已知性 | 访问安全 | 操作终态 | 资源释放 | 重新准入 |
+|---|---|---|---|---|---|
+| provider 失败（重试后成功） | 成功（attempt 事实） | 无关 | Completed | slot 归还 | 新任务可用 |
+| deadline/预算耗尽 | 失败（明确） | 无关 | Failed | slot 归还 | 新任务可用 |
+| orphaned assistant effect | 部分未知（合成中断） | Pi 已停 | Failed/Unknown | slot 归还 | 需新 `task_id` |
+| `replay:never` 无 outcome | 未知（fail-closed） | 工具可能已执行 | Failed `UnsafeRetryBlocked` | slot 归还；不重放 | 人工判定的新任务 |
+| worker 两步间崩溃 | 已知（results 已写） | 无旧写入者 | 补 Completed | 恢复时 release | 新任务可用 |
+| 取消（已停） | 已知（Cancelled） | abort 已确认 | Cancelled | slot 归还 | 新任务可用 |
 
 ## 8. 状态机与不变量
 
@@ -485,6 +575,19 @@ stateDiagram-v2
 | SQLite 不可写 | SQLITE_BUSY/FULL | 事务失败 | 返回 503/500 `ResultUnavailable`；启动时 F1 |
 
 任何恢复都不复活旧权威、不重复执行 Pi operation、不把超时当失败终态。
+
+```mermaid
+flowchart TD
+  E1["provider 失败"] -->|Harness retry| R1["新 attempt（受 deadline/预算约束）"]
+  E1 -->|耗尽| F1["BudgetExceeded/DeadlineExceeded（Failed）"]
+  E2["orphaned assistant effect"] --> R2["frame prefix 合成中断，不重发"]
+  E3["worker 写 results 前崩溃"] --> R3["重启 R1-R7：只补第二步"]
+  E4["replay:never 无 outcome"] --> R4["合成 interrupted → UnsafeRetryBlocked"]
+  E5["Harness invariant 损坏"] --> R5["明确失败 → ExecutionStateUnknown"]
+  E6["SQLite 不可写"] --> R6["503 / 500 ResultUnavailable"]
+```
+
+图 M-RUN-5 · 异常处置图 / Target / NOT_BUILT。已知/未知结果：provider 失败有 Harness 事实（已知）；orphaned effect 只能合成中断（部分未知）；`never` 无 outcome 是未知副作用（fail-closed）。权威核对：SQLite + Pi session。
 
 ## 10. 并发、排序与容量
 
@@ -595,15 +698,18 @@ stateDiagram-v2
 
 ### 14.4 下级设计输入清单
 
-| 下游对象 | 固定输入 | 约束 | 自由度 |
-|---|---|---|---|
-| `task-api` | HTTP 4 operation + contract | PK-02 | 中间件顺序 |
-| `policy` | config + registry | PK-03 | 校验顺序 |
-| `task-repository` | DDL + fenced write | PK-01/02/07 | SQL 组织 |
-| `scheduler` | singleton slot | PK-01 | 调度策略（不加优先级） |
-| `worker` | lease + Pi/Usage/Repo | PK-01/03/07 | 协调实现（不镜像 loop） |
-| `pi-adapter` | Pi 0.85.1 commit | PK-04/05/06 | hook 实现 |
-| `usage` | contract `0.3.0-simplified.6` | PK-09/10 | 聚合实现（不改 generation） |
+每行分配稳定 Requirement ID（`M-RUN-DI-<nnn>`）；下级模块设计附录 A 用 `piko-run` + 该 ID 逐行承接。
+
+| Requirement ID | 下游对象 | 固定输入 | 约束 | 自由度 |
+|---|---|---|---|---|
+| `M-RUN-DI-001` | `task-api` | HTTP 4 operation + contract | PK-02 | 中间件顺序 |
+| `M-RUN-DI-002` | `policy` | config + registry | PK-03 | 校验顺序 |
+| `M-RUN-DI-003` | `task-repository` | DDL + fenced write | PK-01/02/07 | SQL 组织 |
+| `M-RUN-DI-004` | `scheduler` | singleton slot | PK-01 | 调度策略（不加优先级） |
+| `M-RUN-DI-005` | `worker` | lease + Pi/Usage/Repo | PK-01/03/07 | 协调实现（不镜像 loop） |
+| `M-RUN-DI-006` | `pi-adapter` | Pi 0.85.1 commit | PK-04/05/06 | hook 实现 |
+| `M-RUN-DI-007` | `usage` | contract `0.3.0-simplified.6` | PK-09/10 | 聚合实现（不改 generation） |
+
 
 ## 15. 验证、上线与回滚
 
@@ -626,13 +732,24 @@ stateDiagram-v2
 - 启用 Gate：全部 PK 通过 + operator auth + restore + matrix joint。
 - 旧机制退出：无（MECH-RUN 为新机制）。
 
+```mermaid
+flowchart LR
+  IN["合法 t-7 输入"] --> ARM["arm: 注入 SIGKILL<br/>于 Result 第一步后"]
+  ARM --> HIT["hit 确认: 进程非零退出<br/>results 有 gen N"]
+  HIT --> REL["release: 重启进程"]
+  REL --> CHK["断言: runs 补 gen N+1<br/>不重跑 Pi"]
+  CHK --> CLN["cleanup: 清测试 SQLite/workspace"]
+```
+
+图 M-RUN-6 · 测试路径图 / Target / NOT_BUILT。注入点=两步提交之间；命中确认=退出码 + results 存在；独立 Oracle = SQLite 事实 + 契约 validator；真实/模拟边界=进程内 SQLite + mock LLMTier。Case 见 §15.1。
+
 ## 16. 风险、未决问题与决定
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| ISSUE-RUN-001 | Pi upstream commit 锁定与构建 fingerprint 验证 | High | Piko Implementation Owner | M006 实现完成 |
-| ISSUE-RUN-002 | Result semantic validator 与契约版本绑定 | Medium | Piko Contract Owner + Implementation Owner | M007 实现完成 |
-| ISSUE-RUN-003 | 单实例吞吐上限未实测 | Low | Piko Implementation Owner | 性能测试后 |
+| `RISK-RUN-001` | Pi upstream commit 锁定与构建 fingerprint 验证 | High | Piko Implementation Owner | M006 实现完成 |
+| `RISK-RUN-002` | Result semantic validator 与契约版本绑定 | Medium | Piko Contract Owner + Implementation Owner | M007 实现完成 |
+| `RISK-RUN-003` | 单实例吞吐上限未实测 | Low | Piko Implementation Owner | 性能测试后 |
 
 已选决定：单实例单 slot（§1）；两步 Result 提交（§8）；recovery 顺序（§9）。被否决：多 slot、合并单事务、日志推断恢复。
 

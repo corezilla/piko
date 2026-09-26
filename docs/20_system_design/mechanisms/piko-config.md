@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.3.0` |
+| Document Version | `0.4.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -58,11 +58,21 @@ flowchart LR
 
 **authority 边界**：config 文件权属 Operator；Secret 权属 Secret provider；启动快照权属 M000；tool 判定权属 M002。
 
+```mermaid
+flowchart LR
+  OP["Operator<br/>（config 文件 + 重启）"] -->|"IF-CFG-LOAD"| M000["M000 bootstrap<br/>owner: 启动快照/顺序"]
+  M000 -->|"IF-CFG-BIND"| M002["M002 policy<br/>owner: BoundToolProfile"]
+  SP["Secret provider"] -->|"IF-CFG-SECRET"| M000
+  M000 -->|"READY"| ALL["所有模块（消费配置）"]
+  M002 -->|"path/tool 判定"| ALL
+```
+图 M-CFG-3 · 协作图 / Target / NOT_BUILT。M000 拥有启动快照与顺序；M002 拥有 tool/path 判定；Secret 权属 provider。
+
 ### 3.1 系统约束与参与方承接
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 |
 |---|---|---|---|
-| PK-12 恢复与 operator 边界 · Approved | 启动/重启 | 启动顺序 S1-S8；restart/fence/migration 需 operator | M000 顺序实现；不可变：不回退语义 |
+| CON-CFG-001 · PK-12 恢复与 operator 边界 · Approved | 启动/重启 | 启动顺序 S1-S8；restart/fence/migration 需 operator | M000 顺序实现；不可变：不回退语义 |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -110,6 +120,17 @@ flowchart LR
 - **定义与来源**：M002 输出的已绑定 tool allowlist；来源 M002 ISD §4.3.2。
 - **字段与约束**：`tools[]` + `recovery_contracts{}`；每个 `recovery_contract_ref` 必须解析到已注册实现并匹配 tool name/effect/replay。
 - **所有权/寿命**：启动时绑定；进程寿命。
+
+```mermaid
+flowchart LR
+  CF["config 文件"] -->|M000 schema| CFG["PikoRuntimeConfig"]
+  TP["tool profile"] -->|M000+M002 bind| BP["BoundToolProfile"]
+  SEC["credential_ref"] -->|M000 解析| SEC2["Secret（内存）"]
+  CFG --> ACT["Active（READY）"]
+  BP --> ACT
+  SEC2 --> ACT
+```
+图 M-CFG-4 · 数据对象图 / Target / NOT_BUILT。config 权属 Operator；Secret 权属 provider；生效快照权属 M000。
 
 ### 4.3 配置与规则数据结构（适用时）
 
@@ -269,6 +290,19 @@ flowchart TD
 
 → 启动 F1：`InternalError("tool-bind-fail")`。
 
+#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+
+| 步 | 调用方（Operator）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
+|---|---|---|---|---|---|
+| 1 | 想改并发上限 | 新 config 文件 | 部署者先校验 | — | SIGTERM |
+| 2 | 旧进程已停 | — | M000 S1 parse | 读取 config | — |
+| 3 | — | — | S2 schema | 校验通过/失败 | 失败→F1 |
+| 4 | — | — | S3 bind | tool/recovery 一致 | 失败→F1 |
+| 5 | — | — | S4-S7 | canonicalize/store/pi/preflight | 失败→F1 |
+| 6 | 想要服务 | — | S8 listen | READY | 新 config 生效 |
+
+**关键事实如何产生**：生效事实=S8 READY（M000）；绑定事实=`BoundToolProfile`（M002）；secret 事实=provider 解析（M000）。
+
 ## 7. 分支和替代流程
 
 | 分支 | 触发 | 处理 | 结果 |
@@ -309,6 +343,16 @@ stateDiagram-v2
 | registry 不匹配 | S3 | 不 READY | F1 |
 | Secret 不可用 | S3/S7 | 不 READY | F1 |
 | Pi upstream 不匹配 | S6 | 不 READY | F1 |
+
+```mermaid
+flowchart TD
+  F1["schema 失败 / 固定项被覆盖"] --> R1["F1 不 READY；旧服务保留"]
+  F2["tool ref 未注册 / 不一致"] --> R1
+  F3["Secret 解析失败"] --> R1
+  F4["旧进程退出未确认"] --> R2["阻塞；不启动新进程"]
+  F5["Pi upstream 不匹配"] --> R1
+```
+图 M-CFG-5 · 异常处置图 / Target / NOT_BUILT。任一启动阶段失败 → F1；不部分就绪。
 
 ## 10. 并发、排序与容量
 
@@ -382,10 +426,11 @@ stateDiagram-v2
 
 ### 14.4 下级设计输入清单
 
-| 下游对象 | 固定输入 | 约束 | 自由度 |
-|---|---|---|---|
-| `bootstrap` | config schema | PK-12 | 启动顺序 |
-| `policy` | BoundToolProfile | PK-03 | 校验顺序 |
+| Requirement ID | 下游对象 | 固定输入 | 约束 | 自由度 |
+|---|---|---|---|---|
+| `M-CFG-DI-001` | `bootstrap` | config schema | CON-CFG-001 | 启动顺序 |
+| `M-CFG-DI-002` | `policy` | BoundToolProfile | CON-CFG-001 | 校验顺序 |
+
 
 ## 15. 验证、上线与回滚
 
@@ -405,11 +450,21 @@ stateDiagram-v2
 - 组合：M000 + M002 PASS + preflight PASS（PK-T12）。
 - 旧机制退出：无。
 
+```mermaid
+flowchart LR
+  IN["修改 max_queue_depth"] --> ARM["arm: 写入新 config"]
+  ARM --> HIT["hit: SIGTERM 旧进程并确认退出"]
+  HIT --> REL["release: 启动新进程"]
+  REL --> CHK["断言: READY + 新值生效"]
+  CHK --> CLN["cleanup: 恢复 config"]
+```
+图 M-CFG-6 · 测试路径图 / Target / NOT_BUILT。独立 Oracle=启动日志 + Run 行为。
+
 ## 16. 风险、未决问题与决定
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| ISSUE-CFG-001 | 重启切换的停机窗口未实测 | Low | Piko Operator | 部署测试后 |
+| `RISK-CFG-001` | 重启切换的停机窗口未实测 | Low | Piko Operator | 部署测试后 |
 
 已选决定：重启生效（§1）；启动时绑定（§8）。被否决：在线热改、多配置路径。
 

@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-run",
   "document_type": "design.system-mechanism",
-  "document_version": "0.3.0",
+  "document_version": "0.4.0",
   "title": "Piko 机制：单 Run 提交→完成闭环",
   "document_owner": "Piko Architecture Owner",
   "authors": [
