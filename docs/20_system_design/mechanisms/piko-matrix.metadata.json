@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-matrix",
   "document_type": "design.system-mechanism",
-  "document_version": "0.5.1",
+  "document_version": "0.5.2",
   "title": "Piko 机制：Matrix Discussion intake 与同步",
   "document_owner": "Piko Architecture Owner",
   "authors": [

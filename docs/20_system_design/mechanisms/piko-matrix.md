@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.5.1` |
+| Document Version | `0.5.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -577,7 +577,7 @@ flowchart TD
 - 单实例单 pump；不允许并发 sync；`syncOnce` 与 intake CAS 竞争同一 SQLite writer lock，先到者生效。
 - turn 按 `turn_seq` 顺序领取；`(run_id, event_id)` 唯一。
 - media 下载有字节上限（schema 控制）；超限拒绝。
-- 等待出口：sync 失败 cursor 不推进；Pi followUp 等 Harness 空闲；membership 复核失败立即终止。
+- 等待出口与期限：sync 长轮询 `timeout=30000 ms`（内部常量）；429 退避按 homeserver `retry_after_ms`；Pi followUp 等 Harness 空闲；membership 复核失败立即终止。每个等待有期限、事实来源（cursor/state）和合法出口。
 - rate limit 退避不消耗 Run 预算（属 adapter 内部）。
 
 ## 11. 安全、权限与信任边界
@@ -749,6 +749,7 @@ flowchart LR
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
+| v0.5.2 | 2026-09-25 | review 修复：piko-config §10 去重复行；piko-matrix §10 补 sync timeout 30000ms + 429 retry_after_ms；piko-recovery §10 补等待期限说明 | corezilla, opencode |
 | v0.5.1 | 2026-09-25 | review 修复：补 §3 表头/责任角色段（run）；§11 信任边界表转模板六列；§12.1 统计表转模板六列并登记 M009 采集路径；§12.2 维护表转模板格式；§13 配置表转模板"配置/组合 baseline"六列；§14.3 补交接接口表 | corezilla, opencode |
 | v0.5.0 | 2026-09-25 | 同步 STD draft.41（机制模板 3.2.0 → 3.3.0）：§1 补"机制形态与适用性/交接域/裁剪依据"；§3 表列改"决定/写入/事实来源/恢复"并补责任角色区分；§5.1 收进程内函数接口（不再 N/A）；§9 补跨重启恢复窗口；§15.1.1 补每项保证的正常+故障向量；附录 A 补正文质量检查与图分类 | corezilla, opencode |
 | v0.4.0 | 2026-09-25 | 按 STD 机制指南 §3 图例表补全 8 类图：§3 协作图、§4 数据对象图、§9 异常处置图、§15 测试路径图、§6/§9 完整过程图、§6/§8/§9 条件依赖图；补 §6.1.2 双方调用演练（调用方知道什么→下一步）、§7.1 异常五轴；§14.4 用 `M-<MECH>-DI-<nnn>`、§16 用 `RISK-<MECH>-<nnn>`、§3.1 用 `CON-<MECH>-<nnn>` ID 命名空间 | corezilla, opencode |

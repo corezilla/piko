@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-usage",
   "document_type": "design.system-mechanism",
-  "document_version": "0.5.1",
+  "document_version": "0.5.2",
   "title": "Piko 机制：Usage 字段汇总与冻结",
   "document_owner": "Piko Architecture Owner",
   "authors": [

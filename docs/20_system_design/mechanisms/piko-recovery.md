@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.5.1` |
+| Document Version | `0.5.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -446,7 +446,7 @@ flowchart TD
 - 恢复不引入额外容量。
 
 - 代表请求：重启后单线程扫描非终态 Run，逐个对账；不与新 accept 并发（scheduler 在恢复完成后领取）。
-- 等待出口：inspect 失败 → `InternalError`；`replay:"never"` 无 outcome → `UnsafeRetryBlocked`；无永久等待。
+- 等待出口与期限：inspect 无固定时限（读本地 session，有界）；inspect 失败 → `InternalError`；`replay:"never"` 无 outcome → `UnsafeRetryBlocked`；无永久等待。
 
 ## 11. 安全、权限与信任边界
 

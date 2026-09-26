@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.5.1` |
+| Document Version | `0.5.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -395,9 +395,8 @@ flowchart TD
 
 - 启动串行 S1-S8；无并发配置写。
 - 配置只在启动时读取；运行时无 reload。
-
-- 启动串行 S1-S8；无并发配置写；配置只在启动时读取，运行时无 reload。
 - 等待出口：preflight 探测超时 → F1；Secret 解析失败 → F1；不部分就绪。
+- 代表请求：Operator 改 config → 校验 → SIGTERM 旧进程并等待退出确认 → 新进程串行执行 S1-S8 → READY。无并发配置写，无部分就绪。
 
 ## 11. 安全、权限与信任边界
 
