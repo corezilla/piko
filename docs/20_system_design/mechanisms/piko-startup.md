@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-startup` |
-| Document Version | `0.1.0` |
+| Document Version | `0.1.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -299,7 +299,13 @@ S1 parse ok; S2 schema ok; S3 bind ok; S4 paths ok; S5 store ok; S6 pi ok; S7 pr
 ```mermaid
 stateDiagram-v2
   [*] --> S1
-  S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
+  S1 --> S2
+  S2 --> S3
+  S3 --> S4
+  S4 --> S5
+  S5 --> S6
+  S6 --> S7
+  S7 --> S8
   S8 --> READY
   S1 --> F1
   S2 --> F1
@@ -430,9 +436,15 @@ stateDiagram-v2
 
 ### 15.1 输入构造、故障控制与独立判据
 
-- 正常：完整启动 → READY。
-- 边界：config 无效、registry 不匹配、store 不可写、Pi 不匹配、依赖不可达。
-- 独立判据：启动日志 + READY/F1 + 退出码。
+每条按"输入 → 注入/命中 → 状态/对象变化 → 外部可观察结果 → 清理"固定。
+
+**V-ST-N1（正常）**：输入=有效 config + 锁定 commit + 可达依赖；注入=无；命中=S1-S8；状态=`instance_meta` 写入、schema_generation 记；外部结果=端口已绑定 + READY、可接受 Run；清理=进程退出、store 可保留。
+
+**V-ST-N2（最危险反例，依赖不可达）**：输入=有效 config 但 LLMTier 不可达；注入=mock LLMTier 503；命中=S7 preflight fail；状态=`instance_meta` 可能已写（S5），但**不 listen**；外部结果=**端口未绑定**、进程非零退出、无 Run 可受理；清理=进程退出释放句柄与 lock。
+
+**V-ST-N3（配置无效）**：输入=未知字段/覆盖固定项；注入=schema 拒绝；命中=S2；状态=不进入 S3；外部结果=F1 + `config-invalid` + 非零退出；清理同 N2。
+
+独立判据=**外部可观察的端口绑定 + 退出码**（不只自身日志/READY 自述）+ Run 受理能力；Run 状态 NOT_RUN。
 
 #### 15.1.1 每项核心保证的正常向量 + 故障向量
 
@@ -459,7 +471,7 @@ stateDiagram-v2
 
 已选决定：重启生效（§3.3.1）；全 preflight 才 READY（§6）。被否决：部分就绪、在线热改。
 
-**跨机制依赖检查**：MECH-STARTUP 依赖 `MECH-CONFIG`（S1-S4 委派）；`MECH-RUN`/`MECH-MATRIX`/`MECH-RECOVERY` 在运行期依赖 STARTUP 的 READY。无循环、上级 `MECH-RUN` 已登记。
+**跨机制依赖检查**（见 `system-design` §3.5.1 依赖矩阵）：上级 `MECH-RUN`；设计前置 `MECH-RUN`、`MECH-CONFIG`（无环）；运行时消费 `MECH-CONFIG`（config）；恢复读取 —。只有设计前置参与无环检查，运行时消费/恢复读取允许双向。
 
 ## A. 输入基线、适用性与图文规则
 
@@ -470,7 +482,7 @@ stateDiagram-v2
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-CONFIG`。继承 MECH-RUN 的 Run/Result 核心语义与 authority 规则；自行设计进程生命周期。复审触发：启动顺序变化、依赖变化。
+机制父项 `MECH-RUN`（归属）；设计前置 `MECH-RUN`、`MECH-CONFIG`。运行时消费与恢复读取见 `system-design` §3.5.1 依赖矩阵，不属于设计前置、不参与无环检查。继承 MECH-RUN 的 Run/Result 核心语义与 authority 规则；自行设计进程生命周期。复审触发：启动顺序变化、依赖变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 
@@ -484,6 +496,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-STARTUP 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 5 模块） | corezilla, opencode |
 
 <!-- STD_DOCUMENT_CONTROL_BEGIN -->

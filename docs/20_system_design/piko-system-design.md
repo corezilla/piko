@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-design` |
-| Document Version | `0.11.0` |
+| Document Version | `0.11.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.software-system` |
 | Template Version | `2.1.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -267,6 +267,23 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 | MECH-CANCEL · Run 取消分流 | MECH-RUN | `task-api` M001 + `task-repository` M003 + `worker` M005；Constraint PK-03 | MECH-RUN | `piko-cancel.md`（v0.1.0，已建） | Approved / PK-T05 |
 
 > 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-RUN 是机制族设计锚点（`parent none`、`prereq none`）；其余 6 个以 MECH-RUN 为归属父项，且不构成前置依赖循环（CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL 的 prereq 单向指向 MECH-RUN 或 MECH-CONFIG）。
+
+#### 3.5.1 机制依赖矩阵（唯一权威）
+
+四类关系必须分开，只有**设计前置**参与无环检查；运行时消费与恢复读取是事实/API 关系，允许双向：
+
+| 机制 | 上级机制（归属） | 设计前置（须无环） | 运行时消费 | 恢复时读取事实 |
+|---|---|---|---|---|
+| MECH-RUN | none | none | CONFIG（config）、STARTUP（READY）、USAGE（usage）、MATRIX（discussion）、CANCEL（取消入口） | RECOVERY（恢复服务） |
+| MECH-CONFIG | MECH-RUN | MECH-RUN | — | — |
+| MECH-STARTUP | MECH-RUN | MECH-RUN、MECH-CONFIG | MECH-CONFIG（config） | — |
+| MECH-USAGE | MECH-RUN | MECH-RUN | — | — |
+| MECH-MATRIX | MECH-RUN | MECH-RUN、MECH-CONFIG | MECH-RUN（Run/Result） | MECH-RECOVERY（对账） |
+| MECH-RECOVERY | MECH-RUN | MECH-RUN、MECH-CONFIG | MECH-RUN（Run 事实）、MECH-USAGE（ledger）、MECH-MATRIX（cursor） | — |
+| MECH-CANCEL | MECH-RUN | MECH-RUN | MECH-RUN（state/Result） | MECH-RECOVERY（取消中崩溃对账） |
+
+**设计前置 DAG（无环）**：`MECH-RUN → MECH-CONFIG → MECH-STARTUP`；`MECH-RUN → {MECH-USAGE, MECH-MATRIX, MECH-RECOVERY, MECH-CANCEL}`。运行时消费与恢复读取**不改变**设计前置；因此 MECH-RUN 在运行时消费 RECOVERY/USAGE/MATRIX 不构成设计循环。
+
 
 ### 3.6 功能设计
 
@@ -973,10 +990,10 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 
 | 阶段 | 输入与前置依赖 | 任务 / 承接对象 / Owner | 交付物 | 局部及集成出口 | 未决项 / 影响 |
 |---|---|---|---|---|---|
-| PHASE-M 5 mechanism 文档 | §3.5 机制清单 | 5 份 `design.system-mechanism` 3.0.0 docs；Owner: Piko Architecture | `docs/20_system_design/mechanisms/piko-{run,usage,matrix,config,recovery}.md` | 每份包含完整 §1-§14 + 附录 A/B；机制 ID 与 §3.5 一致 | — |
-| PHASE-D 10 module definitions | system 设计 + 5 mechanism docs | 10 份 `design.definition` 3.0.0 docs；Owner: Piko Implementation | `docs/40_module_design/piko-{bootstrap,task-api,policy,task-repository,scheduler,worker,pi-adapter,usage,matrix-adapter,observability}-design.md` | 每份包含完整模块定义 + `implementation_specification.mode=self` 引用对应 ISD | — |
-| PHASE-I 10 module ISDs | 10 definitions + 5 mechanisms | 10 份 `design.implementation` 1.0.0 docs (.isd.md)；Owner: Piko Implementation | `docs/50_implementation_design/piko-{...}-impl.isd.md` | 每份含完整 §1-§7；与 mechanism + definition 一致 | — |
-| PHASE-O 5 mechanism 联合评审 | PHASE-M/D/I 完成 | 机制 + 模块 + 系统四方组合验证；Owner: Piko Project Owner | review packet `piko-system-design-std35-review-packet` 续 | 系统组合验收 + 下游实现 Gate | — |
+| PHASE-M 7 mechanism 文档 | §3.5 机制清单 | 7 份 `design.system-mechanism` 3.3.0 docs；Owner: Piko Architecture | `docs/20_system_design/mechanisms/piko-{run,config,startup,usage,matrix,recovery,cancel}.md` | 每份包含完整 §1-§14 + 附录 A/B；机制 ID 与 §3.5 一致 | — |
+| PHASE-D 10 module definitions | system 设计 + 7 mechanism docs | 10 份 `design.definition` 3.0.0 docs；Owner: Piko Implementation | `docs/40_module_design/piko-{bootstrap,task-api,policy,task-repository,scheduler,worker,pi-adapter,usage,matrix-adapter,observability}-design.md` | 每份包含完整模块定义 + `implementation_specification.mode=self` 引用对应 ISD | — |
+| PHASE-I 10 module ISDs | 10 definitions + 7 mechanisms | 10 份 `design.implementation` 1.0.0 docs (.isd.md)；Owner: Piko Implementation | `docs/50_implementation_design/piko-{...}-impl.isd.md` | 每份含完整 §1-§7；与 mechanism + definition 一致 | — |
+| PHASE-O 7 mechanism 联合评审 | PHASE-M/D/I 完成 | 机制 + 模块 + 系统四方组合验证；Owner: Piko Project Owner | review packet `piko-system-design-std35-review-packet` 续 | 系统组合验收 + 下游实现 Gate | — |
 
 阶段顺序：先机制（横向）→ 后模块定义与 ISD（纵向）→ 联合评审。下游实现顺序由 10 份 ISD §7 自定义（每份内部按各自任务拆分）。
 
@@ -1039,6 +1056,7 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 
 | 文档版本 / 日期 | 变更和设计影响 | 作者 / 评审记录 |
 |---|---|---|
+| v0.11.1 / 2026-09-26 | review 修复（AMENDMENT P1/P2）：§3.5.1 依赖矩阵区分上级机制/设计前置/运行时消费/恢复读取（仅设计前置参与无环检查）；7 份机制 §A.1/§16 同步；MATRIX 截断回补 + E2EE 唯一结果；CANCEL 停止未知隔离；接口闭合 + 可执行验证向量；§15 交付计划 5→7 修正 | corezilla, opencode |
 | v0.4.0 / 2026-09-17 | 现有 9 节结构；Approved by User / Piko Project Owner | corezilla |
 | v0.5.0 / 2026-09-25 | 按 STD draft.35 模板 `design.software-system` 1.0.0 重写为 17 + 2 节结构；保留 PK-T01..PK-T40 oracle 与机器契约不变 | corezilla, opencode |
 | v0.6.0 (本次修订) / 2026-09-25 | 移除"1 个 subsystem"反模式；删除 `piko-runtime-implementation-design-v0.3.isd.md`（拆分到 10 份模块 ISD）；模块按 4 分区重新组织；§3.5 机制清单指向 5 份独立 `design.system-mechanism` 文档；附录 A 增加 TAIL-P-NEW-S1（无 subsystem）；修订号升 v0.6.0 | corezilla, opencode |

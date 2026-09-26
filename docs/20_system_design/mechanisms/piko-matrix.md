@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.5.2` |
+| Document Version | `0.5.3` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -121,7 +121,10 @@ flowchart LR
 | 测试（test/CI） | CI 内 Synapse 容器 | 固定测试 user | loopback | `tests/integration/matrix-discussion.test.ts` |
 | 生产（prod） | 客户 homeserver（`https://...`） | config Secret 的 access token | 标准 HTTPS + 系统 CA | 实际运行 |
 
-- **E2EE**：v0.3 不支持端到端加密房间；收到加密事件（`m.room.encrypted`）即拒绝该 Run 或忽略事件，不尝试解密。这是明确裁剪，列入复审触发条件。
+- **E2EE**：v0.3 不支持端到端加密房间，不尝试解密。唯一外部结果按条件区分：
+  * trigger_event 本身为 `m.room.encrypted` → **拒绝受理**，返回 `InvalidDiscussionContext`（无法取得可见起点）。
+  * 运行期其他 `m.room.encrypted` 事件 → **忽略并记录**（不生成 turn，不阻塞其他事件）。
+  两个条件各有唯一结果，不再二选一。列入复审触发条件。
 - **限流**：homeserver 可能返回 429 `M_LIMIT_EXCEEDED`；M008 按 `retry_after_ms` 退避，不推进 cursor。
 - **代理**：v0.3 不支持 HTTP 代理；如需由部署网络层处理。
 - **时钟**：`origin_server_ts` 为 homeserver 时间，仅用于排序参考，不作为 Piko 权威时钟。
@@ -282,7 +285,18 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /runs
 - **Interface/Member ID、用途与提供责任**：`IF-MX-SYNC`；M008 提供；M003 持久化。
 - **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3。
 - **输入与前提**：`cursor`=上次 `next_batch`（首次 null）。
-- **成功输出与保证**：`MatrixBatch{next_batch, events[]}`；单 SQLite 事务写 dedup+turn+cursor。
+- **成功输出与保证**：
+
+  ```text
+  MatrixBatch {
+    next_batch: string,            // 下一批 cursor；唯一推进凭据
+    events: [{ type, event_id, sender, room_id, origin_server_ts, content }],
+    limited: bool,                 // true 表示本批 timeline 被截断
+    prev_batch: string | null      // 截断时的回补起点（供 /messages）
+  }
+  ```
+
+  单 SQLite 事务写 dedup+turn+cursor；`limited=true` 按 §6.1 有界回补。
 - **错误与合法下一步**：401 → `DiscussionAccessLost`；429 → 退避；超时 → 重试同批。
 - **交互与生命周期**：长轮询；cursor 只随事务推进。
 - **代表调用与验证**：§6.1.1 q3；PK-T08。
@@ -297,12 +311,22 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /runs
 - **交互与生命周期**：先持久 send record 再 PUT。
 - **代表调用与验证**：§6.1.1 q4；PK-T08。
 
-#### `downloadContent` / `uploadContent`（IF-MX-MEDIA）
+#### `downloadContent(mxc) -> MediaContent | MediaError`（IF-MX-MEDIA-DOWN）
 
-- **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA`；M008 提供。
-- **输入与前提**：mxc URI；Bearer 鉴权；下载前复核 ACL。
-- **成功输出与保证**：字节流 / `{content_uri}`；字节上限。
-- **错误**：ACL 失败 → `DiscussionAccessLost`；超限 → 拒绝。
+- **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA-DOWN`；M008 提供。
+- **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server media v3。
+- **输入与前提**：`mxc://{serverName}/{mediaId}`；Bearer；下载前复核 membership/event 可见性。
+- **成功输出与保证**：`MediaContent{bytes, content_type, size}`；字节上限由 schema 控制。
+- **错误与合法下一步**：ACL 失败 → `DiscussionAccessLost`；超限/MIME 不符 → 拒绝。
+- **交互与生命周期**：写 Run staging 目录，校验后移入 allowed path。
+- **代表调用与验证**：PK-T08。
+
+#### `uploadContent(bytes, content_type) -> {content_uri} | MediaError`（IF-MX-MEDIA-UP）
+
+- **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA-UP`；M008 提供。
+- **输入与前提**：文件字节 + MIME；Bearer。
+- **成功输出与保证**：`{content_uri: mxc}`。
+- **错误与合法下一步**：超限 → 拒绝；网络超时 → 不落盘。
 - **代表调用与验证**：PK-T08。
 
 ### 5.2 消息与数据流接口（适用时）
@@ -406,7 +430,11 @@ flowchart TD
 - 事件与 closing 竞争：writer lock 串行化；事件要么先入队阻止 closing，要么 closing 后只登记。
 - 后续消息不唤醒终态 Run；下一轮需新任务。
 - membership 撤销/deadline 可提前终止。
-- `limited=true` 的 sync 批：M008 记录截断事实，仍按已收事件处理；不因截断阻塞 cursor。
+- **截断（`limited=true`）处理**：`limited=true` 表示该批 timeline 被 homeserver 截断（期望窗口内可能有未返回事件）。M008 必须在推进 cursor 前执行**有界回补**：
+  1. 以 `prev_batch` 调 `GET /_matrix/client/v3/rooms/{roomId}/messages?from=<prev_batch>&dir=b&limit=100`，按时间倒序取缺失事件；
+  2. 回补到已知边界（返回条数 < limit 或到达 `prev_batch` 起点）→ 缺口闭合，按时间正序写 turn 后再推进 cursor；
+  3. 若回补仍截断（达到 limit 仍未到边界）→ 记录 `truncation_unresolved=true`，**仍推进 cursor**（否则永久卡死），但该 Run 的 turn 集合标记"可能不完整"，Result 不声称讨论完整。
+- **cursor 推进条件**：只有本批事件（含回补）已写 turn 后 cursor 才推进；`truncation_unresolved` 单独记录，不阻止推进但阻止完整性声称。
 
 #### 6.1.1 完整调用实例（Matrix Client-Server）
 
@@ -522,7 +550,7 @@ stateDiagram-v2
 
 图 M-MX-2 · intake 状态机 / Target / NOT_BUILT。
 
-**不变量**：1) 只有 Open 接收 turn；2) 只有 Closing 发 Completed Result；3) 同一 event_id 恰好进入 session 一次；4) cursor 只随事务推进；5) txn_id 确定性；6) `event_id` 不进 provider input。
+**不变量**：1) 只有 Open 接收 turn；2) 只有 Closing 发 Completed Result；3) 同一 **已接收** event_id 恰好进入 session 一次（不含 homeserver 因 `limited=true` 从未返回的事件）；4) cursor 在本批（含回补）写 turn 后推进；5) txn_id 确定性；6) `event_id` 不进 provider input。
 
 ### 8.1 资源预留、交付、释放与复位
 
@@ -679,9 +707,17 @@ flowchart TD
 
 ### 15.1 输入构造、故障控制与独立判据
 
-- 正常：discussion 任务 end-to-end；oracle = homeserver 侧 event 记录 + Result。
-- 边界：membership 撤销、自己 sender、closing 后事件、重启重放、429 限流、E2EE 事件。
-- 独立判据：homeserver integration + crash replay；不拿被测 adapter 自身返回成功当 oracle。
+每条按"输入 → 注入/命中 → 状态/对象变化 → 外部可观察结果 → 清理"固定。
+
+**V-MX-N1（正常，恰好一次）**：输入 discussion 任务（room `r-7`，trigger `$e-7`），PM 发 `$e-8`；注入=无；命中=homeserver 返回含 `$e-7`/`$e-8` 的批；状态=turn_seq 1,2 顺序写、cursor 推进；外部结果=Pi transcript 中两 event 各恰好 1 次、intake 空闲后 Closed、Result 可达；清理=清 test room/cursor/SQLite。
+
+**V-MX-N2（最危险反例，截断回补）**：输入同 N1，但 homeserver timeline **丢弃 `$e-9`** 并置 `limited=true`、`prev_batch=p-9`；注入=mock `/messages?from=p-9` 返回 `$e-9`；命中=`limited=true` 触发回补；状态=`$e-9` 回补后按序写 turn_seq=3、cursor 推进；外部结果=Pi transcript 含 `$e-9` 恰好 1 次、Result 声称完整；清理同 N1。
+
+**V-MX-N3（最危险反例，回补仍截断）**：输入同 N2，但 `/messages` 达到 limit 仍未到边界；注入=持续缺批；命中=回补仍 `limited`；状态=`truncation_unresolved=true` 记录、cursor 推进（不卡死）；外部结果=**Result 不声称讨论完整**（标记可能缺口）、交 operator；清理同 N1。
+
+**V-MX-N4（E2EE 唯一结果）**：输入 A=trigger_event 为 `m.room.encrypted` → 外部结果=**拒绝受理** `InvalidDiscussionContext`；输入 B=运行期其他 encrypted 事件 → 外部结果=**忽略并记录**，不生成 turn 且不阻塞；两者各自唯一。
+
+独立判据=homeserver 侧 event 记录 + SQLite turn/cursor + Pi transcript；不拿 adapter 自身返回成功当 oracle；Run 状态仍 NOT_RUN。
 
 #### 15.1.1 每项核心保证的正常向量 + 故障向量
 
@@ -721,7 +757,7 @@ flowchart LR
 
 已选决定：单 Client-Server 路径（§1）；SQLite 事务内同步（§8）；不支持 E2EE（§3.3.1）。被否决：AS 路径、产品 outbox、E2EE 解密。
 
-**跨机制依赖检查**：MECH-MATRIX 依赖 `MECH-RUN`（Run 生命周期与 Result）、`MECH-RECOVERY`（cursor/turn 对账）、`MECH-CONFIG`（homeserver/identity/token）。无反向依赖、无循环、上级 `MECH-RUN` 已登记。
+**跨机制依赖检查**（见 `system-design` §3.5.1 依赖矩阵）：上级 `MECH-RUN`；设计前置 `MECH-RUN`、`MECH-CONFIG`（无环）；运行时消费 `MECH-RUN`（Run/Result）；恢复读取 `MECH-RECOVERY`（对账）。只有设计前置参与无环检查，运行时消费/恢复读取允许双向。
 
 ## A. 输入基线、适用性与图文规则
 
@@ -734,7 +770,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`（单向，无环）。继承：MECH-RUN 的 Result 发布与 Run 生命周期；自行设计 discussion intake 状态机与 sync 事务。复审触发：matrix-js-sdk 版本变化、intake 状态机变化、E2EE 需求出现、homeserver 行为差异。
+机制父项 `MECH-RUN`（归属）；设计前置 `MECH-RUN`、`MECH-CONFIG`。运行时消费与恢复读取见 `system-design` §3.5.1 依赖矩阵，不属于设计前置、不参与无环检查。继承：MECH-RUN 的 Result 发布与 Run 生命周期；自行设计 discussion intake 状态机与 sync 事务。复审触发：matrix-js-sdk 版本变化、intake 状态机变化、E2EE 需求出现、homeserver 行为差异。
 
 ### A.2 纯软件 API 机制裁剪示例
 
@@ -748,6 +784,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
 | v0.5.2 | 2026-09-25 | review 修复：piko-config §10 去重复行；piko-matrix §10 补 sync timeout 30000ms + 429 retry_after_ms；piko-recovery §10 补等待期限说明 | corezilla, opencode |
 | v0.5.1 | 2026-09-25 | review 修复：补 §3 表头/责任角色段（run）；§11 信任边界表转模板六列；§12.1 统计表转模板六列并登记 M009 采集路径；§12.2 维护表转模板格式；§13 配置表转模板"配置/组合 baseline"六列；§14.3 补交接接口表 | corezilla, opencode |

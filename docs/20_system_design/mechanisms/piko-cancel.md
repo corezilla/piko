@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-cancel` |
-| Document Version | `0.1.0` |
+| Document Version | `0.1.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -310,13 +310,22 @@ stateDiagram-v2
 
 图 M-CX-2 · Run 取消状态机 / Target / NOT_BUILT。
 
-**不变量**：1) Queued 取消零调用；2) `StopRequested` 只证意图；3) 终止不可回退；4) 取消中崩溃由恢复对账；5) 不重复发布 Result。
+**不变量**：1) Queued 取消零调用；2) `StopRequested` 只证意图；3) 终止不可回退；4) 取消中崩溃由恢复对账；5) 不重复发布 Result；6) **未确认旧执行停止前，不释放 slot、不允许新 Run 准入**。
+
+**旧执行停止未知时的隔离与出口**（abort 无法确认 = `Running`/`Cancelling` 时 Harness 未返回停止事实）：
+- **状态**：Run → `Failed`，`failure=ExecutionStateUnknown`；Pi operation 标记 `Unknown`（**不等于已停止**）。
+- **写权限隔离**：旧 operation 对 Task Store 的写入被 `run_id + generation + lease_epoch` fenced write 拒绝（旧 generation 的 `FencedWrite` 失败）；它不能再推进 Run 状态或发布 Result。但它仍可能在 Pi session 内继续运行。
+- **slot 释放前提**：只有下列之一成立才释放 slot 并允许新 Run 准入：
+  1. 旧 Pi operation 被确认停止（Harness 报告或进程重启终止）；或
+  2. 进程退出（进程死亡必然终止旧 operation）。
+  否则**保持 slot 占用**；不启动第二个 Run，也不把 `Failed` 读成"已安全停止"。
+- **重新准入**：确认隔离后，slot 可释放；新任务用新 `task_id`（旧 Run 终态不可回退）。
 
 ### 8.1 资源预留、交付、释放与复位
 
 | 资源 | 预留 | 交付 | 释放 | 复位 |
 |---|---|---|---|---|
-| slot | Queued 未取 | — | Running 取消后释放 | 重启 fence |
+| slot | Queued 未取 | — | 仅当旧 operation 已停或进程退出才释放；否则保持占用 | 重启（进程死亡）fence |
 | Result | — | 两步提交 | retention | tombstone |
 | Pi operation | — | abort | 对账后 | 不重发 |
 
@@ -324,7 +333,7 @@ stateDiagram-v2
 
 | 故障 | 检测 | 影响 | 恢复 |
 |---|---|---|---|
-| abort 无法确认 | Harness fault | 停止未知 | `ExecutionStateUnknown` |
+| abort 无法确认 | Harness fault | 停止未知；`Failed`+`ExecutionStateUnknown`；slot 保持占用 | 确认旧 operation 停止或进程退出后释放 slot；否则交 operator（见 §8 隔离） |
 | 取消中崩溃 | 重启 | 状态停在 Cancelling | MECH-RECOVERY 对账补终态 |
 | `never` 工具无 outcome | tool_calls 无 outcome | 副作用未知 | `UnsafeRetryBlocked` |
 
@@ -412,16 +421,15 @@ stateDiagram-v2
 
 ### 15.1 输入构造、故障控制与独立判据
 
-- 正常：Queued 取消 / Running 取消 / 终态取消。
-- 边界：abort 无法确认、取消中崩溃、`never` 工具无 outcome。
-- 独立判据：Result state + `runs.state` + Pi operation 状态。
+每条按"输入 → 注入/命中 → 状态/对象变化 → 外部可观察结果 → 清理"固定。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**V-CX-N1（正常，Running 取消到停止）**：输入=`run-043` 处于 Running；注入=无；命中=cancel 请求；状态=写 stop intent → Cancelling → Harness 报告停止 → 对账 → Cancelled；外部结果=202 `StopRequested` 后轮询到 `state=Cancelled`、零或取消 Result、slot 释放；清理=清 test SQLite。
 
-| 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
-|---|---|---|---|---|
-| Queued 零调用 | Queued cancel | 竞态转 Running | 并发 acquireSlot | 零调用 Result |
-| StopRequested≠停止 | Running cancel | abort 前查 state | 构造 abort 延迟 | state 仍 Cancelling |
+**V-CX-N2（最危险反例，停止未知）**：输入=`run-043` Running；注入=mock Harness `requestAbort` 不返回停止事实；命中=abort 无法确认；状态=`runs.state=Failed` + `failure=ExecutionStateUnknown`、Pi operation 标 Unknown；外部结果=**slot 保持占用**、新 Run 准入被拒（`QueueFull`/占位）、旧 generation 的 fenced write 被拒；清理=进程重启（进程死亡终止旧 op）后 slot 释放、新任务可用新 `task_id`。
+
+**V-CX-N3（Queued 零调用）**：输入=`run-042` Queued；命中=cancel；状态=单事务 flag+零调用 Result+Cancelled；外部结果=200 `CancelledBeforeStart`、`model_attempts=0`；清理同 N1。
+
+独立判据=`runs.state` + `results` + Pi operation 状态 + slot 占用；Run 状态 NOT_RUN。
 
 ### 15.2 环境部署、复位、并发隔离与自动化
 
@@ -437,11 +445,11 @@ stateDiagram-v2
 
 | ID | 风险/未决 | 等级 | Owner | 关闭 Gate |
 |---|---|---|---|---|
-| `RISK-CX-001` | abort 无法确认时的封结语义 | High | Piko Implementation Owner | M006 实现完成 |
+| `RISK-CX-001` | abort 无法确认时的封结语义：已定义"不释放 slot + fenced write 隔离 + 确认停止/进程退出后释放"（§8）；残余风险是 Harness 无法报告停止事实的实现细节 | High | Piko Implementation Owner | M006 实现完成 |
 
 已选决定：按 state 分流（§6）；`StopRequested`≠停止（§8）。被否决：ack 即停、撤销已生效取消。
 
-**跨机制依赖检查**：MECH-CANCEL 依赖 `MECH-RUN`（Run 状态机与 Result）；`MECH-RECOVERY` 处理取消中崩溃。无循环、上级 `MECH-RUN` 已登记。
+**跨机制依赖检查**（见 `system-design` §3.5.1 依赖矩阵）：上级 `MECH-RUN`；设计前置 `MECH-RUN`（无环）；运行时消费 `MECH-RUN`（state/Result）；恢复读取 `MECH-RECOVERY`（取消中崩溃对账）。只有设计前置参与无环检查，运行时消费/恢复读取允许双向。
 
 ## A. 输入基线、适用性与图文规则
 
@@ -452,7 +460,7 @@ stateDiagram-v2
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN`。继承 MECH-RUN 的 Run 状态与 Result 协议；自行设计取消分流。复审触发：取消语义变化、abort 能力变化。
+机制父项 `MECH-RUN`（归属）；设计前置 `MECH-RUN`。运行时消费与恢复读取见 `system-design` §3.5.1 依赖矩阵，不属于设计前置、不参与无环检查。继承 MECH-RUN 的 Run 状态与 Result 协议；自行设计取消分流。复审触发：取消语义变化、abort 能力变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 
@@ -466,6 +474,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-CANCEL 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 3 模块） | corezilla, opencode |
 
 <!-- STD_DOCUMENT_CONTROL_BEGIN -->

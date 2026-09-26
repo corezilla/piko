@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.5.2` |
+| Document Version | `0.5.3` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -300,12 +300,38 @@ flowchart LR
 
 MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯一维护）；进程内模块交接也是 API，本节固定其共同契约。
 
-#### `POST /runs` · `GET /runs/{run_id}` · `POST /runs/{run_id}:cancel` · `GET /runs/{run_id}/result`（外部 HTTP）
+#### `POST /runs`（createRun，外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`createRun`/`getRun`/`cancelRun`/`getRunResult`；M001 `task-api` 提供。
-- **唯一契约、版本与状态**：`interfaces/openapi/agent-runtime-openapi-v0.3.yaml`；机器契约 `0.3.0-simplified.6`。
-- **输入/输出/错误**：见 `system-design` §8.1 + contract §1/§3/§6；本节不复制。
-- **代表调用与验证**：见 §6.1.1 JSON 实例；PK-T03/PK-T15/PK-T16。
+- **Interface/Member ID、用途与提供责任**：`createRun`；M001 `task-api` 提供。
+- **唯一契约、版本与状态**：`interfaces/openapi/agent-runtime-openapi-v0.3.yaml`；`0.3.0-simplified.6`。
+- **输入与前提**：`RunSubmitRequest`；bearer principal 已配置。
+- **成功输出与保证**：202 `{task_id, run_id, state:"Queued"}`。
+- **错误与合法下一步**：422/401/409 `TaskConflict`/410 `Gone`/429 `QueueFull`/503；同 ID 同内容返回原 Run。
+- **代表调用与验证**：§6.1.1 q1/q4；PK-T03/PK-T15。
+
+#### `GET /runs/{run_id}`（getRun，外部 HTTP）
+
+- **Interface/Member ID、用途与提供责任**：`getRun`；M001 提供。
+- **输入与前提**：`run_id`；同一 principal。
+- **成功输出与保证**：200 `RunView`（无副作用）。
+- **错误与合法下一步**：401/404/410。
+- **代表调用与验证**：§6.1.1 q2；PK-T03。
+
+#### `POST /runs/{run_id}:cancel`（cancelRun，外部 HTTP）
+
+- **Interface/Member ID、用途与提供责任**：`cancelRun`；M001 提供。
+- **输入与前提**：`run_id`；同一 principal。
+- **成功输出与保证**：200 `CancelledBeforeStart` / 202 `StopRequested` / 200 `AlreadyTerminal`。
+- **错误与合法下一步**：401/404/410。
+- **代表调用与验证**：MECH-CANCEL §6.1.1；PK-T05。
+
+#### `GET /runs/{run_id}/result`（getRunResult，外部 HTTP）
+
+- **Interface/Member ID、用途与提供责任**：`getRunResult`；M001 提供。
+- **输入与前提**：`run_id`；同一 principal。
+- **成功输出与保证**：200 `AgentResult`；generation 冻结。
+- **错误与合法下一步**：409 `RunNotTerminal`/401/404/410/500 `ResultUnavailable`。
+- **代表调用与验证**：§6.1.1 q3；PK-T16。
 
 #### `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`（IF-RUN-CREATE）
 
@@ -824,7 +850,7 @@ flowchart LR
 
 已选决定：单实例单 slot（§1）；两步 Result 提交（§8）；recovery 顺序（§9）。被否决：多 slot、合并单事务、日志推断恢复。
 
-**跨机制依赖检查**：MECH-RUN 依赖 `MECH-CONFIG`（启动配置）、`MECH-RECOVERY`（崩溃恢复守护）、`MECH-MATRIX`（discussion）、`MECH-USAGE`（Result 用量）。依赖方向均为 MECH-RUN → 子机制，无反向依赖，无循环、无悬挂上级。若新增依赖须在本表登记并复核循环。
+**跨机制依赖检查**（见 `system-design` §3.5.1 依赖矩阵）：上级 `none（机制族设计锚点）`；设计前置 `none`（无环）；运行时消费 CONFIG（config）、STARTUP（READY）、USAGE（usage）、MATRIX（discussion）、CANCEL（取消入口）；恢复读取 RECOVERY（恢复服务）。只有设计前置参与无环检查，运行时消费/恢复读取允许双向。
 
 ## A. 输入基线、适用性与图文规则
 
@@ -837,7 +863,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 none（机制族设计锚点）；前置依赖 none（其他机制以本机制为归属父项，构成单向无环依赖图）。继承：本机制定义 Run 状态机、Result 两步协议与 authority 规则，供子机制继承。复审触发：契约版本变化、Pi upstream 变化、状态机变化、新 slot 提案。
+机制父项 none（机制族设计锚点，归属）；设计前置 none。运行时消费与恢复读取见 `system-design` §3.5.1 依赖矩阵，不属于设计前置、不参与无环检查。继承：本机制定义 Run 状态机、Result 两步协议与 authority 规则，供子机制继承。复审触发：契约版本变化、Pi upstream 变化、状态机变化、新 slot 提案。
 
 ### A.2 纯软件 API 机制裁剪示例
 
@@ -865,6 +891,7 @@ MECH-RUN 为纯软件机制：无硬件/FPGA 表项（§4.5 N/A）；无设备�
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-RUN 16 节 + 附录 A/B；承接 system-design v0.9.0 §3.5 与 contract `0.3.0-simplified.6` | corezilla, opencode |
 
 <!-- STD_DOCUMENT_CONTROL_BEGIN -->

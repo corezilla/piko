@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.5.2` |
+| Document Version | `0.5.3` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-26` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -570,7 +570,7 @@ flowchart LR
 
 已选决定：固定恢复顺序（§1）；不重跑 Pi（§8）。被否决：日志推断、自动绕过未知重试。
 
-**跨机制依赖检查**：MECH-RECOVERY 依赖 `MECH-RUN`（Run 事实与 Result）、`MECH-CONFIG`（启动）、`MECH-USAGE`（ledger）、`MECH-MATRIX`（cursor/turn）。依赖方向 MECH-RECOVERY → 事实源；无循环、上级 `MECH-RUN` 已登记。
+**跨机制依赖检查**（见 `system-design` §3.5.1 依赖矩阵）：上级 `MECH-RUN`；设计前置 `MECH-RUN`、`MECH-CONFIG`（无环）；运行时消费 `MECH-RUN`（Run 事实）、`MECH-USAGE`（ledger）、`MECH-MATRIX`（cursor）；恢复读取 —。只有设计前置参与无环检查，运行时消费/恢复读取允许双向。
 
 ## A. 输入基线、适用性与图文规则
 
@@ -581,7 +581,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`（启动，单向无环）。继承：MECH-RUN 的持久事实模型与确定性 identity；自行设计恢复顺序与对账。复审触发：恢复顺序变化、Pi identity 变化。
+机制父项 `MECH-RUN`（归属）；设计前置 `MECH-RUN`、`MECH-CONFIG`。运行时消费与恢复读取见 `system-design` §3.5.1 依赖矩阵，不属于设计前置、不参与无环检查。继承：MECH-RUN 的持久事实模型与确定性 identity；自行设计恢复顺序与对账。复审触发：恢复顺序变化、Pi identity 变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 
@@ -595,6 +595,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-RECOVERY 16 节 + 附录 A/B | corezilla, opencode |
 
 <!-- STD_DOCUMENT_CONTROL_BEGIN -->
