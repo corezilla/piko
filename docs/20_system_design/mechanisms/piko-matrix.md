@@ -6,13 +6,13 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题
@@ -38,6 +38,11 @@ flowchart LR
 
 图 M-MX-0 · MECH-MATRIX 用途概览 / Target / NOT_BUILT。讨论事件经去重、落盘、领取后成为 Pi 输入。
 
+
+- **机制形态与适用性 / 业务副作用**：**有副作用**。讨论事件落盘为 `discussion_turns`、cursor 推进、intake 关闭、send txn 均持久；事件复制进本地并可能触发 Pi 投喂。
+- **交接域**：**纯软件 + 外部 Matrix homeserver**。M003/M005/M008 同进程；homeserver 为外部 HTTPS 服务。
+- **裁剪依据**：附录 A；§4.5/§5.3 因纯软件为 N/A；不支持 E2EE（见 §3.3.1）。
+
 **教学路径**：本机制属"有副作用的收口"路径（对应 STD EX-EXPORT 教学）：事件落盘与 intake 关闭都有持久后果。
 
 ## 2. 使用场景与功能
@@ -54,11 +59,13 @@ flowchart LR
 
 ## 3. 参与方、责任和 authority
 
-| Participant / 工程 Owner | 负责/不负责 | Owned data/state | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
 | M008 `matrix-adapter` / Piko Implementation Owner | 负责 `matrix-js-sdk` Client-Server 封装、membership 复核、sync、稳定 txn、media；不启用 AS 路径、不支持 E2EE | `matrix_state`/`matrix_events`/`matrix_sends` | 提供：`MatrixRuntime`；消费：Matrix homeserver | 进程内 `src/adapters/matrix/`（Planned） | MECH-RUN；固定 `matrix-js-sdk`（lockfile） |
 | M005 `worker` / Piko Implementation Owner | 负责 discussion intake CAS 与 turn 领取；不管理 homeserver 内部 | `discussion_turns` 状态推进 | 提供：intake 推进；消费：M008 + M003 | 进程内 `src/worker/`（Planned） | MECH-RUN |
 | M003 `task-repository` | 负责事务持久化与 fenced write | `matrix_*`/`discussion_turns` | 提供：事务接口 | 进程内 `src/store/`（Planned） | MECH-RUN |
+
+**责任角色区分**：intake 状态转换的**决定**由 M005 worker 发出（CAS），**写入/事务**由 M003 task-repository 执行，**权威事实**以 `discussion_turns`/`matrix_state` 为准；崩溃恢复时 M005 读取 transcript + cursor（§9）。M008 只负责协议封装与 sync 事务。
 
 **authority 边界**：Matrix event 权属 homeserver；本地去重与 turn 权属 M003；intake 状态权属 M005；send txn 权属 M008（adapter 内部可靠性，非产品 outbox）。
 
@@ -258,45 +265,78 @@ PikoDiscussionMessage {
 
 ### 5.1 API（适用时）
 
-**N/A**：MECH-MATRIX 无对外 API；discussion 经 MECH-RUN 的 `POST /runs`（带 `discussion?`）触发，由 `system-design` §8.1 维护。
+MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /runs`）；进程内 `MatrixRuntime` 方法是本机制 API。
+
+#### `verifyDiscussionStart(context: DiscussionContext) -> VerifiedEvent`（IF-MX-VERIFY）
+
+- **Interface/Member ID、用途与提供责任**：`IF-MX-VERIFY`；M008 `matrix-adapter` 提供；M001/M005 消费。
+- **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3；Proposed。
+- **输入与前提**：`{room_id, trigger_event_id}`；Bearer 鉴权。
+- **成功输出与保证**：`VerifiedEvent{event_id, membership:"join"}`。
+- **错误与合法下一步**：404/403 → `InvalidDiscussionContext`（受理）。
+- **交互与生命周期**：同步；调用 `GET .../event/{eventId}` + membership。
+- **代表调用与验证**：§6.1.1 q2；PK-T08。
+
+#### `syncOnce(cursor: string | null) -> MatrixBatch`（IF-MX-SYNC）
+
+- **Interface/Member ID、用途与提供责任**：`IF-MX-SYNC`；M008 提供；M003 持久化。
+- **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3。
+- **输入与前提**：`cursor`=上次 `next_batch`（首次 null）。
+- **成功输出与保证**：`MatrixBatch{next_batch, events[]}`；单 SQLite 事务写 dedup+turn+cursor。
+- **错误与合法下一步**：401 → `DiscussionAccessLost`；429 → 退避；超时 → 重试同批。
+- **交互与生命周期**：长轮询；cursor 只随事务推进。
+- **代表调用与验证**：§6.1.1 q3；PK-T08。
+
+#### `sendWithStableTxn(record: MatrixSendRecord) -> MatrixSendOutcome`（IF-MX-SEND）
+
+- **Interface/Member ID、用途与提供责任**：`IF-MX-SEND`；M008 提供；M003 持久化 txn。
+- **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3。
+- **输入与前提**：`MatrixSendRecord{txn_id, ...}`；`txn_id` 确定性派生。
+- **成功输出与保证**：`{event_id}`；同 txn 重试返回原 event_id。
+- **错误与合法下一步**：403 → `DiscussionAccessLost`；429 → 退避；超时 → 复用同 txn。
+- **交互与生命周期**：先持久 send record 再 PUT。
+- **代表调用与验证**：§6.1.1 q4；PK-T08。
+
+#### `downloadContent` / `uploadContent`（IF-MX-MEDIA）
+
+- **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA`；M008 提供。
+- **输入与前提**：mxc URI；Bearer 鉴权；下载前复核 ACL。
+- **成功输出与保证**：字节流 / `{content_uri}`；字节上限。
+- **错误**：ACL 失败 → `DiscussionAccessLost`；超限 → 拒绝。
+- **代表调用与验证**：PK-T08。
 
 ### 5.2 消息与数据流接口（适用时）
 
-本节按 draft.39 要求：内部协作使用 HTTP/RPC 时以实际 method+route 为标题，在同一记录说明请求/响应、鉴权、协议状态与业务错误映射、超时和版本。
+Matrix Client-Server HTTP 端点（Piko 消费/发送的消息载荷）：
 
 #### `GET /_matrix/client/v3/sync`（长轮询同步）
 
-- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-SYNC`；M008 经 `matrix-js-sdk` 的 `client.startClient()` + `sync` 事件消费；底层 Client-Server v3。
-- **输入与前提**：`since`=上次 `next_batch`（首次 null）；`timeout`=长轮询毫秒（如 30000）；`filter`=只订阅 Piko 关心的 room 与事件类型。鉴权 `Authorization: Bearer <access_token>`。
-- **成功输出与保证**：`{next_batch, rooms:{join:{<roomId>:{timeline:{events:[...],limited,prev_batch}}, state:{events:[...]}}}}`。`next_batch` 是推进 cursor 的唯一凭据。
-- **错误与合法下一步**：401 `M_UNKNOWN_TOKEN` → `DiscussionAccessLost`；429 `M_LIMIT_EXCEEDED` → 按 `retry_after_ms` 退避；网络超时 → 重试同批（cursor 未推进，无丢失）。
-- **交互与生命周期**：长轮询持续运行；`limited=true` 表示事件被截断，需按 `prev_batch` 判断是否影响 intake。
-- **实现与验证**：M008 ISD §5.1；Case PK-T08。
+- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-SYNC`；homeserver 提供；Client-Server v3。
+- **输入与前提**：`since`、`timeout`、`filter`；Bearer。
+- **成功输出与保证**：`{next_batch, rooms.join.timeline.events[]}`；`next_batch` 是推进 cursor 唯一凭据。
+- **错误与合法下一步**：见 §4.8.2 homeserver errcode 映射。
+- **交互与生命周期**：长轮询；`limited=true` 表示截断。
+- **代表调用与验证**：§6.1.1 q3；PK-T08。
 
 #### `PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`（稳定事务发送）
 
-- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-SEND`；M008 经 `client.sendMessage()`；客户端生成 `txnId` 保证幂等。
-- **输入与前提**：路径 `roomId` + 客户端生成的 `txnId`（M008 确定性派生并持久 `MatrixSendRecord`）；body `{msgtype:"m.text", body, "m.relates_to":{"m.in_reply_to":{...}}}`；Bearer 鉴权。
-- **成功输出与保证**：`{event_id}`。同 `txnId` 重试返回原 `event_id`（不重复发）。
-- **错误与合法下一步**：403 → `DiscussionAccessLost`；429 → 退避重试同 txn；网络超时 → 复用同 txn 重试。
-- **交互与生命周期**：先持久 send record 再发送；`txn_id` 寿命 = Run 寿命。
-- **实现与验证**：M008 ISD §5.1；Case PK-T08。
+- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-SEND`；homeserver 提供；v3。
+- **输入与前提**：`roomId` + 客户端 `txnId`；body `m.room.message` + reply。
+- **成功输出与保证**：`{event_id}`。
+- **错误与合法下一步**：见 §4.8.2。
+- **代表调用与验证**：§6.1.1 q4。
 
-#### `GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}` + `GET .../state/m.room.member/{userId}`（起点与 membership 校验）
+#### `GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}` + `/state/m.room.member/{userId}`
 
-- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-VERIFY`；M008 经 `client.fetchRoomEvent()` + `room.getMember()`。
-- **输入与前提**：`roomId`、`eventId`、`userId`；Bearer 鉴权。
-- **成功输出与保证**：事件对象存在且属于该 room；membership=`join`。
-- **错误与合法下一步**：404/403 → 映射 `InvalidDiscussionContext`（受理阶段）或 `DiscussionAccessLost`（运行阶段）。
-- **实现与验证**：M008 ISD §5.1；Case PK-T08。
+- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-VERIFY`；homeserver 提供。
+- **成功输出**：事件对象 + membership。
+- **代表调用与验证**：§6.1.1 q2。
 
-#### `GET /_matrix/media/v3/download/{serverName}/{mediaId}` + `POST /_matrix/media/v3/upload`（附件）
+#### `GET /_matrix/media/v3/download/...` + `POST /_matrix/media/v3/upload`
 
-- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-MEDIA`；M008 经 `client.downloadContent()` / `client.uploadContent()`。
-- **输入与前提**：mxc URI；Bearer 鉴权；下载前复核 membership/event 可见性。
-- **成功输出与保证**：文件字节流（下载）或 `{content_uri}`（上传）；下载有字节上限。
-- **错误与合法下一步**：ACL 失败 → `DiscussionAccessLost`；超限 → 拒绝；网络超时 → 不落盘。
-- **实现与验证**：M008 ISD §5.1；Case PK-T08。
+- **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-MEDIA`；homeserver media repo。
+- **成功输出**：字节流 / `content_uri`。
+- **代表调用与验证**：PK-T08。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -521,6 +561,17 @@ flowchart TD
 
 图 M-MX-5 · 异常处置图 / Target / NOT_BUILT。已知/未知：sync 失败结果未知（cursor 不动）；发送响应丢失结果未知（复用 txn）；E2EE 是明确不支持。
 
+#### 9.1 跨重启恢复窗口
+
+| 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
+|---|---|---|---|
+| sync 事务前 | cursor = s100 | `matrix_state.sync_cursor` | 从 s100 重拉同批 |
+| sync 事务后、Pi 投喂前 | turn Pending + cursor 已推进 | `discussion_turns.status` | Pending → 领取投喂 |
+| Pi commit 后、标记 Consumed 前 | transcript 有 `event_id`，turn 仍 Pending | transcript + `discussion_turns` | event 已存在 → 只补标记，不重复 followUp |
+| intake CAS 前 | ticket Pending | `runs.discussion_intake_state` | Open → 重判 CAS |
+
+身份固定：`event_id`、`turn_seq`、确定性 `pi_operation_id=run_id:turn:<n>`。
+
 ## 10. 并发、排序与容量
 
 - 单实例单 pump；不允许并发 sync；`syncOnce` 与 intake CAS 竞争同一 SQLite writer lock，先到者生效。
@@ -626,6 +677,14 @@ flowchart TD
 - 边界：membership 撤销、自己 sender、closing 后事件、重启重放、429 限流、E2EE 事件。
 - 独立判据：homeserver integration + crash replay；不拿被测 adapter 自身返回成功当 oracle。
 
+#### 15.1.1 每项核心保证的正常向量 + 故障向量
+
+| 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
+|---|---|---|---|---|
+| event 恰好一次进入 session | 首次 accept 消费 $e-7 | Pi commit 后崩溃 | 注入 KB | transcript event_id 唯一 |
+| cursor 不丢失 | sync 推进 | sync 失败 | 断网 | cursor 未推进 |
+| intake 单向 | Pi idle CAS | 事件与 closing 竞争 | 并发投喂 | writer lock 串行 |
+
 ### 15.2 环境部署、复位、并发隔离与自动化
 
 - 集成 `tests/integration/matrix-discussion.test.ts`；本地 Synapse（dev/test）。
@@ -675,11 +734,16 @@ flowchart LR
 
 纯软件机制：无硬件/FPGA（§4.5 N/A）；外部依赖走 Client-Server v3 HTTPS；无设备寄存器/RTL 表项。
 
+**正文质量检查**：§1/§3/§6/§8/§9/§14/§15 均先有连续段落解释选定方案、事实依据、取舍、代表输入结果及下游约束，再以图表汇总；不以纯表/图注代替正文。
+
+**图分类**：§1 用途概览（M-MX-0）、§3 协作（M-MX-3）、§6 正常时序（M-MX-1）为基线必画；§4 对象（M-MX-4）、§8 状态资源（M-MX-2）、§9 异常（M-MX-5）、§15 测试路径（M-MX-6）、§6/§9 完整过程（M-MX-7）、§6/§8/§9 条件依赖（M-MX-8）按实际触发。本机制为有副作用机制，八类图全部适用。
+
 ## B. 文档控制与修订记录
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
+| v0.5.0 | 2026-09-25 | 同步 STD draft.41（机制模板 3.2.0 → 3.3.0）：§1 补"机制形态与适用性/交接域/裁剪依据"；§3 表列改"决定/写入/事实来源/恢复"并补责任角色区分；§5.1 收进程内函数接口（不再 N/A）；§9 补跨重启恢复窗口；§15.1.1 补每项保证的正常+故障向量；附录 A 补正文质量检查与图分类 | corezilla, opencode |
 | v0.4.0 | 2026-09-25 | 按 STD 机制指南 §3 图例表补全 8 类图：§3 协作图、§4 数据对象图、§9 异常处置图、§15 测试路径图、§6/§9 完整过程图、§6/§8/§9 条件依赖图；补 §6.1.2 双方调用演练（调用方知道什么→下一步）、§7.1 异常五轴；§14.4 用 `M-<MECH>-DI-<nnn>`、§16 用 `RISK-<MECH>-<nnn>`、§3.1 用 `CON-<MECH>-<nnn>` ID 命名空间 | corezilla, opencode |
 | v0.3.0 | 2026-09-25 | 补 §6.1.1 完整 JSON 调用实例（正常+边界+错误）与 §4.8 逐码错误 catalog（对照 STD EX-EXPORT 示例深度） | corezilla, opencode |
 | v0.2.0 | 2026-09-25 | review 修复：补实际 Matrix Client-Server 协议（sync/send/media/whoami endpoint + 请求/响应/错误/超时）；补运行环境（homeserver/身份/TLS/房间/E2EE/限流/dev-test-prod）；§4.4 从 N/A 改为实际事件与 PikoDiscussionMessage 载荷；§11/§12 按模板列格式重写 | corezilla, opencode |

@@ -6,13 +6,13 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题
@@ -36,6 +36,11 @@ flowchart LR
 
 图 M-CFG-0 · MECH-CONFIG 用途概览 / Target / NOT_BUILT。配置经加载、校验、绑定后在重启后生效。
 
+
+- **机制形态与适用性 / 业务副作用**：**只读 + 启动绑定**。读取/校验 config 不改外部对象；tool profile 绑定决定后续业务行为。
+- **交接域**：**纯软件**。M000/M002 同进程；Secret provider 为受控后端。
+- **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
+
 **教学路径**：本机制接近"只读观测"路径：读取与校验不改外部对象；区别是它决定后续业务行为，需与 MECH-RUN 组合验收。
 
 ## 2. 使用场景与功能
@@ -51,10 +56,12 @@ flowchart LR
 
 ## 3. 参与方、责任和 authority
 
-| Participant / 工程 Owner | 负责/不负责 | Owned data/state | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
 | M000 `bootstrap` / Piko Implementation Owner | 负责加载/校验/绑定/启动顺序；不运行业务 | 启动时固定的配置快照 | 提供：launch 配置；消费：config + Secret provider | 进程内 `src/bootstrap/`（Planned） | system-design §9.1 |
 | M002 `policy` / Piko Implementation Owner | 负责 path/tool 判定；不重新解释配置语义 | `BoundToolProfile` | 提供：校验接口；消费：M000 输出 | 进程内 `src/policy/`（Planned） | MECH-RUN |
+
+**责任角色区分**：配置生效的**决定**由 M000 bootstrap 发出（启动顺序），**写入/绑定**由 M002 policy 执行，**权威事实**以启动快照与 `BoundToolProfile` 为准；重启时 M000 重新读取。
 
 **authority 边界**：config 文件权属 Operator；Secret 权属 Secret provider；启动快照权属 M000；tool 判定权属 M002。
 
@@ -214,16 +221,37 @@ config JSON/YAML（由 schema 决定）；Secret 只存 reference。
 
 ### 5.1 API（适用时）
 
-**N/A**：无对外 API；配置经启动流程生效。
+MECH-CONFIG 无对外 API；进程内启动函数与 policy 绑定函数是本机制 API。
+
+#### `loadConfig(path) -> PikoRuntimeConfig`（IF-CFG-LOAD）
+
+- **Interface/Member ID、用途与提供责任**：`IF-CFG-LOAD`；M000 `bootstrap` 提供。
+- **唯一契约、版本与状态**：`piko-runtime-config-v0.3.schema.json`；Proposed。
+- **输入与前提**：config 文件路径。
+- **成功输出与保证**：schema 校验通过的 `PikoRuntimeConfig`。
+- **错误与合法下一步**：FAIL → F1，不 READY。
+- **代表调用与验证**：§6.1.1 q1/q3；PK-T12。
+
+#### `bindToolProfile(profile, registry) -> BoundToolProfile`（IF-CFG-BIND）
+
+- **Interface/Member ID、用途与提供责任**：`IF-CFG-BIND`；M002 `policy` 提供。
+- **唯一契约、版本与状态**：`piko-tool-profile-v0.3.schema.json`；Proposed。
+- **输入与前提**：profile + registry；每个 `recovery_contract_ref` 必须解析。
+- **成功输出与保证**：`BoundToolProfile`。
+- **错误与合法下一步**：不一致 → F1（`tool-bind-fail`）。
+- **代表调用与验证**：§6.1.1 q4；PK-T12。
+
+#### `resolveSecret(ref) -> Secret`（IF-CFG-SECRET）
+
+- **Interface/Member ID、用途与提供责任**：`IF-CFG-SECRET`；Secret provider 提供；M000 消费。
+- **输入与前提**：`credential_ref`；reference-only。
+- **成功输出与保证**：Secret（内存）。
+- **错误与合法下一步**：解析失败 → F1。
+- **代表调用与验证**：PK-T12。
 
 ### 5.2 消息与数据流接口（适用时）
 
-| Interface ID | 方向 | 输入 | 输出 | 实现位置 |
-|---|---|---|---|---|
-| IF-CFG-LOAD | Operator → M000 | config 文件 | 校验结果 | M000 ISD §5.1 |
-| IF-CFG-BIND | M000 → M002 | profile + registry | `BoundToolProfile` | M002 ISD §5.1 |
-| IF-CFG-SECRET | M000 → provider | credential_ref | Secret | M000 ISD §5.1 |
-
+**N/A**：配置为本地文件 + Secret reference，无跨边界消息流；文件格式见 §4.4。
 ### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
@@ -354,6 +382,15 @@ flowchart TD
 ```
 图 M-CFG-5 · 异常处置图 / Target / NOT_BUILT。任一启动阶段失败 → F1；不部分就绪。
 
+#### 9.1 跨重启恢复窗口
+
+| 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
+|---|---|---|---|
+| 启动任意阶段 | `instance_meta`（schema generation/boot id） | config 文件 + store | 从不 READY 重跑 S1-S8 |
+| READY 后 | 配置快照（内存） | 重启重读 config | 旧快照丢弃；重启才生效 |
+
+身份固定：config 文件路径 + `boot_id`。无热改。
+
 ## 10. 并发、排序与容量
 
 - 启动串行 S1-S8；无并发配置写。
@@ -440,6 +477,13 @@ flowchart TD
 - 边界：无效 config、未注册 tool ref、Secret 失败、旧进程退出未确认。
 - 独立判据：启动日志 + READY + Run 行为。
 
+#### 15.1.1 每项核心保证的正常向量 + 故障向量
+
+| 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
+|---|---|---|---|---|
+| 配置合法 | 有效 config READY | 无效/覆盖固定项 | 构造坏 config | 启动退出码 + 日志 |
+| tool 绑定 | 全部 ref 注册 | 未注册 ref | 构造缺 ref | 启动失败 |
+
 ### 15.2 环境部署、复位、并发隔离与自动化
 
 - 集成 `tests/integration/operator-auth.test.ts`；配置 fixture。
@@ -484,6 +528,10 @@ flowchart LR
 ### A.2 纯软件 API 机制裁剪示例
 
 纯软件机制：无硬件/FPGA（§4.5 N/A）；无对外 API（§5.1 N/A）。
+
+**正文质量检查**：§1/§3/§6/§8/§9/§14/§15 均先有连续段落解释选定方案、依据、取舍与下游约束，再以图表汇总。
+
+**图分类**：§1 用途概览（M-CFG-0）、§3 协作（M-CFG-3）、§6 正常时序（M-CFG-1）为基线必画；§4 对象（M-CFG-4）、§9 异常（M-CFG-5）、§15 测试路径（M-CFG-6）按实际触发。§8 状态资源用 §8.1 短表（无多状态转换）。
 
 ## B. 文档控制与修订记录
 

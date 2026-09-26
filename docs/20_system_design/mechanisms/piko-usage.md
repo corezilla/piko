@@ -6,13 +6,13 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.4.0` |
+| Document Version | `0.5.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.2.0` |
+| Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题
@@ -35,6 +35,11 @@ flowchart LR
 
 图 M-USAGE-0 · MECH-USAGE 用途概览 / Target / NOT_BUILT。原始 usage 经聚合、校验、冻结成为 Result 的一部分。
 
+
+- **机制形态与适用性 / 业务副作用**：**只读观测 + 冻结**。raw usage 只观察不修改外部对象；生成的 `UsageSnapshot` 随 Result 冻结。无外部副作用，但有持久 `model_attempts`。
+- **交接域**：**纯软件**。M006/M007 同进程；数据源为 Pi provider（进程内）。
+- **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
+
 **教学路径**：本机制接近"只读观测"路径（对应 STD 只读观测案例）：聚合只观察事实、不改外部对象；区别是 MECH-USAGE 的结果会被冻结进不可变 Result。
 
 ## 2. 使用场景与功能
@@ -50,11 +55,13 @@ flowchart LR
 
 ## 3. 参与方、责任和 authority
 
-| Participant / 工程 Owner | 负责/不负责 | Owned data/state | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
 | M006 `pi-adapter` / Piko Implementation Owner | 负责 `onRawUsage` 观察与保存字段存在性；不负责聚合 | Harness raw usage hook | 提供：raw usage 事件；消费：Pi provider | 进程内 `src/adapters/pi/`（Planned） | MECH-RUN |
 | M007 `usage` / Piko Implementation Owner | 负责逐字段聚合 + 三态 + ResultValidator；不改已发布 generation | `UsageSnapshot` + `SemanticCheck` | 提供：`UsageAggregator`/`ResultValidator`；消费：M005 | 进程内 `src/usage/`（Planned） | MECH-RUN + contract `0.3.0-simplified.6` |
 | M005 `worker` | 负责在 Result 发布前调用 snapshot + validate | 无独立 usage state | 消费 M007 | 进程内 `src/worker/`（Planned） | MECH-RUN |
+
+**责任角色区分**：usage 聚合的**决定**由 M007 usage 发出，**写入**由 M006 pi-adapter 执行（`model_attempts`），**权威事实**以 `model_attempts` 行为准；无跨故障恢复（重算一致）。
 
 **authority 边界**：raw usage 权属 M006（来自 provider）；聚合结果权属 M007；Result 内嵌 usage 权属 M003（随 Result 持久化）。
 
@@ -198,17 +205,45 @@ RawUsage {
 
 ### 5.1 API（适用时）
 
-**N/A**：MECH-USAGE 无对外 API；经 MECH-RUN 的 `GET .../result` 暴露。
+MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator` 方法是本机制 API。
+
+#### `recordAttempt(attempt: ModelAttempt) -> void`（IF-USAGE-RAW）
+
+- **Interface/Member ID、用途与提供责任**：`IF-USAGE-RAW`；M006 `pi-adapter` 提供（hook）；M007 消费。
+- **唯一契约、版本与状态**：M006 ISD §5.1；Proposed。
+- **输入与前提**：`(run_id, operation_id, step_id, attempt)` + `present_fields` + raw 值。
+- **成功输出与保证**：写 `model_attempts`；同 attempt 幂等。
+- **错误与合法下一步**：无独立错误；字段缺失是事实。
+- **代表调用与验证**：§6.1.1 q1/q2；PK-T10。
+
+#### `snapshot(runId: string) -> UsageSnapshot`（IF-USAGE-SNAPSHOT）
+
+- **Interface/Member ID、用途与提供责任**：`IF-USAGE-SNAPSHOT`；M007 提供；M005 消费。
+- **输入与前提**：全部 durable attempt 已落 `model_attempts`。
+- **成功输出与保证**：6 字段逐项 sum/null + missing_fields + quality。
+- **交互与生命周期**：与 publish 同事务前置。
+- **代表调用与验证**：§6.1.1 q3；PK-T10/PK-T16。
+
+#### `validateBeforePublish(result, contractVersion) -> SemanticCheck`（IF-USAGE-VALIDATE）
+
+- **Interface/Member ID、用途与提供责任**：`IF-USAGE-VALIDATE`；M007 提供；M005 消费。
+- **输入与前提**：`AgentResult` + `0.3.0-simplified.6`。
+- **成功输出与保证**：`SemanticCheck{ok, reason?}`。
+- **错误与合法下一步**：FAIL → throw `InternalError("semantic-validator-fail")`。
+- **代表调用与验证**：§6.1.1 q4；PK-T16。
+
+#### `freeze(snapshot)`（内部）
+
+- **用途**：随 Result 发布冻结；迟到只推 record_version。
 
 ### 5.2 消息与数据流接口（适用时）
 
-| Interface ID | 方向 | 输入 | 输出 | 实现位置 |
-|---|---|---|---|---|
-| IF-USAGE-RAW | M006 → M007 | raw usage + attempt identity | `model_attempts` 行 | M006 ISD §5.1 |
-| IF-USAGE-SNAPSHOT | M005 → M007 | `run_id` | `UsageSnapshot` | M007 ISD §5.1 |
-| IF-USAGE-VALIDATE | M005 → M007 | `AgentResult` + version | `SemanticCheck` | M007 ISD §5.1 |
-| IF-USAGE-FREEZE | M007 internal | snapshot | frozen snapshot | M007 ISD §5.1 |
+#### raw usage 事件流（IF-USAGE-STREAM）
 
+- **来源**：Pi provider 的 OpenAI Responses 响应中 usage 字段；经 M006 `onRawUsage` 在归一化前捕获。
+- **格式**：见 §4.4.1 `RawUsage`。
+- **关联/确认**：`(pi_operation_id, step_id, attempt)`；同 attempt 以 record_version 替换。
+- **代表调用与验证**：PK-T10。
 ### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
@@ -352,6 +387,16 @@ flowchart TD
 ```
 图 M-USAGE-5 · 异常处置图 / Target / NOT_BUILT。缺失是事实不是错误；只有 validator FAIL 才阻断。
 
+#### 9.1 跨重启恢复窗口
+
+| 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
+|---|---|---|---|
+| `onRawUsage` 写前 | 可能缺该 attempt | `model_attempts(run_id, operation_id, step_id, attempt)` | 缺 → 该字段可能 missing |
+| 写后 | attempt 行 | `model_attempts` | 存在 → 直接聚合 |
+| Result 发布后 | frozen snapshot | `results.result_json.usage` | 冻结 → 迟到不改 |
+
+身份固定：`(pi_operation_id, step_id, attempt)`。只读机制，重算一致。
+
 ## 10. 并发、排序与容量
 
 - `model_attempts` 写经 SQLite 单 writer 串行。
@@ -440,6 +485,13 @@ operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usag
 - 故障：迟到 usage；semantic 破坏；孤立 reservation。
 - 独立判据：contract validator，不拿被测实现自身输出当 oracle。
 
+#### 15.1.1 每项核心保证的正常向量 + 故障向量
+
+| 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
+|---|---|---|---|---|
+| 字段完整性 | 3 attempt 全字段 | attempt 缺字段 | 构造 present_fields | contract invariants |
+| 冻结 | Result 发布 | 迟到 usage | 构造迟到回调 | Result generation 不变 |
+
 ### 15.2 环境部署、复位、并发隔离与自动化
 
 - 单元测试 `tests/unit/usage-aggregator.test.ts`；集成 `tests/integration/llmtier-usage.test.ts`。
@@ -484,6 +536,10 @@ flowchart LR
 ### A.2 纯软件 API 机制裁剪示例
 
 纯软件机制：无硬件/FPGA（§4.5 N/A）；无设备拓扑；无对外 API（§5.1 N/A）。
+
+**正文质量检查**：§1/§3/§6/§8/§9/§14/§15 均先有连续段落解释选定方案、依据、取舍与下游约束，再以图表汇总。
+
+**图分类**：§1 用途概览（M-USAGE-0）、§3 协作（M-USAGE-3）、§6 正常时序（M-USAGE-1）为基线必画；§4 对象（M-USAGE-4）、§8 状态资源（M-USAGE-2）、§9 异常（M-USAGE-5）、§15 测试路径（M-USAGE-6）按实际触发。本机制为只读观测 + 冻结，§6/§9 完整过程图与条件依赖图不适用（无外部副作用收口）。
 
 ## B. 文档控制与修订记录
 

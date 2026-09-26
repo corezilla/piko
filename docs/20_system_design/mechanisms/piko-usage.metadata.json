@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-usage",
   "document_type": "design.system-mechanism",
-  "document_version": "0.4.0",
+  "document_version": "0.5.0",
   "title": "Piko 机制：Usage 字段汇总与冻结",
   "document_owner": "Piko Architecture Owner",
   "authors": [
@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "design.system-mechanism",
-  "template_version": "3.2.0",
-  "template_sha256": "1ac0bd4d6ce5a8958e02639a9581366228adc6a15d2feec15203dc65e0753111",
+  "template_version": "3.3.0",
+  "template_sha256": "18a988be3a952e82478e0b1401c5cd79b999a7e793b99e85d97e412d23da8555",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
