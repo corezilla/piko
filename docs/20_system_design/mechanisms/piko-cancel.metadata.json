@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-cancel",
+  "document_type": "design.system-mechanism",
+  "document_version": "0.1.0",
+  "title": "Piko 机制：Run 取消分流",
+  "document_owner": "Piko Architecture Owner",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "template_id": "design.system-mechanism",
+  "template_version": "3.3.0",
+  "template_sha256": "18a988be3a952e82478e0b1401c5cd79b999a7e793b99e85d97e412d23da8555",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/20_system_design/mechanisms/piko-cancel.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-design",
+  "supersedes": null,
+  "created_at": "2026-09-25",
+  "last_modified_at": "2026-09-25"
+}

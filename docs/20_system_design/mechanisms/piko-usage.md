@@ -539,7 +539,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN`。复审触发：契约版本变化、Usage 字段集合变化。
+机制父项 `MECH-RUN`；前置依赖 `MECH-RUN`（无环）。继承：MECH-RUN 的 Result 发布协议与 attempt identity；自行设计逐字段聚合与冻结。复审触发：契约版本变化、Usage 字段集合变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 

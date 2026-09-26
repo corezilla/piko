@@ -734,7 +734,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`。复审触发：matrix-js-sdk 版本变化、intake 状态机变化、E2EE 需求出现、homeserver 行为差异。
+机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`（单向，无环）。继承：MECH-RUN 的 Result 发布与 Run 生命周期；自行设计 discussion intake 状态机与 sync 事务。复审触发：matrix-js-sdk 版本变化、intake 状态机变化、E2EE 需求出现、homeserver 行为差异。
 
 ### A.2 纯软件 API 机制裁剪示例
 

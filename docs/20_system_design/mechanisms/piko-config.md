@@ -528,7 +528,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN`（launch 前）。复审触发：config schema 变化、Secret provider 变化。
+机制父项 `MECH-RUN`；前置依赖 `MECH-RUN`（launch 前，无环）。继承：MECH-RUN 的 Run/Result 核心语义与 authority 规则；自行设计配置加载/绑定/生效流程。复审触发：config schema 变化、Secret provider 变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 

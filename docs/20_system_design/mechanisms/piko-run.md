@@ -837,7 +837,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 none；前置依赖 `MECH-CONFIG`（config 加载）/ `MECH-RECOVERY`（崩溃恢复）。复审触发：契约版本变化、Pi upstream 变化、状态机变化、新 slot 提案。
+机制父项 none（机制族设计锚点）；前置依赖 none（其他机制以本机制为归属父项，构成单向无环依赖图）。继承：本机制定义 Run 状态机、Result 两步协议与 authority 规则，供子机制继承。复审触发：契约版本变化、Pi upstream 变化、状态机变化、新 slot 提案。
 
 ### A.2 纯软件 API 机制裁剪示例
 

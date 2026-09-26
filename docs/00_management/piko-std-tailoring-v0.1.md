@@ -42,7 +42,7 @@
 | `management.project-plan` | software | 是 | `piko-std-migration-plan-v0.1.md` | Piko Project Owner |
 | `management.tailoring` | software | 是 | `piko-std-tailoring-v0.1.md` | Piko |
 | `design.software-system` | software/system | 是 | `piko-agent-runtime-design-v0.3.md` | Piko |
-| `design.system-mechanism` | software/cross-level | 是 | 7 份机制文档 `piko-agent-runtime-mechanism-{run,usage,matrix,startup,cancel,config,recovery}-v0.3.md`（路径 `docs/20_system_design/mechanisms/`） | Piko |
+| `design.system-mechanism` | software/cross-level | 是 | 7 份机制文档 `piko-{run,usage,matrix,startup,cancel,config,recovery}.md`（路径 `docs/20_system_design/mechanisms/`） | Piko |
 | `design.definition` | software/module | 是 | 10 份模块定义 `piko-{module}-definition-v0.3.md`（路径 `docs/40_module_design/`） | Piko |
 | `contracts.specification` | software | 是 | `piko-agent-runtime-contract-v0.3.md` | Piko |
 | `requirements.traceability` | systems/software | 是 | `piko-requirements-traceability-v0.3.md` | Piko |

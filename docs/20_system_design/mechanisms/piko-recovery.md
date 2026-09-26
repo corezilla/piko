@@ -581,7 +581,7 @@ flowchart LR
 
 ### A.1 统一适用与复审规则
 
-机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`（启动）。复审触发：恢复顺序变化、Pi identity 变化。
+机制父项 `MECH-RUN`；前置依赖 `MECH-RUN` + `MECH-CONFIG`（启动，单向无环）。继承：MECH-RUN 的持久事实模型与确定性 identity；自行设计恢复顺序与对账。复审触发：恢复顺序变化、Pi identity 变化。
 
 ### A.2 纯软件 API 机制裁剪示例
 
