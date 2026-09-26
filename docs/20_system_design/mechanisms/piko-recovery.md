@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.5.0` |
+| Document Version | `0.5.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -454,34 +454,38 @@ flowchart TD
 - operator 授权后才能强制 fence / migration。
 - 恢复不泄漏 credential。
 
-| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
-|---|---|---|---|
-| 持久事实 | 本地 SQLite/JSONL | M003 | 不从日志推断 |
-| lease | execution_slot | M004 新 epoch | 旧 epoch 拒写 |
-| operator 操作 | operator → 进程 | operator authorization | 未授权拒绝 |
+| 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
+|---|---|---|---|---|---|
+| 持久事实 | 本地 SQLite/JSONL | M003 | — | 不从日志推断 | PK-T12 |
+| lease | execution_slot | M004 新 epoch | 旧 epoch 拒写 | fencing | PK-T01 |
+| operator 操作 | operator → 进程 | operator authorization | — | 未授权拒绝；audit | PK-T12 |
 
 ## 12. 可观测性与证据
 
 ### 12.1 统计、日志、时间与关联
 
-| 指标/事件 ID | 单位 | 关联 | 用途 |
-|---|---|---|---|
-| `piko.recovery.outcomes.{resume,fenced,internal_error}` | count | 全实例 | 恢复效果 |
-| `event.recovery.{resume,fenced,internal_error}` | 事件 | run_id + generation | 证据 |
+| Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
+|---|---|---|---|---|---|
+| `piko.recovery.outcomes.{resume,fenced,internal_error}` | M005 生产 → M009 采集 | count / 区间 | 全实例 | 重启重置 | 低开销 |
+| `event.recovery.{resume,fenced,internal_error}` | M005 生产 → M009 | 事件 / — | run_id + generation | 不聚合 | 日志按 ops 留存 |
 
 ### 12.2 维护命令、自检与调试路径
 
-恢复确认四项（store/lease/session/deps）；operator 只读恢复摘要。
+| Maintenance API / Diagnostic ID | 执行位置、入口、目标、权限 | 请求/结果契约 | 施加/回读点及覆盖 | 依赖/占用/恢复退出 | 验证 |
+|---|---|---|---|---|---|
+| `recovery preflight` | 启动；M000/M005；恢复判定 | store 可写 / 旧 lease 已 fence / session 可读 / deps 可达 | 恢复前置四确认 | 任一失败 → 不恢复 | PK-T12 |
+| `operator recovery summary` | operator 端点；只读 | 非终态 Run / 恢复 outcome 摘要 | 定位恢复结果 | 只读 | PK-T12 |
 
 ## 13. 配置、兼容与部署
 
 配置 authority：`system-design` §9.1；MECH-RECOVERY 消费：
 
-| 配置 | 来源 | 对恢复的行为 |
-|---|---|---|
-| `storage.sqlite_path` | config | 恢复事实源 |
-| `pi.upstream_commit` | 锁定 | inspect/getResult 可用前提 |
-| `llmtier.base_url` / `matrix.homeserver` | config | 依赖可达判定 |
+| 配置/组合 baseline | 来源/完整定义 | 校验与生效确认 | 在途/跨版本规则 | 中断检查点/回滚前提 | 验证 |
+|---|---|---|---|---|---|
+| `storage.sqlite_path` | config | 恢复事实源 | — | 重启重读 | PK-T12 |
+| `pi.upstream_commit` | 锁定 | inspect/getResult 前提 | 不热切 | 启动 F1 | PK-T04 |
+| `llmtier.base_url` / `matrix.homeserver` | config | 依赖可达判定 | — | 启动 F1 | PK-T12 |
+| schema | SQLite `user_version=2` | 启动迁移 | v2 不可降级 v1 | 备份恢复 | PK-T12 |
 
 环境差异见 §3.3.1。兼容：SQLite `user_version=2`；v2 不可降级到 v1；Pi identity 确定性派生，不重发旧请求。
 
@@ -506,7 +510,12 @@ flowchart TD
 
 ### 14.3 责任单元间接口契约
 
-见 §5.2（IF-REC-*）；完整签名在 M003/M005/M006 ISD §5.1。
+| 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
+|---|---|---|---|---|
+| IF-REC-SCAN | M003 → M005 | — → 非终态 Run 列表 | 同步 | §5.1 |
+| IF-REC-INSPECT | M006 → M005 | `handle` → `PiRunObservation` | session 损坏 → `InternalError` | §5.1 |
+| IF-REC-PATCH | M005 → M003 | `FencedPublishResult` → `RunRecord` | 补第二步；fencing | §5.1 |
+| IF-REC-FENCE | M004 → M003 | 新 epoch → fence | 旧 epoch 拒写 | §5.1 |
 
 ### 14.4 下级设计输入清单
 

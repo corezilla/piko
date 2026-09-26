@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-recovery",
   "document_type": "design.system-mechanism",
-  "document_version": "0.5.0",
+  "document_version": "0.5.1",
   "title": "Piko 机制：进程崩溃恢复",
   "document_owner": "Piko Architecture Owner",
   "authors": [

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.5.0` |
+| Document Version | `0.5.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -412,37 +412,40 @@ flowchart TD
 - 不含 credential 或模型正文；只存 token 计数与字段存在性。
 - LLMTier 查询不泄漏其他 Run 的 usage。
 
-| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
-|---|---|---|---|
-| raw usage | Pi provider → Piko | 固定 Pi provider | 非 SSE 形成 recoverable operation |
-| UsageSnapshot | M007 → Result | contract `0.3.0-simplified.6` | semantic FAIL → `InternalError` |
+| 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
+|---|---|---|---|---|---|
+| raw usage | Pi provider → M006 | 固定 provider | — | 非 SSE 形成 recoverable op | PK-T09 |
+| UsageSnapshot | M007 → Result | contract `0.3.0-simplified.6` | 发布后冻结 | semantic FAIL → `InternalError` | PK-T16 |
 
 ## 12. 可观测性与证据
 
 ### 12.1 统计、日志、时间与关联
 
-| 指标/事件 ID | 单位 | 关联 | 用途 |
-|---|---|---|---|
-| `piko.usage.quality.{Complete,Partial,Unknown}` | ratio | per run_id | 模型端完整性 |
-| `event.model.usage` | 事件 | run_id + stepId + attempt | 用量证据 |
-| `piko.model.attempts.{state}` | count | per run_id | 重试 |
+| Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
+|---|---|---|---|---|---|
+| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 采集 | ratio / 区间 | per run_id | 不聚合 | 低开销 |
+| `event.model.usage` | M006 生产 → M009 | 事件 / — | run_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
+| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
 
 关联键：`run_id` + `operation_id` + `step_id` + `attempt`。
 
 ### 12.2 维护命令、自检与调试路径
 
-operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usage_json → quality。
+| Maintenance API / Diagnostic ID | 执行位置、入口、目标、权限 | 请求/结果契约 | 施加/回读点及覆盖 | 依赖/占用/恢复退出 | 验证 |
+|---|---|---|---|---|---|
+| `operator ledger summary` | operator 端点；只读 | `model_attempts` 行摘要（脱敏） | 定位 usage 完整性 | 只读 | PK-T10 |
+| 故障定位顺序 | operator；只读 | `model_attempts` 行 → raw_usage_json → quality | 端到端 evidence | 只读 | PK-T10 |
 
 ## 13. 配置、兼容与部署
 
 配置 authority：`system-design` §9.1；MECH-USAGE 不新增配置，只消费：
 
-| 配置 | 来源 | 对 MECH-USAGE 的行为 |
-|---|---|---|
-| `llmtier.cacheRetention` | 固定 `none` | 三个 prompt-cache 字段必须缺席 |
-| `llmtier.supportsExplicitPromptCacheMode` | 固定 `false` | 不得发送 prompt_cache_key |
-| `llmtier.streamOptions.maxRetries` | 固定 `0` | 一次 attempt 至多一次 dispatch |
-| 契约版本 | `0.3.0-simplified.6` | 绑定 semantic validator |
+| 配置/组合 baseline | 来源/完整定义 | 校验与生效确认 | 在途/跨版本规则 | 中断检查点/回滚前提 | 验证 |
+|---|---|---|---|---|---|
+| `llmtier.cacheRetention` | 固定 `none` | 编译期 | 不接受覆盖 | 启动 F1 | PK-T12 |
+| `llmtier.supportsExplicitPromptCacheMode` | 固定 `false` | 编译期 | 三字段缺席 | 启动 F1 | PK-T12 |
+| `llmtier.streamOptions.maxRetries` | 固定 `0` | 编译期 | 一 attempt 一 dispatch | 启动 F1 | PK-T04 |
+| usage 字段集 | schema v0.3（6 字段） | 启动/发布 | 新增字段需契约升级 | 独立评审 | PK-T10 |
 
 环境差异见 §3.3.1。兼容：字段集合变化需契约升级；Pi provider 不替换。
 
@@ -466,7 +469,12 @@ operator 只读 ledger 摘要；故障定位：`model_attempts` 行 → raw_usag
 
 ### 14.3 责任单元间接口契约
 
-见 §5.2（IF-USAGE-*）；完整签名在 M006/M007 ISD §5.1。
+| 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
+|---|---|---|---|---|
+| IF-USAGE-RAW | M006 → M007 | `ModelAttempt` → void | 同步写；同 attempt 幂等 | §5.1 |
+| IF-USAGE-SNAPSHOT | M005 → M007 | `run_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
+| IF-USAGE-VALIDATE | M005 → M007 | `AgentResult`+version → `SemanticCheck` | FAIL → `InternalError` | §5.1 |
+| IF-USAGE-STREAM | Pi provider → M006 | raw usage 事件 | record_version 替换 | §5.2 |
 
 ### 14.4 下级设计输入清单
 

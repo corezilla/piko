@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.5.0` |
+| Document Version | `0.5.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -65,7 +65,7 @@ flowchart LR
 
 ## 3. 参与方、责任和 authority
 
-| Participant / 工程 Owner | 负责/不负责 | Owned data/state | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
+| Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
 | M001 `task-api` / Piko Implementation Owner | 负责四项 HTTP operation 的路由与 typed error 映射；不负责持久化业务、不直接调用 Pi/Matrix | 请求寿命的 `ValidatedTaskSubmission` | 提供：4 个 HTTP endpoint；消费：`policy` / `task-repository` | 进程内 `src/http/`（Planned） | 依赖 `system-design` §8.1 |
 | M002 `policy` / Piko Implementation Owner | 负责 request/path/tool/deadline/budget 判定；不持状态 | 启动时绑定的 `BoundToolProfile` | 提供：`ValidatedTaskSubmission`；消费：原始请求 + config + registry | 进程内 `src/policy/`（Planned） | 依赖 `system-design` §9.1 |
@@ -74,6 +74,8 @@ flowchart LR
 | M005 `worker` / Piko Implementation Owner | 负责 Run 事务协调、取消、deadline、Result 两步发布；不镜像 Pi Agent loop | Run 寿命的 lease 持有 | 提供：`Result generation`；消费：M006/M007/M003；**跨机制**：discussion Run 经 `MECH-MATRIX` 消费 M008 | 进程内 `src/worker/`（Planned） | 依赖 M003 + M006 + M007；跨机制依赖 `MECH-MATRIX`（M008） |
 | M006 `pi-adapter` / Piko Implementation Owner | 负责 Harness session/lane/operation/abort/raw usage hook；不替换 provider adapter | Pi session 句柄 + `run_sessions.active_operation_id` | 提供：`PiRuntime`；消费：Pi SDK | 进程内 `src/adapters/pi/`（Planned） | 依赖固定 Pi 0.85.1 @ commit `9767ba...` |
 | M007 `usage` / Piko Implementation Owner | 负责 Usage 聚合 + Result 语义校验；不改已发布 generation | `UsageSnapshot` 缓存 + `ResultValidator` | 提供：`UsageAggregator`/`ResultValidator`；消费：M006 raw usage | 进程内 `src/usage/`（Planned） | 依赖机器契约 `0.3.0-simplified.6` |
+
+**责任角色区分**（对共享状态）：Run 状态转换的**决定**由 M005 worker 发出（携带 expected generation/epoch），**写入/事务**由 M003 task-repository 原子执行，**权威事实**以 `tasks`/`runs`/`results` 表为准；崩溃恢复时 M005 读取这些记录（§9）。三者可由同一 Owner 维护，但运行角色不混写。
 
 **authority 边界**：`task_id` 由 Slinky 生成、权属 Slinky；Run 状态权属 M003；Pi session/operation 权属 M006（Harness）；usage 权属 M007；Result generation 权属 M003。工程 Owner 是 Piko Implementation Owner（同一人），但运行责任分属 7 个独立模块。
 
@@ -657,49 +659,51 @@ flowchart TD
 - tool profile allowlist：shell/network/外写默认拒绝；`replay:"safe"` 必须绑定已注册 recovery contract。
 - task_id / run_id / credential / 绝对路径不进入模型上下文。
 
-| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
-|---|---|---|---|
-| 任务请求 | Slinky → HTTP | bearer principal + JSON schema | 401/422 |
-| workspace 路径 | 请求 → 本地 FS | `canonicalizePath` | 422 / `UnsafeRetryBlocked` |
-| 工具调用 | Pi → 工具实现 | tool profile allowlist | 启动失败 / `BudgetExceeded` |
-| credential | Secret provider → 内存 | reference-only | 启动失败 |
-| task_id / run_id / 绝对路径 | Piko → 模型上下文 | 构造 instruction 时过滤 | 不入模型 input |
+| 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
+|---|---|---|---|---|---|
+| 任务请求 | Slinky bearer principal | M001 JSON/Schema + M002 principal 校验 | credential 轮换需重启 | 401/422；audit `event.run.created` | PK-T03 |
+| workspace 路径 | 请求 RelPath | M002 canonicalizePath | — | 422 / `UnsafeRetryBlocked` | PK-T12 |
+| 工具调用 | Pi tool | tool profile allowlist（启动时绑定） | runtime 不新增 `safe` | 启动失败 / `BudgetExceeded`；audit | PK-T06 |
+| credential | Secret provider | reference-only | 轮换需重启 | 启动失败；不入 DB/日志 | PK-T12 |
+| task_id / run_id / 绝对路径 | Piko 内部 | instruction 构造时过滤 | — | 不入模型 input | PK-T11 |
 
 ## 12. 可观测性与证据
 
 ### 12.1 统计、日志、时间与关联
 
-| 指标/事件 ID | 单位/窗口 | 关联 | 用途 |
-|---|---|---|---|
-| `piko.queue.depth` | count / 当前 | 全实例 | 调度与背压 |
-| `piko.run.state.duration.{state}` | ms / 区间 | per run_id | 性能与卡顿 |
-| `piko.slot.lease_epoch` | count | 单实例 | 恢复判定 |
-| `piko.model.attempts.{state}` | count | per run_id | 用量与重试 |
-| `piko.tool.attempts.{state}` | count | per run_id | 工具预算 |
-| `piko.usage.quality.{Complete,Partial,Unknown}` | ratio | per run_id | 模型端完整性 |
-| `event.run.{created,started,terminated}` | 事件 | run_id + generation | 审计 |
-| `event.model.{attempt,usage,retry}` | 事件 | run_id + stepId + attempt | 用量证据 |
-| `event.tool.{reserved,started,terminal,unknown}` | 事件 | run_id + operationId + toolCallId | 工具证据 |
+| Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
+|---|---|---|---|---|---|
+| `piko.queue.depth` | M004 生产 → M009 采集 | count / 当前 / monotonic | 全实例 | 重启重置 | 指标低开销 |
+| `piko.run.state.duration.{state}` | M003 生产 → M009 | ms / 区间 / monotonic | per run_id + generation | 不跨代次相加 | 指标低开销 |
+| `piko.slot.lease_epoch` | M004 生产 → M009 | count / 当前 | 单实例 | 重启重置 | 低开销 |
+| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
+| `piko.tool.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
+| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 | ratio / 区间 | per run_id | 不聚合 | 低开销 |
+| `event.run.{created,started,terminated}` | M001/M003/M005 生产 → M009 | 事件 / — | run_id + generation | 不聚合 | 日志按 ops 留存 |
+| `event.model.{attempt,usage,retry}` | M006 生产 → M009 | 事件 / — | run_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
+| `event.tool.{reserved,started,terminal,unknown}` | M006 生产 → M009 | 事件 / — | run_id + operationId + toolCallId | 不聚合 | 日志按 ops 留存 |
 
 时间基准：持久 UTC ISO-8601；进程内 monotonic。关联键：`run_id` + `generation` + `lease_epoch`。脱敏：禁 instruction 正文、credential、access token、完整模型 input/output。
 
 ### 12.2 维护命令、自检与调试路径
 
-- 启动自检 S1-S8（见 `system-design` §6.1）；MECH-RUN 依赖 S5 store-writable + S6 pi-upstream。
-- Operator 只读诊断：queue depth / Run 计数 / lease epoch / ledger 摘要。
-- 故障定位顺序：`piko.run.state.duration` → `results` 是否存在 → `model_attempts` → `tool_calls` → Harness operation。
+| Maintenance API / Diagnostic ID | 执行位置、入口、目标、权限 | 请求/结果契约 | 施加/回读点及覆盖 | 依赖/占用/恢复退出 | 验证 |
+|---|---|---|---|---|---|
+| `bootstrap preflight`（S5/S6） | 启动；M000；READY 判定 | S1-S8 阶段输出 | store-writable + pi-upstream | 失败 → F1 退出 | PK-T12 |
+| `operator diagnostics` | operator 端点；只读 | queue depth / Run 计数 / lease epoch / ledger 摘要 | 定位失败阶段 | 只读，无占用 | PK-T12 |
+| 故障定位顺序 | operator；只读 | `run.state.duration` → `results` → `model_attempts` → `tool_calls` → Harness op | 端到端证据链 | 只读 | PK-T12 |
 
 ## 13. 配置、兼容与部署
 
 配置 authority：`system-design` §9.1 + `interfaces/schemas/piko-runtime-config-v0.3.schema.json`；MECH-RUN 只消费以下项。
 
-| 配置 | 来源/默认/范围 | 生效点 | 对 MECH-RUN 的行为 |
-|---|---|---|---|
-| `storage.max_queue_depth` | config；正整数 | 重启 | 超限 → 429 `QueueFull` |
-| `storage.retention_days` | config；默认 7 | 重启 | Result/正文保留窗口 |
-| `pi.upstream_commit` | 锁定 + 构建 | 启动 S6 | fingerprint 校验 |
-| `llmtier.base_url`/`model`/`credential_ref` | config + Secret | 启动 S7 | 模型路径 |
-| `llmtier.cacheRetention`/`supportsExplicitPromptCacheMode`/`streamOptions.maxRetries` | 固定 none/false/0 | 启动 | 不可外部覆盖 |
+| 配置/组合 baseline | 来源/完整定义 | 校验与生效确认 | 在途/跨版本规则 | 中断检查点/回滚前提 | 验证 |
+|---|---|---|---|---|---|
+| `storage.max_queue_depth` | config；正整数 | S2 schema；重启生效 | 在途 Run 不回退 | 重启才生效；无热改 | PK-T12 |
+| `storage.retention_days` | config；默认 7 | S2；重启 | 活动 Run 不因窗口删 | — | PK-T12 |
+| `pi.upstream_commit` | 锁定+构建 | S6 fingerprint | 不热切 | 启动 F1 | PK-T04 |
+| `llmtier.*` | config+Secret | S7 preflight | 固定项不接受覆盖 | 启动 F1 | PK-T04 |
+| 契约版本 | `0.3.0-simplified.6` | ResultValidator 绑定 | v2 不可降级 v1 | 独立评审 | PK-T16 |
 
 环境差异见 §3.3.1（dev/test/prod）；installed/loaded/active/verified 四态由 MECH-CONFIG 维护。
 
@@ -742,7 +746,17 @@ flowchart TD
 
 ### 14.3 责任单元间接口契约
 
-接口清单见 §5.2（IF-RUN-*）；除 7 个接口外，MECH-RUN 不引入新接口。各接口的完整签名在对应模块 ISD §5.1 唯一维护。
+接口清单见下表；除这些外 MECH-RUN 不引入新接口，完整签名在对应模块 ISD §5.1 唯一维护。
+
+| 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
+|---|---|---|---|---|
+| IF-RUN-CREATE | M001 → M003 | `ValidatedTaskSubmission` → `CreateRunOutcome` | 同步；单事务；fencing 失败 | §5.1 |
+| IF-RUN-SLOT | M004 → M003 | `owner_id` → `Lease`/null | 同步；epoch 单调 | §5.1 |
+| IF-RUN-SESSION | M005 ↔ M006 | `run_id` → `PiRunHandle` | 同步 | §5.1 |
+| IF-RUN-ACCEPT | M005 → M006 | `typedInstruction` → durable op | 异步；fault → typed error | §5.1 |
+| IF-RUN-DRIVE | M006 → M005 | stream events | ordered；abort 对账 | §5.2 |
+| IF-RUN-SNAPSHOT | M005 → M007 | `run_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
+| IF-RUN-PUBLISH | M005 → M003 | `FencedPublishResult` → `ResultRecord` | 同步；单事务 | §5.1 |
 
 ### 14.4 下级设计输入清单
 

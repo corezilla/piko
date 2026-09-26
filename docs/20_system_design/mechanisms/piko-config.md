@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.5.0` |
+| Document Version | `0.5.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -405,37 +405,39 @@ flowchart TD
 - config 文件权限 0600；Secret 不进 config dump/DB/log。
 - tool allowlist 默认拒绝 shell/network/外写。
 
-| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
-|---|---|---|---|
-| config 文件 | Operator → 进程 | schema + 权限 0600 | schema FAIL → 不 READY |
-| Secret reference | Secret provider | reference-only | 明文拒绝 |
-| tool profile | Operator → registry | 注册实现 + manifest | 不匹配 → 启动失败 |
+| 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
+|---|---|---|---|---|---|
+| config 文件 | Operator → 进程 | schema + 权限 0600 | 重启才生效 | schema FAIL → 不 READY | PK-T12 |
+| Secret reference | Secret provider | reference-only | 轮换需重启 | 明文拒绝；audit | PK-T12 |
+| tool profile | Operator → registry | 注册实现 + manifest | 启动后不可热注册 | 不匹配 → 启动失败 | PK-T06 |
 
 ## 12. 可观测性与证据
 
 ### 12.1 统计、日志、时间与关联
 
-| 指标/事件 ID | 单位 | 关联 | 用途 |
-|---|---|---|---|
-| `piko.dependency.failures.{llmtier,matrix,store}` | count | 全实例 | preflight |
-| `event.audit.credential-ref-changed` | 事件 | operator | 审计 |
+| Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
+|---|---|---|---|---|---|
+| `piko.dependency.failures.{llmtier,matrix,store}` | M000 生产 → M009 采集 | count / 区间 | 全实例 | 重启重置 | 低开销 |
+| `event.audit.credential-ref-changed` | M000 生产 → M003 audit/M009 | 事件 / — | operator | 不聚合 | audit 按 ops 留存 |
 
 ### 12.2 维护命令、自检与调试路径
 
-启动自检 S1-S8；operator 只读 config 生效摘要（脱敏）。
+| Maintenance API / Diagnostic ID | 执行位置、入口、目标、权限 | 请求/结果契约 | 施加/回读点及覆盖 | 依赖/占用/恢复退出 | 验证 |
+|---|---|---|---|---|---|
+| `bootstrap preflight`（S1-S8） | 启动；M000；READY 判定 | 阶段输出（脱敏） | config/schema/bind/paths/store/pi/preflight | 失败 → F1 | PK-T12 |
+| `operator config summary` | operator 端点；只读 | 生效 config 摘要（credential 脱敏） | 核对生效值 | 只读 | PK-T12 |
 
 ## 13. 配置、兼容与部署
 
 配置 authority：`system-design` §9.1 + 两个 config schema。
 
-| 配置 | 来源/默认/范围 | 校验/生效 | 无效处理 |
-|---|---|---|---|
-| `api_auth.*.credential_ref` | Secret provider；reference | S3 解析；重启 | 明文/解析失败 → F1 |
-| `workspace_root` | config；RelPath | S4 canonicalize；重启 | 越界 → F1 |
-| `storage.sqlite_path` | config；AbsPath | S5 打开 + instance lock；重启 | 不可写 → F1 |
-| `pi.upstream_commit` | 锁定 + 构建 | S6 fingerprint；重启 | 不匹配 → F1 |
-| `llmtier.*` | config + Secret；固定项不接受覆盖 | S7 preflight；重启 | FAIL → F1 |
-| `matrix.*` | config + Secret | S7 preflight；重启 | FAIL → F1 |
+| 配置/组合 baseline | 来源/完整定义 | 校验与生效确认 | 在途/跨版本规则 | 中断检查点/回滚前提 | 验证 |
+|---|---|---|---|---|---|
+| `api_auth.*.credential_ref` | Secret provider | S3 解析；重启 | credential 明文拒绝 | F1；operator 轮换 | PK-T12 |
+| `workspace_root` | config；RelPath | S4 canonicalize；重启 | 在途 Run 不变 | F1 | PK-T12 |
+| `storage.sqlite_path` | config；AbsPath | S5 + instance lock | 不迁移 | F1 | PK-T12 |
+| `pi.upstream_commit` | 锁定+构建 | S6 fingerprint | 不热切 | F1 | PK-T04 |
+| config schema | `piko-runtime-config-v0.3` | S2；未知字段拒绝 | 无在线热改 | F1 | PK-T12 |
 
 环境差异见 §3.3.1。兼容：schema v0.3；未知字段拒绝；无在线热改。
 
@@ -459,7 +461,11 @@ flowchart TD
 
 ### 14.3 责任单元间接口契约
 
-见 §5.2（IF-CFG-*）；完整签名在 M000/M002 ISD §5.1。
+| 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
+|---|---|---|---|---|
+| IF-CFG-LOAD | M000 → 进程 | config 文件 → `PikoRuntimeConfig` | schema FAIL → F1 | §5.1 |
+| IF-CFG-BIND | M000 → M002 | profile+registry → `BoundToolProfile` | 不一致 → F1 | §5.1 |
+| IF-CFG-SECRET | provider → M000 | `credential_ref` → Secret | 解析失败 → F1 | §5.1 |
 
 ### 14.4 下级设计输入清单
 

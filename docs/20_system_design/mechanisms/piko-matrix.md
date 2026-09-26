@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.5.0` |
+| Document Version | `0.5.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -615,13 +615,13 @@ flowchart TD
 
 配置 authority：`system-design` §9.1 + `interfaces/schemas/piko-runtime-config-v0.3.schema.json`。
 
-| 配置 | 来源/默认/范围 | 生效点 | 无效处理 |
-|---|---|---|---|
-| `matrix.homeserver` | config；必填 URL | 重启 | preflight FAIL → 不 READY |
-| `matrix.credential_ref` | Secret provider；reference | 重启 | 解析失败 → 不 READY |
-| `matrix.identity_localpart` | config；必填 | 重启 | 与 whoami 不一致 → 不 READY |
-| sync timeout | 内部常量 30000 ms | 编译期 | — |
-| E2EE | 固定禁用 | 编译期 | 收到加密事件忽略 |
+| 配置/组合 baseline | 来源/完整定义 | 校验与生效确认 | 在途/跨版本规则 | 中断检查点/回滚前提 | 验证 |
+|---|---|---|---|---|---|
+| `matrix.homeserver` | config；必填 URL | S7 preflight；重启 | 在途 Run 不回退 | 启动 F1 | PK-T08 |
+| `matrix.credential_ref` | Secret provider | S7 解析；重启 | token 轮换需重启 | 启动 F1 | PK-T12 |
+| `matrix.identity_localpart` | config；必填 | S7 与 whoami 一致 | — | 不一致 F1 | PK-T08 |
+| sync timeout | 内部常量 30000 ms | 编译期 | — | — | PK-T08 |
+| E2EE | 固定禁用 | 编译期 | 收到加密事件忽略 | — | PK-T08 |
 
 兼容矩阵：
 
@@ -656,7 +656,13 @@ flowchart TD
 
 ### 14.3 责任单元间接口契约
 
-见 §5.2（IF-MX-*）；完整签名在 M005/M008 ISD §5.1。
+| 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
+|---|---|---|---|---|
+| IF-MX-VERIFY | M008 → M001/M005 | `DiscussionContext` → `VerifiedEvent` | 404/403 → `InvalidDiscussionContext` | §5.1 |
+| IF-MX-SYNC | M008 → M003/M005 | cursor → `MatrixBatch` | 单事务；429 退避 | §5.1 |
+| IF-MX-SEND | M008 → M003 | `MatrixSendRecord` → `{event_id}` | 同 txn 幂等 | §5.1 |
+| IF-MX-MEDIA | M008 → M005 | mxc → 字节流/`content_uri` | ACL 失败 → `DiscussionAccessLost` | §5.1 |
+| IF-MX-TURN | M005 → M003 | turn → turn record | 单事务 | §5.2 |
 
 ### 14.4 下级设计输入清单
 
@@ -743,6 +749,7 @@ flowchart LR
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
+| v0.5.1 | 2026-09-25 | review 修复：补 §3 表头/责任角色段（run）；§11 信任边界表转模板六列；§12.1 统计表转模板六列并登记 M009 采集路径；§12.2 维护表转模板格式；§13 配置表转模板"配置/组合 baseline"六列；§14.3 补交接接口表 | corezilla, opencode |
 | v0.5.0 | 2026-09-25 | 同步 STD draft.41（机制模板 3.2.0 → 3.3.0）：§1 补"机制形态与适用性/交接域/裁剪依据"；§3 表列改"决定/写入/事实来源/恢复"并补责任角色区分；§5.1 收进程内函数接口（不再 N/A）；§9 补跨重启恢复窗口；§15.1.1 补每项保证的正常+故障向量；附录 A 补正文质量检查与图分类 | corezilla, opencode |
 | v0.4.0 | 2026-09-25 | 按 STD 机制指南 §3 图例表补全 8 类图：§3 协作图、§4 数据对象图、§9 异常处置图、§15 测试路径图、§6/§9 完整过程图、§6/§8/§9 条件依赖图；补 §6.1.2 双方调用演练（调用方知道什么→下一步）、§7.1 异常五轴；§14.4 用 `M-<MECH>-DI-<nnn>`、§16 用 `RISK-<MECH>-<nnn>`、§3.1 用 `CON-<MECH>-<nnn>` ID 命名空间 | corezilla, opencode |
 | v0.3.0 | 2026-09-25 | 补 §6.1.1 完整 JSON 调用实例（正常+边界+错误）与 §4.8 逐码错误 catalog（对照 STD EX-EXPORT 示例深度） | corezilla, opencode |
