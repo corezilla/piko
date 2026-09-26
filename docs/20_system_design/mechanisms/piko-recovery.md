@@ -25,6 +25,19 @@ Piko 允许进程崩溃后重启继续服务。崩溃可能发生在任意时刻
 
 **最重要取舍**：选择"确定性 identity + probe"而非分布式事务，代价是恢复逻辑复杂，换取单实例可判定。
 
+```mermaid
+flowchart LR
+  CR["进程崩溃"] --> BOOT["M000 bootstrap<br/>重启"]
+  BOOT --> SCAN["M005 worker<br/>扫描非终态 Run"]
+  SCAN -->|"读持久事实"| Repo["M003 task-repository"]
+  SCAN -->|"inspect"| PI["M006 pi-adapter"]
+  SCAN -->|"补第二步 / 明确失败"| TC["终态"]
+```
+
+图 M-REC-0 · MECH-RECOVERY 用途概览 / Target / NOT_BUILT。崩溃后按固定顺序从持久事实对账，不复活旧权威。
+
+**教学路径**：本机制属"有副作用的收口"路径：恢复必须处理在途副作用与结果未知。
+
 ## 2. 使用场景与功能
 
 | Capability / Scenario ID | 业务任务与触发/条件 | 输入与可观察结果 | 提供方/全部消费者 | 实现状态 | 验证结果/判据 |
@@ -68,44 +81,46 @@ Piko 允许进程崩溃后重启继续服务。崩溃可能发生在任意时刻
 | Pi session | `pi_session_id=run_id` | M006 | 本地 FS + SQLite | inspect 对账，不重发 |
 | results generation | results 表 | M003 | 同域 | 已存在不重写 |
 
+**统筹者退出语义**：M005 恢复中退出 → 停机，不部分恢复；重启重新扫描（幂等，已补终态的不再处理）。恢复不产生第二写入者。
+
 ## 4. 数据结构设计
 
-### 4.1 公共基础类型与枚举
+### 4.1 公共基础类型与枚举（适用时）
 
 #### 4.1.1 `RecoveryOutcome`
 
 - **定义与来源**：`"PatchedTerminal" | "ResumedOperation" | "Fenced" | "InternalError"`。来源 M005 ISD §4.1。
 - **逐值含义**：`PatchedTerminal`＝补第二步；`ResumedOperation`＝drive 既有 op；`Fenced`＝旧 lease 失效；`InternalError`＝不可恢复。
 
-### 4.2 业务与操作数据结构
+### 4.2 业务与操作数据结构（适用时）
 
 #### 4.2.1 `RecoveryProbe`
 
 - **定义与来源**：恢复探测结果 `{result_exists, run_state, lease_epoch, pi_session, open_operation, operation_result, ledger_version, matrix_cursor}`。来源 M005 ISD §4.6。
 
-### 4.3 配置与规则数据结构
+### 4.3 配置与规则数据结构（适用时）
 
 **N/A · 复用系统 config**。
 
-### 4.4 通信报文结构
+### 4.4 通信报文结构（适用时）
 
 **N/A · 复用机器契约**。
 
-### 4.5 设备与 FPGA 表项结构
+### 4.5 设备与 FPGA 表项结构（适用时）
 
 **N/A · 纯软件范围**。
 
-### 4.6 运行状态数据结构
+### 4.6 运行状态数据结构（适用时）
 
 #### 4.6.1 `Lease`（恢复视角）
 
 - **定义与来源**：见 MECH-RUN §4.6.2；恢复时新 epoch = 旧+1。
 
-### 4.7 数据库表结构
+### 4.7 数据库表结构（适用时）
 
 **N/A · 见 M003 ISD §4.7.1**：`results`/`runs`/`run_sessions`/`execution_slot` 是恢复事实源。
 
-### 4.8 错误码与错误结构
+### 4.8 错误码与错误结构（适用时）
 
 **复用机器契约**：`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`InternalError`。
 
@@ -121,11 +136,11 @@ Piko 允许进程崩溃后重启继续服务。崩溃可能发生在任意时刻
 
 ## 5. 接口设计
 
-### 5.1 API
+### 5.1 API（适用时）
 
 **N/A**：无对外 API。
 
-### 5.2 消息与数据流接口
+### 5.2 消息与数据流接口（适用时）
 
 | Interface ID | 方向 | 输入 | 输出 | 实现位置 |
 |---|---|---|---|---|
@@ -134,11 +149,11 @@ Piko 允许进程崩溃后重启继续服务。崩溃可能发生在任意时刻
 | IF-REC-PATCH | M005 → M003 | `FencedPublishResult`（补第二步） | 终态 | M003 ISD §5.1 |
 | IF-REC-FENCE | M004 → M003 | 新 epoch | fence 结果 | M004 ISD §5.1 |
 
-### 5.3 硬件与固件接口
+### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
 
-### 5.4 人机与维护接口
+### 5.4 人机与维护接口（适用时）
 
 Operator 恢复确认（store 可写、旧 lease 已 fence、session/operation 可读、依赖可达）见 system-design §8.4；MECH-RECOVERY 不自建入口。
 
@@ -229,11 +244,20 @@ stateDiagram-v2
 - 新 lease epoch 唯一 fencing。
 - 恢复不引入额外容量。
 
+- 代表请求：重启后单线程扫描非终态 Run，逐个对账；不与新 accept 并发（scheduler 在恢复完成后领取）。
+- 等待出口：inspect 失败 → `InternalError`；`replay:"never"` 无 outcome → `UnsafeRetryBlocked`；无永久等待。
+
 ## 11. 安全、权限与信任边界
 
 - 恢复只读本地持久事实；不读日志推断。
 - operator 授权后才能强制 fence / migration。
 - 恢复不泄漏 credential。
+
+| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
+|---|---|---|---|
+| 持久事实 | 本地 SQLite/JSONL | M003 | 不从日志推断 |
+| lease | execution_slot | M004 新 epoch | 旧 epoch 拒写 |
+| operator 操作 | operator → 进程 | operator authorization | 未授权拒绝 |
 
 ## 12. 可观测性与证据
 
@@ -252,6 +276,11 @@ stateDiagram-v2
 
 - 消费 `storage.*` / `pi.*`；重启触发恢复。
 - 兼容：schema v2；不新增恢复协议。
+
+| 组合 | 允许版本 | 不支持/降级 |
+|---|---|---|
+| schema | SQLite `user_version=2` | v2→v1 不可降级 |
+| Pi identity | 确定性 `run_id` 派生 | 不重发旧请求 |
 
 ## 14. 跨责任单元分解与接口分配
 
@@ -309,6 +338,8 @@ stateDiagram-v2
 | ISSUE-REC-001 | Pi session 损坏时的封结语义 | High | Piko Implementation Owner | M006 实现完成 |
 
 已选决定：固定恢复顺序（§1）；不重跑 Pi（§8）。被否决：日志推断、自动绕过未知重试。
+
+**跨机制依赖检查**：MECH-RECOVERY 依赖 `MECH-RUN`（Run 事实与 Result）、`MECH-CONFIG`（启动）、`MECH-USAGE`（ledger）、`MECH-MATRIX`（cursor/turn）。依赖方向 MECH-RECOVERY → 事实源；无循环、上级 `MECH-RUN` 已登记。
 
 ## A. 输入基线、适用性与图文规则
 

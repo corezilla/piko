@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-design` |
-| Document Version | `0.9.0` |
+| Document Version | `0.10.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -238,7 +238,7 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 
 | Constraint ID / 条件 | 承接对象 ID | 预算或行为保证 / 推导引用 | 自由度 / 不可改变 | 下级设计入口 | 局部与组合验证 / 影响 |
 |---|---|---|---|---|---|
-| PK-01 单 slot + 独立 Pi session | `task-repository` M003 + `scheduler` M004 + `pi-adapter` M006 | lease epoch 唯一 fencing；`pi_session_id=run_id` 确定性绑定 | worker 内部不引入并行阶段 | mechanism `MECH-RUN` + M003/M004/M006 ISD | 集成测试 + cross-check Result→Run→lease→Pi session→Harness |
+| PK-01 单 slot + 独立 Pi session | `task-repository` M003 + `scheduler` M004 + `pi-adapter` M006 | lease epoch 唯一 fencing；`pi_session_id=run_id` 确定性绑定 | worker 内部不引入并行阶段 | mechanism `MECH-RUN`（`piko-run.md` 已建）+ M003/M004/M006 ISD | 集成测试 + cross-check Result→Run→lease→Pi session→Harness |
 | PK-02 任务事务稳定身份 | `task-api` M001 + `policy` M002 + `task-repository` M003 | tombstone 永久拒绝；同 ID 同内容不重新检查动态条件 | path 集合字段按集合比较、时间按 UTC instant、对象成员顺序忽略 | contract `piko-agent-runtime-contract-v0.3` §1 | 契约测试 PK-T03 / PK-T15 |
 | PK-03 截止与预算 | `policy` M002 + `pi-adapter` M006 | request `deadline_at` + `max_model_calls` + `max_tool_calls` | worker 不修改 deadline 语义；budget CAS 在 `before_tool` | M002/M006 ISD（含 §3.6 worker 取消分流）；非机制 | fault 注入 PK-T05 |
 | PK-04 Responses SSE 唯一路径 | `pi-adapter` M006 | `stream:true`、`store:false`、`maxRetries=0` | 不替换 provider adapter；不静默切 non-stream | contract `0.3.0-simplified.6` | LLMTier 联调 PK-T09/PK-T10 |
@@ -256,10 +256,10 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 | Mechanism ID / 用途 | 上级 Mechanism ID | 参与对象 / Process 或 Constraint | 前置依赖 | Document ID / 计划文件名 | Planned 或实际基线 / 未决项 |
 |---|---|---|---|---|---|
 | MECH-RUN · 单 Run 提交 → 完成闭环 | — | `task-api` M001 + `policy` M002 + `task-repository` M003 + `scheduler` M004 + `worker` M005 + `pi-adapter` M006 + `usage` M007；Constraint PK-01/02/03/07 | §5.1 / §6.2 | `piko-run.md`（v0.1.0，已建） | Approved（设计阶段）/ PK-T05/PK-T13/PK-T15 |
-| MECH-USAGE · Usage 字段汇总与冻结 | MECH-RUN | `pi-adapter` M006 + `usage` M007；Constraint PK-09/10 | MECH-RUN | `piko-usage.md`（v0.1.0，已建） | Approved / PK-T10/PK-T16 |
-| MECH-MATRIX · Discussion intake + sync | MECH-RUN | `matrix-adapter` M008 + `worker` M005；Constraint PK-08 | MECH-RUN | `piko-matrix.md`（v0.1.0，已建） | Approved / PK-T08 |
+| MECH-USAGE · Usage 字段汇总与冻结 | MECH-RUN | `pi-adapter` M006 + `usage` M007 + `worker` M005（消费 snapshot）；Constraint PK-09/10 | MECH-RUN | `piko-usage.md`（v0.1.0，已建） | Approved / PK-T10/PK-T16 |
+| MECH-MATRIX · Discussion intake + sync | MECH-RUN | `matrix-adapter` M008 + `worker` M005 + `task-repository` M003（持 turn 状态）；Constraint PK-08 | MECH-RUN | `piko-matrix.md`（v0.1.0，已建） | Approved / PK-T08 |
 | MECH-CONFIG · 配置加载/绑定/生效 | MECH-RUN | `bootstrap` M000 + `policy` M002；Constraint §9 | MECH-RUN | `piko-config.md`（v0.1.0，已建） | Approved / PK-T12 |
-| MECH-RECOVERY · 进程崩溃后恢复 | MECH-RUN | `worker` M005 + `task-repository` M003 + `pi-adapter` M006；Constraint PK-12 | MECH-RUN | `piko-recovery.md`（v0.1.0，已建） | Approved / PK-T12 |
+| MECH-RECOVERY · 进程崩溃后恢复 | MECH-RUN | `worker` M005 + `task-repository` M003 + `pi-adapter` M006 + `scheduler` M004（新 lease）；Constraint PK-12 | MECH-RUN | `piko-recovery.md`（v0.1.0，已建） | Approved / PK-T12 |
 
 > 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-STARTUP（仅 M000 bootstrap）和 MECH-CANCEL（仅 M005 worker）曾列入本表，2026-09-25 用户反馈后删除并下沉到模块设计（`piko-bootstrap-design.md` §3.6 启动顺序 / `piko-worker-design.md` §3.6 取消分流）。
 
@@ -1039,6 +1039,7 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 | v0.6.0 (本次修订) / 2026-09-25 | 移除"1 个 subsystem"反模式；删除 `piko-runtime-implementation-design-v0.3.isd.md`（拆分到 10 份模块 ISD）；模块按 4 分区重新组织；§3.5 机制清单指向 5 份独立 `design.system-mechanism` 文档；附录 A 增加 TAIL-P-NEW-S1（无 subsystem）；修订号升 v0.6.0 | corezilla, opencode |
 | v0.7.0 (本次修订) / 2026-09-25 | 删除 MECH-STARTUP / MECH-CANCEL（仅单模块，不构成跨模块机制，归入 `piko-bootstrap-design.md` §3.6 / `piko-worker-design.md` §3.6）；机制清单从 7 项收敛为 5 项（MECH-RUN / MECH-USAGE / MECH-MATRIX / MECH-CONFIG / MECH-RECOVERY）；按 STD 命名重命名文件（`<name>-design.md` / `<name>.isd.md` / `<name>.md`）；修订号升 v0.7.0 | corezilla, opencode |
 | v0.8.0 (本次修订) / 2026-09-25 | **同步 STD draft.35 → draft.37**：`design.software-system` 模板 1.0.0 → **2.0.0**（MAJOR：§4 功能 → §3.6 功能；§5 子系统 → §4；§6 运行 → §5；§7 过程 → §6；§8 数据 → §7；§9 接口 → §8；§10 配置 → §9；§11 可靠性 → §10；§12 性能 → §11；§13 测试 → §12；§14 安全 → §13；§15 构建 → §14；§16 计划 → §15；§17 决策 → §16）；§3.6.3 UI 设计从模板中删除（纯软件无 UI 入口）；body 内所有 § 引用按新编号同步重写；lock 升级到 `0.1.0-draft.37`（source revision `fe28370`）；manifest 重新对齐（207 artifacts）；Document Version 0.7.0 → 0.8.0 | corezilla, opencode |
+| v0.10.0 (本次修订) / 2026-09-25 | 新增 5 份系统机制设计文档（`docs/20_system_design/mechanisms/piko-{run,usage,matrix,config,recovery}.md`）并在 §3.5 登记"已建"；§3.5 参与方补全支撑模块（MECH-USAGE +M005、MECH-MATRIX +M003、MECH-RECOVERY +M004）；§3.4 PK-01 下级入口标注 MECH-RUN 已建；同步 lock 到 `0.1.0-draft.40`（source revision `fbb1e28`，移除 handoff 文档）；Document Version 0.9.0 → 0.10.0 | corezilla, opencode |
 | v0.9.0 (本次修订) / 2026-09-25 | **同步 STD draft.38 → draft.39**：`design.software-system` 2.0.0 → 2.1.0（minor：§8.1 软件接口 → §8.1 API；§8.2 明确为协作接口，内部 HTTP/RPC 也在本节定义）；`design.subsystem` 1.1.0 → 1.2.0（minor）；lock 升级到 `0.1.0-draft.39`（source revision `24e1ff9`）；manifest 重新对齐（207 artifacts）；Document Version 0.8.0 → 0.9.0 | corezilla, opencode |
 
 交付检查：

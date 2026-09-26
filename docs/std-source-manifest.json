@@ -1,20 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.39",
+  "std_version": "0.1.0-draft.40",
   "source_repository": "corezilla/STD",
-  "source_revision": "24e1ff97531e5bf118dca0fec60e5fd162fc0c35",
+  "source_revision": "fbb1e281503dd1d5814957f2d1ace4975a089f09",
   "source_tag": null,
   "generated_at": "2026-09-26",
   "artifacts": [
     {
-      "path": "MIGRATION_HANDOFF.md",
-      "role": "guidance",
-      "sha256": "5cf272680eb20aa23a181bc11c1778b526ae8c7d611ebc596759ef31f9873c2a"
-    },
-    {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "65434ddf981a59c3a51b60e24e3a1de31bddd5cd77fbc7bc61d14eb9152319f2"
+      "sha256": "b1443ec28dc13a0d9c740e40f0c4b4f7c568a546929664fdb20b247358ff81c7"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -24,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "017d316d37a03ecddd0557b226dc141cd5889897c951e32c215bc11dbf02129b"
+      "sha256": "d3a71a0d5d62c69d7d2411671543456e1079f264c58452914fa3b061ca538615"
     },
     {
       "path": "docs/adoption.md",
@@ -449,7 +444,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "5a646dd24277c81e5fa7374542c4e3eb5985e00ed852db27e1292b49bbf3f69f"
+      "sha256": "71d785d9790d0ac724b9c1dbb261d40abef89589e700ca2a8358f82629969a45"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -494,12 +489,12 @@
     {
       "path": "scripts/build-rag-manifest",
       "role": "tool",
-      "sha256": "9f72f7fa6eda05d7da9a182c7a52d77a0c42de7bae64f32bb77bb627f7ac1b9d"
+      "sha256": "f197cb4a6834d03399aa80c78d187a3a156417f17e9f14c4185315169ea5209e"
     },
     {
       "path": "scripts/build-source-manifest",
       "role": "tool",
-      "sha256": "c337f4bf1749224584eaa02a24fffbec5c54330b7299e664d7597475d6cf48e4"
+      "sha256": "c7262561cff35421c0c73869d93aa88a2920e624faada0afec901b8438d89481"
     },
     {
       "path": "scripts/new-design",
@@ -514,7 +509,7 @@
     {
       "path": "scripts/validate-design",
       "role": "tool",
-      "sha256": "571260f2d4a29cfcd68e0d6d787f6ee8845f2a60ccbadb32eef7b61d5e742432"
+      "sha256": "f5e58b9e568eaeb55afb09ced9a1c572bfa65355fe3e9817825cbce08a59a99c"
     },
     {
       "path": "scripts/validate-interface-catalog",
@@ -529,7 +524,7 @@
     {
       "path": "scripts/verify-source-manifest",
       "role": "tool",
-      "sha256": "e59d4d0c498637119a537e91b161bfde71ad7db030495519da14f411266887f6"
+      "sha256": "bb5fd7aaafc118ed5f364e95fe2a711e74cb4089ea1b2710d9dc2f093fa44419"
     },
     {
       "path": "templates/_shared/document-cover.md",
@@ -594,7 +589,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "8bee9e84961c33833aa11456112d1c95e7ad14438b2f010d927d3200a0b54902"
+      "sha256": "dd48a69d117bf790cf10d651bf7646317f606b183a10f70b6198f2361631248e"
     },
     {
       "path": "templates/contracts/contract-specification.md",

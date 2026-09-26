@@ -29,6 +29,23 @@ MECH-RUN 定义这七个模块如何协作完成一次 Run 的完整闭环：从
 
 **本版本范围**：设计阶段（Approved），实现状态 NOT_BUILT。详细状态转换、参与方协议与恢复规则由本文唯一维护；系统设计 §6.2 保留端到端原理与代表失败。
 
+```mermaid
+flowchart LR
+  S["Slinky<br/>（派 Run / 读 Result）"] -->|"RunSubmitRequest"| M1["M001 task-api"]
+  M1 --> M2["M002 policy"]
+  M1 --> M3["M003 task-repository"]
+  M3 --> M4["M004 scheduler"]
+  M4 --> M5["M005 worker"]
+  M5 --> M6["M006 pi-adapter"]
+  M6 --> M7["M007 usage"]
+  M5 --> M3
+  M3 -->|"AgentResult / RunView"| S
+```
+
+图 M-RUN-0 · MECH-RUN 用途概览 / Target / NOT_BUILT。Slinky 只需"派一个 Run、读一个 Result"；七个模块协作把任务变成稳定结果。
+
+**教学路径**：本机制属"有副作用的收口"路径（对应 STD EX-EXPORT 教学）；每个操作都有持久副作用与恢复义务，不能套用只读案例的清理假设。
+
 ## 2. 使用场景与功能
 
 | Capability / Scenario ID | 业务任务与触发/条件 | 输入与可观察结果 | 提供方/全部消费者 | 实现状态 | 验证结果/判据 |
@@ -50,7 +67,7 @@ MECH-RUN 定义这七个模块如何协作完成一次 Run 的完整闭环：从
 | M002 `policy` / Piko Implementation Owner | 负责 request/path/tool/deadline/budget 判定；不持状态 | 启动时绑定的 `BoundToolProfile` | 提供：`ValidatedTaskSubmission`；消费：原始请求 + config + registry | 进程内 `src/policy/`（Planned） | 依赖 `system-design` §9.1 |
 | M003 `task-repository` / Piko Implementation Owner | 负责 Run/lease/session/result/ledger 事务与 fenced write；不负责业务编排 | `tasks`/`runs`/`run_sessions`/`execution_slot`/`results`/`model_attempts`/`tool_calls` | 提供：`createOrGetRun`/`mutateRun`/`publishResult`；消费：scheduler / worker | 进程内 `src/store/`（Planned） | 依赖 `system-design` §7.7 |
 | M004 `scheduler` / Piko Implementation Owner | 负责单 slot 领取/续租/fence；不决策业务 | `execution_slot` + lease epoch | 提供：`acquireSlot`/`renewLease`/`fence`；消费：tick | 进程内 `src/scheduler/`（Planned） | 依赖 M003 |
-| M005 `worker` / Piko Implementation Owner | 负责 Run 事务协调、取消、deadline、Result 两步发布；不镜像 Pi Agent loop | Run 寿命的 lease 持有 | 提供：`Result generation`；消费：M006/M007/M008/M003 | 进程内 `src/worker/`（Planned） | 依赖 M003 + M006 + M007 + M008 |
+| M005 `worker` / Piko Implementation Owner | 负责 Run 事务协调、取消、deadline、Result 两步发布；不镜像 Pi Agent loop | Run 寿命的 lease 持有 | 提供：`Result generation`；消费：M006/M007/M003；**跨机制**：discussion Run 经 `MECH-MATRIX` 消费 M008 | 进程内 `src/worker/`（Planned） | 依赖 M003 + M006 + M007；跨机制依赖 `MECH-MATRIX`（M008） |
 | M006 `pi-adapter` / Piko Implementation Owner | 负责 Harness session/lane/operation/abort/raw usage hook；不替换 provider adapter | Pi session 句柄 + `run_sessions.active_operation_id` | 提供：`PiRuntime`；消费：Pi SDK | 进程内 `src/adapters/pi/`（Planned） | 依赖固定 Pi 0.85.1 @ commit `9767ba...` |
 | M007 `usage` / Piko Implementation Owner | 负责 Usage 聚合 + Result 语义校验；不改已发布 generation | `UsageSnapshot` 缓存 + `ResultValidator` | 提供：`UsageAggregator`/`ResultValidator`；消费：M006 raw usage | 进程内 `src/usage/`（Planned） | 依赖机器契约 `0.3.0-simplified.6` |
 
@@ -78,18 +95,20 @@ MECH-RUN 定义这七个模块如何协作完成一次 Run 的完整闭环：从
 
 | 逻辑目标/身份 | 部署及访问路径 | 映射 authority/更新条件 | 共享故障/复位域 | 旧目标/旧代次处理 |
 |---|---|---|---|---|
-| Piko 实例（单 Node.js 进程） | 本地单进程；operator 经诊断端点 | config `storage.sqlite_path` + instance lock | 进程 + 本地 FS 同时挂 = 全部数据丢 | 重启走 P- START；旧 lease epoch 被 fence |
+| Piko 实例（单 Node.js 进程） | 本地单进程；operator 经诊断端点 | config `storage.sqlite_path` + instance lock | 进程 + 本地 FS 同时挂 = 全部数据丢 | 重启走 P-START；旧 lease epoch 被 fence |
 | `run_id` | HTTP 路径参数 | M003 `tasks`/`runs` | 与实例同故障域 | 终态不可回退；tombstone 永久 |
 | `task_id`（Slinky 生成） | HTTP body | M003 `tasks.task_id` | 同实例 | 一 ID 一任务；不可复用 |
 | `pi_session_id = run_id` | 进程内 Harness | M006 确定性派生 | Pi session JSONL + SQLite 同本地 FS | 崩溃后 inspect/getResult 对账，不重发 |
 | LLMTier endpoint | HTTPS | config `llmtier.base_url` + preflight | 独立故障域（网络） | 不可达 → `ModelUnavailable`；不静默切 |
 | Matrix homeserver | HTTPS | config `matrix.homeserver` + whoami | 独立故障域 | 不可达 → `DiscussionAccessLost` |
 
+**统筹者退出语义**：M004 scheduler 退出 → 新 tick 以新 lease epoch 重领，旧 epoch 被 fence；M005 worker 退出 → R1-R7 恢复（见 §9），期间无新 accept；M001 退出 → HTTP 不可用，Slinky 重试同 `task_id`。统筹者退出不改变已提交持久事实，不产生第二写入者。
+
 ## 4. 数据结构设计
 
 MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器契约 `0.3.0-simplified.6` + 各模块 ISD §4；本节给出机制层的共享视图与关系。
 
-### 4.1 公共基础类型与枚举
+### 4.1 公共基础类型与枚举（适用时）
 
 #### 4.1.1 `RunState`
 
@@ -105,7 +124,7 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；可见点 `runs.generation`；fencing 失败不写。
 - **合法与拒绝实例、V/Case 与证据状态**：过期 generation 的写入必须拒绝。Case M003 ISD §9.1（NOT_RUN）。
 
-### 4.2 业务与操作数据结构
+### 4.2 业务与操作数据结构（适用时）
 
 #### 4.2.1 `ValidatedTaskSubmission`
 
@@ -121,19 +140,19 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 - **生产/修改、所有权、可见点、寿命及失败出口**：M005 生产，M003 持久化 generation；可见点 `results.result_json`；发布后不可变。
 - **合法与拒绝实例、V/Case 与证据状态**：ResultValidator FAIL 拒绝发布。Case PK-T16（NOT_RUN）。
 
-### 4.3 配置与规则数据结构
+### 4.3 配置与规则数据结构（适用时）
 
 **N/A · 复用系统 config**：`PikoRuntimeConfig` / `ToolProfile` 由 `system-design` §9.1 + M000/M002 ISD 维护；MECH-RUN 只消费 `deadline`/`budget`/`tool profile`/`queue capacity`，不新增配置对象。
 
-### 4.4 通信报文结构
+### 4.4 通信报文结构（适用时）
 
 **N/A · 复用机器契约**：`RunSubmitRequest` / `RunView` / `AgentResult` / `UsageSnapshot` 的字段全集在 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` + `interfaces/schemas/agent-runtime-v0.3.schema.json`；本节 §4.2.2 仅给共享视图，不另建定义。
 
-### 4.5 设备与 FPGA 表项结构
+### 4.5 设备与 FPGA 表项结构（适用时）
 
 **N/A · 纯软件范围**：MECH-RUN 无设备/FPGA/RTL 表项。
 
-### 4.6 运行状态数据结构
+### 4.6 运行状态数据结构（适用时）
 
 #### 4.6.1 `RunSessionRecord`
 
@@ -149,11 +168,11 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 - **生产/修改、所有权、可见点、寿命及失败出口**：M004 持有，M003 持久化。
 - **合法与拒绝实例、V/Case 与证据状态**：fencing 时 `epoch+1`。Case PK-T01（NOT_RUN）。
 
-### 4.7 数据库表结构
+### 4.7 数据库表结构（适用时）
 
 **N/A · 见 M003 ISD §4.7**：`tasks` / `runs` / `run_sessions` / `execution_slot` / `results` / `model_attempts` / `tool_calls` 的 DDL 唯一权威在 M003 ISD §4.7.1（`PRAGMA user_version=2`）；本机制不重复 DDL。
 
-### 4.8 错误码与错误结构
+### 4.8 错误码与错误结构（适用时）
 
 **复用机器契约**：MECH-RUN 涉及的外部错误码（`Unauthorized` / `TaskConflict` / `Gone` / `QueueFull` / `RunNotTerminal` / `ResultUnavailable` / `CancelledBeforeStart` / `StopRequested` / `AlreadyTerminal` / `DeadlineExceeded` / `BudgetExceeded` / `ModelUnavailable` / `ModelResponseInvalid` / `ToolFailure` / `UnsafeRetryBlocked` / `ExecutionStateUnknown` / `CancelledByRequest` / `InternalError`）逐码定义在 `interfaces/error-codes/agent-runtime-v0.3.yaml` + contract §6；本节不重定义。
 
@@ -173,11 +192,11 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ## 5. 接口设计
 
-### 5.1 API
+### 5.1 API（适用时）
 
 MECH-RUN 的对外 API 就是系统设计 §8.1 的四项 HTTP operation（`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result`）；其完整合同（输入/输出/错误/交互/验证）在 `system-design` §8.1 唯一维护，本节不复制。
 
-### 5.2 消息与数据流接口
+### 5.2 消息与数据流接口（适用时）
 
 | Interface ID | 方向 | 输入 | 输出/确认 | 实现位置 |
 |---|---|---|---|---|
@@ -189,11 +208,11 @@ MECH-RUN 的对外 API 就是系统设计 §8.1 的四项 HTTP operation（`POST
 | IF-RUN-PUBLISH | M005 → M003 | `FencedPublishResult` | `ResultRecord` | M003 ISD §5.1 |
 | IF-RUN-SNAPSHOT | M005 → M007 | `run_id` | `UsageSnapshot` | M007 ISD §5.1 |
 
-### 5.3 硬件与固件接口
+### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
 
-### 5.4 人机与维护接口
+### 5.4 人机与维护接口（适用时）
 
 Operator 只读诊断入口（队列深度 / Run 计数 / lease epoch / ledger 摘要）见 `system-design` §8.1 `Operator Diagnostics`；MECH-RUN 不自建维护入口。
 
@@ -326,6 +345,10 @@ stateDiagram-v2
 - backpressure 在 Run 创建写事务内检查 `storage.max_queue_depth`；满则不创建 Run。
 - deadline 用持久 UTC 判定；进程内 elapsed 用 monotonic clock。
 
+- 代表请求 `t-7` 的执行上下文：HTTP handler 在 event loop 上同步校验并提交事务；`createOrGetRun` 在 `BEGIN IMMEDIATE` 内阻塞其他 writer；scheduler tick 与 Pi drive 在后台任务上下文中执行；Pi SSE 流读取是非阻塞事件。
+- 每个等待都有合法出口：SQLite busy → `busy_timeout` 后返回 503；Pi operation → deadline/预算/`requestAbort`；discussion intake → CAS 竞争由 writer lock 串行。
+- 取消优先级：`requestAbort` 不抢占已在途的 provider effect；Piko 等待 Harness 对账完成后才写终态。
+
 ## 11. 安全、权限与信任边界
 
 - 入口：唯一配置的 Slinky bearer principal；credential 只存 reference。
@@ -333,6 +356,14 @@ stateDiagram-v2
 - path 边界：M002 `canonicalizePath`，symlink 越界拒绝。
 - tool profile allowlist：shell/network/外写默认拒绝；`replay:"safe"` 必须绑定已注册 recovery contract。
 - task_id / run_id / credential / 绝对路径不进入模型上下文。
+
+| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
+|---|---|---|---|
+| 任务请求 | Slinky → HTTP | bearer principal + JSON schema | 401/422 |
+| workspace 路径 | 请求 → 本地 FS | `canonicalizePath` | 422 / `UnsafeRetryBlocked` |
+| 工具调用 | Pi → 工具实现 | tool profile allowlist | 启动失败 / `BudgetExceeded` |
+| credential | Secret provider → 内存 | reference-only | 启动失败 |
+| task_id / run_id / 绝对路径 | Piko → 模型上下文 | 构造 instruction 时过滤 | 不入模型 input |
 
 ## 12. 可观测性与证据
 
@@ -364,6 +395,14 @@ stateDiagram-v2
 - 生效方式：重启生效。
 - 兼容矩阵：机器契约 `0.3.0-simplified.6`；Pi `0.85.1` @ commit `9767ba...`；升级需独立设计评审。
 - 部署：单进程；SQLite + JSONL 位于本地可靠 FS。
+
+| 组合 | 允许版本 | 不支持/降级 |
+|---|---|---|
+| Slinky ↔ Piko | contract `0.3.0-simplified.6` | 其他版本需独立评审 |
+| Piko ↔ Pi | `0.85.1` @ commit `9767ba...` | 不热切；升级另立设计 |
+| Piko ↔ LLMTier | OpenAI Responses SSE | 无 non-stream fallback |
+| Piko ↔ Matrix | Client-Server | 无 AS 路径 |
+| 数据类型 | schema v0.3 / SQLite `user_version=2` | v2 不可降级到 v1 |
 
 ## 14. 跨责任单元分解与接口分配（下级设计输入）
 
@@ -438,6 +477,8 @@ stateDiagram-v2
 | ISSUE-RUN-003 | 单实例吞吐上限未实测 | Low | Piko Implementation Owner | 性能测试后 |
 
 已选决定：单实例单 slot（§1）；两步 Result 提交（§8）；recovery 顺序（§9）。被否决：多 slot、合并单事务、日志推断恢复。
+
+**跨机制依赖检查**：MECH-RUN 依赖 `MECH-CONFIG`（启动配置）、`MECH-RECOVERY`（崩溃恢复守护）、`MECH-MATRIX`（discussion）、`MECH-USAGE`（Result 用量）。依赖方向均为 MECH-RUN → 子机制，无反向依赖，无循环、无悬挂上级。若新增依赖须在本表登记并复核循环。
 
 ## A. 输入基线、适用性与图文规则
 

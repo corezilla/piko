@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "system-design",
   "document_type": "design.software-system",
-  "document_version": "0.9.0",
+  "document_version": "0.10.0",
   "title": "Piko Agent Runtime 系统设计",
   "document_owner": "Piko Architecture Owner",
   "authors": [

@@ -25,6 +25,19 @@ Piko 的 discussion Run 需要把 Matrix 房间里的消息按顺序喂给 Pi，
 
 **最重要取舍**：选择"事件复制进 SQLite + 确定性 operation id"而非依赖 Matrix 侧排队，代价是本地状态更多，换取崩溃可对账。
 
+```mermaid
+flowchart LR
+  HS["Matrix homeserver"] -->|"sync batch"| MX["M008 matrix-adapter"]
+  MX -->|"event + DiscussionTurn"| Repo["M003 task-repository"]
+  Repo -->|"Pending turn"| W["M005 worker"]
+  W -->|"PikoDiscussionMessage"| PI["Pi session"]
+  W -->|"CAS Open->Closing->Closed"| Repo
+```
+
+图 M-MX-0 · MECH-MATRIX 用途概览 / Target / NOT_BUILT。讨论事件经去重、落盘、领取后成为 Pi 输入。
+
+**教学路径**：本机制属"有副作用的收口"路径（对应 STD EX-EXPORT 教学）：事件落盘与 intake 关闭都有持久后果。
+
 ## 2. 使用场景与功能
 
 | Capability / Scenario ID | 业务任务与触发/条件 | 输入与可观察结果 | 提供方/全部消费者 | 实现状态 | 验证结果/判据 |
@@ -50,7 +63,7 @@ Piko 的 discussion Run 需要把 Matrix 房间里的消息按顺序喂给 Pi，
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 |
 |---|---|---|---|
-| PK-08 Matrix Client-Server · Approved | discussion Run | single identity；intake CAS Open→Closing→Closed | M008 协议封装；M005 CAS；reedom: 内部数据；不可变：不引入 AS |
+| PK-08 Matrix Client-Server · Approved | discussion Run | single identity；intake CAS Open→Closing→Closed | M008 协议封装；M005 CAS；自由度：内部数据；不可变：不引入 AS |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -67,9 +80,11 @@ Piko 的 discussion Run 需要把 Matrix 房间里的消息按顺序喂给 Pi，
 | `room_id` / `event_id` | HTTPS Client-Server | homeserver | 独立网络故障域 | 旧 event 只去重 |
 | sync cursor | 本地 SQLite | M003 | 同域 | 不推进即不丢 |
 
+**统筹者退出语义**：M008 pump 退出 → sync cursor 停在最后提交点，重启从该点继续（dedup 吸收重放）；M005 在 CAS 前退出 → intake 仍 Open，重启重判。退出不丢失已提交事件。
+
 ## 4. 数据结构设计
 
-### 4.1 公共基础类型与枚举
+### 4.1 公共基础类型与枚举（适用时）
 
 #### 4.1.1 `DiscussionIntakeState`
 
@@ -82,7 +97,7 @@ Piko 的 discussion Run 需要把 Matrix 房间里的消息按顺序喂给 Pi，
 - **定义与来源**：`"Pending" | "QueuedInPi" | "Consumed" | "Abandoned"`。来源 M005 ISD §4.1。
 - **逐值含义**：`Abandoned` 只用于 Failed/Cancelled 时封存未消费 turn，不等同 Consumed。
 
-### 4.2 业务与操作数据结构
+### 4.2 业务与操作数据结构（适用时）
 
 #### 4.2.1 `DiscussionTurn`
 
@@ -95,30 +110,30 @@ Piko 的 discussion Run 需要把 Matrix 房间里的消息按顺序喂给 Pi，
 - **定义与来源**：持久 `event_id` + `visible_content` + reply_context + attachments；provider 投影删除 `event_id`。来源 M006 ISD §4.4.4。
 - **跨字段**：`attachments` 必须已验证 membership/event/media。
 
-### 4.3 配置与规则数据结构
+### 4.3 配置与规则数据结构（适用时）
 
 **N/A · 复用系统 config**：`matrix.*` 由 system-design §9.1 + M008 ISD 维护。
 
-### 4.4 通信报文结构
+### 4.4 通信报文结构（适用时）
 
 **N/A · 复用机器契约**：`PikoDiscussionMessage` 字段在 M006 ISD §4.4.4。
 
-### 4.5 设备与 FPGA 表项结构
+### 4.5 设备与 FPGA 表项结构（适用时）
 
 **N/A · 纯软件范围**。
 
-### 4.6 运行状态数据结构
+### 4.6 运行状态数据结构（适用时）
 
 #### 4.6.1 `MatrixSendRecord`
 
 - **定义与来源**：`txn_id` 主键 + `run_id`/`turn_seq`/`payload_sha256`/`event_id`/`state`。来源 M003 ISD §4.2.8。
 - **约束**：`txn_id` 由 instance/run/turn/action 确定性派生；`state ∈ {Pending, Sent, Unknown}`。
 
-### 4.7 数据库表结构
+### 4.7 数据库表结构（适用时）
 
 **N/A · 见 M003 ISD §4.7.1**：`matrix_state`/`matrix_events`/`discussion_turns`/`matrix_sends` DDL 在 M003 ISD。
 
-### 4.8 错误码与错误结构
+### 4.8 错误码与错误结构（适用时）
 
 **复用机器契约**：`InvalidDiscussionContext`（受理冲突）、`DiscussionAccessLost`（membership/event/media 丢失）。
 
@@ -134,11 +149,11 @@ event_id/txn_id 字符串；visible_content UTF-8；mxc URI 字符串。
 
 ## 5. 接口设计
 
-### 5.1 API
+### 5.1 API（适用时）
 
 **N/A**：无对外 API；discussion 经 MECH-RUN 的 `POST /runs`（带 `discussion?`）触发。
 
-### 5.2 消息与数据流接口
+### 5.2 消息与数据流接口（适用时）
 
 | Interface ID | 方向 | 输入 | 输出 | 实现位置 |
 |---|---|---|---|---|
@@ -147,11 +162,11 @@ event_id/txn_id 字符串；visible_content UTF-8；mxc URI 字符串。
 | IF-MX-SEND | M008 → homeserver | `MatrixSendRecord` | `MatrixSendOutcome` | M008 ISD §5.1 |
 | IF-MX-TURN | M005 → M003 | turn | turn record | M003 ISD §5.1 |
 
-### 5.3 硬件与固件接口
+### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
 
-### 5.4 人机与维护接口
+### 5.4 人机与维护接口（适用时）
 
 **N/A**：无独立维护入口；membership/sync 摘要经 operator 诊断读取。
 
@@ -238,11 +253,20 @@ stateDiagram-v2
 - turn 按 `turn_seq` 顺序领取；`(run_id, event_id)` 唯一。
 - media 字节上限由 schema 控制。
 
+- 代表请求：`syncOnce` 在单 SQLite writer 事务内写 dedup + turn + cursor；worker intake CAS 与 sync 竞争同一 writer lock，先到者生效。
+- 等待出口：sync 失败 cursor 不推进；Pi followUp 等待 Harness 空闲；membership 复核失败立即终止。
+
 ## 11. 安全、权限与信任边界
 
 - 单 configured identity；whoami 核对。
 - membership/event visibility/media ACL 在接收与实际读取前分别复核。
 - access token 不进任务或 Result。
+
+| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
+|---|---|---|---|
+| incoming event | homeserver → Piko | membership/event visibility | 忽略自身 sender / `DiscussionAccessLost` |
+| media 附件 | Matrix media → staging | MIME/size/ACL + workspace path | 拒绝越界/超限 |
+| access token | Secret provider → 内存 | reference-only | 不入任务/Result |
 
 ## 12. 可观测性与证据
 
@@ -261,6 +285,11 @@ stateDiagram-v2
 
 - 消费 `matrix.homeserver`/`credential_ref`/`identity_localpart`。
 - 兼容：`matrix-js-sdk` lockfile 固定；不支持 AS 路径。
+
+| 组合 | 允许版本 | 不支持/降级 |
+|---|---|---|
+| Piko ↔ Matrix | Client-Server (`matrix-js-sdk` lockfile) | 无 AS 路径 |
+| discussion 契约 | PikoDiscussionMessage | 不引入产品 envelope |
 
 ## 14. 跨责任单元分解与接口分配
 
@@ -316,6 +345,8 @@ stateDiagram-v2
 | ISSUE-MX-001 | 本地 Synapse 与生产 homeserver 行为差异 | Medium | Piko Implementation Owner | homeserver 联调后 |
 
 已选决定：单 Client-Server 路径（§1）；SQLite 事务内同步（§8）。被否决：AS 路径、产品 outbox。
+
+**跨机制依赖检查**：MECH-MATRIX 依赖 `MECH-RUN`（Run 生命周期与 Result）与 `MECH-RECOVERY`（cursor/turn 对账）。无反向依赖、无循环、上级 `MECH-RUN` 已登记。
 
 ## A. 输入基线、适用性与图文规则
 

@@ -25,6 +25,19 @@ Piko 的配置决定哪些模型、哪些工具、哪些路径被允许。配置
 
 **最重要取舍**：选择"重启生效"而非在线热改，代价是切换需停机，换取无混合版本。
 
+```mermaid
+flowchart LR
+  OP["Operator<br/>（改 config + 重启）"] -->|"config 文件"| BOOT["M000 bootstrap"]
+  BOOT -->|"schema 校验"| BIND["M002 policy<br/>bind tool/recovery"]
+  BIND -->|"BoundToolProfile"| ACT["Active（READY）"]
+  OP -->|"SIGTERM"| STOP["旧进程停止"]
+  STOP --> BOOT
+```
+
+图 M-CFG-0 · MECH-CONFIG 用途概览 / Target / NOT_BUILT。配置经加载、校验、绑定后在重启后生效。
+
+**教学路径**：本机制接近"只读观测"路径：读取与校验不改外部对象；区别是它决定后续业务行为，需与 MECH-RUN 组合验收。
+
 ## 2. 使用场景与功能
 
 | Capability / Scenario ID | 业务任务与触发/条件 | 输入与可观察结果 | 提供方/全部消费者 | 实现状态 | 验证结果/判据 |
@@ -66,16 +79,18 @@ Piko 的配置决定哪些模型、哪些工具、哪些路径被允许。配置
 | Secret provider | 进程内 reference | 外部 provider | 独立域 | 解析失败 → 不 READY |
 | tool registry | 进程内绑定 | M000 | 同域 | 启动后不可热注册 |
 
+**统筹者退出语义**：M000 启动中退出 → 未 READY，无业务入口；已 READY 后退出的语义等同进程退出（由 `MECH-RECOVERY` 处理）。配置快照随进程消亡，重启重读。
+
 ## 4. 数据结构设计
 
-### 4.1 公共基础类型与枚举
+### 4.1 公共基础类型与枚举（适用时）
 
 #### 4.1.1 `EffectiveConfigState`
 
 - **定义与来源**：`"Loaded" | "Bound" | "Active"`。来源 M000 ISD §4.1。
 - **逐值含义**：`Loaded`＝schema 通过；`Bound`＝tool registry 绑定；`Active`＝READY。不允许跳级。
 
-### 4.2 业务与操作数据结构
+### 4.2 业务与操作数据结构（适用时）
 
 #### 4.2.1 `BoundToolProfile`
 
@@ -83,7 +98,7 @@ Piko 的配置决定哪些模型、哪些工具、哪些路径被允许。配置
 - **字段与约束**：`tools[]` + `recovery_contracts{}`；每个 `recovery_contract_ref` 必须解析到已注册实现并匹配 tool name/effect/replay。
 - **所有权/寿命**：启动时绑定；进程寿命。
 
-### 4.3 配置与规则数据结构
+### 4.3 配置与规则数据结构（适用时）
 
 #### 4.3.1 `PikoRuntimeConfig`
 
@@ -96,23 +111,23 @@ Piko 的配置决定哪些模型、哪些工具、哪些路径被允许。配置
 - **定义与来源**：机器权威 `interfaces/schemas/piko-tool-profile-v0.3.schema.json`。
 - **字段**：`tools[]` + `recovery_contracts{}`。
 
-### 4.4 通信报文结构
+### 4.4 通信报文结构（适用时）
 
 **N/A · 复用机器契约**。
 
-### 4.5 设备与 FPGA 表项结构
+### 4.5 设备与 FPGA 表项结构（适用时）
 
 **N/A · 纯软件范围**。
 
-### 4.6 运行状态数据结构
+### 4.6 运行状态数据结构（适用时）
 
 **N/A · 见 M000 ISD §4.6**：启动状态由 `EffectiveConfigState` 表达。
 
-### 4.7 数据库表结构
+### 4.7 数据库表结构（适用时）
 
 **N/A · 见 M003 ISD §4.7.1**：`instance_meta` 记录 schema generation 与 boot id。
 
-### 4.8 错误码与错误结构
+### 4.8 错误码与错误结构（适用时）
 
 **复用机器契约**：`InternalError`（config-invalid / tool-bind-fail）；对外不暴露配置细节。
 
@@ -128,11 +143,11 @@ config JSON/YAML（由 schema 决定）；Secret 只存 reference。
 
 ## 5. 接口设计
 
-### 5.1 API
+### 5.1 API（适用时）
 
 **N/A**：无对外 API；配置经启动流程生效。
 
-### 5.2 消息与数据流接口
+### 5.2 消息与数据流接口（适用时）
 
 | Interface ID | 方向 | 输入 | 输出 | 实现位置 |
 |---|---|---|---|---|
@@ -140,11 +155,11 @@ config JSON/YAML（由 schema 决定）；Secret 只存 reference。
 | IF-CFG-BIND | M000 → M002 | profile + registry | `BoundToolProfile` | M002 ISD §5.1 |
 | IF-CFG-SECRET | M000 → provider | credential_ref | Secret | M000 ISD §5.1 |
 
-### 5.3 硬件与固件接口
+### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
 
-### 5.4 人机与维护接口
+### 5.4 人机与维护接口（适用时）
 
 operator 修改 config + SIGTERM 触发 P-STOP → P-START（见 system-design §8.4）；MECH-CONFIG 不自建接口。
 
@@ -222,11 +237,20 @@ stateDiagram-v2
 - 启动串行 S1-S8；无并发配置写。
 - 配置只在启动时读取；运行时无 reload。
 
+- 启动串行 S1-S8；无并发配置写；配置只在启动时读取，运行时无 reload。
+- 等待出口：preflight 探测超时 → F1；Secret 解析失败 → F1；不部分就绪。
+
 ## 11. 安全、权限与信任边界
 
 - credential 只存 reference；明文拒绝。
 - config 文件权限 0600；Secret 不进 config dump/DB/log。
 - tool allowlist 默认拒绝 shell/network/外写。
+
+| 资产/入口 | 信任边界 | 权威来源 | 拒绝行为 |
+|---|---|---|---|
+| config 文件 | Operator → 进程 | schema + 权限 0600 | schema FAIL → 不 READY |
+| Secret reference | Secret provider | reference-only | 明文拒绝 |
+| tool profile | Operator → registry | 注册实现 + manifest | 不匹配 → 启动失败 |
 
 ## 12. 可观测性与证据
 
@@ -245,6 +269,12 @@ stateDiagram-v2
 
 - 全部 `PikoRuntimeConfig` / `ToolProfile` 字段；重启生效。
 - 兼容：schema 版本 0.3；Pi upstream commit 锁定。
+
+| 组合 | 允许版本 | 不支持/降级 |
+|---|---|---|
+| config schema | `piko-runtime-config-v0.3.schema.json` | 未知字段拒绝 |
+| tool profile schema | `piko-tool-profile-v0.3.schema.json` | 未注册 ref 拒绝 |
+| 生效方式 | 重启 | 无在线热改 |
 
 ## 14. 跨责任单元分解与接口分配
 
@@ -300,6 +330,8 @@ stateDiagram-v2
 | ISSUE-CFG-001 | 重启切换的停机窗口未实测 | Low | Piko Operator | 部署测试后 |
 
 已选决定：重启生效（§1）；启动时绑定（§8）。被否决：在线热改、多配置路径。
+
+**跨机制依赖检查**：MECH-CONFIG 被 `MECH-RUN` / `MECH-RECOVERY` 依赖（启动前置）。本机制不依赖其他机制，无循环；父机制 `MECH-RUN` 已登记。
 
 ## A. 输入基线、适用性与图文规则
 
