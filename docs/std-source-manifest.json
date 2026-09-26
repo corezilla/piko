@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.41",
+  "std_version": "0.1.0-draft.43",
   "source_repository": "corezilla/STD",
-  "source_revision": "5c0be5e59296bfbab12b1a86eddf379615c89055",
+  "source_revision": "46e0806ec56ca0c41fa6ac62a6b755af70dacf36",
   "source_tag": null,
-  "generated_at": "2026-09-26",
+  "generated_at": "2026-09-27",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "ba732bd608e14c5360ce39ce54af8ba699b87b211f23ae9d0dec02a0d491ea42"
+      "sha256": "5a91b024791b4c1bc26482efe5ccb109771d6ea2487d5a10a340fc7073eaf621"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "605875195bd2bad8c8f882885e2d94fdf0f7f940e6ea91821691f86402e1741f"
+      "sha256": "ed570fd92548df698d486a29e443d5478f14c97f5bacc4f7ddf5ca9fcc6cac5a"
     },
     {
       "path": "docs/adoption.md",
@@ -99,7 +99,7 @@
     {
       "path": "docs/ai-guides/unit-design.md",
       "role": "guidance",
-      "sha256": "62df35ac4b7739928b46efd53e7d35a09ee1b2976ab104e88ec892e3ad28a4eb"
+      "sha256": "498d92d3a319e362823faec6aba0ccadbb1c92a53db1e2db3fecaf96d0720421"
     },
     {
       "path": "docs/ai-guides/verification.md",
@@ -109,7 +109,7 @@
     {
       "path": "docs/ai-system-design-authoring-guide.md",
       "role": "guidance",
-      "sha256": "6f2605903fe2e0d3eb8fbc21b13995b8f3ec6a3d6a9ddf97a0ba0d73ddb4d33c"
+      "sha256": "5747fa5df160914ce137a9efadf87e9ac846efb5a49e3bb7da783198a60215ee"
     },
     {
       "path": "docs/architecture-design-authoring-guide.md",
@@ -449,7 +449,7 @@
     {
       "path": "examples/std.lock.example.json",
       "role": "example",
-      "sha256": "15efba2cce8b84bd8f2b2dd68996288ef23b58f32b3cb5300e25846c4727f02d"
+      "sha256": "8525ddf60090d0b08b9c2e257a41b18881ba707187f23ed47b7978eef81a78ae"
     },
     {
       "path": "schemas/document-metadata.schema.json",
@@ -594,7 +594,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "65e3594cd0b838108ee7b38bad37f8a33952bf12eb989e01a5eb9d6cd06f834f"
+      "sha256": "9af55ab10f0fcc69d8818a77b8c313626e4de519c8646bd84e50e10252801678"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -619,7 +619,7 @@
     {
       "path": "templates/design/design-definition.md",
       "role": "template",
-      "sha256": "bb109b09296e6a27dcf776b0bf62b11fe821f27784cdb3b6c93121709922ca82"
+      "sha256": "bfb22c5a7881599a1d7e21b47fffa26c1fa8280f3ae4d1a2c23b5a9769274693"
     },
     {
       "path": "templates/design/fpga-design.md",

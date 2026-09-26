@@ -235,11 +235,14 @@ MECH-RECOVERY 无对外 API；进程内恢复编排函数是本机制 API。
 - **错误与合法下一步**：fencing 失败 → `FencedWrite`。
 - **代表调用与验证**：PK-T12。
 
-#### `acquireSlot(ownerId) -> Lease`（IF-REC-FENCE）
+#### `fence(runId: string, ownerId: string, bootId: string) -> Lease | null`（IF-REC-FENCE）
 
-- **Interface/Member ID、用途与提供责任**：`IF-REC-FENCE`；M004 `scheduler` 提供。
-- **输入与前提**：重启后。
-- **成功输出与保证**：新 lease epoch；旧被 fence。
+- **Interface/Member ID、用途与提供责任**：`IF-REC-FENCE`；M004 `scheduler` 提供。唯一签名与终态行为由 M004 设计 [`piko-scheduler`](../../40_module_design/piko-scheduler-design.md) §9.1.3 固定，本行与之一致（原简写 `acquireSlot(ownerId) -> Lease` 已废弃，避免与 `IF-RUN-SLOT` 同名异义）。
+- **唯一契约、版本与状态**：`piko-scheduler` §9.1.3（Proposed；随 M004 设计冻结，`system-design` §3.2 已登记 M004 提供 `fence`）。
+- **输入与前提**：重启后，`execution_slot` 仍绑定一个非终态 Run（`runs.state ∈ {Running, Cancelling}`）；`runId` 为该绑定 Run，`ownerId`/`bootId` 为当前进程。
+- **成功输出与保证**：绑定 Run 非终态 → 返回新 `Lease{run_id, owner_id, boot_id, epoch=旧+1, acquired_at, heartbeat_at}`，旧 epoch 的所有写入（`renewLease`、`finish`）从此 0 行生效。绑定 Run 已终态 → 原子清空 slot 并返回 `null`。
+- **错误与合法下一步**：`execution_slot` 与 `run_sessions.lease_epoch` 不一致 → 内部不变量冲突，交 operator，不自行修复。
+- **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`；在恢复门内调用，不与正常领取并发。
 - **代表调用与验证**：PK-T01/PK-T12。
 
 ### 5.2 消息与数据流接口（适用时）
