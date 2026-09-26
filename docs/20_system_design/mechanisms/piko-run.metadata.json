@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "piko-run",
+  "document_type": "design.system-mechanism",
+  "document_version": "0.1.0",
+  "title": "Piko 机制：单 Run 提交→完成闭环",
+  "document_owner": "Piko Architecture Owner",
+  "authors": [
+    "corezilla",
+    "opencode"
+  ],
+  "template_id": "design.system-mechanism",
+  "template_version": "3.2.0",
+  "template_sha256": "1ac0bd4d6ce5a8958e02639a9581366228adc6a15d2feec15203dc65e0753111",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "accepted",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/20_system_design/mechanisms/piko-run.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-design",
+  "supersedes": null,
+  "created_at": "2026-09-25",
+  "last_modified_at": "2026-09-25"
+}
