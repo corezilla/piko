@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -155,8 +155,14 @@ RecoveryProbe {
 
 ### 4.8 错误码与错误结构（适用时）
 
-**复用机器契约**：`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`InternalError`。
+| Error ID | 触发事实 | 结果 | 合法下一步 |
+|---|---|---|---|
+| `UnsafeRetryBlocked` | `replay:"never"` 工具无 outcome | Run Failed | 交 operator；不重放 |
+| `ExecutionStateUnknown` | Harness storage/invariant 无法证明状态 | Run Failed | 交 operator |
+| `InternalError` | session 不可恢复 / 恢复对账失败 | Run Failed | 交 operator；不重发旧请求 |
+| （恢复成功） | — | 补终态或 resume | 无需人工 |
 
+恢复不制造新错误码：只复用 contract §6 的既有码。
 ### 4.9 编码、布局与共享类型映射
 
 **N/A · 复用 MECH-RUN 编码规则**。
@@ -221,6 +227,48 @@ sequenceDiagram
 - 恢复与新 Run 受理并发：scheduler 只在恢复完成后领取。
 - 多个非终态 Run：逐个按恢复顺序处理。
 - tombstone Run 只跳过。
+
+#### 6.1.1 完整调用实例（JSON）
+
+**q1 扫描后探测（run-042：results 已有 gen 3，runs 仍 Running）**
+
+```json
+{"result_exists":true,"result_generation":3,"run_state":"Running","lease_epoch":7,"pi_session":{"session_id":"run-042","exists":true,"open_operations":["run-042:initial"],"operation_result":null},"transcript_version":14,"ledger_version":9,"matrix_cursor":"s101"}
+```
+
+→ 判定 `PatchedTerminal`：补第二步。
+
+**q2 有 operation result（run-043：Pi 已 commit，Result 未封装）**
+
+```json
+{"result_exists":false,"run_state":"Running","lease_epoch":8,"pi_session":{"session_id":"run-043","exists":true,"open_operations":[],"operation_result":{"operation_id":"run-043:initial","status":"Completed"}},"transcript_version":22,"ledger_version":11,"matrix_cursor":null}
+```
+
+→ 判定 `WrapResult`：封装 Result + 两步提交。
+
+**q3 有 open operation（run-044：崩溃于 drive 中）**
+
+```json
+{"result_exists":false,"run_state":"Running","lease_epoch":9,"pi_session":{"session_id":"run-044","exists":true,"open_operations":["run-044:initial"],"operation_result":null},"transcript_version":5,"ledger_version":3,"matrix_cursor":null}
+```
+
+→ 判定 `ResumedOperation`：drive/getResult，不重复 accept。
+
+**q4 不可恢复（session 损坏）**
+
+```json
+{"result_exists":false,"run_state":"Running","lease_epoch":10,"pi_session":{"session_id":"run-045","exists":false,"open_operations":[],"operation_result":null},"transcript_version":null,"ledger_version":2,"matrix_cursor":null}
+```
+
+→ 判定 `InternalError`：明确失败，不重发、不假成功。
+
+**q5 `replay:"never"` 无 outcome**
+
+```json
+{"result_exists":false,"run_state":"Running","lease_epoch":11,"pi_session":{"session_id":"run-046","exists":true,"open_operations":[],"operation_result":null},"transcript_version":8,"ledger_version":4,"matrix_cursor":null,"unresolved_never_tools":["tc-9"]}
+```
+
+→ 判定 `UnsafeRetryBlocked`：不重放未知副作用。
 
 ## 7. 分支和替代流程
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -209,7 +209,33 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ### 4.8 错误码与错误结构（适用时）
 
-**复用机器契约**：MECH-RUN 涉及的外部错误码（`Unauthorized` / `TaskConflict` / `Gone` / `QueueFull` / `RunNotTerminal` / `ResultUnavailable` / `CancelledBeforeStart` / `StopRequested` / `AlreadyTerminal` / `DeadlineExceeded` / `BudgetExceeded` / `ModelUnavailable` / `ModelResponseInvalid` / `ToolFailure` / `UnsafeRetryBlocked` / `ExecutionStateUnknown` / `CancelledByRequest` / `InternalError`）逐码定义在 `interfaces/error-codes/agent-runtime-v0.3.yaml` + contract §6；本节不重定义。
+#### 4.8.1 外部 typed error 逐码
+
+| Error ID | 触发事实 | HTTP | 结果状态 | 调用方合法下一步 |
+|---|---|---|---|---|
+| `Unauthorized` | bearer principal 校验失败 | 401 | 无 Run 创建 | 修正凭据；不换 principal 重试 |
+| `TaskConflict` | 同 `task_id` 不同任务定义 | 409 | 保留原任务与 Run | 核对原任务；新任务换新 `task_id` |
+| `Gone` | tombstone（已清理 ID） | 410 | 不重建 | 换新 `task_id` |
+| `InvalidDiscussionContext` | discussion room/event 冲突 | 409 | 不创建 Run | 核对 room/event 与 membership |
+| `QueueFull` | 队列达 `max_queue_depth` | 429 | 不创建 Run | 等待后重试同 ID；不强行清队列 |
+| `RunNotTerminal` | 非终态查 result | 409 | 无副作用 | 继续查询或等待 |
+| `ResultUnavailable` | 终态丢 durable Result | 500 | 不伪装成功 | 交 operator；不重建 |
+| `CancelledBeforeStart` | Queued 取消完成 | 200 | 零调用 Result | — |
+| `StopRequested` | Running 取消意图落盘 | 202 | 未停 | 轮询状态；不重复取消 |
+| `AlreadyTerminal` | 已终态取消 | 200 | — | — |
+| `DeadlineExceeded` | 截止耗尽 | Result failure | Failed | 交 Slinky 决策 |
+| `BudgetExceeded` | 模型/工具预算耗尽 | Result failure | Failed | 交 Slinky 决策 |
+| `ModelUnavailable` | 模型/LLMTier 不可达 | Result failure | Failed | 交 Slinky 决策 |
+| `ModelResponseInvalid` | SSE/protocol 非法 | Result failure | Failed | 交 Slinky 决策 |
+| `ToolFailure` | 工具明确 error | Result failure | Failed | 交 Slinky 决策 |
+| `UnsafeRetryBlocked` | `never` 工具无 outcome | Result failure | Failed | 交 Slinky 决策 |
+| `ExecutionStateUnknown` | Harness 无法证明状态 | Result failure | Failed | 交 operator |
+| `CancelledByRequest` | 取消且已停 | Result failure | Cancelled | — |
+| `InternalError` | Piko 内部错误 | Result failure | Failed | 交 operator |
+
+#### 4.8.2 `Failure` 结构（Result 内嵌）
+
+`{code, cause_class, detail?, observed_at, run_generation}`；`Failed` 必须 non-null，`Completed` 强制 null，`Cancelled` 映射 `CancelledByRequest`/`Cancellation`。逐码定义在 `interfaces/error-codes/agent-runtime-v0.3.yaml`。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -349,6 +375,52 @@ sequenceDiagram
 - 同一实例已有 Running Run 时新 Run 保持 Queued；scheduler 只在该 Run 终态释放 slot 后再领下一个。
 - discussion Run 可在 Open intake 期间接收多个 `DiscussionTurn`（由 MECH-MATRIX 承接）；MECH-RUN 只负责触发 accept 与终态。
 - Run 终态后 tombstone 永久保留；保留期到后正文清理但 `{task_id, run_id, Gone}` 保留。
+
+#### 6.1.1 完整调用实例（JSON）
+
+代表 Run `task-042` / `run-042`，逐步调用并校验响应后再执行下一步。
+
+**q1 提交（POST /runs）**
+
+```json
+{"task_id":"task-042","task":{"instruction":"analyze repo and write report","output_paths":["out/report.json"]},"workspace":"ws-7","permissions":{"read":["docs/**"],"write":["out/**"],"tool":["read_file","write_file"]},"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":10,"max_tool_calls":20,"output_paths":["out/report.json"]}
+```
+
+```json
+{"task_id":"task-042","run_id":"run-042","state":"Queued"}
+```
+
+**q2 状态（GET /runs/run-042）**
+
+```json
+{"run_id":"run-042","state":"Running","generation":3,"cancel_requested":false,"discussion_intake_state":"Disabled","accepted_at":"2026-09-25T11:00:00Z","started_at":"2026-09-25T11:00:02Z","finished_at":null,"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":10,"max_tool_calls":20}
+```
+
+**q3 结果（GET /runs/run-042/result）**
+
+```json
+{"run_id":"run-042","state":"Completed","partial":false,"summary":"Report written to out/report.json","outputs":[{"path":"out/report.json","sha256":"a1b2...","size":1234}],"known_actions":[{"tool_call_id":"tc-1","tool_name":"write_file","status":"Completed"}],"usage":{"input_tokens":1200,"output_tokens":340,"total_tokens":1540,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":null,"model_attempts":2,"usage_observed_attempts":2,"missing_fields":["reasoning_tokens"],"quality":"Partial"},"failure":null}
+```
+
+**q4 重复提交（同 task_id 同内容）** → 返回 q1 原 Run，不新增执行。
+
+**q5 取消（POST /runs/run-043:cancel，Running）** → 202：
+
+```json
+{"run_id":"run-043","outcome":"StopRequested"}
+```
+
+**错误实例（同 ID 不同内容）**
+
+```json
+{"task_id":"task-042","task":{"instruction":"CHANGED"},"workspace":"ws-7","permissions":{"read":[],"write":[],"tool":[]},"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":1,"max_tool_calls":1,"output_paths":[]}
+```
+
+→ 409：
+
+```json
+{"code":"TaskConflict","message":"task_id already bound to a different task","detail":"run_id=run-042"}
+```
 
 ## 7. 分支和替代流程
 

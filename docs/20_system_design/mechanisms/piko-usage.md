@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -159,8 +159,12 @@ RawUsage {
 
 ### 4.8 错误码与错误结构（适用时）
 
-**复用机器契约**：`InternalError`（semantic-validator-fail）；无 usage 专属错误码。
+| Error ID | 触发事实 | 结果 | 调用方合法下一步 |
+|---|---|---|---|
+| `InternalError`（semantic-validator-fail） | attempts 数量/精确算术/token 子集关系破坏 | Result 未发布；Run Failed | 交 operator 排查；不重跑 Pi |
+| （无独立 usage 错误码） | usage 缺失不是错误，是 `Partial`/`Unknown` 事实 | Result 照常发布（带 missing_fields） | 下游按 quality 处理 |
 
+不变量违反（`total != input+output`、cache ⊄ input、reasoning ⊄ output）由 semantic validator fail closed，不发布 Result。
 ### 4.9 编码、布局与共享类型映射
 
 `raw_usage_json` UTF-8 JSON；`UsageSnapshot` JSON 字段名与 contract 一致。
@@ -230,6 +234,40 @@ sequenceDiagram
 - 迟到 raw usage 与 Result 发布并发：以 ledger version 读，发布后不修改。
 - 同一 attempt 多次回调：以 record_version 替换，不重复相加。
 - 零 attempt Run：全零 Complete。
+
+#### 6.1.1 完整调用实例（JSON）
+
+Run `run-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。
+
+**q1 attempt1 raw usage（onRawUsage）**
+
+```json
+{"request_identity":{"response_id":"resp-1","request_id":"req-1"},"present_fields":["input_tokens","output_tokens","total_tokens","cached_tokens","cache_write_tokens","reasoning_tokens"],"input_tokens":1200,"output_tokens":340,"total_tokens":1540,"cached_tokens":100,"cache_write_tokens":0,"reasoning_tokens":50}
+```
+
+**q2 attempt2 raw usage（缺 reasoning）**
+
+```json
+{"request_identity":{"response_id":"resp-2","request_id":"req-2"},"present_fields":["input_tokens","output_tokens","total_tokens","cached_tokens","cache_write_tokens"],"input_tokens":800,"output_tokens":200,"total_tokens":1000,"cached_tokens":0,"cache_write_tokens":0}
+```
+
+**q3 snapshot（Result 发布前）**
+
+```json
+{"input_tokens":2600,"output_tokens":740,"total_tokens":3340,"cached_tokens":100,"cache_write_tokens":0,"reasoning_tokens":null,"model_attempts":3,"usage_observed_attempts":3,"missing_fields":["reasoning_tokens"],"quality":"Partial"}
+```
+
+**q4 边界：attempt 全缺 reasoning** → `reasoning_tokens=null` + missing；六字段全缺 → `quality=Unknown`：
+
+```json
+{"input_tokens":null,"output_tokens":null,"total_tokens":null,"cached_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null,"model_attempts":2,"usage_observed_attempts":0,"missing_fields":["input_tokens","output_tokens","total_tokens","cached_tokens","cache_write_tokens","reasoning_tokens"],"quality":"Unknown"}
+```
+
+**q5 零调用（取消）** → 全零 Complete：
+
+```json
+{"input_tokens":0,"output_tokens":0,"total_tokens":0,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"model_attempts":0,"usage_observed_attempts":0,"missing_fields":[],"quality":"Complete"}
+```
 
 ## 7. 分支和替代流程
 

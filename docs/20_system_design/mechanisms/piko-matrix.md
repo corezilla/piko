@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -190,13 +190,26 @@ PikoDiscussionMessage {
 
 ### 4.8 错误码与错误结构（适用时）
 
-| Error ID | 触发事实 | 结果状态 | 调用方合法下一步 |
+#### 4.8.1 Piko typed error 逐码
+
+| Error ID | 触发事实 | HTTP | 调用方合法下一步 |
 |---|---|---|---|
-| `InvalidDiscussionContext` | room/event 不存在或不可见 | 受理 409 | 核对 room/event 与 membership，不换 ID 重试 |
-| `DiscussionAccessLost` | membership 撤销 / event 权限丢失 / media ACL 失败 | Run Failed | 停止 intake；交 operator/人工 |
-| `M_UNKNOWN_TOKEN`（homeserver 401） | access token 失效 | 映射 `DiscussionAccessLost` | 轮换 token + 重启 |
-| `M_LIMIT_EXCEEDED`（homeserver 429） | 超过 homeserver 限流 | cursor 不推进 | 按 `retry_after_ms` 退避重试同批 |
-| `M_FORBIDDEN`（homeserver 403） | 无 room 权限 | 映射 `DiscussionAccessLost` | 停止；交 operator |
+| `InvalidDiscussionContext` | room/event 不存在或不可见 | 409 | 核对 room/event 与 membership；不换 ID |
+| `DiscussionAccessLost` | membership/event/media 权限丢失 | Result failure（Failed） | 停止 intake；交 operator |
+
+#### 4.8.2 homeserver 错误码映射
+
+| homeserver `errcode` | HTTP | Piko 映射 | 合法下一步 |
+|---|---|---|---|
+| `M_UNKNOWN_TOKEN` | 401 | `DiscussionAccessLost` | 轮换 token + 重启 |
+| `M_FORBIDDEN` | 403 | `DiscussionAccessLost` | 停止；交 operator |
+| `M_LIMIT_EXCEEDED` | 429 | 内部退避（不映射） | 按 `retry_after_ms` 重试同批 |
+| `M_NOT_FOUND` | 404 | `InvalidDiscussionContext`（受理）/ 忽略（运行） | 核对 event |
+| `M_UNKNOWN` | 500 | 内部重试 | 重试同批 |
+
+#### 4.8.3 内部错误
+
+`InternalError`（sync 事务失败 / dedup 冲突不可恢复）；对调用方不暴露 Matrix 细节。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -311,6 +324,72 @@ sequenceDiagram
 - 后续消息不唤醒终态 Run；下一轮需新任务。
 - membership 撤销/deadline 可提前终止。
 - `limited=true` 的 sync 批：M008 记录截断事实，仍按已收事件处理；不因截断阻塞 cursor。
+
+#### 6.1.1 完整调用实例（Matrix Client-Server）
+
+room `!r-7:hs`，trigger event `$e-7`。
+
+**q1 身份核对**
+
+```http
+GET /_matrix/client/v3/account/whoami
+Authorization: Bearer syt_xxx
+```
+
+```json
+{"user_id":"@piko:hs","device_id":"PIKO01"}
+```
+
+**q2 校验起点事件**
+
+```http
+GET /_matrix/client/v3/rooms/!r-7:hs/event/$e-7
+Authorization: Bearer syt_xxx
+```
+
+```json
+{"type":"m.room.message","event_id":"$e-7","sender":"@pm:hs","room_id":"!r-7:hs","origin_server_ts":1758800000000,"content":{"msgtype":"m.text","body":"Please analyze the repo"}}
+```
+
+**q3 长轮询 sync（batch）**
+
+```http
+GET /_matrix/client/v3/sync?since=s100&timeout=30000
+Authorization: Bearer syt_xxx
+```
+
+```json
+{"next_batch":"s101","rooms":{"join":{"!r-7:hs":{"timeline":{"events":[{"type":"m.room.message","event_id":"$e-8","sender":"@pm:hs","room_id":"!r-7:hs","origin_server_ts":1758800010000,"content":{"msgtype":"m.text","body":"also check tests"}}],"limited":false,"prev_batch":"s100"},"state":{"events":[{"type":"m.room.member","state_key":"@pm:hs","content":{"membership":"join"}}]}}}}}
+```
+
+**q4 稳定事务发送（回复）**
+
+```http
+PUT /_matrix/client/v3/rooms/!r-7:hs/send/m.room.message/run-042:turn:3:reply
+Authorization: Bearer syt_xxx
+Content-Type: application/json
+
+{"msgtype":"m.text","body":"Working on it","m.relates_to":{"m.in_reply_to":{"event_id":"$e-8"}}}
+```
+
+```json
+{"event_id":"$sent-1"}
+```
+
+**错误实例（token 失效）**
+
+```http
+GET /_matrix/client/v3/sync?since=s101&timeout=30000
+Authorization: Bearer expired
+```
+
+→ 401：
+
+```json
+{"errcode":"M_UNKNOWN_TOKEN","error":"Invalid access token"}
+```
+
+→ Piko 映射 `DiscussionAccessLost`，停止 intake，交 operator。
 
 ## 7. 分支和替代流程
 
@@ -507,6 +586,7 @@ stateDiagram-v2
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
+| v0.3.0 | 2026-09-25 | 补 §6.1.1 完整 JSON 调用实例（正常+边界+错误）与 §4.8 逐码错误 catalog（对照 STD EX-EXPORT 示例深度） | corezilla, opencode |
 | v0.2.0 | 2026-09-25 | review 修复：补实际 Matrix Client-Server 协议（sync/send/media/whoami endpoint + 请求/响应/错误/超时）；补运行环境（homeserver/身份/TLS/房间/E2EE/限流/dev-test-prod）；§4.4 从 N/A 改为实际事件与 PikoDiscussionMessage 载荷；§11/§12 按模板列格式重写 | corezilla, opencode |
 
 <!-- STD_DOCUMENT_CONTROL_BEGIN -->

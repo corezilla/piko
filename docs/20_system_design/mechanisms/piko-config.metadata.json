@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-config",
   "document_type": "design.system-mechanism",
-  "document_version": "0.2.0",
+  "document_version": "0.3.0",
   "title": "Piko 机制：配置加载、绑定与生效",
   "document_owner": "Piko Architecture Owner",
   "authors": [

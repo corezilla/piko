@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.2.0` |
+| Document Version | `0.3.0` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -171,8 +171,14 @@ ToolProfile {
 
 ### 4.8 错误码与错误结构（适用时）
 
-**复用机器契约**：`InternalError`（config-invalid / tool-bind-fail）；对外不暴露配置细节。
+| Error ID | 触发事实 | 结果 | 合法下一步 |
+|---|---|---|---|
+| `InternalError("config-invalid")` | schema 失败 / 固定项被覆盖 / 未知字段 | 启动 F1，不 READY | operator 修 config 后重启 |
+| `InternalError("tool-bind-fail")` | `recovery_contract_ref` 未注册 / 与 implementation 不一致 | 启动 F1 | 注册实现或修 profile |
+| `InternalError("secret-unresolved")` | credential_ref 解析失败 | 启动 F1 | 修 Secret provider |
+| `InternalError("preflight-fail")` | LLMTier/Matrix/store 不可达 | 启动 F1 | 修依赖后重启 |
 
+对外不暴露配置细节；错误只进启动日志（脱敏）与 audit。
 ### 4.9 编码、布局与共享类型映射
 
 config JSON/YAML（由 schema 决定）；Secret 只存 reference。
@@ -232,6 +238,36 @@ flowchart TD
 - 旧进程停止前用旧配置；新进程 READY 才证明新配置可服务。
 - 在途 Run 不受配置切换影响（进程已重启则 Run 由 recovery 处理）。
 - 参数无效时保留旧服务，不进入停止。
+
+#### 6.1.1 完整调用实例（JSON）
+
+**q1 config 文件（片段）**
+
+```json
+{"api_auth":{"slinky_principal":{"credential_ref":"secret://slinky-principal"}},"workspace_root":"/srv/piko/ws","storage":{"sqlite_path":"/srv/piko/state.db","max_queue_depth":32,"retention_days":7},"pi":{"upstream_commit":"9767ba275f3e9a5ee0f5c5342249b629ab1b2282","adapter_patches":{"before_request_stepid":true,"on_raw_usage":true}},"llmtier":{"base_url":"https://llmtier.internal","credential_ref":"secret://llmtier-key","model":"gpt-5","cacheRetention":"none","supportsExplicitPromptCacheMode":false,"streamOptions":{"maxRetries":0}},"matrix":{"homeserver":"https://matrix.internal","credential_ref":"secret://matrix-token","identity_localpart":"piko"}}
+```
+
+**q2 tool profile（片段）**
+
+```json
+{"tools":[{"name":"read_file","effect":"read","replay":"safe","implementation_ref":"tools/readFile"},{"name":"write_file","effect":"write","replay":"never","recovery_contract_ref":"rc/writeFile","implementation_ref":"tools/writeFile"}],"recovery_contracts":{"rc/writeFile":{"kind":"idempotent-write","binds":{"tool_name":"write_file","effect":"write","replay":"never","implementation_ref":"tools/writeFile"}}}}
+```
+
+**q3 无效 config（未知字段 / 覆盖固定项）**
+
+```json
+{"llmtier":{"cacheRetention":"short","streamOptions":{"maxRetries":3}}}
+```
+
+→ 启动 F1：`InternalError("config-invalid")`，不 READY。
+
+**q4 未注册 tool ref**
+
+```json
+{"tools":[{"name":"shell","effect":"shell","replay":"safe","recovery_contract_ref":"rc/missing","implementation_ref":"tools/sh"}]}
+```
+
+→ 启动 F1：`InternalError("tool-bind-fail")`。
 
 ## 7. 分支和替代流程
 
