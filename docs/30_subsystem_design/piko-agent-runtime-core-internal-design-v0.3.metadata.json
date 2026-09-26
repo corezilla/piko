@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "design.subsystem",
-  "template_version": "1.0.0",
-  "template_sha256": "7806d50c57848ae5f00e639bfba0bc2611d144c4bddc32bcbdb1207740ce4f6e",
+  "template_version": "1.1.0",
+  "template_sha256": "07c2885f9f7c2b5916f2afa87689782097ec966144ce81faaf565ddb2f1ba501",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

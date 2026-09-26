@@ -12,7 +12,7 @@
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `design.subsystem` |
-| Template Version | `1.0.0` |
+| Template Version | `1.1.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 概述与设计输入
