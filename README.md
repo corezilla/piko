@@ -28,9 +28,7 @@ Piko 复用 Pi AgentHarness 的 durable session、lane/operation、上下文、c
 ## 当前权威文件
 
 - `docs/10_requirements/piko-requirements-traceability-v0.3.md`
-- `docs/20_system_design/piko-agent-runtime-design-v0.3.md`
-- `docs/30_subsystem_design/piko-agent-runtime-core-internal-design-v0.3.md`
-- `docs/50_implementation_design/piko-runtime-implementation-design-v0.3.md`
+- `docs/20_system_design/piko-system-design.md`
 - `docs/60_interfaces/contracts/piko-agent-runtime-contract-v0.3.md`
 - `docs/60_interfaces/contracts/piko-v0.3-field-usage.md`
 - `docs/60_interfaces/contracts/piko-llmtier-consumption-v0.3.md`

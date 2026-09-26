@@ -69,11 +69,11 @@
 | TAIL-P-011 | STD 默认软件目录树 | adopt-default | 用户明确要求一次性迁入编号 `docs/`、顶层 `interfaces/` 与 `tests/contract/` | 历史证据中的旧路径只作为旧 commit 审计记录 | User / Piko Project Owner（2026-09-08） | N/A |
 | TAIL-P-012 | Repository 字段 | keep | 内部 identifier=`piko`；canonical GitHub repository=`corezilla/piko` | remote 只在提交 Gate 后配置；不影响 runtime | User / Piko Project Owner（2026-09-07） | N/A |
 | TAIL-P-101 | `design.software-system` §4.3 UI 设计 | omit · Piko 无 Web/桌面图形入口 | 替代位置：§4.2 + ops 文档 | User / Piko Project Owner（2026-09-25） | N/A |
-| TAIL-P-102 | `design.software-system` §8.2/8.3/8.4/8.5/8.6/8.7 系统级数据/配置/通信/设备/运行态/表结构 | omit · 由 subsystem + ISD 唯一维护 | 替代位置：`piko-agent-runtime-core-internal-design-v0.3` §5 + `piko-runtime-implementation-design-v0.3.isd.md` §4 | User / Piko Project Owner（2026-09-25） | N/A |
+| TAIL-P-102 | `design.software-system` §7.2/7.3/7.4/7.5/7.6/7.7 系统级数据/配置/通信/设备/运行态/表结构 | omit · 由各模块 ISD §4 唯一维护（Piko 无 subsystem） | 替代位置：各模块 `design.implementation` §4（M003 承担大部分数据结构） | User / Piko Project Owner（2026-09-25） | N/A |
 | TAIL-P-103 | `design.software-system` §9.3 硬件/固件接口 | omit · 纯软件 | — | User / Piko Project Owner（2026-09-25） | N/A |
 | TAIL-P-104 | `design.software-system` §6.3 多实例/横向扩展 | omit · 单实例单 slot | 替代位置：§3.3 关键决定 2 | User / Piko Project Owner（2026-09-25） | N/A |
 | TAIL-P-105 | `design.software-system` §11.1 副本/HA | omit · 单实例 | 替代位置：§3.3 关键决定 2 | User / Piko Project Owner（2026-09-25） | N/A |
-| TAIL-P-NEW-S1 | `design.software-system` §5 子系统概要 | omit · Piko 无 subsystem（1 个 subsystem 是架构代码坏味道，选 0 而非 ≥2） | 替代位置：§3.2 直属模块表 + 各模块 ISD §5 | User / Piko Project Owner（2026-09-25） | N/A |
+| TAIL-P-NEW-S1 | `design.software-system` §4 子系统与直属模块概要设计 | omit · Piko 无 subsystem（1 个 subsystem 是架构代码坏味道，选 0 而非 ≥2），只有 10 个直属模块 M000-M009 | 替代位置：§3.2 直属模块表 + 各模块 `design.implementation` §3 | User / Piko Project Owner（2026-09-25） | N/A |
 
 ## 4. 禁止裁剪项
 
