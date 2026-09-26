@@ -236,7 +236,7 @@ MECH-RUN 的对外 API 就是系统设计 §8.1 的四项 HTTP operation（`POST
 | Interface ID | 方向 | 输入 | 输出/确认 | 实现位置 |
 |---|---|---|---|---|
 | IF-RUN-CREATE | M001 → M003 | `ValidatedTaskSubmission` | `CreateRunOutcome{kind, run_id, generation, state}` | M003 ISD §5.1 |
-| IF-RUN-SLOT | M004 ↔ M003 | `owner_id` / `Lease` | `Lease | null` | M004 ISD §5.1 |
+| IF-RUN-SLOT | M004 ↔ M003 | `owner_id` / `Lease` | `Lease` 或 `null` | M004 ISD §5.1 |
 | IF-RUN-SESSION | M005 ↔ M006 | `run_id` | `PiRunHandle{session_id=run_id, lane=main}` | M006 ISD §5.1 |
 | IF-RUN-ACCEPT | M005 → M006 | `typedInstruction` +（discussion）`PikoDiscussionMessage` | Harness durable operation | M006 ISD §5.1 |
 | IF-RUN-DRIVE | M005 ← M006 | operation id | `PiOperationOutcome` stream | M006 ISD §5.1 |
