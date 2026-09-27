@@ -18,7 +18,7 @@ sequenceDiagram
     Note over W: 不写 results，不写终态
   end
   V-->>W: SemanticCheck {ok: true}
-  W->>R: INSERT results (run_id, generation, result_json, sha256)
+  W->>R: INSERT results (task_id, generation, result_json, sha256)
   W->>R: COMMIT
   Note over W: Result generation N 已发布；Result 内容不可变
 

@@ -7,9 +7,9 @@ sequenceDiagram
 
   Note over SL,P: 一次性业务场景：派一个新 AI 任务
   U->>SL: 决定派一个新 Run（task_id 由 Slinky 生成）
-  SL->>P: POST /runs (task_id, task, workspace, perms, deadline, ...)
+  SL->>P: POST /tasks (task_id, instruction, workspace_ref, perms, input_refs?, artifact_target?, ...)
   P->>P: 校验 + 持久化 tasks/runs
-  P-->>SL: 202 Accepted (run_id, state=Queued)
+  P-->>SL: 202 Accepted (task_id, state=Queued)
   Note over SL: Slinky 不阻塞；通过后续 status/result 查询
 
   Note over P,M: 异步执行阶段（后台 worker）
@@ -21,6 +21,6 @@ sequenceDiagram
   P->>FS: 写入 results generation
 
   Note over SL,P: 结果查询与决策
-  SL->>P: GET /runs/:run_id/result
-  P-->>SL: AgentResult (state=Completed/Failed/Cancelled + summary + outputs + usage)
+  SL->>P: GET /tasks/{task_id}/result
+  P-->>SL: AgentResult (state=Completed/Failed/Cancelled + summary + outputs + stats + usage)
   U->>SL: 基于 Result 决定下一步（验收 / 重派 / 升级）

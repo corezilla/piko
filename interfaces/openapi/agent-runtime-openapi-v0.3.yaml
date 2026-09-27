@@ -2,16 +2,19 @@ openapi: 3.1.0
 info:
   title: Piko Agent Runtime API
   version: 0.3.0-simplified.6
-  description: 单 Piko 实例、单 Agent 的轻量任务接口；当前为设计阶段契约。
+  description: 单 Piko 实例、单 Agent 的轻量任务接口；文件内容不经过 HTTP（任务只传路径/引用，文件由 Piko 主动 scp 拉取/推送）。
 servers:
   - url: https://piko.example/agent-runtime/v1
 security:
   - bearerAuth: []
 paths:
-  /runs:
+  /tasks:
     post:
-      operationId: createRun
-      summary: 提交一个 Agent 任务
+      operationId: createTask
+      summary: 提交一个 Agent 任务（含输入引用与产出目标）
+      description: |
+        提交任务只传**路径/引用**，不传文件内容。若给 `input_refs`，Piko 执行前经 `scp`（出站）拉取到本地；
+        若给 `artifact_target`，Piko 终态后经 `scp`（出站）把 `output_paths` 推送到该目标（Slinky 预建）。
       parameters:
         - $ref: '#/components/parameters/RequestId'
       requestBody:
@@ -22,7 +25,7 @@ paths:
       responses:
         '202':
           description: 新任务已持久化，或同一 task_id 返回原 Run；不表示任务成功。
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/TaskView'}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
@@ -31,24 +34,24 @@ paths:
         '422': {$ref: '#/components/responses/Unprocessable'}
         '429': {$ref: '#/components/responses/QueueFull'}
         '503': {$ref: '#/components/responses/Unavailable'}
-  /runs/{run_id}:
+  /tasks/{task_id}:
     get:
-      operationId: getRun
-      summary: 按稳定 run_id 查询当前或保留期内的历史任务状态
-      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
+      operationId: getTask
+      summary: 按稳定 task_id 查询当前或保留期内的任务状态
+      parameters: [{$ref: '#/components/parameters/TaskId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '200':
           description: 当前任务状态。
-          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/RunView'}}}
+          content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/TaskView'}}}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '410': {$ref: '#/components/responses/Gone'}
-  /runs/{run_id}:cancel:
+  /tasks/{task_id}:cancel:
     post:
-      operationId: cancelRun
+      operationId: cancelTask
       summary: 请求取消任务
-      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
+      parameters: [{$ref: '#/components/parameters/TaskId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '202':
           description: Running Run 的取消意图已持久化；不证明执行已停止。
@@ -60,11 +63,15 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '410': {$ref: '#/components/responses/Gone'}
-  /runs/{run_id}/result:
+  /tasks/{task_id}/result:
     get:
-      operationId: getRunResult
-      summary: 取得稳定任务结果
-      parameters: [{$ref: '#/components/parameters/RunId'}, {$ref: '#/components/parameters/RequestId'}]
+      operationId: getTaskResult
+      summary: 取得稳定任务结果（含产出投递状态）
+      description: |
+        返回 `AgentResult` JSON。`outputs` 为声明的产出引用（`path+sha256+size`），**不含文件字节**；
+        文件由 Piko 经数据面（`scp` 等）投递到 `artifact_target`，其状态见 `artifact_delivery`。
+        调用方以**轮询**本端点取得终态结果；实施可选"终态通知"以减少轮询，但本端点始终是权威可查。
+      parameters: [{$ref: '#/components/parameters/TaskId'}, {$ref: '#/components/parameters/RequestId'}]
       responses:
         '200':
           description: 稳定终态结果；业务接受由调用方决定。
@@ -79,7 +86,7 @@ components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer}
   parameters:
-    RunId: {name: run_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+    TaskId: {name: task_id, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
     RequestId: {name: X-Request-ID, in: header, required: false, schema: {type: string, minLength: 1, maxLength: 128}}
   responses:
     BadRequest: {$ref: '#/components/x-error-responses/BadRequest'}
@@ -93,6 +100,12 @@ components:
     Unavailable: {$ref: '#/components/x-error-responses/Unavailable'}
     ResultUnavailable: {$ref: '#/components/x-error-responses/ResultUnavailable'}
     Gone: {$ref: '#/components/x-error-responses/Gone'}
+  x-data-plane:
+    description: 文件数据传输（非 HTTP）。方法可选；本期默认 scp。
+    methods:
+      - {id: scp, status: current, note: "Piko 容器出站 scp：拉输入、推产出；Slinky 预建目标 + 受限凭据（secret 引用）。"}
+      - {id: mount, status: planned, note: "共享存储挂载进 Piko 容器，无需传输。"}
+      - {id: object_store, status: planned, note: "对象存储（预签名 multipart）。"}
   x-error-responses:
     BadRequest:
       description: 请求 JSON 或字段非法。
@@ -119,8 +132,7 @@ components:
       x-error-codes: [RunNotTerminal]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     Unprocessable:
-      description: 语法正确但当前任务约束不可执行。
-      x-error-codes: [UnsupportedLimit, DeadlineExpired]
+      description: 语法正确但当前不可受理（前提不满足，例如 workspace_ref 无法解析）。注意：输入拉取发生在受理之后，其失败按 Run Failed（InputFetchFailed）体现，不在此。
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     QueueFull:
       description: 有界本地任务队列已满；未创建 Run。

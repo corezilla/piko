@@ -1,5 +1,5 @@
 flowchart TD
-  T1["T1 SIGTERM"] --> F1["F2 停止新受理 (HTTP handler 拒绝 write)"]
+  T1["T1 SIGTERM"] --> F1["F1 停止新受理 (HTTP handler 拒绝 write)"]
   F1 --> F3["F3 fence lease/writer (scheduler.fence)"]
   F3 --> T2["T2 等待有界 drain"]
   T2 --> Q1{"超时?"}

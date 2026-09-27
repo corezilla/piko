@@ -12,7 +12,9 @@ flowchart LR
     direction TB
     LLMTier["LLMTier<br/>(OpenAI-compatible Responses SSE)"]
     Matrix["Matrix homeserver<br/>(Client-Server API)"]
-    FS["本地可靠文件系统<br/>(SQLite WAL + JSONL + staging)"]
+    SP["Slinky 存储主机<br/>(数据面 scp 对端)"]
+    SEC["Secret provider<br/>(凭据挂载)"]
+    FS["本地可靠文件系统<br/>(node:sqlite WAL + JSONL + staging)"]
   end
 
   style USER_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
@@ -20,6 +22,9 @@ flowchart LR
   style EXT_ZONE fill:#f7f9fc,stroke:#d4e0eb,stroke-width:1.5px
 
   SLINKY <--> PIKO
+  SLINKY -. "预建输入/产出目录" .-> SP
   PIKO -- "OpenAI Responses SSE" --> LLMTier
   PIKO -- "Client-Server API" --> Matrix
-  PIKO -- "SQLite WAL + JSONL + fsync" --> FS
+  PIKO -- "出站 scp（拉输入 / 推产出）" --> SP
+  PIKO -- "credential_ref 解析" --> SEC
+  PIKO -- "node:sqlite WAL + JSONL + fsync" --> FS

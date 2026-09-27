@@ -8,7 +8,7 @@ sequenceDiagram
   participant PI as pi-adapter M006
   participant Use as usage M007
 
-  S->>API: POST /runs (task_id, task, ...)
+  S->>API: POST /tasks (task_id, instruction, ...)
   API->>API: JSON/Schema + bearer principal
   API->>POL: validateSubmission
   POL-->>API: ValidatedTaskSubmission
@@ -21,7 +21,7 @@ sequenceDiagram
   else active + 不同
     Repo-->>API: 409 TaskConflict
   else 不存在
-    Repo->>Repo: check deadline/policy/discussion/queue
+    Repo->>Repo: check policy/discussion/queue
     Repo->>Repo: INSERT tasks + Queued runs
     Repo-->>API: 202 + 新 Run
   end
@@ -40,4 +40,4 @@ sequenceDiagram
   PI->>Use: onRawUsage
   Use->>Repo: model_attempts 写入
   PI->>W: operation result
-  W->>W: Result 两步提交 (见 §7.4 / ISD §6.5)
+  W->>W: Result 两步提交 (见 §6.2.1)

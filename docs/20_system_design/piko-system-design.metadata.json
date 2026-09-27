@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "system-design",
   "document_type": "design.software-system",
-  "document_version": "0.11.3",
+  "document_version": "0.12.0-draft.1",
   "title": "Piko Agent Runtime 系统设计",
   "document_owner": "Piko Architecture Owner",
   "authors": [
@@ -20,7 +20,7 @@
   "domain": [
     "software"
   ],
-  "status": "accepted",
+  "status": "draft",
   "visibility": "project",
   "source_repository": "corezilla/piko",
   "source_path": "docs/20_system_design/piko-system-design.md",
@@ -28,5 +28,5 @@
   "parent_document_id": null,
   "supersedes": "docs/99_reference/design/agent-runtime-service-design-v0.2.md",
   "created_at": "2026-09-07",
-  "last_modified_at": "2026-09-27"
+  "last_modified_at": "2026-09-28"
 }

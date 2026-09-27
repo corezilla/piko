@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant SL as Slinky
+    participant PK as Piko 容器（M001/M005）
+    participant SP as Slinky 空间（输入/产出）
+    participant LLM as LLMTier
+    SL->>PK: POST /tasks（instruction + input_refs + artifact_target）
+    PK-->>SL: 202 Queued
+    Note over PK: P-INPUT · 输入预备（Queued · 不占 slot）
+    PK->>SP: 出站 scp 拉取 input_refs
+    SP-->>PK: 输入文件
+    PK->>PK: sha256 校验，进入 staging
+    Note over PK: 执行（MECH-RUN）
+    PK->>LLM: Responses SSE
+    Note over PK: P-ARTIFACT · 投递产出
+    PK->>SP: 出站 scp 推送 output_paths
+    Note over SL: 轮询
+    SL->>PK: GET /tasks/{task_id}/result
+    PK-->>SL: AgentResult（JSON · outputs 为引用）

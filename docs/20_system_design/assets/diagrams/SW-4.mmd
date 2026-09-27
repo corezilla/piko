@@ -1,17 +1,22 @@
 flowchart LR
-  classDef process fill:#e0e7ff,stroke:#4338ca,color:#1f2937
+  classDef proc fill:#e0e7ff,stroke:#4338ca,color:#1f2937
+  classDef exec fill:#ffe4e6,stroke:#be123c,color:#1f2937
   classDef ext fill:#fee2e2,stroke:#b91c1c,color:#1f2937
   classDef store fill:#fef9c3,stroke:#a16207,color:#1f2937
 
-  P["Piko 进程（API/scheduler/worker 同进程）"]:::process
-  FS["本地可靠文件系统"]:::store
+  Slinky["Slinky"]:::ext
+  P0["P0 控制进程（常驻）<br/>task-api · policy · repository · scheduler · usage · matrix · observability<br/>唯一 SQLite writer · 只应答短事务"]:::proc
+  P1["P1 执行进程（P0 监督子进程）<br/>worker · pi-adapter · Pi(vendored) · 工具 · transfer<br/>单 slot · 允许阻塞 · 可被强杀重启"]:::exec
+  FS["本地可靠文件系统<br/>SQLite(WAL) + Pi JSONL + staging"]:::store
   LLMTier["LLMTier"]:::ext
   Matrix["Matrix homeserver"]:::ext
-  Slinky["Slinky"]:::ext
-  Pi["Pi SDK（进程内）"]:::process
+  SP["Slinky 存储主机（数据面）"]:::ext
 
-  Slinky -- "四项 HTTP API" --> P
-  P -- "OpenAI Responses SSE" --> LLMTier
-  P -- "Client-Server API" --> Matrix
-  P -- "Task Store + JSONL session" --> FS
-  P -.进程内集成.-> Pi
+  Slinky -- "四项 HTTP API + 轮询" --> P0
+  P0 -- "本地 IPC：Dispatch / Abort / FetchInputs" --> P1
+  P1 -- "本地 IPC：Facts / Staging / ResultCandidate / Heartbeat" --> P0
+  P0 -- "Task Store 读写（唯一 writer）" --> FS
+  P1 -- "Pi session JSONL / staging" --> FS
+  P1 -- "OpenAI Responses SSE" --> LLMTier
+  P0 -- "Client-Server API" --> Matrix
+  P1 -- "出站 scp（拉输入 / 推产出）" --> SP
