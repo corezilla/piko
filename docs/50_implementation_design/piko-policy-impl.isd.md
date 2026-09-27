@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-policy-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -28,7 +28,7 @@
 
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.2；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
 
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-policy` / `0.1.0-draft.1` / `docs/40_module_design/piko-policy-design.md`。摘要：policy 无状态；启动把 ToolProfile+registry 绑定为 `BoundToolProfile`，受理把 `AgentTaskRequest` 校验并规范化为 `ValidatedTaskSubmission`（路径 realpath 边界、权限交集、deadline/budget、归一化），不落库。
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-policy` / `0.1.1` / `docs/40_module_design/piko-policy-design.md`。摘要：policy 无状态；启动把 ToolProfile+registry 绑定为 `BoundToolProfile`，受理把 `AgentTaskRequest` 校验并规范化为 `ValidatedTaskSubmission`（路径 realpath 边界、权限交集、deadline/budget、归一化），不落库。
 
 - **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-RUN-003`（PK-03）、`CON-CFG-001`（PK-12，经 MECH-CONFIG）、`CON-ST-001`（PK-12，经 MECH-STARTUP）；机制输入 `M-RUN-DI-002`（`piko-run` §14.4）、`M-CFG-DI-002`（`piko-config` §14.4）、`IF-CFG-BIND`（`piko-config` §5.1）。
 
@@ -42,7 +42,7 @@
 
 - **上游信息项 / 规则 ID**：`F-POLICY-BIND`、`R-POLICY-TOOLBIND`、`IF-CFG-BIND`、`CON-CFG-001`、`CON-ST-001`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.1/§8.3/§9.1.1（v0.1.0-draft.1）；`piko-config` §5.1。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.1/§8.3/§9.1.1（v0.1.1）；`piko-config` §5.1。
 
 - **ISD 细化内容 / 章节**：§5.1.1 `PolicyService.bindToolProfile`；§3.4 `tools.ts`；§6.1 `P-POLICY-BIND`。
 
@@ -56,7 +56,7 @@
 
 - **上游信息项 / 规则 ID**：`F-POLICY-VALIDATE`、`R-POLICY-NORMALIZE`、`R-POLICY-PERMISSION`、`R-POLICY-DEADLINE`、`R-POLICY-BUDGET`、`IF-RUN-VALIDATE`、`CON-RUN-002`、`CON-RUN-003`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.2/§8.1/§8.4/§8.5/§8.6/§9.1.2（v0.1.0-draft.1）；`PolicyViolation`（§6.8.1）。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.2/§8.1/§8.4/§8.5/§8.6/§9.1.2（v0.1.1）；`PolicyViolation`（§6.8.1）。
 
 - **ISD 细化内容 / 章节**：§5.1.2 `PolicyService.validateSubmission`；§3.2 `submission.ts`；§4.2.2 `ValidatedTaskSubmission`；§6.2 `P-POLICY-VALIDATE`。
 
@@ -439,7 +439,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **完整签名与 caller**：`bindToolProfile(registry: ToolRegistry): BoundToolProfile`；caller = M000 bootstrap S3（单线程启动序列）。
 
-- **固定契约与版本**：模块设计 §9.1.1（`piko-policy` v0.1.0-draft.1）；构建目标 `dist/policy/`。
+- **固定契约与版本**：模块设计 §9.1.1（`piko-policy` v0.1.1）；构建目标 `dist/policy/`。
 
 - **输入参数 / 数据结构 authority**：`registry: ToolRegistry`（锁定 schema `piko-tool-profile-v0.3.schema.json`）；无 §6 Data ID。
 
@@ -1051,7 +1051,7 @@ flowchart TD
 ### 10.1.1 `MAP-POLICY-IF-BIND` · `IF-CFG-BIND` 映射
 
 - **模块 / 原成员 ID**：`IF-CFG-BIND`（`piko-config` §5.1）。
-- **唯一来源 / 版本 / selector / hash**：`piko-policy` §9.1.1（v0.1.0-draft.1）。
+- **唯一来源 / 版本 / selector / hash**：`piko-policy` §9.1.1（v0.1.1）。
 - **提供或消费 / backend**：提供 / 进程内（M002→M000）。
 - **实际位置或 Planned 计划位置**：Planned `src/policy/tools.ts` `bindToolProfile`；机器目录 location/symbol = `null`。
 - **验证项**：`VRC-POLICY-001`。
@@ -1094,7 +1094,7 @@ flowchart TD
 
 #### 10.2.1 `SC-POLICY-01` · 模块设计 ↔ ISD 承接一致
 
-- **上游承接状态 / 固定来源**：`piko-policy` §2/§6.2/§8/§9（v0.1.0-draft.1）声明三功能、数据结构、拒绝码与验证规格。
+- **上游承接状态 / 固定来源**：`piko-policy` §2/§6.2/§8/§9（v0.1.1）声明三功能、数据结构、拒绝码与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。
 - **§2 Current / Target**：brownfield；Current = `config.ts`/`workspace.ts`/`task-equality.ts`/`server.ts` 内联判定，Target = `src/policy/` + 既有文件委托。
 - **§3 / §5 文件与函数状态**：`src/policy/*` = `PLANNED`；`config.ts`/`workspace.ts`/`task-equality.ts`/`server.ts`/`main.ts` = `IN_PROGRESS`。
@@ -1112,7 +1112,7 @@ flowchart TD
 - **分析 / 决策引用**：模块设计 §15.1。
 - **所需输入 / 下一步选择判据**：机制字段更新或明确"schema 为准"。
 - **解决动作 / 完成条件**：`piko-config` 与锁定 schema 一致。
-- **状态**：Open。
+- **状态**：Closed（上游已修复/已回写）。
 
 ### 10.3.2 `ISD-OQ-POLICY-002` · tool profile 形状漂移
 
@@ -1124,7 +1124,7 @@ flowchart TD
 - **分析 / 决策引用**：模块设计 §15.2。
 - **所需输入 / 下一步选择判据**：机制对齐 schema。
 - **解决动作 / 完成条件**：`piko-config` §4.4.2 与锁定 schema 一致。
-- **状态**：Open。
+- **状态**：Closed（上游已修复/已回写）。
 
 ### 10.3.3 `ISD-OQ-POLICY-003` · MECH-STARTUP 未列 M002 DI
 
@@ -1136,7 +1136,7 @@ flowchart TD
 - **分析 / 决策引用**：模块设计 §15.3。
 - **所需输入 / 下一步选择判据**：机制补行或明确经 `M-CFG-DI-002` 承接。
 - **解决动作 / 完成条件**：§14.4 补 M002 行。
-- **状态**：Open。
+- **状态**：Closed（上游已修复/已回写）。
 
 ### 10.3.4 `ISD-OQ-POLICY-004` · MECH-RUN 未列 policy 校验成员
 

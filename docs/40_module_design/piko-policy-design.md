@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-policy` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -101,7 +101,7 @@ policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份
 
 - **验证方法与结果/证据**：局部 `VRC-POLICY-001`；组合 PK-T12（M000+M002+M003+M006+M008 PASS）。当前 `NOT_RUN`。
 
-- **差距/变更影响/反馈责任**：`piko-startup.md` §14.4 下级设计输入清单未给 M002 分配 `M-ST-DI-*`（尽管 §3.5 参与方与 §14.2 S3 明确 M002 承接）。按 §14.2/§5 接口承接，差异登记 `OQ-POLICY-003`（Owner：Piko Architecture）。
+- **差距/变更影响/反馈责任**：`piko-startup.md` §14.4 已补 `M-ST-DI-005`（policy，S3 启动绑定），与 §3.5 参与方一致；本模块按该行承接，`OQ-POLICY-003` 已关闭。
 
 ## 2. 需求、功能与验收条件
 
@@ -1264,30 +1264,30 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 #### 15.1 `OQ-POLICY-001` · MECH-CONFIG config 字段与锁定 schema 漂移
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-POLICY-CONFIG`、`R-POLICY-PATH`、§6.3.1。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-POLICY-CONFIG`、`R-POLICY-PATH`、§6.3.1。
 - **事实缺口 / 触发条件**：`piko-config.md` §4.3.1/§4.4.1 描述 `api_auth.slinky_principal`/`workspace_root`/`storage{max_queue_depth,retention_days}` 等字段，而项目锁定的 `piko-runtime-config-v0.3.schema.json` 与 `src/types.ts` 使用 `api_auth.principal_id`/`workspace.roots`/`task_store`/`queue.capacity` 等新字段。
 - **影响 / 阻塞边界**：不阻塞本模块（以锁定 schema 为 authority）；阻塞机制与模块合同一致性核对。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner；下一次机制评审。
 - **选项 / 推荐 / 下一步取证**：推荐把 `piko-config.md` §4.3.1/§4.4.1 更新为锁定 schema 的字段。下一步：提交机制修订。
-- **关闭条件 / 决定或当前状态**：机制与锁定 schema 一致或明确"机制层为示意、schema 为准"。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——`piko-config` §4.3/§4.4 已对齐锁定 schema。**已关闭**。
 
 #### 15.2 `OQ-POLICY-002` · tool profile 形状漂移
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `R-POLICY-TOOLBIND`、§6.3.2。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `R-POLICY-TOOLBIND`、§6.3.2。
 - **事实缺口 / 触发条件**：`piko-config.md` §4.4.2 描述 `tools[{name,effect,replay,implementation_ref}]` 的**数组**形状，而锁定的 `piko-tool-profile-v0.3.schema.json` 与 `src/config.ts` 用 `profiles{tools{...}}` 的**映射**形状并额外含 `permissions`。
 - **影响 / 阻塞边界**：不阻塞本模块（以锁定 schema 为 authority）。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner；下一次机制评审。
 - **选项 / 推荐 / 下一步取证**：推荐 `piko-config.md` §4.4.2 对齐 schema。
-- **关闭条件 / 决定或当前状态**：机制与锁定 schema 一致。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——`piko-config` §4.4.2 已对齐 `profiles`/`recovery_contracts`。**已关闭**。
 
 #### 15.3 `OQ-POLICY-003` · MECH-STARTUP §14.4 未列 M002
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 MECH-STARTUP 承接完整性、附录 A.3、`CON-ST-001`。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 MECH-STARTUP 承接完整性、附录 A.3、`CON-ST-001`。
 - **事实缺口 / 触发条件**：`piko-startup.md` §14.4 下级设计输入清单只列 M000/M003/M006/M008，未给 M002 分配 `M-ST-DI-*`，但 §3.5 参与方与 §14.2 S3 明确 M002 承接 bind。
 - **影响 / 阻塞边界**：不阻塞本模块（按 §14.2 承接）。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner；下一次机制评审。
 - **选项 / 推荐 / 下一步取证**：推荐在 `piko-startup.md` §14.4 补 M002 行（如 `M-ST-DI-005`：S3 tool/recovery bind）。
-- **关闭条件 / 决定或当前状态**：机制补行或明确 M002 经 MECH-CONFIG `M-CFG-DI-002` 承接。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——§14.4 已补 `M-ST-DI-005`。**已关闭**。
 
 #### 15.4 `OQ-POLICY-004` · MECH-RUN 未列 policy 提交校验接口成员
 
@@ -1364,9 +1364,9 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-POLICY-001`；组合 PK-T12。
 
-#### A.3 `piko-startup` / `CON-ST-001`（S3）· 机制未分配 M002 Requirement ID
+#### A.3 `piko-startup` / `M-ST-DI-005`
 
-- **来源 Capability / Step / Constraint / 接口成员**：`MECH-STARTUP` §3.5 参与方（M002 负责 S3 tool/recovery 绑定）、§14.2 步骤 S3（M002 → profile+registry → `BoundToolProfile`）、约束 `CON-ST-001`。**注**：§14.4 未为 M002 分配 `M-ST-DI-*`（见 `OQ-POLICY-003`），本行按 §14.2/§5 承接。
+- **来源 Capability / Step / Constraint / 接口成员**：`MECH-STARTUP` §3.5 参与方（M002 负责 S3 tool/recovery 绑定）、§14.2 步骤 S3（M002 → profile+registry → `BoundToolProfile`）、约束 `CON-ST-001`。承接 MECH-STARTUP §14.4 行 `M-ST-DI-005`（policy，S3 启动绑定）与 §14.2 S3。
 
 - **本模块必须负责的行为与保证**：在 S3 完成绑定校验；失败即 F1、不 READY、不 listen；无部分就绪。
 

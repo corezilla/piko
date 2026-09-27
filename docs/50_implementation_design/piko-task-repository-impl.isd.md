@@ -1797,7 +1797,7 @@ flowchart TD
 - **分析 / 决策引用**：模块设计 §15.1。
 - **所需输入 / 下一步选择判据**：scheduler/架构侧回写 §9.2.1 状态为"M003 采纳（见 `piko-task-repository` §9.1.5–9.1.10）"。
 - **解决动作 / 完成条件**：scheduler 文档状态更新且语义不变。
-- **状态**：Open（协调项）。
+- **状态：Closed
 
 ### 10.4 Metadata 与 coverage 交付检查
 

@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scheduler` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -69,7 +69,7 @@ scheduler 承接两条上级约束：`CON-RUN-001`（PK-01，单 slot + lease ep
 
 - **验证方法与结果/证据**：局部：`VRC-SCHED-003`（崩溃后 fence：epoch 推进且旧 epoch 写入被拒）、`VRC-SCHED-005`（恢复门：恢复完成前不领取）。组合：PK-T12（崩溃恢复 E2E）；当前全部 `NOT_RUN`。
 
-- **差距/变更影响/反馈责任**：`piko-recovery.md` §14.4 未给 M004 分配 Requirement ID（该表只列 M003/M005/M006），但 §3.5 参与方与 §5.1 `IF-REC-FENCE` 明确 scheduler 承担新 lease。本模块按 §5.1 接口承接，差异登记为 `OQ-SCHED-003`（机制侧反馈，Owner：Piko Architecture）。
+- **差距/变更影响/反馈责任**：`piko-recovery.md` §14.4 已补 `M-REC-DI-004`（scheduler，新 lease epoch），与 §3.5 参与方一致；本模块按该行与 §5.1 `IF-REC-FENCE` 承接，`OQ-SCHED-003` 已关闭。
 
 ## 2. 需求、功能与验收条件
 
@@ -154,7 +154,7 @@ flowchart LR
 
 - **本模块提供**：无。scheduler 不向 M003 提供接口；释放 slot 由 M003 在终态事务内完成（`T-SCHED-05`），不经 scheduler。
 
-- **契约 authority / 版本 / selector**：`IF-SCHED-STORE` 由本设计提出（§9.2），**Proposed**：待 M003 `piko-task-repository-design.md` 采纳或给出超集，未冻结前不得按"已确认合同"实现（`OQ-SCHED-001`）。`execution_slot`/`run_sessions` 的**当前代码事实**是 `src/store.ts` `migrate()` 的建表 DDL（`PRAGMA user_version=2`；`run_sessions` 见 `src/store.ts:19`，`execution_slot` 见 `src/store.ts:20`–`src/store.ts:21`）。`piko-task-repository-design.md` / `piko-task-repository-impl.isd.md` §4.7 为 **Proposed（尚未编写）**，采纳后才成为设计权威。
+- **契约 authority / 版本 / selector**：`IF-SCHED-STORE` 由本设计提出（§9.2），**Adopted**：M003 `piko-task-repository-design.md` §2.5/§9.1.5–9.1.10 已逐字采纳为 Provider（语义不变），`OQ-SCHED-001` 已关闭。`execution_slot`/`run_sessions` 的 DDL/schema authority 见 M003 设计 §6.7 与 ISD §4.7；当前实现锚点保留为 `src/store.ts` `migrate()`（`PRAGMA user_version=2`；`run_sessions` `src/store.ts:19`，`execution_slot` `src/store.ts:20`–`:21`）。
 
 - **同步方式 / timeout / 生命周期**：同步进程内调用；单 `BEGIN IMMEDIATE` 内完成；受 `task_store.busy_timeout_ms` 约束；连接生命周期由 M003 持有、与进程同域。
 
@@ -455,7 +455,7 @@ stateDiagram-v2
 
 #### 6.7.1 `execution_slot` / `run_sessions`（当前代码事实在 `src/store.ts`）
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实**：`src/store.ts` `migrate()` 内建表——`run_sessions`（`src/store.ts:19`，含 `lease_epoch INTEGER NOT NULL CHECK(lease_epoch>=1)`）、`execution_slot`（`src/store.ts:20`，单行 `slot_id=1`；初始化 `INSERT OR IGNORE ... VALUES(1,0)` 见 `src/store.ts:21`）；`PRAGMA user_version=2`。**Proposed**：`piko-task-repository-design.md` / `piko-task-repository-impl.isd.md` §4.7 尚未编写；采纳后其 DDL 成为设计权威并取代此代码事实引用。本模块不复制 CREATE TABLE，只固定本模块使用的行语义与写入点。
+- **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实**：`src/store.ts` `migrate()` 内建表——`run_sessions`（`src/store.ts:19`，含 `lease_epoch INTEGER NOT NULL CHECK(lease_epoch>=1)`）、`execution_slot`（`src/store.ts:20`，单行 `slot_id=1`；初始化 `INSERT OR IGNORE ... VALUES(1,0)` 见 `src/store.ts:21`）；`PRAGMA user_version=2`。**Adopted**：`piko-task-repository-design.md` §6.7 与 ISD §4.7 已编写并采纳，其 DDL 为设计权威；此代码事实引用保留为可定位的当前实现锚点。本模块不复制 CREATE TABLE，只固定本模块使用的行语义与写入点。
 
   ```text
   execution_slot {                     -- 单行，slot_id=1
@@ -679,9 +679,9 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协作接口是跨模块合同，按 STD 在此唯一维护（不使用 §6.4 报文节）。
 
-#### 9.2.1 `IF-SCHED-STORE` · M004 → M003 slot 端口（Proposed）
+#### 9.2.1 `IF-SCHED-STORE` · M004 → M003 slot 端口（Adopted）
 
-- **Interface/Member ID、用途、责任与唯一来源**：`IF-SCHED-STORE`；Provider：M003 `task-repository`（Proposed，待其设计采纳）；Consumer：M004 scheduler。用途：在单事务内提供 slot 的原子 CAS 原语。权威：本设计提出，`OQ-SCHED-001` 跟踪。
+- **Interface/Member ID、用途、责任与唯一来源**：`IF-SCHED-STORE`；Provider：M003 `task-repository`（已采纳，见其设计 §2.5/§9.1.5–9.1.10）；Consumer：M004 scheduler。用途：在单事务内提供 slot 的原子 CAS 原语。权威：本设计提出，M003 设计已采纳（`OQ-SCHED-001` 已关闭）。
 
   ```text
   readSlot() -> SlotRow | null
@@ -953,7 +953,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 #### 13.2.1 冻结 `IF-SCHED-STORE` 合同
 
-- **前置输入 / 依赖**：M003 `piko-task-repository-design.md` 评审（`OQ-SCHED-001`）。
+- **前置输入 / 依赖**：M003 `piko-task-repository-design.md`（已采纳 `IF-SCHED-STORE`，`OQ-SCHED-001` 已关闭）。
 
 - **新增 / 修改文件与 symbol**：`src/scheduler/types.ts` 类型；M003 端口签名。
 
@@ -1143,11 +1143,11 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 #### 14.1.18 `IF-SCHED-STORE`
 
-- **来源与适用性 / 固定基线**：§9.2.1（Proposed）；适用但依赖 `OQ-SCHED-001`。
+- **来源与适用性 / 固定基线**：§9.2.1（Adopted）；适用（M003 已采纳）。
 - **选定方案与正文锚点**：§9.2.1；§6.7（当前代码事实 `src/store.ts`）。
 - **§13 实现文件 / 装配责任**：`port.ts` + M003 `store.ts`（Planned/修改）。
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001/002/003/006`（fake + 真 M003 两套）。
-- **父级组合验证或裁剪/阻断决定**：**阻断点**：`OQ-SCHED-001` 未关闭前，M003 端口未定则对应实现不得宣称完成。
+- **父级组合验证或裁剪/阻断决定**：`OQ-SCHED-001` 已关闭（M003 已采纳）；组合验证仍待 `VRC-SCHED-*` 执行。
 
 #### 14.1.19 `IF-SCHED-GATE`
 
@@ -1285,9 +1285,9 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 #### 15.1 `OQ-SCHED-001` · M003 slot 端口合同未定
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `IF-SCHED-STORE`、`F-SCHED-*`、`CON-RUN-001`。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-SCHED-STORE`、`F-SCHED-*`、`CON-RUN-001`。
 
-- **事实缺口 / 触发条件**：M003 `piko-task-repository-design.md` 尚未编写；本设计提出的 `IF-SCHED-STORE` 六操作未与 M003 对齐（尤其 `tryClaimSlot`/`fenceSlot` 的原子边界与 `listQueued` 的排序责任）。
+- **事实缺口 / 触发条件**：已解决——M003 `piko-task-repository-design.md` §2.5/§9.1.5–9.1.10 逐字采纳 `IF-SCHED-STORE` 六操作（Provider，语义不变）。
 
 - **影响 / 阻塞边界**：阻塞 `port.ts` 与 `store.ts` 原语化（§13.2.1/13.2.3）；不阻塞 `policy.ts`（§13.2.2）。
 
@@ -1295,7 +1295,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **选项 / 推荐 / 下一步取证**：选项 A：M003 采纳本端口（推荐，保持 scheduler 纯策略）；选项 B：M003 提供更粗的 `claimNextSlot` 单事务操作（scheduler 变薄，需重评模块边界）。下一步：M003 设计先冻结该端口。
 
-- **关闭条件 / 决定或当前状态**：M003 设计与本 `IF-SCHED-STORE` 声明一致（或给出超集并回写本文）。当前 Open。
+- **关闭条件 / 决定或当前状态**：M003 设计与本声明一致（已满足）。**已关闭**（`decision_ref = piko-task-repository` v0.1.0-draft.1）。
 
 #### 15.2 `OQ-SCHED-002` · 调度常量是否暴露为配置
 
@@ -1313,9 +1313,9 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 #### 15.3 `OQ-SCHED-003` · MECH-RECOVERY §14.4 未列 M004
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 MECH-RECOVERY 承接完整性、附录 A。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 MECH-RECOVERY 承接完整性、附录 A。
 
-- **事实缺口 / 触发条件**：`piko-recovery.md` §14.4 下级设计输入清单只列 M003/M005/M006，未给 M004 分配 `M-REC-DI-*`，但 §3.5 参与方与 §5.1 `IF-REC-FENCE` 明确 scheduler 承担新 lease。
+- **事实缺口 / 触发条件**：已解决——`piko-recovery.md` §14.4 已补 `M-REC-DI-004`（scheduler，新 lease epoch），与 §3.5 参与方一致。
 
 - **影响 / 阻塞边界**：不阻塞本模块（按 §5.1 接口承接）；影响机制承接的完整性核对。
 
@@ -1323,7 +1323,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **选项 / 推荐 / 下一步取证**：推荐：在 `piko-recovery.md` §14.4 补一行 M004（如 `M-REC-DI-004`：新 lease epoch / fence）。下一步：提交机制修订。
 
-- **关闭条件 / 决定或当前状态**：机制补行或明确 scheduler 经 MECH-RUN `M-RUN-DI-004` 承接。当前 Open。
+- **关闭条件 / 决定或当前状态**：机制已补行 `M-REC-DI-004`。**已关闭**。
 
 #### 15.3b `OQ-SCHED-004` · MECH-RUN §5.1 `Lease` 缺 `run_id`
 
@@ -1382,7 +1382,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 #### A.2 `piko-recovery` / `IF-REC-FENCE`
 
-- **来源 Capability / Step / Constraint / 接口成员**：`MECH-RECOVERY` §3.5 参与方（M004 负责新 lease epoch）、§5.1 `IF-REC-FENCE`、约束 `CON-REC-001`（PK-12）。**注**：§14.4 未为 M004 分配 `M-REC-DI-*`（见 `OQ-SCHED-003`），本行按 §5.1 接口承接。
+- **来源 Capability / Step / Constraint / 接口成员**：`MECH-RECOVERY` §3.5 参与方（M004 负责新 lease epoch）、§5.1 `IF-REC-FENCE`、约束 `CON-REC-001`（PK-12）。承接 MECH-RECOVERY §14.4 行 `M-REC-DI-004`（scheduler，新 lease epoch）与 §5.1 `IF-REC-FENCE`。
 
 - **本模块必须负责的行为与保证**：重启后为仍占位的非终态 Run 推进 epoch（旧 epoch 写全部失效）；恢复完成后才允许正常领取。
 

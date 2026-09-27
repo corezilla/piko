@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-worker` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -372,7 +372,7 @@ flowchart LR
 
 - **本模块提供**：无反向接口；worker 是 lease 的消费者与驱动者。
 
-- **契约 authority / 版本 / selector**：`piko-scheduler` §9.1（`IF-RUN-SLOT`/`IF-RUN-RENEW`/`IF-REC-FENCE`），v0.1.0-draft.1。
+- **契约 authority / 版本 / selector**：`piko-scheduler` §9.1（`IF-RUN-SLOT`/`IF-RUN-RENEW`/`IF-REC-FENCE`），v0.1.1。
 
 - **同步方式 / timeout / 生命周期**：同步进程内；`Lease` 为不可变值对象；续租定时在宿主事件循环。
 
@@ -1807,7 +1807,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `F-WORKER-EXEC`/`F-WORKER-RECOVER`、`IF-WORKER-DISPATCH`、§4.5。
 
-- **事实缺口 / 触发条件**：M004 `scheduler` 已把 slot 领取/续租/fence 抽出并提供 `acquireSlot`/`renewLease`/`fence`（`piko-scheduler` §9.1，v0.1.0-draft.1，Proposed），但 M004 设计与 ISD 尚未评审冻结；worker 侧 dispatch/回调边界（谁驱动 tick、`LeaseKeeper` 由谁启动）需与之对齐。
+- **事实缺口 / 触发条件**：M004 `scheduler` 已把 slot 领取/续租/fence 抽出并提供 `acquireSlot`/`renewLease`/`fence`（`piko-scheduler` §9.1，v0.1.1，Proposed），但 M004 设计与 ISD 尚未评审冻结；worker 侧 dispatch/回调边界（谁驱动 tick、`LeaseKeeper` 由谁启动）需与之对齐。
 
 - **影响 / 阻塞边界**：阻塞 `coordinator.ts` 的 lease 消费方式与 `ports.ts` 的 M004 适配；不阻塞 `result.ts`/`cancel.ts` 与 M003 相关路径。
 
@@ -1893,7 +1893,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 #### A.2 `piko-usage` / `IF-USAGE-SNAPSHOT`
 
-- **来源 Capability / Step / Constraint / 接口成员**：`MECH-USAGE` §3 参与方（M005 负责在 Result 发布前调用 snapshot + validate，无独立 usage state）、§5.1 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`、约束 `CON-USAGE-001/002`（PK-09/10）。注：`piko-usage.md` §14.4 只为 M006/M007 分配 `M-USAGE-DI-*`，未列 M005；本行按 §3 参与方与 §5.1 接口承接，差异登记为 `OQ-WORKER-004`。
+- **来源 Capability / Step / Constraint / 接口成员**：`MECH-USAGE` §3 参与方（M005 负责在 Result 发布前调用 snapshot + validate，无独立 usage state）、§5.1 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`、约束 `CON-USAGE-001/002`（PK-09/10）。承接 MECH-USAGE §14.4 行 `M-USAGE-DI-003`（worker，发布前 snapshot+validate）与 §5.1 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`。
 
 - **本模块必须负责的行为与保证**：发布前调用 `snapshot` + `validateBeforePublish`；fail closed（`InternalError`）且不写 Result；不聚合、不改 generation。
 
@@ -1957,7 +1957,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 #### A.6 `OQ-WORKER-004` · MECH-USAGE §14.4 未列 M005
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `piko-usage` §14.4 承接完整性、A.2。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `piko-usage` §14.4 承接完整性、A.2。
 
 - **事实缺口 / 触发条件**：`piko-usage.md` §14.4 只为 M006/M007 分配 `M-USAGE-DI-*`，未给 M005 分配 Requirement ID，但 §3 参与方与 §5.1 明确 M005 消费 snapshot/validate。
 
@@ -1967,7 +1967,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **选项 / 推荐 / 下一步取证**：推荐：在 `piko-usage.md` §14.4 补一行 M005（如 `M-USAGE-DI-003`：发布前 snapshot + validate）。下一步：提交机制修订。
 
-- **关闭条件 / 决定或当前状态**：机制补行或明确 M005 经 MECH-RUN `IF-RUN-SNAPSHOT` 承接。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——§14.4 已补 `M-USAGE-DI-003`。**已关闭**。
 
 文档控制信息（与封面和 metadata 保持一致）：
 

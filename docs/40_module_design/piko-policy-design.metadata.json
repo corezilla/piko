@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-policy",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.1",
   "title": "Piko 模块设计：policy（M002）",
   "document_owner": "Piko Implementation Owner",
   "authors": [

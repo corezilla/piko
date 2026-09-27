@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.5.3` |
+| Document Version | `0.5.4` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -482,6 +482,7 @@ flowchart TD
 |---|---|---|---|---|
 | `M-USAGE-DI-001` | `pi-adapter` | Harness hook + provider | CON-USAGE-001 | hook 实现 |
 | `M-USAGE-DI-002` | `usage` | contract `0.3.0-simplified.6` | CON-USAGE-001/002 | 聚合数据结构 |
+| `M-USAGE-DI-003` | `worker` | 发布前 snapshot + validate（消费） | CON-USAGE-001/002 | 消费实现 |
 
 
 ## 15. 验证、上线与回滚
@@ -553,6 +554,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.5.4 | 2026-09-27 | 补 §14.4 行 `M-USAGE-DI-003`（worker，发布前 snapshot+validate） | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-USAGE 16 节 + 附录 A/B | corezilla, opencode |
 

@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-cancel` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -170,6 +170,14 @@ flowchart LR
 - **错误与合法下一步**：401/404/410。
 - **交互与生命周期**：同步返回；Running 取消需轮询。
 - **代表调用与验证**：§6.1.1；PK-T05。
+
+#### `cancelRun(run_id: string) -> CancelOutcome`（IF-CX-DISPATCH）
+
+- **Interface/Member ID、用途与提供责任**：`IF-CX-DISPATCH`；M005 `worker` 提供；M001 `task-api` 消费。M001 的 HTTP `POST /runs/{run_id}:cancel` 入口据此把请求交 M005 按 `runs.state` 分流到 `cancelQueued`/`cancelRunning`；`CancelOutcome` = `CancelledBeforeStart`/`StopRequested`/`AlreadyTerminal`。
+- **输入与前提**：`run_id`；同一 principal。
+- **成功输出与保证**：Queued → 单事务零调用 Result（`CancelledBeforeStart`）；Running → 写 stop intent 返回 `StopRequested`；终态 → `AlreadyTerminal`（幂等）。
+- **错误与合法下一步**：`NotFound`/`Gone`（404/410）。
+- **代表调用与验证**：PK-T05。
 
 #### `cancelQueued(run_id) -> CancelOutcome`（IF-CX-QUEUED）
 
@@ -408,6 +416,7 @@ stateDiagram-v2
 | IF-CX-QUEUED | M005 → M003 | flag+零调用 Result | 单事务 | §5.1 |
 | IF-CX-RUNNING | M005 → M003 | stop intent + Cancelling | 单事务 | §5.1 |
 | IF-CX-ABORT | M005 → M006 | `operation_id` | abort 对账；无法确认 → Unknown | §5.2 |
+| IF-CX-DISPATCH | M005 → M001 | `run_id` → `CancelOutcome` | Queued 零调用 Result；终态幂等 | §5.1 |
 
 ### 14.4 下级设计输入清单
 
@@ -474,6 +483,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.1.2 | 2026-09-27 | §5.1/§14.3 命名 M001→M005 取消入口 `IF-CX-DISPATCH`，闭合 `OQ-TAPI-003` | corezilla, opencode |
 | v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-CANCEL 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 3 模块） | corezilla, opencode |
 

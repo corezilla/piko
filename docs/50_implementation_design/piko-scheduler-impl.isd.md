@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scheduler-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -28,7 +28,7 @@
 
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.1；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
 
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-scheduler` / `0.1.0-draft.1` / `docs/40_module_design/piko-scheduler-design.md`。摘要：单实例至多 1 个 `Running` Run 的唯一执行位由 `execution_slot` 单行 + 单调 `epoch` 承载；scheduler 负责领取/续租/fence 与 FIFO 选择，持久化交 M003。
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-scheduler` / `0.1.1` / `docs/40_module_design/piko-scheduler-design.md`。摘要：单实例至多 1 个 `Running` Run 的唯一执行位由 `execution_slot` 单行 + 单调 `epoch` 承载；scheduler 负责领取/续租/fence 与 FIFO 选择，持久化交 M003。
 
 - **需求与 Constraint ID**：`CON-RUN-001`（PK-01）、`CON-REC-001`（PK-12）、`CON-CFG-001`（PK-12，边界）；机制输入 `M-RUN-DI-004`（`piko-run` §14.4）、`IF-REC-FENCE`（`piko-recovery` §5.1）。
 
@@ -42,7 +42,7 @@
 
 - **上游信息项 / 规则 ID**：`F-SCHED-ACQUIRE`、`R-SCHED-FIFO`、`R-SCHED-GATE`、`IF-RUN-SLOT`、`CON-RUN-001`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-scheduler` §2.1/§8.2/§8.4/§9.1.1（v0.1.0-draft.1）。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-scheduler` §2.1/§8.2/§8.4/§9.1.1（v0.1.1）。
 
 - **ISD 细化内容 / 章节**：§5.1.1 `Scheduler.acquireSlot`；§3.1 `types.ts`/§3.3 `port.ts`；§6.1 `P-SCHED-CLAIM`。
 
@@ -504,7 +504,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **完整签名与 caller**：`acquireSlot(ownerId: string): Lease | null`；caller = M005 `RunWorker.loop`（tick，单事件循环上下文）。
 
-- **固定契约与版本**：模块设计 §9.1.1（`piko-scheduler` v0.1.0-draft.1）；构建目标 `dist/scheduler/`。
+- **固定契约与版本**：模块设计 §9.1.1（`piko-scheduler` v0.1.1）；构建目标 `dist/scheduler/`。
 
 - **输入参数 / 数据结构 authority**：`ownerId: string`，非空；无 §6 Data ID（进程内身份），来源 = M005 实例标识。
 
@@ -1336,7 +1336,7 @@ flowchart TD
 ### 10.1.1 `MAP-SCHED-IF-SLOT` · `IF-RUN-SLOT` 映射
 
 - **模块 / 原成员 ID**：`IF-RUN-SLOT`（`piko-run` §5.1）。
-- **唯一来源 / 版本 / selector / hash**：`piko-scheduler` §9.1.1（v0.1.0-draft.1）。
+- **唯一来源 / 版本 / selector / hash**：`piko-scheduler` §9.1.1（v0.1.1）。
 - **提供或消费 / backend**：提供 / 进程内（M004→M005）。
 - **实际位置或 Planned 计划位置**：Planned `src/scheduler/scheduler.ts` `Scheduler.acquireSlot`；机器目录 location/symbol = `null`。
 - **验证项**：`VRC-SCHED-001/004/005`。
@@ -1379,7 +1379,7 @@ flowchart TD
 
 #### 10.2.1 `SC-SCHED-01` · 模块设计 ↔ ISD 承接一致
 
-- **上游承接状态 / 固定来源**：`piko-scheduler` §2/§6.6/§8/§9（v0.1.0-draft.1）声明三功能、状态模型、失败语义与验证规格。
+- **上游承接状态 / 固定来源**：`piko-scheduler` §2/§6.6/§8/§9（v0.1.1）声明三功能、状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。
 - **§2 Current / Target**：brownfield；Current = `worker.ts`/`store.ts` 内联 slot 逻辑，Target = `src/scheduler/` + 端口原语。
 - **§3 / §5 文件与函数状态**：`src/scheduler/*` = `PLANNED`；`store.ts`/`worker.ts`/`main.ts` = `IN_PROGRESS`。
@@ -1389,7 +1389,7 @@ flowchart TD
 
 ### 10.3.1 `ISD-OQ-SCHED-001` · `IF-SCHED-STORE` 未冻结
 
-- **既有台账引用 / 具体缺口 / 反例**：模块设计 `OQ-SCHED-001`；M003 设计未写，端口六操作未对齐。
+- **既有台账引用 / 具体缺口 / 反例**：模块设计 `OQ-SCHED-001`；**已关闭**——M003 设计 §2.5/§9.1.5–9.1.10 逐字采纳 `IF-SCHED-STORE` 六操作。
 - **风险等级 / 判定依据**：High（阻断 T-SCHED-01/03 与 `port.ts` 实现）。
 - **Owner**：Piko Implementation Owner。
 - **最晚关闭阶段 / 截止 Gate**：M003 模块设计评审。
@@ -1397,7 +1397,7 @@ flowchart TD
 - **分析 / 决策引用**：模块设计 §15.1。
 - **所需输入 / 下一步选择判据**：M003 采纳 `IF-SCHED-STORE` 或给出超集。
 - **解决动作 / 完成条件**：M003 设计与 §9.2.1 一致（或本文回写超集）。
-- **状态**：Open。
+- **状态**：Closed（M003 已采纳）。
 
 ### 10.3.2 `ISD-OQ-SCHED-002` · 调度常量是否可配
 

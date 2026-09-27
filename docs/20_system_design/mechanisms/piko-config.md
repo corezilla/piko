@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.5.3` |
+| Document Version | `0.5.4` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -150,7 +150,7 @@ flowchart LR
 #### 4.3.2 `ToolProfile`
 
 - **定义与来源**：机器权威 `interfaces/schemas/piko-tool-profile-v0.3.schema.json`。
-- **字段**：`tools[]` + `recovery_contracts{}`。
+- **顶层段**：`profile_version`（const `"0.3"`）、`recovery_contracts{<ref>}`、`profiles{<name>}`（≥1）；不复制 `Profile`/`RecoveryContract` 字段。
 
 ### 4.4 通信报文结构（适用时）
 
@@ -160,13 +160,15 @@ flowchart LR
 
 ```text
 PikoRuntimeConfig {
-  api_auth: { slinky_principal: { credential_ref } },
-  workspace_root: string,
-  storage: { sqlite_path, max_queue_depth, retention_days },
-  pi: { upstream_commit, adapter_patches: { before_request_stepid, on_raw_usage } },
-  llmtier: { base_url, credential_ref, model, cacheRetention:"none",
-             supportsExplicitPromptCacheMode:false, streamOptions:{maxRetries:0} },
-  matrix: { homeserver, credential_ref, identity_localpart }
+  instance_id, listen{host,port},
+  api_auth{mode, principal_id, bearer_token_secret_ref},
+  task_store{sqlite_path, busy_timeout_ms},
+  pi{version, commit, session_root, adapter_patch_manifest_path, adapter_patch_sha256},
+  agent{model, profile_ref}, workspace{roots, staging_root},
+  tools{profile_registry_path},
+  matrix{enabled, homeserver, user_id, access_token_secret_ref, sync_timeout_ms, max_media_bytes, allowed_mime_types},
+  llmtier{base_url, api_key_secret_ref, models_timeout_ms},
+  queue{capacity}, retention{minimum_query_days}, observability{log_level, metrics_enabled}
 }
 ```
 
@@ -175,10 +177,7 @@ PikoRuntimeConfig {
 由 `interfaces/schemas/piko-tool-profile-v0.3.schema.json` 约束：
 
 ```text
-ToolProfile {
-  tools: [{ name, effect, replay:"never"|"safe", recovery_contract_ref?, implementation_ref }],
-  recovery_contracts: { <ref>: { kind, binds:{tool_name, effect, replay, implementation_ref} } }
-}
+ToolProfile { profile_version:"0.3", recovery_contracts{<ref>}, profiles{<name>: Profile} }
 ```
 
 #### 4.4.3 Secret 引用
@@ -542,6 +541,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.5.4 | 2026-09-27 | §4.3/§4.4 字段清单对齐锁定 schema `piko-runtime-config-v0.3.schema.json`（13 顶层段）与 `piko-tool-profile-v0.3.schema.json`（`profiles`/`recovery_contracts`），移除过时散文版字段；闭合 `OQ-POLICY-001/002` | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-CONFIG 16 节 + 附录 A/B | corezilla, opencode |
 

@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-worker",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.1",
   "title": "Piko 模块设计：worker（M005）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
@@ -34,16 +34,86 @@
     "mode": "separate",
     "document_id": "piko-worker-impl",
     "coverage_mapping": [
-      {"item": "scope", "document_id": "piko-worker-impl", "anchor": "isd-scope", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "structure", "document_id": "piko-worker-impl", "anchor": "isd-structure", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "data", "document_id": "piko-worker-impl", "anchor": "isd-data", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "functions", "document_id": "piko-worker-impl", "anchor": "isd-functions", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "algorithms", "document_id": "piko-worker-impl", "anchor": "isd-algorithms", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "lifecycle", "document_id": "piko-worker-impl", "anchor": "isd-lifecycle", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "resources", "document_id": "piko-worker-impl", "anchor": "isd-resources", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "security", "document_id": "piko-worker-impl", "anchor": "isd-security", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "verification", "document_id": "piko-worker-impl", "anchor": "isd-verification", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "persistence", "document_id": "piko-worker-impl", "anchor": "isd-persistence", "applicability": "not_applicable", "reason": "worker 不拥有持久状态：tasks/runs/results/run_sessions/model_attempts/tool_calls/discussion_turns 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-RUN-PUBLISH/IF-REC-PATCH/IF-MX-TURN 端口，不生成数据库/schema 策略", "decision_ref": "system-design#m003-ddl-authority"}
+      {
+        "item": "scope",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-scope",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "structure",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-structure",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "data",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-data",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "functions",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-functions",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "algorithms",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-algorithms",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "lifecycle",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-lifecycle",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "resources",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-resources",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "security",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-security",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "verification",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-verification",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "persistence",
+        "document_id": "piko-worker-impl",
+        "anchor": "isd-persistence",
+        "applicability": "not_applicable",
+        "reason": "worker 不拥有持久状态：tasks/runs/results/run_sessions/model_attempts/tool_calls/discussion_turns 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-RUN-PUBLISH/IF-REC-PATCH/IF-MX-TURN 端口，不生成数据库/schema 策略",
+        "decision_ref": "system-design#m003-ddl-authority"
+      }
     ],
     "reason": null,
     "decision_ref": null

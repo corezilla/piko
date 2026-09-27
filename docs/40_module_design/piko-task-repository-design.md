@@ -2102,17 +2102,17 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 #### 15.1 `OQ-REPO-001` · IF-SCHED-STORE 采纳与 OQ-SCHED-001 关闭
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（协调）；影响 `IF-SCHED-STORE`、`F-REPO-SLOT`、`CON-RUN-001`。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-SCHED-STORE`、`F-REPO-SLOT`、`CON-RUN-001`。
 
-- **事实缺口 / 触发条件**：`piko-scheduler` §9.2.1 把 `IF-SCHED-STORE` 标为 Proposed，待 M003 采纳或给出超集；本设计**逐字采纳**其六个原语与语义（`readSlot`/`listQueued`/`tryClaimSlot`/`renewSlot`/`fenceSlot`/`releaseSlot`），不作语义变更。scheduler 文档的 `OQ-SCHED-001` 关闭条件为"M003 设计与本声明一致（或给出超集并回写本文）"。
+- **事实缺口 / 触发条件**：`piko-scheduler` §9.2.1 把 `IF-SCHED-STORE` 标为 Proposed，待 M003 采纳或给出超集；本设计**逐字采纳**其六个原语与语义（`readSlot`/`listQueued`/`tryClaimSlot`/`renewSlot`/`fenceSlot`/`releaseSlot`），不作语义变更。已满足 scheduler 的关闭条件："M003 设计与本声明一致"。
 
-- **影响 / 阻塞边界**：不阻塞本模块实现（合同已在本设计 §9.1.5–9.1.10 冻结）；阻塞 scheduler 侧把 `OQ-SCHED-001` 标为已关闭并回写其 §9.2.1 状态。
+- **影响 / 阻塞边界**：无阻塞。合同已在本设计 §9.1.5–9.1.10 冻结；scheduler 侧已完成回写（其 §9.2.1 标为 Adopted、`OQ-SCHED-001` 已关闭）。
 
 - **Owner / 最晚关闭 Gate**：Piko Implementation Owner（M003）/ Piko Architecture Owner（scheduler 回写）；M003 模块设计评审。
 
-- **选项 / 推荐 / 下一步取证**：推荐：scheduler/架构侧在允许修改 `piko-scheduler-design.md` 时，把 §9.2.1 状态由 Proposed 更新为"M003 采纳（见 `piko-task-repository` §9.1.5–9.1.10）"并把 `OQ-SCHED-001` 关闭；**不改任何接口语义**。本次模块设计受共享文件保护规则约束，未直接改写 scheduler 文档。
+- **选项 / 推荐 / 下一步取证**：已完成：`piko-scheduler` §9.2.1 由 Proposed 更新为 Adopted（见本设计 §9.1.5–9.1.10），`OQ-SCHED-001` 已关闭；接口语义不变。
 
-- **关闭条件 / 决定或当前状态**：M003 采纳已成立；关闭动作待 scheduler 侧回写。当前 Open（协调项）。
+- **关闭条件 / 决定或当前状态**：M003 采纳成立且 scheduler 已回写。**已关闭**。
 
 #### 15.2 `OQ-REPO-002` · 迁移的降级与未来版本边界
 

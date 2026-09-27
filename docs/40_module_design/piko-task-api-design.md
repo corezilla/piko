@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-api` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -55,9 +55,9 @@ task-api 承接三条上级约束：`CON-RUN-002`（PK-02，任务事务稳定�
 - **适用条件**：任何 `POST /runs/:run_id:cancel` 请求，Run 处于 Queued/Running/终态之一。
 - **继承预算或行为保证**：Queued → 200 `CancelledBeforeStart`（同事务零调用 Result）；Running → 202 `StopRequested`（不证明停止）；已终态 → 200 `AlreadyTerminal`；401/404/410 与前两者互斥。
 - **可自行选择/不可改变**：不可改变：按 state 分流语义、`StopRequested` ≠ 停止、不提供撤销已生效取消。可自行设计：路由匹配、状态码选择、与 M005 的进程内调用形态。
-- **本地落实/内部再分配**：§2.3 `F-TAPI-CANCEL`；§8.3 `R-TAPI-ERRMAP`；§9.1.3 `cancelRun`；§9.2.4 `IF-TAPI-CANCEL`（分流交 M005）；§10 `C-TAPI-04`（取消与结果发布竞争）；附录 A.2。
+- **本地落实/内部再分配**：§2.3 `F-TAPI-CANCEL`；§8.3 `R-TAPI-ERRMAP`；§9.1.3 `cancelRun`；§9.2.4 `IF-CX-DISPATCH`（分流交 M005）；§10 `C-TAPI-04`（取消与结果发布竞争）；附录 A.2。
 - **验证方法与结果/证据**：局部 `VRC-TAPI-004`（三种 outcome 与状态码）；组合 PK-T05（fault 注入）。当前全部 `NOT_RUN`。
-- **差距/变更影响/反馈责任**：`piko-cancel.md` §14.3 只列 `IF-CX-QUEUED`/`IF-CX-RUNNING`（M005→M003），未给 M001→M005 的入口接口命名；本模块提出 `IF-TAPI-CANCEL` 并登记 `OQ-TAPI-003`（Owner：Piko Architecture）。
+- **差距/变更影响/反馈责任**：`piko-cancel.md` §14.3 只列 `IF-CX-QUEUED`/`IF-CX-RUNNING`（M005→M003），未给 M001→M005 的入口接口命名；本模块提出 `IF-CX-DISPATCH` 并登记 `OQ-TAPI-003`（Owner：Piko Architecture）。
 
 #### 1.1.3 `CON-RUN-003` · 截止与预算（边界承接）
 
@@ -176,7 +176,7 @@ flowchart LR
 #### 4.4 `DEP-TAPI-WORKER` · M005 `worker`（取消分流权威）
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
-- **本模块调用或消费**：`cancel(run_id) -> CancelOutcome`（`IF-TAPI-CANCEL`，Proposed）；由 M005 按 `runs.state` 分流并驱动 abort/对账。
+- **本模块调用或消费**：`cancel(run_id) -> CancelOutcome`（`IF-CX-DISPATCH`，Proposed）；由 M005 按 `runs.state` 分流并驱动 abort/对账。
 - **本模块提供**：无。
 - **契约 authority / 版本 / selector**：`piko-cancel.md` §3/§5（M005 统筹；入口接口未命名，见 `OQ-TAPI-003`）；`M-CX-DI-001`。
 - **同步方式 / timeout / 生命周期**：同步进程内调用返回 outcome；Running 路径的 abort/对账在 M005 内异步推进，不阻塞 HTTP 返回。
@@ -540,7 +540,7 @@ sequenceDiagram
 |---|---|---|---|---|
 | `P-TAPI-SUBMIT` | 任意 `POST /runs` | §5.2.1 / M-TAPI-P1 | 正常 202 `RunView`；异常 400/401/403/409/410/422/429/503 | `createRun`、`IF-RUN-CREATE`、`R-TAPI-VALIDATE`、`VRC-TAPI-001/002` |
 | `P-TAPI-STATUS` | 任意 `GET /runs/:run_id` | §5.2.2 / M-TAPI-P2 | 正常 200 `RunView`；异常 401/403/404/410 | `getRun`、`IF-TAPI-READ`、`VRC-TAPI-003` |
-| `P-TAPI-CANCEL` | 任意 `POST /runs/:run_id:cancel` | §5.2.3 / M-TAPI-P4 | 正常 200/202 `CancelReceipt`；异常 401/403/404/410 | `cancelRun`、`IF-TAPI-CANCEL`、`VRC-TAPI-004` |
+| `P-TAPI-CANCEL` | 任意 `POST /runs/:run_id:cancel` | §5.2.3 / M-TAPI-P4 | 正常 200/202 `CancelReceipt`；异常 401/403/404/410 | `cancelRun`、`IF-CX-DISPATCH`、`VRC-TAPI-004` |
 | `P-TAPI-RESULT` | 任意 `GET /runs/:run_id/result` | §5.2.2 / M-TAPI-P3 | 正常 200 `AgentResult`；异常 401/403/404/409/410/500 | `getRunResult`、`IF-TAPI-READ`、`VRC-TAPI-005` |
 | `P-TAPI-ERRMAP` | 任一处理器/路由抛错 | §8.3 / M-TAPI-P1 拒绝边 | 正常 typed envelope；异常未分类错误 → 503 | `mapError`、`R-TAPI-ERRMAP`、`VRC-TAPI-006` |
 
@@ -684,9 +684,9 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **交互、错误及生命周期**：同步只读；无事务写；无缓存（每次读权威）。
 - **实现与验证**：M003 侧（Planned）；`VRC-TAPI-003/005`；`NOT_RUN`。
 
-#### 9.2.4 `IF-TAPI-CANCEL` · M001 → M005 取消分流（Proposed）
+#### 9.2.4 `IF-CX-DISPATCH` · M001 → M005 取消分流（Proposed）
 
-- **Interface/Member ID、用途、责任与唯一来源**：`IF-TAPI-CANCEL`；Provider：M005 `worker`；Consumer：M001。权威：`piko-cancel.md` §3/§5（入口接口未命名 → `OQ-TAPI-003`）。
+- **Interface/Member ID、用途、责任与唯一来源**：`IF-CX-DISPATCH`；Provider：M005 `worker`；Consumer：M001。权威：`piko-cancel.md` §5.1/§14.3（`IF-CX-DISPATCH`，M005 提供；`OQ-TAPI-003` 已关闭）。
 
   ```text
   cancel(run_id) -> CancelOutcome{outcome: CancelledBeforeStart | StopRequested | AlreadyTerminal, requested_at}
@@ -848,7 +848,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 - **职责 / 非职责**：M002/M003/M005/M008 端口抽象与生产实现。非职责：业务判断、重试业务失败。
 - **关键 symbol / 导出范围**：`interface ApiPorts`；`class RuntimeApiPorts`。
-- **承接 Function / Rule / Constraint / Interface ID**：`IF-RUN-CREATE`/`IF-TAPI-VALIDATE`/`IF-TAPI-READ`/`IF-TAPI-CANCEL`/`IF-MX-VERIFY`。
+- **承接 Function / Rule / Constraint / Interface ID**：`IF-RUN-CREATE`/`IF-TAPI-VALIDATE`/`IF-TAPI-READ`/`IF-CX-DISPATCH`/`IF-MX-VERIFY`。
 - **构建目标 / 依赖 / 宿主装配**：`tsc` → `dist/http/ports.js`；依赖外部模块类型（仅此文件）+ `types.ts`。
 - **实现状态**：Planned（现为 `src/server.ts` 直接调用 `store`/`matrix`）。
 - **验证入口**：`VRC-TAPI-001/003/004/005`。
@@ -1095,7 +1095,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-003/005`。
 - **父级组合验证或裁剪/阻断决定**：**阻断点**：`OQ-TAPI-002` 未关闭前不得标已实现。
 
-#### 14.1.25 `IF-TAPI-CANCEL`
+#### 14.1.25 `IF-CX-DISPATCH`
 
 - **来源与适用性 / 固定基线**：§9.2.4（Proposed，`OQ-TAPI-003`）；适用。
 - **选定方案与正文锚点**：§9.2.4；§10.4。
@@ -1109,7 +1109,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **选定方案与正文锚点**：§9.2.5；§2.1。
 - **§13 实现文件 / 装配责任**：`http/ports.ts` + M008（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-002`（409 分支）。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T08；MECH-MATRIX §14.4 未给 M001 分配 ID（`OQ-TAPI-004`）。
+- **父级组合验证或裁剪/阻断决定**：组合 PK-T08；MECH-MATRIX §14.4 未给 M001 分配 ID；判定经 MECH-RUN `M-RUN-DI-001` 承接（`OQ-TAPI-004` 已关闭）。
 
 #### 14.1.27 `ERR-TAPI-SUBMIT`
 
@@ -1179,7 +1179,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.2.4 `VRC-TAPI-004` · 取消分流
 
-- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-CANCEL`；`R-TAPI-ERRMAP`；`CON-CX-001`；`cancelRun`、`IF-TAPI-CANCEL`、`ERR-TAPI-CANCEL`。
+- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-CANCEL`；`R-TAPI-ERRMAP`；`CON-CX-001`；`cancelRun`、`IF-CX-DISPATCH`、`ERR-TAPI-CANCEL`。
 - **Case / 正常、边界与失败输入**：A Queued → 200 `CancelledBeforeStart` 且零调用 Result；B Running → 202 `StopRequested`，随后轮询到 `Cancelled`；C 已终态 → 200 `AlreadyTerminal`；D 重复 cancel → 幂等；E 未知 ID → 404。
 - **环境 / 配置 / 隔离与复位**：临时 DB + `worker`/`store.cancel` 真实现；fault 用例注入 abort 未确认。
 - **独立 Oracle / Expected**：Oracle = `runs.state`/`cancel_requested`/`results`（`model_attempts=0`）；Expected 同 Case。
@@ -1229,30 +1229,30 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 15.3 `OQ-TAPI-003` · M001→M005 取消入口接口未命名
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-TAPI-CANCEL`、`F-TAPI-CANCEL`、附录 A.2。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-CX-DISPATCH`、`F-TAPI-CANCEL`、附录 A.2。
 - **事实缺口 / 触发条件**：`piko-cancel.md` §14.3 只列 `IF-CX-QUEUED`/`IF-CX-RUNNING`（M005→M003），未给 M001→M005 的入口命名；Current 基线经 `store.cancel` 直接落 M003。
 - **影响 / 阻塞边界**：不阻塞 `task-api`（本模块只映射 outcome）；影响机制接口闭合与两端实现对齐。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner（机制侧）；下一次机制评审。
 - **选项 / 推荐 / 下一步取证**：推荐：`piko-cancel.md` §5.1 增加 M001→M005 `cancel(run_id)` 入口。下一步：提交机制修订。
-- **关闭条件 / 决定或当前状态**：机制补入口或明确取消入口由 M003 直承担。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——`piko-cancel` §5.1/§14.3 已命名 `IF-CX-DISPATCH`（M005→M001）。**已关闭**。
 
 #### 15.4 `OQ-TAPI-004` · MECH-MATRIX §14.4 未列 M001
 
-- **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-MX-VERIFY` 承接完整性、附录 A.3。
+- **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭、判定不改上游）；影响 `IF-MX-VERIFY` 承接完整性、附录 A.3。
 - **事实缺口 / 触发条件**：`piko-matrix.md` §3.5/§5.1 明确 M001 消费 `IF-MX-VERIFY`，但 §14.4 只给 M008/M005/M003 分配 `M-MX-DI-*`。
 - **影响 / 阻塞边界**：不阻塞本模块（按 §5.1 接口承接）；影响机制承接核对。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner；下一次机制评审。
 - **选项 / 推荐 / 下一步取证**：推荐：§14.4 补一行 `M-MX-DI-004`（task-api discussion 校验）。下一步：提交机制修订。
-- **关闭条件 / 决定或当前状态**：机制补行或明确 M001 经 MECH-RUN `M-RUN-DI-001` 承接。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——判定 M001 非 MECH-MATRIX §3.5 参与方，其 submit 期 discussion 校验义务经 MECH-RUN `M-RUN-DI-001` 承接，无需 MATRIX DI 行。**已关闭（不改上游）**。
 
 #### 15.5 `RISK-TAPI-001` · `System-design` §3.2 消费清单不完整
 
-- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 §4 依赖清单与 `system-design` §3.2 一致性。
+- **类型 / 影响的规则、接口、流程或约束**：Risk（已关闭）；影响 §4 依赖清单与 `system-design` §3.2 一致性。
 - **事实缺口 / 触发条件**：`system-design` §3.2 记 M001 消费 `HTTPClient`/`policy`，但 MECH-RUN §14.3 与 MECH-CANCEL 要求 M001 直接消费 M003/M005（discussion 时 M008）。
 - **影响 / 阻塞边界**：不阻塞实现（机制为准）；影响文档一致性核对。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner；system-design 下次修订。
 - **选项 / 推荐 / 下一步取证**：推荐：§3.2 行补 M003/M005/M008 消费或注明由机制细化。下一步：提交 system-design 修订。
-- **关闭条件 / 决定或当前状态**：两文档一致。当前 Open。
+- **关闭条件 / 决定或当前状态**：已满足——`system-design` v0.11.3 §3.2 已将 M001 消费改为 `policy`(M002)/`task-repository`(M003)。**已关闭**。
 
 #### 15.6 `15.ISD` · 实现规格采用方式
 
@@ -1280,7 +1280,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CANCEL` §14.4 行 `M-CX-DI-001`（下游 `task-api`，固定输入 HTTP cancel + contract，约束 `CON-CX-001`，自由度路由实现）；`§3.5` 参与方。
 - **本模块必须负责的行为与保证**：接收 cancel 并映射 `CancelledBeforeStart`(200)/`StopRequested`(202)/`AlreadyTerminal`(200)；不把 `StopRequested` 当停止；不返回 `RunNotTerminal`。
-- **本模块提供 / 消费的接口**：提供 `cancelRun`；消费 `IF-TAPI-CANCEL`（M005）。
+- **本模块提供 / 消费的接口**：提供 `cancelRun`；消费 `IF-CX-DISPATCH`（M005）。
 - **本文落实位置**：§1.1.2、§2.3、§8.3、§9.1.3、§9.2.4、§10.4。
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`src/http/handlers.ts` `cancelRun`（Planned）；现逻辑在 `src/server.ts:30`（部分实现）。
 - **允许自行决定的范围**：路由匹配与状态码选择实现；不得改变分流语义与 outcome 集合。
@@ -1288,7 +1288,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### A.3 `piko-matrix` / `IF-MX-VERIFY`
 
-- **来源 Capability / Step / Constraint / 接口成员**：`MECH-MATRIX` §5.1 `IF-MX-VERIFY`（M008 提供，M001/M005 消费）；§3.5 参与方行（CAP-MX-VERIFY 消费方含 M001）。**注**：§14.4 未为 M001 分配 `M-MX-DI-*`（见 `OQ-TAPI-004`），本行按 §5.1 接口承接。
+- **来源 Capability / Step / Constraint / 接口成员**：`MECH-MATRIX` §5.1 `IF-MX-VERIFY`（M008 提供，M001/M005 消费）；§3.5 参与方行（CAP-MX-VERIFY 消费方含 M001）。§14.4 未为 M001 分配 `M-MX-DI-*`；判定 M001 非 §3.5 参与方，义务经 MECH-RUN `M-RUN-DI-001` 承接（`OQ-TAPI-004` 已关闭）。
 - **本模块必须负责的行为与保证**：受理 discussion 任务前经 M008 校验 `{room_id, trigger_event_id}`；失败 409 `InvalidDiscussionContext`；不得自行判定 membership/event 事实。
 - **本模块提供 / 消费的接口**：消费 `IF-MX-VERIFY`。
 - **本文落实位置**：§4.5、§9.2.5、§2.1（错误边界）。

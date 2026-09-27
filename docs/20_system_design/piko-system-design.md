@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-design` |
-| Document Version | `0.11.2` |
+| Document Version | `0.11.3` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
@@ -197,7 +197,7 @@ Piko 采用"无 subsystem"结构：10 个直属模块按职责分 4 个功能分
 |---|---|---|---|---|
 | `SW-P` 软件系统 / `system-design` | 承担 Piko Agent Runtime V0.3 完整软件设计 / 不承担 Slinky 业务流程、Memory authority、LLMTier Agent 状态 | — | — | `docs/20_system_design/piko-system-design.md` / Approved |
 | M000 `bootstrap` 模块 / `SW-P` | 启动顺序 + preflight + 配置绑定 + 进程生命周期 / 不运行业务、不持有 Run 状态 | 进程寿命；SQLite 句柄；Pi 上游 commit 锚定 | 消费：`config/`；提供：READY / fatal | definition `piko-bootstrap-design.md` + impl `piko-bootstrap-impl.isd.md` / Approved |
-| M001 `task-api` 模块 / `SW-P` | 四项 HTTP operation：submit/status/cancel/result / 不持久化业务、不直接操作 adapter | 请求寿命；TypeScript handlers | 消费：`HTTPClient`、`policy`；提供：`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result` | definition `piko-task-api-design.md` + impl `piko-task-api-impl.isd.md` / Approved |
+| M001 `task-api` 模块 / `SW-P` | 四项 HTTP operation：submit/status/cancel/result / 不持久化业务、不直接操作 adapter | 请求寿命；TypeScript handlers | 消费：`policy`（M002）、`task-repository`（M003）；运行时 HTTP 库非模块交接；提供：`POST /runs`、`GET /runs/:run_id`、`POST /runs/:run_id:cancel`、`GET /runs/:run_id/result` | definition `piko-task-api-design.md` + impl `piko-task-api-impl.isd.md` / Approved |
 | M002 `policy` 模块 / `SW-P` | request/path/tool/deadline/budget 判定 / 不持状态 | 启动绑定 | 提供：`ValidatedTaskSubmission`、`BoundToolProfile`；消费：原始请求 + config + registry | definition `piko-policy-design.md` + impl `piko-policy-impl.isd.md` / Approved |
 | M003 `task-repository` 模块 / `SW-P` | Run/lease/session/result/ledger 事务 + fenced write / 不持有 Run 业务编排 | 进程寿命；SQLite connection | 提供：`createOrGetRun`、`mutateRun`、`publishResult`；消费：`scheduler` / `worker` | definition `piko-task-repository-design.md` + impl `piko-task-repository-impl.isd.md` / Approved |
 | M004 `scheduler` 模块 / `SW-P` | 单 slot 领取/续租/fence / 不决策业务 | 进程寿命 | 提供：`acquireSlot`、`renewLease`、`fence`；消费：tick + `task-repository` | definition `piko-scheduler-design.md` + impl `piko-scheduler-impl.isd.md` / Approved |
@@ -1056,6 +1056,7 @@ Piko 由 10 个直属模块组成，STD 要求每模块独立 design.definition 
 文档控制信息见文末 STD 文档控制块（Authority/Authors/Created Date/Template Conformance/Tailoring Reference/Migration Map Reference/Repository/Canonical Path/Supersedes）。
 
 | 文档版本 / 日期 | 变更和设计影响 | 作者 / 评审记录 |
+| v0.11.3 / 2026-09-27 | §3.2 M001 行消费清单纠偏：`HTTPClient`（非模块）→ 实际模块交接 `policy`(M002)、`task-repository`(M003)，与 `piko-run` §3.5 M001 行一致 | corezilla, opencode |
 | v0.11.2 / 2026-09-27 | 为 M004 scheduler ISD 的 persistence `not_applicable` 决定提供稳定锚点（见 §9 数据节，锚点 id `m003-ddl-authority`，持久化 authority 属 M003）；无正文语义变化 | corezilla, opencode |
 |---|---|---|
 | v0.11.1 / 2026-09-26 | review 修复（AMENDMENT P1/P2）：§3.5.1 依赖矩阵区分上级机制/设计前置/运行时消费/恢复读取（仅设计前置参与无环检查）；7 份机制 §A.1/§16 同步；MATRIX 截断回补 + E2EE 唯一结果；CANCEL 停止未知隔离；接口闭合 + 可执行验证向量；§15 交付计划 5→7 修正 | corezilla, opencode |

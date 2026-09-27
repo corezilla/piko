@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-startup` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Approved` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-27` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -431,6 +431,7 @@ stateDiagram-v2
 | `M-ST-DI-002` | `task-repository` | SQLite path | CON-ST-001 | migration 实现 |
 | `M-ST-DI-003` | `pi-adapter` | upstream commit | CON-ST-001 | verify 实现 |
 | `M-ST-DI-004` | `matrix-adapter` | homeserver | CON-ST-001 | whoami 实现 |
+| `M-ST-DI-005` | `policy` | S3 启动绑定：tool profile + registry | CON-ST-001 | 绑定/校验顺序实现 |
 
 ## 15. 验证、上线与回滚
 
@@ -496,6 +497,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| v0.1.2 | 2026-09-27 | 补 §14.4 行 `M-ST-DI-005`（policy，S3 启动绑定），使 §3.5 参与方与 §14.4 一致 | corezilla, opencode |
 | v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-STARTUP 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 5 模块） | corezilla, opencode |
 

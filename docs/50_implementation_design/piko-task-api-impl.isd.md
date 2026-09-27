@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-api-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -25,7 +25,7 @@
 
 - **模块 ID / 名称**：`M001` / `task-api`。
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.2；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-task-api` / `0.1.0-draft.1` / `docs/40_module_design/piko-task-api-design.md`。摘要：一个 HTTP 端点族承载 submit/status/cancel/result；固定处理顺序 JSON/Schema → bearer → 按 `task_id` 查；typed error 与 catalog 双向一致；不持久化业务、不直接操作 adapter。
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-task-api` / `0.1.1` / `docs/40_module_design/piko-task-api-design.md`。摘要：一个 HTTP 端点族承载 submit/status/cancel/result；固定处理顺序 JSON/Schema → bearer → 按 `task_id` 查；typed error 与 catalog 双向一致；不持久化业务、不直接操作 adapter。
 - **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-CX-001`（PK-03 取消）、`CON-RUN-003`（PK-03 边界）、`CON-CFG-001`（配置重启生效）；机制输入 `M-RUN-DI-001`（`piko-run` §14.4）、`M-CX-DI-001`（`piko-cancel` §14.4）、`IF-MX-VERIFY`（`piko-matrix` §5.1）。
 - **实现范围 / 非目标**：范围：`src/http/` 六个文件 + 对 `src/server.ts`/`src/types.ts`/`src/main.ts` 的最小改动。非目标：不写 SQL/DDL（M003）、不实现校验规则（M002）、不实现取消执行（M005）、不新增第五端点、不新增 config key。
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/piko-task-api-impl.isd.md`（STD 默认路径）；代码落位 `src/http/`（Planned）。
@@ -35,7 +35,7 @@
 ### 1.2.1 `H-TAPI-SUBMIT` · 提交任务
 
 - **上游信息项 / 规则 ID**：`F-TAPI-SUBMIT`、`R-TAPI-VALIDATE`、`R-TAPI-BODY`、`createRun`、`IF-RUN-CREATE`、`CON-RUN-002`、`M-RUN-DI-001`。
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-task-api` §2.1/§8.2/§8.4/§9.1.1/§9.2.1（v0.1.0-draft.1）；契约 `0.3.0-simplified.6`。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-task-api` §2.1/§8.2/§8.4/§9.1.1/§9.2.1（v0.1.1）；契约 `0.3.0-simplified.6`。
 - **ISD 细化内容 / 章节**：§5.1.1 `createRun`；§3.3 `request.ts`/§3.5 `ports.ts`；§6.1 `P-TAPI-SUBMIT`。
 - **唯一权威位置**：行为/接口权威 = 模块设计 §2.1/§9.1.1；文件/symbol/私有表示权威 = 本 ISD。
 - **实现自由度**：body 分块策略、Ajv 错误 detail 拼接、端口适配细节；不可改变处理顺序、2 MiB 上限与 `null`/typed error 语义。
@@ -327,7 +327,7 @@ flowchart LR
 - **文件 / symbol / 可见性**：Planned `src/http/handlers.ts` `createRun`；模块内 public（经 Router 间接对外）。
 - **原成员 ID 或私有来源**：模块设计 §9.1.1；`F-TAPI-SUBMIT`；`M-RUN-DI-001`。
 - **完整签名与 caller**：`async function createRun(ctx: HttpContext): Promise<void>`；caller = `router.route`（宿主事件循环）。
-- **固定契约与版本**：模块设计 §9.1.1（`piko-task-api` v0.1.0-draft.1）；OpenAPI `0.3.0-simplified.6`；构建目标 `dist/http/`。
+- **固定契约与版本**：模块设计 §9.1.1（`piko-task-api` v0.1.1）；OpenAPI `0.3.0-simplified.6`；构建目标 `dist/http/`。
 - **输入参数 / 数据结构 authority**：`ctx.req`（含 body 流与 `Authorization`）；body 类型 `AgentTaskRequest`（`$defs.AgentTaskRequest`）。无 §6 Data ID，进程内上下文。
 - **输入约束 / 校验顺序 / 失败映射**：顺序 = bearer → 读 body（≤2 MiB）→ JSON → Ajv → （discussion）`verifyDiscussion` → `validateSubmission` → `createOrGetRun`；失败映射：读体/JSON/Schema → 400 `InvalidRequest`；无凭据 → 401 `Unauthorized`；discussion → 409 `InvalidDiscussionContext`；判定 → 403/422；M003 → 409/410/503。
 - **成功输出 / 数据结构 / 后置条件**：202 + `RunView`（`created`→`Queued`；`existing`→原视图）。后置：`runs` 已有该 Run；不保证执行开始。
@@ -817,7 +817,7 @@ sequenceDiagram
 ### 10.1.1 `MAP-TAPI-ENDPOINTS` · 四 HTTP endpoint 映射
 
 - **模块 / 原成员 ID**：`createRun`/`getRun`/`cancelRun`/`getRunResult`（OpenAPI operationId）。
-- **唯一来源 / 版本 / selector / hash**：`piko-task-api` §9.1（v0.1.0-draft.1）；OpenAPI `0.3.0-simplified.6`。
+- **唯一来源 / 版本 / selector / hash**：`piko-task-api` §9.1（v0.1.1）；OpenAPI `0.3.0-simplified.6`。
 - **提供或消费 / backend**：提供 / HTTP（Slinky ↔ M001）。
 - **实际位置或 Planned 计划位置**：Planned `src/http/handlers.ts` `createRun`/`getRun`/`cancelRun`/`getRunResult`；机器目录 location/symbol = `null`。
 - **验证项**：`VRC-TAPI-001/002/003/004/005`。
@@ -850,7 +850,7 @@ sequenceDiagram
 
 #### 10.2.1 `SC-TAPI-01` · 模块设计 ↔ ISD 承接一致
 
-- **上游承接状态 / 固定来源**：`piko-task-api` §2/§6.8/§8/§9（v0.1.0-draft.1）声明四操作、错误集、处理顺序与验证规格。
+- **上游承接状态 / 固定来源**：`piko-task-api` §2/§6.8/§8/§9（v0.1.1）声明四操作、错误集、处理顺序与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——`src/http/` 全为 `PLANNED`，既有 `src/server.ts`/`src/auth.ts`/`src/types.ts` 为 `IN_PROGRESS`/已实现，无运行证据。
 - **§2 Current / Target**：brownfield；Current = `src/server.ts` 内联 route/body/Ajv/error，Target = `src/http/` + `ApiPorts`。
 - **§3 / §5 文件与函数状态**：`src/http/*` = `PLANNED`；`src/server.ts`/`src/types.ts`/`src/main.ts` = `IN_PROGRESS`；`src/auth.ts` = `IMPLEMENTED`。
@@ -880,7 +880,7 @@ sequenceDiagram
 - **分析 / 决策引用**：模块设计 §15.3。
 - **所需输入 / 下一步选择判据**：机制补入口或明确由 M003 直承担。
 - **解决动作 / 完成条件**：机制文档补充入口。
-- **状态**：Open。
+- **状态**：Closed（上游已修复/已回写）。
 
 ### 10.3.3 `ISD-OQ-TAPI-004` · MECH-MATRIX §14.4 未列 M001
 
@@ -892,7 +892,7 @@ sequenceDiagram
 - **分析 / 决策引用**：模块设计 §15.4。
 - **所需输入 / 下一步选择判据**：机制补 `M-MX-DI-004` 或明确经 `M-RUN-DI-001` 承接。
 - **解决动作 / 完成条件**：机制文档补充。
-- **状态**：Open。
+- **状态**：Closed（上游已修复/已回写）。
 
 ### 10.4 Metadata 与 coverage 交付检查
 

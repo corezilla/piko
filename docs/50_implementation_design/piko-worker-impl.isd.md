@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-worker-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -28,7 +28,7 @@
 
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.1；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
 
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-worker` / `0.1.0-draft.1` / `docs/40_module_design/piko-worker-design.md`。摘要：worker 持有 lease 并协调一个 Run；Result 走两步提交（`results` generation N 与 `runs` 终态 generation N+1 不可合并）；取消按 state 分流；崩溃后按 R1-R7 只补第二步；不镜像 Pi loop。
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-worker` / `0.1.1` / `docs/40_module_design/piko-worker-design.md`。摘要：worker 持有 lease 并协调一个 Run；Result 走两步提交（`results` generation N 与 `runs` 终态 generation N+1 不可合并）；取消按 state 分流；崩溃后按 R1-R7 只补第二步；不镜像 Pi loop。
 
 - **需求与 Constraint ID**：`CON-RUN-001`（PK-01，边界）、`CON-RUN-003`（PK-03）、`CON-RUN-004`（PK-07）、`CON-USAGE-001/002`（PK-09/10）、`CON-MX-001`（PK-08）、`CON-REC-001`（PK-12）、`CON-CX-001`（PK-03）；机制输入 `M-RUN-DI-005`、`M-MX-DI-002`、`M-REC-DI-002`、`M-CX-DI-003`。
 
@@ -42,7 +42,7 @@
 
 - **上游信息项 / 规则 ID**：`F-WORKER-EXEC`、`IF-RUN-SESSION`/`IF-RUN-ACCEPT`/`IF-RUN-DRIVE`、`M-RUN-DI-005`、`CON-RUN-001`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-worker` §2.1/§5.2.1/§9.1.4/§9.2（v0.1.0-draft.1）；`piko-run` §5.1/§5.2。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-worker` §2.1/§5.2.1/§9.1.4/§9.2（v0.1.1）；`piko-run` §5.1/§5.2。
 
 - **ISD 细化内容 / 章节**：§5.1.1 `RunCoordinator.onLease`；§3.1 `coordinator.ts`/§3.6 `ports.ts`；§6.1 `P-WORKER-EXEC`。
 
@@ -70,7 +70,7 @@
 
 - **上游信息项 / 规则 ID**：`F-WORKER-USAGE`、`R-WORKER-USAGE-VALIDATE`、`IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`、`CON-USAGE-001/002`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-worker` §2.2/§8.6/§9.2（v0.1.0-draft.1）；`piko-usage` §5.1；契约 `0.3.0-simplified.6`。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-worker` §2.2/§8.6/§9.2（v0.1.1）；`piko-usage` §5.1；契约 `0.3.0-simplified.6`。
 
 - **ISD 细化内容 / 章节**：§5.1.2 校验调用；§5.2.2 `snapshot`/`validateBeforePublish`；§3.6 `ports.ts`；§7.1.5 `C-WORKER-05`。
 
@@ -126,7 +126,7 @@
 
 - **上游信息项 / 规则 ID**：`IF-RUN-SLOT`/`IF-RUN-RENEW`/`IF-REC-FENCE`、`CON-RUN-001`；`T` 转换 `D7/D9`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-scheduler` §9.1（v0.1.0-draft.1）；`piko-worker` §4.5/§6.6/§10.2。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-scheduler` §9.1（v0.1.1）；`piko-worker` §4.5/§6.6/§10.2。
 
 - **ISD 细化内容 / 章节**：§5.2.4 `acquireSlot`/`renewLease`/`fence` 消费；§3.6 `ports.ts`；§6.1 `P-WORKER-EXEC` 的 `DETACHED` 出口。
 
@@ -559,7 +559,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **完整签名与 caller**：`onLease(lease: Lease): Promise<void>`；caller = M004 `scheduler` 领取后的 dispatch（事件循环）。
 
-- **固定契约与版本**：模块设计 §9.1.4/§5.2.1（`piko-worker` v0.1.0-draft.1）；构建目标 `dist/worker/`。
+- **固定契约与版本**：模块设计 §9.1.4/§5.2.1（`piko-worker` v0.1.1）；构建目标 `dist/worker/`。
 
 - **输入参数 / 数据结构 authority**：`lease: Lease`（`piko-scheduler` §6.2.1）；`run_id`/`epoch` 非空/`epoch>=1`。
 
@@ -667,7 +667,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **完整签名与 caller**：`route(runId: string): Promise<CancelOutcome>`；caller = M001 `task-api` 取消入口（经 `RunWorker.cancel`）。
 
-- **固定契约与版本**：模块设计 §9.1.2/9.1.3（`piko-worker` v0.1.0-draft.1）；`piko-cancel` §5.1。
+- **固定契约与版本**：模块设计 §9.1.2/9.1.3（`piko-worker` v0.1.1）；`piko-cancel` §5.1。
 
 - **输入参数 / 数据结构 authority**：`runId: string` 非空；`runs.state` 读取权威 = M003。
 
@@ -721,7 +721,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **完整签名与 caller**：`plan(): Promise<RecoveryReport>`；caller = M000 `bootstrap` 启动完成后的恢复入口。
 
-- **固定契约与版本**：模块设计 §2.7/§8.5（`piko-worker` v0.1.0-draft.1）；`piko-recovery` §5.1。
+- **固定契约与版本**：模块设计 §2.7/§8.5（`piko-worker` v0.1.1）；`piko-recovery` §5.1。
 
 - **输入参数 / 数据结构 authority**：无入参；读 `scanNonTerminalRuns`/`result`/M006 `inspect` 事实。
 
@@ -775,7 +775,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **完整签名与 caller**：`onIdle(runId: string): Promise<void>`；caller = `RunCoordinator` drive 循环（Pi idle 事件）。
 
-- **固定契约与版本**：模块设计 §2.5/§8.4（`piko-worker` v0.1.0-draft.1）；`piko-matrix` §8。
+- **固定契约与版本**：模块设计 §2.5/§8.4（`piko-worker` v0.1.1）；`piko-matrix` §8。
 
 - **输入参数 / 数据结构 authority**：`runId: string` 非空；`discussion_intake_state` 权威 = M003。
 
@@ -1343,7 +1343,7 @@ sequenceDiagram
 ### 10.1.1 `MAP-WORKER-RESULTGEN` · `IF-RUN-RESULTGEN` 映射
 
 - **模块 / 原成员 ID**：`IF-RUN-RESULTGEN`（`system-design` §3.2 M005 Result generation；模块设计 §9.1.1）。
-- **唯一来源 / 版本 / selector / hash**：`piko-worker` §9.1.1（v0.1.0-draft.1）。
+- **唯一来源 / 版本 / selector / hash**：`piko-worker` §9.1.1（v0.1.1）。
 - **提供或消费 / backend**：提供 / 进程内（M005→M003/M001）。
 - **实际位置或 Planned 计划位置**：Planned `src/worker/result.ts` `ResultBuilder.build`；机器目录 location/symbol = `null`。
 - **验证项**：`VRC-WORKER-001/004`。
@@ -1406,7 +1406,7 @@ sequenceDiagram
 
 #### 10.2.1 `SC-WORKER-01` · 模块设计 ↔ ISD 承接一致
 
-- **上游承接状态 / 固定来源**：`piko-worker` §2/§6.6/§8/§9（v0.1.0-draft.1）声明七功能、`WorkerRunPhase` 状态模型、失败语义与验证规格。
+- **上游承接状态 / 固定来源**：`piko-worker` §2/§6.6/§8/§9（v0.1.1）声明七功能、`WorkerRunPhase` 状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。
 - **§2 Current / Target**：brownfield；Current = `src/worker.ts` 内联 Result/取消/恢复/intake 与 `store.finish` 合并事务，Target = `src/worker/` + 两步独立事务。
 - **§3 / §5 文件与函数状态**：`src/worker/*` = `PLANNED`；`src/worker.ts`/`src/store.ts`/`src/main.ts` = `IN_PROGRESS`。
