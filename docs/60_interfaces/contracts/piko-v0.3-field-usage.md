@@ -40,7 +40,7 @@
 | `output_paths` | Slinky | 可回收业务输出的相对路径范围 |
 | `discussion.room_id` | Slinky，Piko核验Matrix事实 | 仅讨论任务可选；选择已有授权房间，不创建房间/任务 |
 | `discussion.trigger_event_id` | Slinky，Piko核验Matrix事实 | 已可见的同room起始事件；不等同Run trigger或业务批准 |
-| `run_id` | Piko | 本实例内 Run ID；不传给 LLMTier |
+| `task_id` | Piko | 本实例内 Run ID；不传给 LLMTier |
 | `state` | Piko | 执行状态；不表示 Slinky 业务接受 |
 | `cancel_requested` | Piko | Queued 原子取消可与 Cancelled Result 同时成为停止事实；Running 的 StopRequested 只表示意图，不等于停止 |
 | `progress.model_calls` | Piko/Pi | 已准入的 durable provider-effect attempt 数，含 Harness retry；intent 与实际网络发送间崩溃时保守计数 |
@@ -54,4 +54,4 @@
 | `usage.missing_fields` | Piko | 未覆盖全部durable attempt的token字段；Partial至少一项但非全部，Unknown包含全部六项且observed attempts可非零 |
 | `failure.code/cause_class/message` | Piko | 技术失败事实，不给调用方虚构resume动作；业务后续由Slinky PM决定 |
 
-首次提交时，Piko 持久化完整已校验 POST body 作为不可变任务定义；再次提交同一 `task_id` 时不覆盖它。已有任务在动态deadline/queue/dependency检查之前返回；清理详细记录后永久保留`task_id/run_id/Gone` tombstone。未知字段一律拒绝。旧 model selector、binding、communication trigger、capacity、claim、message/content、release/drain 与模型 Invocation 字段不再接受。
+首次提交时，Piko 持久化完整已校验 POST body 作为不可变任务定义；再次提交同一 `task_id` 时不覆盖它。已有任务在动态deadline/queue/dependency检查之前返回；清理详细记录后永久保留`task_id/task_id/Gone` tombstone。未知字段一律拒绝。旧 model selector、binding、communication trigger、capacity、claim、message/content、release/drain 与模型 Invocation 字段不再接受。

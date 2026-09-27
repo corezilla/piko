@@ -164,3 +164,16 @@
 
 
 ```
+
+---
+
+## 8. 发现的既有缺陷（下一轮修）
+
+- **PK 编号错位（重要）**：`system-design` §2.2 的 `PK-01..PK-12` 文本与需求权威 `piko-requirements-traceability-v0.3`（`PK-01..PK-20`）**对不上**——例如 system-design 把"截止/预算"叫 PK-03，需求里那是 **PK-04**（PK-03 = 复用 Pi session/隔离 session）。我本轮新增的数据面/进程隔离约束也一度误用 PK-13/PK-14（撞需求已有编号），已改为 **PK-21/PK-22** 并写入需求文档。**§2.2 整表仍待与需求文档对齐**（pre-existing，非本轮引入）。
+- **`RunNotTerminal` 命名** 已在机器契约/错误目录改为 `TaskNotTerminal`；文档正文若再出现旧名即为遗漏。
+
+## 9. 剩余工作（未完成）
+
+- 模块设计 10 份 + 新建 M010 `transfer`（definition）；ISD 10 份 + 新建 M010 ISD。需：`run_id`/limits/进程模型（P0/P1）同步、M010 归口、§14 接口分配。
+- 验证文档（测试规格/计划）里 limits（deadline/预算）与 `run_id` 残留（~20 文件）。
+- `system-design` §2.2 PK 表与需求对齐。

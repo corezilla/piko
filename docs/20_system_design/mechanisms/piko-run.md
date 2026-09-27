@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-run` |
-| Document Version | `0.5.3` |
-| Status | `Approved` |
+| Document Version | `0.6.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -21,9 +21,9 @@ Piko 的唯一外部职责是把 Slinky 派来的一个 AI 任务变成可查询
 
 MECH-RUN 定义这七个模块如何协作完成一次 Run 的完整闭环：从 Slinky 提交 `task_id` 开始，经校验、持久化、调度、Pi 执行、Usage 聚合，到 immutable Result 发布与终态可见。它横向承接系统设计 §3.4 的 Constraint PK-01/02/03/07，是 Piko 最核心的机制。
 
-**受益者与任务**：Slinky 项目经理需要一个稳定身份来派任务、查询状态、读取结果；失败时需要一个可判定的事实（DeadlineExceeded / BudgetExceeded / UnsafeRetryBlocked 等），而不是猜"任务到底跑没跑"。
+**受益者与任务**：Slinky 项目经理需要一个稳定身份来派任务、查询状态、读取结果；失败时需要一个可判定的事实（InputFetchFailed / UnsafeRetryBlocked / ExecutionStateUnknown / ToolFailure 等），而不是猜"任务到底跑没跑"。
 
-**核心输入 → 处理 → 输出**：输入是已验证的 `ValidatedTaskSubmission`（含 `task_id`、任务定义、workspace、permissions、deadline、预算、output_paths）；处理是"受理事务 → lease 领取 → Pi accept/drive → 对账 → Result 两步提交"；输出是 `AgentResult`（state + summary + outputs + known_actions + usage + failure）与稳定的 `RunView`。
+**核心输入 → 处理 → 输出**：输入是已验证的 `ValidatedTaskSubmission`（含 `task_id`、任务定义、workspace_ref、permissions、input_refs、artifact_target、output_paths）；处理是"受理事务 → lease 领取 → Pi accept/drive → 对账 → Result 两步提交"；输出是 `AgentResult`（state + summary + outputs + known_actions + usage + failure）与稳定的 `TaskView`。
 
 **最重要取舍**：选择"单实例单 slot + lease epoch fencing + 两步 Result 提交"，代价是单实例吞吐受限、多实例需 Slinky 端组织，换取的是简单的一致性边界与可判定的恢复语义。
 
@@ -31,7 +31,7 @@ MECH-RUN 定义这七个模块如何协作完成一次 Run 的完整闭环：从
 
 ```mermaid
 flowchart LR
-  S["Slinky<br/>（派 Run / 读 Result）"] -->|"RunSubmitRequest"| M1["M001 task-api"]
+  S["Slinky<br/>（派 Run / 读 Result）"] -->|"TaskSubmitRequest"| M1["M001 task-api"]
   M1 --> M2["M002 policy"]
   M1 --> M3["M003 task-repository"]
   M3 --> M4["M004 scheduler"]
@@ -39,7 +39,7 @@ flowchart LR
   M5 --> M6["M006 pi-adapter"]
   M6 --> M7["M007 usage"]
   M5 --> M3
-  M3 -->|"AgentResult / RunView"| S
+  M3 -->|"AgentResult / TaskView"| S
 ```
 
 图 M-RUN-0 · MECH-RUN 用途概览 / Target / NOT_BUILT。Slinky 只需"派一个 Run、读一个 Result"；七个模块协作把任务变成稳定结果。
@@ -54,24 +54,26 @@ flowchart LR
 
 | Capability / Scenario ID | 业务任务与触发/条件 | 输入与可观察结果 | 提供方/全部消费者 | 实现状态 | 验证结果/判据 |
 |---|---|---|---|---|---|
-| CAP-RUN-SUBMIT · 派一个新 Run | Slinky 项目经理把 AI 任务交给独立 Agent；触发为 Slinky 生成 `task_id` 后 `POST /runs` | `RunSubmitRequest` → 202 + `RunSubmission`；失败 422/401/409/410/429/503 | 提供：`task-api` M001 + `policy` M002 + `task-repository` M003；消费：Slinky | Planned | PK-T03 / PK-T15（NOT_RUN） |
-| CAP-RUN-STATUS · 查 Run 状态 | 想知道受理/运行/终态；触发为 `GET /runs/:run_id` | `run_id` → `RunView`（state / generation / timestamps） | 提供：`task-api` M001 + `task-repository` M003；消费：Slinky | Planned | PK-T03（NOT_RUN） |
-| CAP-RUN-CANCEL · 取消 Run | 业务决定中止；触发为 `POST /runs/:run_id:cancel` | 200 `CancelledBeforeStart`（Queued）/ 202 `StopRequested`（Running）/ 200 `AlreadyTerminal` | 提供：`task-api` M001 + `worker` M005 + `task-repository` M003；消费：Slinky | Planned | PK-T05（NOT_RUN） |
-| CAP-RUN-RESULT · 读稳定 Result | Slinky 验收/重派/升级；触发为 `GET /runs/:run_id/result` | 200 `AgentResult` / 409 `RunNotTerminal` / 500 `ResultUnavailable` | 提供：`task-api` M001 + `task-repository` M003；消费：Slinky | Planned | PK-T16（NOT_RUN） |
+| CAP-RUN-SUBMIT · 派一个新 Run | Slinky 项目经理把 AI 任务交给独立 Agent；触发为 Slinky 生成 `task_id` 后 `POST /tasks` | `TaskSubmitRequest` → 202 + `TaskView`；失败 422/401/409/410/429/503 | 提供：`task-api` M001 + `policy` M002 + `task-repository` M003；消费：Slinky | Planned | PK-T03 / PK-T15（NOT_RUN） |
+| CAP-RUN-STATUS · 查 Run 状态 | 想知道受理/运行/终态；触发为 `GET /tasks/:task_id` | `task_id` → `TaskView`（state / generation / timestamps） | 提供：`task-api` M001 + `task-repository` M003；消费：Slinky | Planned | PK-T03（NOT_RUN） |
+| CAP-RUN-CANCEL · 取消 Run | 业务决定中止；触发为 `POST /tasks/:task_id:cancel` | 200 `CancelledBeforeStart`（Queued）/ 202 `StopRequested`（Running）/ 200 `AlreadyTerminal` | 提供：`task-api` M001 + `worker` M005 + `task-repository` M003；消费：Slinky | Planned | PK-T05（NOT_RUN） |
+| CAP-RUN-RESULT · 读稳定 Result | Slinky 验收/重派/升级；触发为 `GET /tasks/:task_id/result` | 200 `AgentResult` / 409 `TaskNotTerminal` / 500 `ResultUnavailable` | 提供：`task-api` M001 + `task-repository` M003；消费：Slinky | Planned | PK-T16（NOT_RUN） |
 | CAP-RUN-EXEC · 后台执行与对账 | 系统内部；触发为 scheduler tick | lease 领取 → Running → Pi accept/drive → 对账 → Result 发布 | 提供：`scheduler` M004 + `worker` M005 + `pi-adapter` M006；消费：Piko 内部 | Planned | PK-T04 / PK-T09 / PK-T10（NOT_RUN） |
 | CAP-RUN-USAGE · 用量聚合与冻结 | Result 发布前；触发为 worker 进入两步提交第一步 | 各 attempt raw usage → `UsageSnapshot`（6 字段 sum/null + missing_fields + quality） | 提供：`usage` M007；消费：`worker` M005 + Slinky（经 Result） | Planned | PK-T10 / PK-T16（NOT_RUN） |
 
 不支持：跨实例 exactly-once、并行多 slot、模型 non-stream fallback、产品 Topic/SID/RID。这些属系统设计 §2.2 的非目标。
+
+> **数据面**：输入拉取（P-INPUT）/ 产出投递（P-ARTIFACT）**不属于本机制的执行步骤**，由独立机制 **`MECH-TRANSFER`**（`piko-transfer.md`）承担；`MECH-RUN` 只提供 Run 上下文（`output_paths` / 终态事实）。
 
 ## 3. 参与方、责任和 authority
 
 | Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
 | M001 `task-api` / Piko Implementation Owner | 负责四项 HTTP operation 的路由与 typed error 映射；不负责持久化业务、不直接调用 Pi/Matrix | 请求寿命的 `ValidatedTaskSubmission` | 提供：4 个 HTTP endpoint；消费：`policy` / `task-repository` | 进程内 `src/http/`（Planned） | 依赖 `system-design` §8.1 |
-| M002 `policy` / Piko Implementation Owner | 负责 request/path/tool/deadline/budget 判定；不持状态 | 启动时绑定的 `BoundToolProfile` | 提供：`ValidatedTaskSubmission`；消费：原始请求 + config + registry | 进程内 `src/policy/`（Planned） | 依赖 `system-design` §9.1 |
+| M002 `policy` / Piko Implementation Owner | 负责 request/path/tool 判定；不持状态 | 启动时绑定的 `BoundToolProfile` | 提供：`ValidatedTaskSubmission`；消费：原始请求 + config + registry | 进程内 `src/policy/`（Planned） | 依赖 `system-design` §9.1 |
 | M003 `task-repository` / Piko Implementation Owner | 负责 Run/lease/session/result/ledger 事务与 fenced write；不负责业务编排 | `tasks`/`runs`/`run_sessions`/`execution_slot`/`results`/`model_attempts`/`tool_calls` | 提供：`createOrGetRun`/`mutateRun`/`publishResult`；消费：scheduler / worker | 进程内 `src/store/`（Planned） | 依赖 `system-design` §7.7 |
 | M004 `scheduler` / Piko Implementation Owner | 负责单 slot 领取/续租/fence；不决策业务 | `execution_slot` + lease epoch | 提供：`acquireSlot`/`renewLease`/`fence`；消费：tick | 进程内 `src/scheduler/`（Planned） | 依赖 M003 |
-| M005 `worker` / Piko Implementation Owner | 负责 Run 事务协调、取消、deadline、Result 两步发布；不镜像 Pi Agent loop | Run 寿命的 lease 持有 | 提供：`Result generation`；消费：M006/M007/M003；**跨机制**：discussion Run 经 `MECH-MATRIX` 消费 M008 | 进程内 `src/worker/`（Planned） | 依赖 M003 + M006 + M007；跨机制依赖 `MECH-MATRIX`（M008） |
+| M005 `worker` / Piko Implementation Owner | 负责 Run 事务协调、取消、Result 两步发布、数据面编排（P1 侧允许阻塞）；不镜像 Pi Agent loop | Run 寿命的 lease 持有 | 提供：`Result generation`；消费：M006/M007/M003；**跨机制**：discussion Run 经 `MECH-MATRIX` 消费 M008 | 进程内 `src/worker/`（Planned） | 依赖 M003 + M006 + M007；跨机制依赖 `MECH-MATRIX`（M008） |
 | M006 `pi-adapter` / Piko Implementation Owner | 负责 Harness session/lane/operation/abort/raw usage hook；不替换 provider adapter | Pi session 句柄 + `run_sessions.active_operation_id` | 提供：`PiRuntime`；消费：Pi SDK | 进程内 `src/adapters/pi/`（Planned） | 依赖固定 Pi 0.85.1 @ commit `9767ba...` |
 | M007 `usage` / Piko Implementation Owner | 负责 Usage 聚合 + Result 语义校验；不改已发布 generation | `UsageSnapshot` 缓存 + `ResultValidator` | 提供：`UsageAggregator`/`ResultValidator`；消费：M006 raw usage | 进程内 `src/usage/`（Planned） | 依赖机器契约 `0.3.0-simplified.6` |
 
@@ -84,7 +86,7 @@ flowchart LR
   subgraph PIKO["Piko 进程（单实例）"]
     M001["M001 task-api<br/>owner: HTTP 入口/typed error"]
     M002["M002 policy<br/>owner: 校验判定（无状态）"]
-    M003["M003 task-repository<br/>owner: tasks/runs/results/ledger"]
+    M003["M003 task-repository<br/>owner: tasks/tasks/results/ledger"]
     M004["M004 scheduler<br/>owner: execution_slot/lease"]
     M005["M005 worker<br/>owner: Run 寿命/Result 发布"]
     M006["M006 pi-adapter<br/>owner: Pi session/operation/raw usage"]
@@ -106,16 +108,16 @@ flowchart LR
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 流程/协议/下级落实位置 | 组合验证与证据状态 | 差距/变更影响/裁决责任 |
 |---|---|---|---|---|---|---|
-| CON-RUN-001 · PK-01 单 slot + 独立 session · Approved | 单实例单 Agent | 同实例同时至多 1 个 Running Run；`pi_session_id=run_id` | M003+M004 保证 lease epoch 唯一；M006 保证确定性 session identity；自由度：内部函数组织 | §6.1 / §8.1 / M003/M004/M006 ISD | 集成 PK-T01/PK-T13（NOT_RUN） | — / 多实例另立设计 |
+| CON-RUN-001 · PK-01 单 slot + 独立 session · Approved | 单实例单 Agent | 同实例同时至多 1 个 Running Run；`pi_session_id=task_id` | M003+M004 保证 lease epoch 唯一；M006 保证确定性 session identity；自由度：内部函数组织 | §6.1 / §8.1 / M003/M004/M006 ISD | 集成 PK-T01/PK-T13（NOT_RUN） | — / 多实例另立设计 |
 | CON-RUN-002 · PK-02 任务事务稳定身份 · Approved | 同 `task_id` 重复提交 | tombstone 永久拒绝；同 ID 同内容不重检动态条件 | M001+M002+M003；自由度：字段比较实现 | §6.1 / §7.2 / M003 ISD | 契约 PK-T03/PK-T15（NOT_RUN） | — / 契约版本变化需复审 |
-| CON-RUN-003 · PK-03 截止与预算 · Approved | 每次 Run | deadline + max_model_calls + max_tool_calls | M002+M006；自由度：内部计数实现 | §6.4 / §9 / M002/M006 ISD | fault PK-T05（NOT_RUN） | — |
+| CON-RUN-003 · PK-04 期限/模型预算 · **本版撤销** | — | 本版不实现任务级截止/预算 | — | 见 `system-design` 附录 B | 不适用 | — |
 | CON-RUN-004 · PK-07 Result 两步提交 · Approved | Run 终态 | 写 `results` 与写终态不可合并 | M003+M005+M007；自由度：事务内语句组织 | §6.2 / §8.1 / M003/M005 ISD | fault PK-T05/PK-T15（NOT_RUN） | — |
 
 ### 3.2 运行时统筹与确认责任
 
 | 能力/Process ID | 运行时统筹/权威状态 | 参与方动作及确认 | 总体成功/部分结果 | 中断核对与清理/重新开放 | 关联公共契约 |
 |---|---|---|---|---|---|
-| CAP-RUN-SUBMIT | M001（入口）统筹；M003 持有 `tasks`/`runs` 权威 | M001 校验→M002 判定→M003 单事务创建/比较→M001 返回 202 | 202 + `run_id` 即受理事实 | 事务回滚无残留；HTTP 响应丢失时用原 `task_id` 核对 | contract §1-§2 + §6 |
+| CAP-RUN-SUBMIT | M001（入口）统筹；M003 持有 `tasks`/`runs` 权威 | M001 校验→M002 判定→M003 单事务创建/比较→M001 返回 202 | 202 + `task_id` 即受理事实 | 事务回滚无残留；HTTP 响应丢失时用原 `task_id` 核对 | contract §1-§2 + §6 |
 | CAP-RUN-EXEC | M004 统筹 slot；M005 统筹 Run 生命周期 | M004 lease→M005 切 Running→M006 accept/drive→M005 对账→两步 Result | `results` generation 写成功 = 完成事实 | R1-R7 恢复顺序（§9）；不重跑 Pi | contract §3 |
 | CAP-RUN-CANCEL | M005 统筹；M003 持 `runs.state` | Queued：单事务零调用 Result；Running：写 stop intent→abort→对账→终态 | Cancelled + Result generation = 取消完成事实 | `StopRequested` 只证意图；`CancelledByRequest` 才证停止 | contract §1 + §6 |
 | CAP-RUN-USAGE | M007 统筹；M003 持 `model_attempts` | M006 `onRawUsage`→M007 逐 attempt 汇总→冻结 snapshot | `UsageSnapshot.quality` + missing_fields = 完整/部分/未知事实 | 迟到 usage 只推内部 `record_version`，不改 Result | contract §3 |
@@ -125,9 +127,9 @@ flowchart LR
 | 逻辑目标/身份 | 部署及访问路径 | 映射 authority/更新条件 | 共享故障/复位域 | 旧目标/旧代次处理 |
 |---|---|---|---|---|
 | Piko 实例（单 Node.js 进程） | 本地单进程；operator 经诊断端点 | config `storage.sqlite_path` + instance lock | 进程 + 本地 FS 同时挂 = 全部数据丢 | 重启走 P-START；旧 lease epoch 被 fence |
-| `run_id` | HTTP 路径参数 | M003 `tasks`/`runs` | 与实例同故障域 | 终态不可回退；tombstone 永久 |
+| `task_id` | HTTP 路径参数 | M003 `tasks`/`runs` | 与实例同故障域 | 终态不可回退；tombstone 永久 |
 | `task_id`（Slinky 生成） | HTTP body | M003 `tasks.task_id` | 同实例 | 一 ID 一任务；不可复用 |
-| `pi_session_id = run_id` | 进程内 Harness | M006 确定性派生 | Pi session JSONL + SQLite 同本地 FS | 崩溃后 inspect/getResult 对账，不重发 |
+| `pi_session_id = task_id` | 进程内 Harness | M006 确定性派生 | Pi session JSONL + SQLite 同本地 FS | 崩溃后 inspect/getResult 对账，不重发 |
 | LLMTier endpoint | HTTPS | config `llmtier.base_url` + preflight | 独立故障域（网络） | 不可达 → `ModelUnavailable`；不静默切 |
 | Matrix homeserver | HTTPS | config `matrix.homeserver` + whoami | 独立故障域 | 不可达 → `DiscussionAccessLost` |
 
@@ -153,9 +155,9 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `RunState`
+#### 4.1.1 `TaskState`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。来源：`system-design` §3 + contract §6 + M003 ISD §4.1.1。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。来源：`system-design` §3 + contract §6 + M003 ISD §4.1.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Queued`＝已受理未取 slot；`Running`＝已取 slot 并 accept Pi；`Cancelling`＝取消意图落盘；`Completed`/`Failed`/`Cancelled`＝终态。未知值拒绝。
 - **生产/修改、所有权、可见点、寿命及失败出口**：唯一写者 M003；可见点 `runs.state`；寿命 = Run 寿命；终态不可回退。
 - **合法与拒绝实例、V/Case 与证据状态**：合法转移见 §8；非法转移返回内部 `FencedWrite`。Case M003/M005 ISD §9.1（NOT_RUN）。
@@ -163,7 +165,7 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 #### 4.1.2 `RunGeneration`
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：单调正整数，随每次 fenced write 递增。来源 M003 ISD §4.1。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`generation >= 1`；`WHERE run_id=? AND generation=?` 影响行数必须为 1。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`generation >= 1`；`WHERE task_id=? AND generation=?` 影响行数必须为 1。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；可见点 `runs.generation`；fencing 失败不写。
 - **合法与拒绝实例、V/Case 与证据状态**：过期 generation 的写入必须拒绝。Case M003 ISD §9.1（NOT_RUN）。
 
@@ -171,24 +173,24 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 #### 4.2.1 `ValidatedTaskSubmission`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：M002 输出的已验证任务；字段来自 `RunSubmitRequest`。来源 M002 ISD §5.1。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`（非空、全局唯一）、`task`（不可变定义）、`workspace`（RelPath 在 root 内）、`permissions`（read/write/tool 集合）、`deadline_at`（UTC）、`max_model_calls`/`max_tool_calls`（正整数）、`output_paths`（RelPath 集合）、`discussion?`。path 字段按集合比较，时间按 UTC instant。
+- **完整定义、Data/Type/Error ID 与唯一来源**：M002 输出的已验证任务；字段来自 `TaskSubmitRequest`。来源 M002 ISD §5.1。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`（非空、全局唯一）、`task`（不可变定义）、`workspace`（RelPath 在 root 内）、`permissions`（read/write/tool 集合）、`output_paths`（RelPath 集合）、`discussion?`。path 字段按集合比较，时间按 UTC instant。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M002 生产，M003 消费；请求寿命；校验失败返回 typed error。
 - **合法与拒绝实例、V/Case 与证据状态**：绝对路径/`..`/symlink 越界拒绝。Case PK-T03（NOT_RUN）。
 
 #### 4.2.2 `AgentResult`
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：M005 发布的稳定结果；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json`。来源 contract §3。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`run_id`、`state`（终态）、`partial`（bool）、`summary`（string）、`outputs[]`、`known_actions[]`、`usage: UsageSnapshot`、`failure: Failure | null`。`Completed` 强制 `partial=false/failure=null`；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`、`state`（终态）、`partial`（bool）、`summary`（string）、`outputs[]`、`known_actions[]`、`usage: UsageSnapshot`、`failure: Failure | null`。`Completed` 强制 `partial=false/failure=null`；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M005 生产，M003 持久化 generation；可见点 `results.result_json`；发布后不可变。
 - **合法与拒绝实例、V/Case 与证据状态**：ResultValidator FAIL 拒绝发布。Case PK-T16（NOT_RUN）。
 
 ```mermaid
 flowchart LR
-  REQ["RunSubmitRequest<br/>（外部）"] -->|M002 校验| VTS["ValidatedTaskSubmission"]
+  REQ["TaskSubmitRequest<br/>（外部）"] -->|M002 校验| VTS["ValidatedTaskSubmission"]
   VTS -->|M003 受理事务| TASK["tasks.task_json<br/>（immutable）"]
   VTS --> RUN["runs（Queued,gen=1）"]
-  RUN -->|M004 lease + M005| RS["run_sessions<br/>pi_session_id=run_id"]
+  RUN -->|M004 lease + M005| RS["run_sessions<br/>pi_session_id=task_id"]
   RS -->|M006| PI["Pi session JSONL<br/>operation/usage/tool facts"]
   PI -->|M006 onRawUsage| MA["model_attempts"]
   PI -->|M005 对账| RES["results（immutable gen N）"]
@@ -199,7 +201,7 @@ flowchart LR
 
 ### 4.3 配置与规则数据结构（适用时）
 
-**N/A · 复用系统 config**：`PikoRuntimeConfig` / `ToolProfile` 由 `system-design` §9.1 + M000/M002 ISD 维护；MECH-RUN 只消费 `deadline`/`budget`/`tool profile`/`queue capacity`，不新增配置对象。
+**N/A · 复用系统 config**：`PikoRuntimeConfig` / `ToolProfile` 由 `system-design` §9.1 + M000/M002 ISD 维护；MECH-RUN 只消费 `tool profile`/`queue capacity`/数据面引用，不新增配置对象。
 
 ### 4.4 通信报文结构（适用时）
 
@@ -207,20 +209,20 @@ flowchart LR
 
 | 报文 | 方向 | 关键字段 | 机器权威 |
 |---|---|---|---|
-| `RunSubmitRequest` | Slinky → Piko | `task_id, task, workspace, permissions, deadline_at, max_model_calls, max_tool_calls, output_paths, discussion?` | `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` |
-| `RunSubmission` | Piko → Slinky | `{task_id, run_id, state}` | 同上 |
-| `RunView` | Piko → Slinky | `{run_id, state, generation, cancel_requested, discussion_intake_state, accepted_at, started_at?, finished_at?, deadline_at, max_model_calls, max_tool_calls, outputs_meta?}` | contract §1 |
-| `CancelOutcome` | Piko → Slinky | `{run_id, outcome: CancelledBeforeStart \| StopRequested \| AlreadyTerminal}` | contract §1 |
-| `AgentResult` | Piko → Slinky | `{run_id, state, partial, summary, outputs[], known_actions[], usage, failure}` | `interfaces/schemas/agent-runtime-v0.3.schema.json` |
+| `TaskSubmitRequest` | Slinky → Piko | `task_id, instruction, workspace_ref, permissions, output_paths, input_refs?, artifact_target?, discussion?` | `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` |
+| `TaskView` | Piko → Slinky | `{task_id, state}` | 同上 |
+| `TaskView` | Piko → Slinky | `{task_id, state, generation, accepted_at, started_at?, finished_at?, result_available, cancel_requested, discussion_intake_state, input_staging, progress, artifact_delivery}` | contract §1 |
+| `CancelOutcome` | Piko → Slinky | `{task_id, outcome: CancelledBeforeStart \| StopRequested \| AlreadyTerminal}` | contract §1 |
+| `AgentResult` | Piko → Slinky | `{task_id, state, partial, summary, outputs[], known_actions[], usage, failure}` | `interfaces/schemas/agent-runtime-v0.3.schema.json` |
 | `Error` | Piko → Slinky | `{code, message?, detail?}` | `interfaces/error-codes/agent-runtime-v0.3.yaml` |
 
 #### 4.4.2 内部协作报文
 
 | 报文 | 方向 | 关键字段 | 权威 |
 |---|---|---|---|
-| `ValidatedTaskSubmission` | M002 → M003 | 同 `RunSubmitRequest` 规范化后 | M002 ISD §4.2 |
-| `FencedRunCommand` | M005 → M003 | `{run_id, expected_generation, expected_state_in, expected_lease_epoch, mutation}` | M003 ISD §4.6 |
-| `FencedPublishResult` | M005 → M003 | `{run_id, generation, result_json, result_sha256}` | M003 ISD §4.6 |
+| `ValidatedTaskSubmission` | M002 → M003 | 同 `TaskSubmitRequest` 规范化后 | M002 ISD §4.2 |
+| `FencedRunCommand` | M005 → M003 | `{task_id, expected_generation, expected_state_in, expected_lease_epoch, mutation}` | M003 ISD §4.6 |
+| `FencedPublishResult` | M005 → M003 | `{task_id, generation, result_json, result_sha256}` | M003 ISD §4.6 |
 | `PiRunObservation` | M006 → M005 | `{open_operations, operation_result, lane_tip, transcript_version, durable_queues}` | M006 ISD §4.6 |
 | `UsageSnapshot` | M007 → M005 | 6 token 字段 + attempts + missing_fields + quality | contract §3 |
 
@@ -234,7 +236,7 @@ flowchart LR
 
 #### 4.6.1 `RunSessionRecord`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`{run_id, pi_session_id=run_id, lane_name="main", active_operation_id, last_operation_id, observed_tip_id, lease_epoch}`。来源 M003 ISD §4.6。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`{task_id, pi_session_id=task_id, lane_name="main", active_operation_id, last_operation_id, observed_tip_id, lease_epoch}`。来源 M003 ISD §4.6。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`lease_epoch >= 1`；`pi_session_id` 唯一且确定性派生。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；可见点 `run_sessions`；Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：session 不可跨 Run 复用。Case PK-T01（NOT_RUN）。
@@ -261,13 +263,11 @@ flowchart LR
 | `Gone` | tombstone（已清理 ID） | 410 | 不重建 | 换新 `task_id` |
 | `InvalidDiscussionContext` | discussion room/event 冲突 | 409 | 不创建 Run | 核对 room/event 与 membership |
 | `QueueFull` | 队列达 `max_queue_depth` | 429 | 不创建 Run | 等待后重试同 ID；不强行清队列 |
-| `RunNotTerminal` | 非终态查 result | 409 | 无副作用 | 继续查询或等待 |
+| `TaskNotTerminal` | 非终态查 result | 409 | 无副作用 | 继续查询或等待 |
 | `ResultUnavailable` | 终态丢 durable Result | 500 | 不伪装成功 | 交 operator；不重建 |
 | `CancelledBeforeStart` | Queued 取消完成 | 200 | 零调用 Result | — |
 | `StopRequested` | Running 取消意图落盘 | 202 | 未停 | 轮询状态；不重复取消 |
 | `AlreadyTerminal` | 已终态取消 | 200 | — | — |
-| `DeadlineExceeded` | 截止耗尽 | Result failure | Failed | 交 Slinky 决策 |
-| `BudgetExceeded` | 模型/工具预算耗尽 | Result failure | Failed | 交 Slinky 决策 |
 | `ModelUnavailable` | 模型/LLMTier 不可达 | Result failure | Failed | 交 Slinky 决策 |
 | `ModelResponseInvalid` | SSE/protocol 非法 | Result failure | Failed | 交 Slinky 决策 |
 | `ToolFailure` | 工具明确 error | Result failure | Failed | 交 Slinky 决策 |
@@ -282,7 +282,7 @@ flowchart LR
 
 ### 4.9 编码、布局与共享类型映射
 
-- `RunSubmitRequest` / `RunView` / `AgentResult` / `UsageSnapshot`：JSON（UTF-8），字段名与 contract + OpenAPI 一致。
+- `TaskSubmitRequest` / `TaskView` / `AgentResult` / `UsageSnapshot`：JSON（UTF-8），字段名与 contract + OpenAPI 一致。
 - `tasks.task_json`：UTF-8 JSON 原文；tombstone 时为 NULL。
 - 时间字段：UTC ISO-8601 字符串。
 - RelPath：POSIX 正斜杠，无绝对路径/`.`/`..`/空 segment。
@@ -292,7 +292,7 @@ flowchart LR
 - 权威事实：`tasks`/`runs`/`results`/`run_sessions`；观察：HTTP 状态码与 body。
 - 提交边界：`createOrGetRun` 单事务；Result 两步事务；不同事务用 fenced write 串行化。
 - 可见性：M005 发布 `results` generation 后，M001 读路径才能看到；迟到 usage 不改 generation。
-- 寿命：`max(deadline_at, accepted_at)+7d`；之后 tombstone 永久；活动 Run 不因窗口删除。
+- 寿命：`accepted_at + storage.retention_days`；之后 tombstone 永久；活动 Run 不因窗口删除。
 
 ## 5. 接口设计
 
@@ -300,37 +300,37 @@ flowchart LR
 
 MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯一维护）；进程内模块交接也是 API，本节固定其共同契约。
 
-#### `POST /runs`（createRun，外部 HTTP）
+#### `POST /tasks`（createTask，外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`createRun`；M001 `task-api` 提供。
+- **Interface/Member ID、用途与提供责任**：`createTask`；M001 `task-api` 提供。
 - **唯一契约、版本与状态**：`interfaces/openapi/agent-runtime-openapi-v0.3.yaml`；`0.3.0-simplified.6`。
-- **输入与前提**：`RunSubmitRequest`；bearer principal 已配置。
-- **成功输出与保证**：202 `{task_id, run_id, state:"Queued"}`。
+- **输入与前提**：`TaskSubmitRequest`；bearer principal 已配置。
+- **成功输出与保证**：202 `{task_id, task_id, state:"Queued"}`。
 - **错误与合法下一步**：422/401/409 `TaskConflict`/410 `Gone`/429 `QueueFull`/503；同 ID 同内容返回原 Run。
 - **代表调用与验证**：§6.1.1 q1/q4；PK-T03/PK-T15。
 
-#### `GET /runs/{run_id}`（getRun，外部 HTTP）
+#### `GET /tasks/{task_id}`（getTask，外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`getRun`；M001 提供。
-- **输入与前提**：`run_id`；同一 principal。
-- **成功输出与保证**：200 `RunView`（无副作用）。
+- **Interface/Member ID、用途与提供责任**：`getTask`；M001 提供。
+- **输入与前提**：`task_id`；同一 principal。
+- **成功输出与保证**：200 `TaskView`（无副作用）。
 - **错误与合法下一步**：401/404/410。
 - **代表调用与验证**：§6.1.1 q2；PK-T03。
 
-#### `POST /runs/{run_id}:cancel`（cancelRun，外部 HTTP）
+#### `POST /tasks/{task_id}:cancel`（cancelTask，外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`cancelRun`；M001 提供。
-- **输入与前提**：`run_id`；同一 principal。
+- **Interface/Member ID、用途与提供责任**：`cancelTask`；M001 提供。
+- **输入与前提**：`task_id`；同一 principal。
 - **成功输出与保证**：200 `CancelledBeforeStart` / 202 `StopRequested` / 200 `AlreadyTerminal`。
 - **错误与合法下一步**：401/404/410。
 - **代表调用与验证**：MECH-CANCEL §6.1.1；PK-T05。
 
-#### `GET /runs/{run_id}/result`（getRunResult，外部 HTTP）
+#### `GET /tasks/{task_id}/result`（getTaskResult，外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`getRunResult`；M001 提供。
-- **输入与前提**：`run_id`；同一 principal。
+- **Interface/Member ID、用途与提供责任**：`getTaskResult`；M001 提供。
+- **输入与前提**：`task_id`；同一 principal。
 - **成功输出与保证**：200 `AgentResult`；generation 冻结。
-- **错误与合法下一步**：409 `RunNotTerminal`/401/404/410/500 `ResultUnavailable`。
+- **错误与合法下一步**：409 `TaskNotTerminal`/401/404/410/500 `ResultUnavailable`。
 - **代表调用与验证**：§6.1.1 q3；PK-T16。
 
 #### `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`（IF-RUN-CREATE）
@@ -338,7 +338,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-CREATE`；M003 `task-repository` 提供；M001 消费。
 - **唯一契约、版本与状态**：M003 ISD §5.1；Proposed（模块 ISD 待建）。
 - **输入与前提**：M002 已验证提交；`task_id` 唯一性未知；`BEGIN IMMEDIATE` 内执行。
-- **成功输出与保证**：`CreateRunOutcome{kind: "created"|"existing"|"conflict"|"tombstone", run_id, generation, state}`；`created` 表示已持久化 `tasks`+`runs`。
+- **成功输出与保证**：`CreateRunOutcome{kind: "created"|"existing"|"conflict"|"tombstone", task_id, generation, state}`；`created` 表示已持久化 `tasks`+`runs`。
 - **错误与合法下一步**：内部 `FencedWrite` 不映射 HTTP；调用方决定。
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`；busy → busy_timeout 后失败。
 - **代表调用与验证**：§6.1.1 q1/q4；PK-T03/PK-T15。
@@ -357,7 +357,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-ACCEPT`；M006 `pi-adapter` 提供；M005 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；固定 Pi `0.85.1` @ commit `9767ba...`。
-- **输入与前提**：`handle{session_id=run_id, lane="main"}`；`operationId=run_id:initial` 或 `run_id:turn:<n>`；`messages=[typedInstruction(PikoDiscussionMessage?)]`。
+- **输入与前提**：`handle{session_id=task_id, lane="main"}`；`operationId=task_id:initial` 或 `task_id:turn:<n>`；`messages=[typedInstruction(PikoDiscussionMessage?)]`。
 - **成功输出与保证**：Harness 形成 durable operation（确认即 Pi commit）。
 - **错误与合法下一步**：Harness fault → M005 映射 `UnsafeRetryBlocked`/`ExecutionStateUnknown`。
 - **交互与生命周期**：异步；结果经 `drive` 拉取。
@@ -367,7 +367,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-SNAPSHOT`；M007 `usage` 提供；M005 消费。
 - **唯一契约、版本与状态**：M007 ISD §5.1；契约 `0.3.0-simplified.6`。
-- **输入与前提**：`run_id`；全部 durable attempt 已落 `model_attempts`。
+- **输入与前提**：`task_id`；全部 durable attempt 已落 `model_attempts`。
 - **成功输出与保证**：`UsageSnapshot`；`SemanticCheck{ok, reason?}`。
 - **错误与合法下一步**：validate FAIL → throw `InternalError("semantic-validator-fail")`；不写 Result。
 - **交互与生命周期**：与 publish 同事务前置；无独立超时。
@@ -377,7 +377,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-PUBLISH`；M003 `task-repository` 提供；M005 消费。
 - **唯一契约、版本与状态**：M003 ISD §5.1；Proposed。
-- **输入与前提**：`{run_id, generation, result_json, result_sha256}`；两步协议第一步。
+- **输入与前提**：`{task_id, generation, result_json, result_sha256}`；两步协议第一步。
 - **成功输出与保证**：`ResultRecord`（immutable generation）。
 - **错误与合法下一步**：fencing 失败 → 内部 `FencedWrite`。
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`。
@@ -392,9 +392,9 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 
 #### `PiOperationOutcome` stream（IF-RUN-DRIVE）
 
-- **输入/关联**：`operation_id`、`run_id`；stream events ordered。
+- **输入/关联**：`operation_id`、`task_id`；stream events ordered。
 - **确认/结果**：stream 结束后 Pi commit operation result；非 SSE 由 Harness 形成 recoverable operation。
-- **超时/取消**：deadline/预算/`requestAbort`；abort 后等待 in-flight tool 对账。
+- **超时/取消**：`requestAbort`/中断；abort 后等待 in-flight tool 对账。
 - **错误**：Harness fault → typed error（见 §9）。
 - **代表调用与验证**：PK-T09/PK-T10 + LLMTier 联调。
 
@@ -414,17 +414,17 @@ Operator 只读诊断入口（队列深度 / Run 计数 / lease epoch / ledger �
 
 ## 6. 正常端到端流程
 
-代表输入：Slinky 提交 `task_id="t-7"`，workspace `ws-7`，output_paths `["out/report.json"]`，deadline 未来 1 小时，`max_model_calls=10`，`max_tool_calls=20`。
+代表输入：Slinky 提交 `task_id="t-7"`，`workspace_ref="ws-7"`，`output_paths=["out/report.json"]`，`input_refs=[{source:"host:/space/t-7/in.md", dest:"in/in.md"}]`，`artifact_target={method:"scp", target:"host:/space/t-7/out"}`。
 
 1. `task-api` M001 解析 JSON + 校验 bearer principal，调用 `policy` M002 → `ValidatedTaskSubmission`。
-2. `task-repository` M003 在 `BEGIN IMMEDIATE` 内查 `tasks`：不存在 → 检查 deadline/policy/discussion/queue → 插入 `tasks` + Queued `runs`(gen=1) → commit → 202。
+2. `task-repository` M003 在 `BEGIN IMMEDIATE` 内查 `tasks`：不存在 → 检查 policy/discussion/queue → 插入 `tasks` + Queued `runs`(gen=1) → commit → 202。
 3. `scheduler` M004 tick 检查 `execution_slot` 空闲 → lease epoch+1、绑定 owner/boot/run。
-4. `worker` M005 在单事务创建 `run_sessions`（`pi_session_id=run_id`）、切 `runs.state='Running'`(gen+1)；调用 M006 `openOrCreateRunSession`。
-5. M006 `lane.accept({kind:"prompt", operationId:"run_id:initial", prompt:typedInstruction})`；Harness 执行模型调用与工具循环。
+4. `worker` M005 在单事务创建 `run_sessions`（`pi_session_id=task_id`）、切 `runs.state='Running'`(gen+1)；调用 M006 `openOrCreateRunSession`。
+5. M006 `lane.accept({kind:"prompt", operationId:"task_id:initial", prompt:typedInstruction})`；Harness 执行模型调用与工具循环。
 6. 每个 `before_request` → M006 写 `model_attempts` Reserved→Started；`onRawUsage` → UsageObserved；`before_tool` → `tool_calls` CAS。
-7. Harness 提交 operation result；M005 对账在途 tool，调用 M007 `snapshot(run_id)` + `validateBeforePublish(result, "0.3.0-simplified.6")`。
+7. Harness 提交 operation result；M005 对账在途 tool，调用 M007 `snapshot(task_id)` + `validateBeforePublish(result, "0.3.0-simplified.6")`。
 8. M005 两步提交：第一步 `INSERT results`（generation N）；第二步 `UPDATE runs SET state='Completed', generation=N+1` + release slot。
-9. Slinky `GET /runs/:run_id/result` → 200 `AgentResult`。
+9. Slinky `GET /tasks/:task_id/result` → 200 `AgentResult`。
 
 ```mermaid
 sequenceDiagram
@@ -436,11 +436,11 @@ sequenceDiagram
   participant W as M005 worker
   participant PI as M006 pi-adapter
   participant Use as M007 usage
-  S->>API: POST /runs (t-7, ws-7, ...)
+  S->>API: POST /tasks (t-7, ws-7, ...)
   API->>POL: validateSubmission
   POL-->>API: ValidatedTaskSubmission
   API->>Repo: createOrGetRun (BEGIN IMMEDIATE)
-  Repo-->>API: created run_id, gen=1
+  Repo-->>API: created task_id, gen=1
   API-->>S: 202 Accepted
   Note over Sch: tick
   Sch->>Repo: acquireSlot
@@ -456,7 +456,7 @@ sequenceDiagram
   W->>Use: snapshot + validate
   W->>Repo: INSERT results gen N, COMMIT
   W->>Repo: UPDATE runs state=Completed gen=N+1, release slot, COMMIT
-  S->>API: GET /runs/t-7/result
+  S->>API: GET /tasks/t-7/result
   API-->>S: 200 AgentResult
 ```
 
@@ -479,55 +479,55 @@ flowchart TD
 
 ### 6.1 交叠请求、跨轮次与生命周期边界
 
-- 同一 `task_id` 在第一步 commit 后再次提交：M003 比较 `task_json`，相同直接返回原 Run（不重新检查 deadline/queue），不同返回 409。
+- 同一 `task_id` 在第一步 commit 后再次提交：M003 比较 `task_json`，相同直接返回原 Run（不重新检查 policy/queue），不同返回 409。
 - 同一实例已有 Running Run 时新 Run 保持 Queued；scheduler 只在该 Run 终态释放 slot 后再领下一个。
 - discussion Run 可在 Open intake 期间接收多个 `DiscussionTurn`（由 MECH-MATRIX 承接）；MECH-RUN 只负责触发 accept 与终态。
-- Run 终态后 tombstone 永久保留；保留期到后正文清理但 `{task_id, run_id, Gone}` 保留。
+- Run 终态后 tombstone 永久保留；保留期到后正文清理但 `{task_id, Gone}` 保留。
 
 #### 6.1.1 完整调用实例（JSON）
 
-代表 Run `task-042` / `run-042`，逐步调用并校验响应后再执行下一步。
+代表 Run `task-042` / `task-042`，逐步调用并校验响应后再执行下一步。
 
-**q1 提交（POST /runs）**
+**q1 提交（POST /tasks）**
 
 ```json
-{"task_id":"task-042","task":{"instruction":"analyze repo and write report","output_paths":["out/report.json"]},"workspace":"ws-7","permissions":{"read":["docs/**"],"write":["out/**"],"tool":["read_file","write_file"]},"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":10,"max_tool_calls":20,"output_paths":["out/report.json"]}
+{"task_id":"task-042","instruction":"analyze repo and write report","workspace_ref":"ws-7","permissions":{"read_paths":["docs/**"],"write_paths":["out/**"],"tool_profile_ref":"default"},"output_paths":["out/report.json"],"input_refs":[{"source":"host:/space/task-042/in.md","dest":"in/in.md"}],"artifact_target":{"method":"scp","target":"host:/space/task-042/out"}}
 ```
 
 ```json
-{"task_id":"task-042","run_id":"run-042","state":"Queued"}
+{"task_id":"task-042","state":"Queued"}
 ```
 
-**q2 状态（GET /runs/run-042）**
+**q2 状态（GET /tasks/task-042）**
 
 ```json
-{"run_id":"run-042","state":"Running","generation":3,"cancel_requested":false,"discussion_intake_state":"Disabled","accepted_at":"2026-09-25T11:00:00Z","started_at":"2026-09-25T11:00:02Z","finished_at":null,"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":10,"max_tool_calls":20}
+{"task_id":"task-042","state":"Running","generation":3,"accepted_at":"2026-09-25T11:00:00Z","started_at":"2026-09-25T11:00:02Z","finished_at":null,"result_available":false,"cancel_requested":false,"discussion_intake_state":"Disabled","input_staging":{"state":"ready"},"progress":{"model_calls":2,"tool_calls":1,"last_activity_at":"2026-09-25T11:00:40Z","elapsed_ms":38000,"usage_so_far":{"input_tokens":900,"output_tokens":200,"total_tokens":1100},"recent_actions":[],"current_action":null},"artifact_delivery":{"state":"pending","delivered":[],"failed":[]}}
 ```
 
-**q3 结果（GET /runs/run-042/result）**
+**q3 结果（GET /tasks/task-042/result）**
 
 ```json
-{"run_id":"run-042","state":"Completed","partial":false,"summary":"Report written to out/report.json","outputs":[{"path":"out/report.json","sha256":"a1b2...","size":1234}],"known_actions":[{"tool_call_id":"tc-1","tool_name":"write_file","status":"Completed"}],"usage":{"input_tokens":1200,"output_tokens":340,"total_tokens":1540,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":null,"model_attempts":2,"usage_observed_attempts":2,"missing_fields":["reasoning_tokens"],"quality":"Partial"},"failure":null}
+{"task_id":"task-042","state":"Completed","partial":false,"summary":"Report written to out/report.json","outputs":[{"path":"out/report.json","sha256":"a1b2...","size":1234}],"known_actions":[{"tool_call_id":"tc-1","tool_name":"write_file","status":"Completed"}],"usage":{"input_tokens":1200,"output_tokens":340,"total_tokens":1540,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":null,"model_attempts":2,"usage_observed_attempts":2,"missing_fields":["reasoning_tokens"],"quality":"Partial"},"failure":null}
 ```
 
 **q4 重复提交（同 task_id 同内容）** → 返回 q1 原 Run，不新增执行。
 
-**q5 取消（POST /runs/run-043:cancel，Running）** → 202：
+**q5 取消（POST /tasks/task-043:cancel，Running）** → 202：
 
 ```json
-{"run_id":"run-043","outcome":"StopRequested"}
+{"task_id":"task-043","outcome":"StopRequested"}
 ```
 
 **错误实例（同 ID 不同内容）**
 
 ```json
-{"task_id":"task-042","task":{"instruction":"CHANGED"},"workspace":"ws-7","permissions":{"read":[],"write":[],"tool":[]},"deadline_at":"2026-09-25T12:00:00Z","max_model_calls":1,"max_tool_calls":1,"output_paths":[]}
+{"task_id":"task-042","instruction":"CHANGED","workspace_ref":"ws-7","permissions":{"read_paths":[],"write_paths":[],"tool_profile_ref":"default"},"output_paths":[]}
 ```
 
 → 409：
 
 ```json
-{"code":"TaskConflict","message":"task_id already bound to a different task","detail":"run_id=run-042"}
+{"code":"TaskConflict","message":"task_id already bound to a different task","detail":"task_id=task-042"}
 ```
 
 ```mermaid
@@ -546,12 +546,12 @@ flowchart TD
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
 |---|---|---|---|---|---|
-| 1 | 需要派 `task-042` | q1 完整 `RunSubmitRequest` | M001 JSON/Schema + bearer；M002 校验；M003 按 task_id 查 | 单事务插入 tasks+runs；返回 202 | 保存 `run_id=run-042` |
-| 2 | 已受理，不知进度 | `GET /runs/run-042` | M001 鉴权；M003 读 runs | 返回 `RunView{state:"Running",gen:3}` | 决定继续等或取消 |
-| 3 | 想取结果 | `GET /runs/run-042/result` | M001 鉴权；M003 读 results | 返回 `AgentResult` | 验收/重派/升级 |
+| 1 | 需要派 `task-042` | q1 完整 `TaskSubmitRequest` | M001 JSON/Schema + bearer；M002 校验；M003 按 task_id 查 | 单事务插入 tasks+runs；返回 202 | 保存 `task_id=task-042` |
+| 2 | 已受理，不知进度 | `GET /tasks/task-042` | M001 鉴权；M003 读 runs | 返回 `TaskView{state:"Running",gen:3}` | 决定继续等或取消 |
+| 3 | 想取结果 | `GET /tasks/task-042/result` | M001 鉴权；M003 读 results | 返回 `AgentResult` | 验收/重派/升级 |
 | 4a | 响应丢失（q1 无回复） | 保留原 `task_id` | 重发**同** `task-042` 同内容 | M003 比较 → 返回原 Run | 不新建、不换 ID |
-| 4b | 想取消 | `POST /runs/run-043:cancel` | M005 分流 | 202 `StopRequested`（意图落盘） | 轮询状态；不重复取消 |
-| 5 | 收到 `StopRequested` | 不知是否已停 | `GET /runs/run-043` | M003 读 state | 只有 `Cancelled` 才证停止 |
+| 4b | 想取消 | `POST /tasks/task-043:cancel` | M005 分流 | 202 `StopRequested`（意图落盘） | 轮询状态；不重复取消 |
+| 5 | 收到 `StopRequested` | 不知是否已停 | `GET /tasks/task-043` | M003 读 state | 只有 `Cancelled` 才证停止 |
 
 **关键事实如何产生**：受理事实=`tasks`+`runs` 行 commit（M003）；完成事实=`results` generation 写成功（M005+M003）；停止事实=`runs.state=Cancelled` + Harness operation 已停（M006 确认）。各条件不靠"已确认"字样，而靠可定位的持久记录。
 
@@ -560,7 +560,7 @@ flowchart TD
 | 保证 | 可中断阶段 | 权威可见点 | 推进条件 | 重复进入处理 |
 |---|---|---|---|---|
 | `task_id` 恰好一次 | 受理事务提交前后 | `tasks.task_id` 行 commit | 字段比较通过 | 同 ID 同内容返回原 Run |
-| Result 恰好一次 | `INSERT results` 前后 | `results(run_id,generation)` UNIQUE | `results` 行 commit | INSERT 冲突 → 返回原 generation |
+| Result 恰好一次 | `INSERT results` 前后 | `results(task_id,generation)` UNIQUE | `results` 行 commit | INSERT 冲突 → 返回原 generation |
 | 终态与 Result 一致 | 第二步事务提交前后 | `runs.state`+`generation` | 同 generation Result 已存在 | 恢复只补第二步 |
 | 不丢失 usage | `onRawUsage` 前后 | `model_attempts` 行 | attempt identity 唯一 | 迟到推 record_version |
 
@@ -574,7 +574,6 @@ flowchart TD
 | 队列满 | 超过 `max_queue_depth` | 写事务内检查，不创建 Run | 429 `QueueFull` |
 | Queued 取消 | 用户取消未启动任务 | 单事务零调用 Result | `CancelledBeforeStart` |
 | Running 取消 | 用户取消运行中任务 | stop intent → abort → 对账 → 终态 | `StopRequested` → `CancelledByRequest` |
-| deadline/预算耗尽 | accept/drive/tool 前耗尽 | block + terminate | `DeadlineExceeded`/`BudgetExceeded` |
 | 工具无 outcome | `replay:"never"` 无结果 | 合成 interrupted result | `UnsafeRetryBlocked`/`ExecutionStateUnknown` |
 
 #### 7.1 每个异常的五轴判定
@@ -584,7 +583,6 @@ flowchart TD
 | 异常 | 结果已知性 | 访问安全 | 操作终态 | 资源释放 | 重新准入 |
 |---|---|---|---|---|---|
 | provider 失败（重试后成功） | 成功（attempt 事实） | 无关 | Completed | slot 归还 | 新任务可用 |
-| deadline/预算耗尽 | 失败（明确） | 无关 | Failed | slot 归还 | 新任务可用 |
 | orphaned assistant effect | 部分未知（合成中断） | Pi 已停 | Failed/Unknown | slot 归还 | 需新 `task_id` |
 | `replay:never` 无 outcome | 未知（fail-closed） | 工具可能已执行 | Failed `UnsafeRetryBlocked` | slot 归还；不重放 | 人工判定的新任务 |
 | worker 两步间崩溃 | 已知（results 已写） | 无旧写入者 | 补 Completed | 恢复时 release | 新任务可用 |
@@ -599,7 +597,7 @@ stateDiagram-v2
   Queued --> Cancelled: cancel (zero-call Result)
   Running --> Cancelling: cancel (stop intent)
   Running --> Completed: Result 两步提交
-  Running --> Failed: deadline/budget/tool
+  Running --> Failed: tool/internal
   Cancelling --> Cancelled: abort 对账完成
   Cancelling --> Failed: abort 失败
   Completed --> [*]
@@ -607,7 +605,7 @@ stateDiagram-v2
   Cancelled --> [*]
 ```
 
-图 M-RUN-2 · RunState 状态机 / Target / NOT_BUILT。终态不可回退。
+图 M-RUN-2 · TaskState 状态机 / Target / NOT_BUILT。终态不可回退。
 
 **不变量**：
 1. 同一 `task_id` 只绑定一个 Run；`runs.state` 单调向终态。
@@ -632,7 +630,7 @@ stateDiagram-v2
 
 | 故障 | 检测来源 | 影响 | 恢复动作 |
 |---|---|---|---|
-| provider 层失败 | Harness retry policy | 产生新 attempt | 重试至 deadline/预算；若耗尽 `BudgetExceeded` |
+| provider 层失败 | Harness retry policy | 产生新 attempt | 重试至 Harness 策略；不可恢复则明确失败 |
 | orphaned assistant effect | Harness durable frame | 中断结果 | 只从 frame prefix 合成，不重发旧请求 |
 | worker 在写 results 前崩溃 | 重启扫描 | 无 Result | R1 检测 → 仅补第二步（若已写第一步）或从 Pi 恢复 |
 | Harness fault/invariant 损坏 | Harness fault event | operation 不可信 | 映射 `UnsafeRetryBlocked`/`ExecutionStateUnknown` |
@@ -643,8 +641,8 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TD
-  E1["provider 失败"] -->|Harness retry| R1["新 attempt（受 deadline/预算约束）"]
-  E1 -->|耗尽| F1["BudgetExceeded/DeadlineExceeded（Failed）"]
+  E1["provider 失败"] -->|Harness retry| R1["新 attempt（受 Harness 策略约束）"]
+  E1 -->|耗尽| F1["明确失败（Failed）"]
   E2["orphaned assistant effect"] --> R2["frame prefix 合成中断，不重发"]
   E3["worker 写 results 前崩溃"] --> R3["重启 R1-R7：只补第二步"]
   E4["replay:never 无 outcome"] --> R4["合成 interrupted → UnsafeRetryBlocked"]
@@ -658,23 +656,23 @@ flowchart TD
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
-| 写 `results` 前 | `runs.state=Running`, `run_sessions.active_operation_id` | `results(run_id)` + Harness `getResult(operation_id)` | 有 Result → 补第二步；无 Result 有 open op → drive；均无 → accept |
-| 写 `results` 后、写终态前 | `results(run_id, gen N)` | `results` + `runs.state` | results 存在且 runs 非终态 → 补第二步（绝不重跑 Pi） |
+| 写 `results` 前 | `runs.state=Running`, `run_sessions.active_operation_id` | `results(task_id)` + Harness `getResult(operation_id)` | 有 Result → 补第二步；无 Result 有 open op → drive；均无 → accept |
+| 写 `results` 后、写终态前 | `results(task_id, gen N)` | `results` + `runs.state` | results 存在且 runs 非终态 → 补第二步（绝不重跑 Pi） |
 | 写终态后 | `runs.state=Terminal, gen N+1` | `runs.state` | 终态 → 无需动作 |
-| 释放 slot 前 | 终态 + slot 仍绑定 | `execution_slot.run_id` | 释放 slot |
+| 释放 slot 前 | 终态 + slot 仍绑定 | `execution_slot.task_id` | 释放 slot |
 
-身份固定：`pi_session_id=run_id`、lane `main`、operation `run_id:initial`/`run_id:turn:<n>`。恢复只读这些权威记录，不从日志推断。
+身份固定：`pi_session_id=task_id`、lane `main`、operation `task_id:initial`/`task_id:turn:<n>`。恢复只读这些权威记录，不从日志推断。
 
 ## 10. 并发、排序与容量
 
 - 单 execution slot 由 lease epoch 唯一 fencing；tick 串行。
 - SQLite writer 通过 `BEGIN IMMEDIATE` 串行化；reader 多连接。
-- queue 顺序 `(accepted_at, run_id)`；不实现优先级或抢占。
+- queue 顺序 `(accepted_at, task_id)`；不实现优先级或抢占。
 - backpressure 在 Run 创建写事务内检查 `storage.max_queue_depth`；满则不创建 Run。
-- deadline 用持久 UTC 判定；进程内 elapsed 用 monotonic clock。
+- 进程内计时用 monotonic clock；**本版无任务级 deadline / 预算**。
 
 - 代表请求 `t-7` 的执行上下文：HTTP handler 在 event loop 上同步校验并提交事务；`createOrGetRun` 在 `BEGIN IMMEDIATE` 内阻塞其他 writer；scheduler tick 与 Pi drive 在后台任务上下文中执行；Pi SSE 流读取是非阻塞事件。
-- 每个等待都有合法出口：SQLite busy → `busy_timeout` 后返回 503；Pi operation → deadline/预算/`requestAbort`；discussion intake → CAS 竞争由 writer lock 串行。
+- 每个等待都有合法出口：SQLite busy → `busy_timeout` 后返回 503；Pi operation → `requestAbort`/中断；discussion intake → CAS 竞争由 writer lock 串行。
 - 取消优先级：`requestAbort` 不抢占已在途的 provider effect；Piko 等待 Harness 对账完成后才写终态。
 
 ## 11. 安全、权限与信任边界
@@ -683,15 +681,15 @@ flowchart TD
 - 授权点：M002 `bindToolProfile`（启动时）+ `validateSubmission`（每次受理）；权限 = 请求 permissions ∩ 实例 policy。
 - path 边界：M002 `canonicalizePath`，symlink 越界拒绝。
 - tool profile allowlist：shell/network/外写默认拒绝；`replay:"safe"` 必须绑定已注册 recovery contract。
-- task_id / run_id / credential / 绝对路径不进入模型上下文。
+- task_id / credential / 绝对路径不进入模型上下文。
 
 | 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
 |---|---|---|---|---|---|
 | 任务请求 | Slinky bearer principal | M001 JSON/Schema + M002 principal 校验 | credential 轮换需重启 | 401/422；audit `event.run.created` | PK-T03 |
 | workspace 路径 | 请求 RelPath | M002 canonicalizePath | — | 422 / `UnsafeRetryBlocked` | PK-T12 |
-| 工具调用 | Pi tool | tool profile allowlist（启动时绑定） | runtime 不新增 `safe` | 启动失败 / `BudgetExceeded`；audit | PK-T06 |
+| 工具调用 | Pi tool | tool profile allowlist（启动时绑定） | runtime 不新增 `safe` | 启动失败 / 越权拒绝；audit | PK-T06 |
 | credential | Secret provider | reference-only | 轮换需重启 | 启动失败；不入 DB/日志 | PK-T12 |
-| task_id / run_id / 绝对路径 | Piko 内部 | instruction 构造时过滤 | — | 不入模型 input | PK-T11 |
+| task_id / 绝对路径 | Piko 内部 | instruction 构造时过滤 | — | 不入模型 input | PK-T11 |
 
 ## 12. 可观测性与证据
 
@@ -700,16 +698,16 @@ flowchart TD
 | Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
 |---|---|---|---|---|---|
 | `piko.queue.depth` | M004 生产 → M009 采集 | count / 当前 / monotonic | 全实例 | 重启重置 | 指标低开销 |
-| `piko.run.state.duration.{state}` | M003 生产 → M009 | ms / 区间 / monotonic | per run_id + generation | 不跨代次相加 | 指标低开销 |
+| `piko.run.state.duration.{state}` | M003 生产 → M009 | ms / 区间 / monotonic | per task_id + generation | 不跨代次相加 | 指标低开销 |
 | `piko.slot.lease_epoch` | M004 生产 → M009 | count / 当前 | 单实例 | 重启重置 | 低开销 |
-| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
-| `piko.tool.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
-| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 | ratio / 区间 | per run_id | 不聚合 | 低开销 |
-| `event.run.{created,started,terminated}` | M001/M003/M005 生产 → M009 | 事件 / — | run_id + generation | 不聚合 | 日志按 ops 留存 |
-| `event.model.{attempt,usage,retry}` | M006 生产 → M009 | 事件 / — | run_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
-| `event.tool.{reserved,started,terminal,unknown}` | M006 生产 → M009 | 事件 / — | run_id + operationId + toolCallId | 不聚合 | 日志按 ops 留存 |
+| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per task_id | 不跨代次相加 | 低开销 |
+| `piko.tool.attempts.{state}` | M006 生产 → M009 | count / 累计 | per task_id | 不跨代次相加 | 低开销 |
+| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 | ratio / 区间 | per task_id | 不聚合 | 低开销 |
+| `event.run.{created,started,terminated}` | M001/M003/M005 生产 → M009 | 事件 / — | task_id + generation | 不聚合 | 日志按 ops 留存 |
+| `event.model.{attempt,usage,retry}` | M006 生产 → M009 | 事件 / — | task_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
+| `event.tool.{reserved,started,terminal,unknown}` | M006 生产 → M009 | 事件 / — | task_id + operationId + toolCallId | 不聚合 | 日志按 ops 留存 |
 
-时间基准：持久 UTC ISO-8601；进程内 monotonic。关联键：`run_id` + `generation` + `lease_epoch`。脱敏：禁 instruction 正文、credential、access token、完整模型 input/output。
+时间基准：持久 UTC ISO-8601；进程内 monotonic。关联键：`task_id` + `generation` + `lease_epoch`。脱敏：禁 instruction 正文、credential、access token、完整模型 input/output。
 
 ### 12.2 维护命令、自检与调试路径
 
@@ -778,10 +776,10 @@ flowchart TD
 |---|---|---|---|---|
 | IF-RUN-CREATE | M001 → M003 | `ValidatedTaskSubmission` → `CreateRunOutcome` | 同步；单事务；fencing 失败 | §5.1 |
 | IF-RUN-SLOT | M004 → M003 | `owner_id` → `Lease`/null | 同步；epoch 单调 | §5.1 |
-| IF-RUN-SESSION | M005 ↔ M006 | `run_id` → `PiRunHandle` | 同步 | §5.1 |
+| IF-RUN-SESSION | M005 ↔ M006 | `task_id` → `PiRunHandle` | 同步 | §5.1 |
 | IF-RUN-ACCEPT | M005 → M006 | `typedInstruction` → durable op | 异步；fault → typed error | §5.1 |
 | IF-RUN-DRIVE | M006 → M005 | stream events | ordered；abort 对账 | §5.2 |
-| IF-RUN-SNAPSHOT | M005 → M007 | `run_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
+| IF-RUN-SNAPSHOT | M005 → M007 | `task_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
 | IF-RUN-PUBLISH | M005 → M003 | `FencedPublishResult` → `ResultRecord` | 同步；单事务 | §5.1 |
 
 ### 14.4 下级设计输入清单
@@ -891,6 +889,7 @@ MECH-RUN 为纯软件机制：无硬件/FPGA 表项（§4.5 N/A）；无设备�
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.6.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-RUN 16 节 + 附录 A/B；承接 system-design v0.9.0 §3.5 与 contract `0.3.0-simplified.6` | corezilla, opencode |
 

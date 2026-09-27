@@ -6,27 +6,27 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-cancel` |
-| Document Version | `0.1.2` |
-| Status | `Approved` |
+| Document Version | `0.2.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题
 
-Slinky 可能需要中止一个 Run。取消不是单模块行为：`task-api` M001 接收 `POST /runs/:run_id:cancel`，`task-repository` M003 持久化 cancel flag/状态，`worker` M005 对 Running Run 发起 Pi abort 并完成对账。若各自判断"是否已停"，会把"意图落盘"误报成"执行已停"。MECH-CANCEL 定义按 Run state 分流的取消协议与 `StopRequested`/`CancelledBeforeStart`/`AlreadyTerminal` 语义。
+Slinky 可能需要中止一个 Run。取消不是单模块行为：`task-api` M001 接收 `POST /tasks/:task_id:cancel`，`task-repository` M003 持久化 cancel flag/状态，`worker` M005 对 Running Run 发起 Pi abort 并完成对账。若各自判断"是否已停"，会把"意图落盘"误报成"执行已停"。MECH-CANCEL 定义按 Run state 分流的取消协议与 `StopRequested`/`CancelledBeforeStart`/`AlreadyTerminal` 语义。
 
 **受益者与任务**：Slinky 需要可判定的取消；Operator 需要明确的停止边界。
 
-**核心输入 → 处理 → 输出**：输入是 `run_id` + cancel 请求；处理是"按 state 分流 → Queued 零调用 Result / Running stop intent + abort + 对账"；输出是 `CancelOutcome` + 终态 Result。
+**核心输入 → 处理 → 输出**：输入是 `task_id` + cancel 请求；处理是"按 state 分流 → Queued 零调用 Result / Running stop intent + abort + 对账"；输出是 `CancelOutcome` + 终态 Result。
 
 **最重要取舍**：选择"`StopRequested` 只证意图、`CancelledByRequest` 才证停止"而非"ack 即停"，代价是需轮询，换取不误报停止。
 
 - **机制形态与适用性 / 业务副作用**：**有副作用**。写 cancel flag/状态、abort Pi operation、发布零调用或取消 Result，都改变持久状态。
-- **交接域**：**纯软件**。M001/M003/M005 同进程。
+- **交接域**：**纯软件 + 跨进程**。M001/M003 在 **P0**，M005 在 **P1**（见 `system-design` §3.3 关键决定 7）。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
 
 ```mermaid
@@ -53,13 +53,15 @@ flowchart LR
 
 不支持：撤销已生效的取消、把 `StopRequested` 当停止证明。
 
+> **数据面交互**：取消发生在输入预备（P-INPUT）中时，P0 发出 `abort`，P1 中断 in-flight `scp` 并清 staging（`MECH-TRANSFER`），随后按 Queued 取消路径产零调用 Result。
+
 ## 3. 参与方、责任和 authority
 
 | Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
-| M001 `task-api` | 负责接收 cancel + typed error 映射；不决策状态 | 决定：无；写入：无；事实来源：M003 | 提供：HTTP cancel；消费：M005/M003 | 进程内 `src/http/`（Planned） | MECH-RUN |
-| M003 `task-repository` | 负责 cancel flag/state 事务；不 abort Pi | 决定：无；写入：`runs.cancel_requested`/`state`；事实来源：`runs` | 提供：事务接口 | 进程内 `src/store/`（Planned） | MECH-RUN |
-| M005 `worker` | 负责取消分流 + Pi abort + 对账；不管理 Pi 内部 | 决定：取消路径；写入：经 M003；事实来源：`runs.state` + Pi operation | 提供：CancelOutcome | 进程内 `src/worker/`（Planned） | MECH-RUN |
+| M001 `task-api` | 负责接收 cancel + typed error 映射；不决策状态 | 决定：无；写入：无；事实来源：M003 | 提供：HTTP cancel；消费：M005/M003 | **P0** `src/http/`（Planned） | MECH-RUN |
+| M003 `task-repository` | 负责 cancel flag/state 事务；不 abort Pi | 决定：无；写入：`runs.cancel_requested`/`state`；事实来源：`runs` | 提供：事务接口 | **P0** `src/store/`（Planned） | MECH-RUN |
+| M005 `worker` | 负责取消分流 + Pi abort + 对账 + **staging 中断**；不管理 Pi 内部 | 决定：取消路径；写入：经 M003（事实上报）；事实来源：`runs.state` + Pi operation | 提供：CancelOutcome | **P1** `src/worker/`（Planned） | MECH-RUN |
 
 **责任角色区分**：取消**决定**由 M005 发出（按 state 分流），**写入**由 M003 原子执行，**权威事实**以 `runs.state` + Pi operation 状态为准；恢复时（取消中崩溃）由 MECH-RECOVERY 对账。
 
@@ -82,7 +84,7 @@ flowchart LR
 
 | 逻辑目标/身份 | 部署及访问路径 | 映射 authority/更新条件 | 共享故障/复位域 | 旧目标/旧代次处理 |
 |---|---|---|---|---|
-| `run_id` | HTTP 路径 | M003 `runs` | 与实例同域 | 终态不可回退 |
+| `task_id` | HTTP 路径 | M003 `runs` | 与实例同域 | 终态不可回退 |
 | Pi operation | 进程内 Harness | M006 | Pi JSONL + SQLite 同域 | abort 后对账，不重发 |
 
 #### 3.3.1 运行环境
@@ -93,8 +95,8 @@ flowchart LR
 | 测试（test/CI） | 故障夹具 | 独立 SQLite | `tests/fault/` |
 | 生产（prod） | 真实 cancel | 本地可靠 FS | 实际运行 |
 
-- **进程模型**：M001/M003/M005 同进程。
-- **网络**：无机制专有网络；Pi abort 为进程内。
+- **进程模型**：M001/M003 在 **P0**（权威/应答）；M005 在 **P1**（受 P0 监督）。取消 = P0 写 stop intent + 向 P1 发 `abort`，**有界等待，超时强杀并重启 P1**。
+- **网络**：P0↔P1 本地 IPC；Pi abort 在 P1 内执行（超时由 P0 强杀）。
 - **生效方式**：即时（cancel 请求触发）。
 
 ## 4. 数据结构设计
@@ -143,9 +145,9 @@ flowchart LR
 |---|---|---|---|
 | `Unauthorized` | principal 失败 | 401 | 修凭据 |
 | `Gone` | tombstone | 410 | 换新 ID |
-| `RunNotTerminal`（隐式） | —（cancel 不返回此码） | — | — |
+| `TaskNotTerminal`（隐式） | —（cancel 不返回此码） | — | — |
 
-注意：cancel 不返回 `RunNotTerminal`；非终态由 `CancelledBeforeStart`/`StopRequested` 表达。
+注意：cancel 不返回 `TaskNotTerminal`；非终态由 `CancelledBeforeStart`/`StopRequested` 表达。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -161,25 +163,25 @@ flowchart LR
 
 ### 5.1 API（适用时）
 
-#### `POST /runs/{run_id}:cancel`（外部 HTTP）
+#### `POST /tasks/{task_id}:cancel`（外部 HTTP）
 
-- **Interface/Member ID、用途与提供责任**：`cancelRun`；M001 提供。
+- **Interface/Member ID、用途与提供责任**：`cancelTask`；M001 提供。
 - **唯一契约、版本与状态**：OpenAPI `0.3.0-simplified.6`。
-- **输入与前提**：`run_id`；Bearer 鉴权。
+- **输入与前提**：`task_id`；Bearer 鉴权。
 - **成功输出与保证**：200 `CancelledBeforeStart` / 200 `AlreadyTerminal` / 202 `StopRequested`。
 - **错误与合法下一步**：401/404/410。
 - **交互与生命周期**：同步返回；Running 取消需轮询。
 - **代表调用与验证**：§6.1.1；PK-T05。
 
-#### `cancelRun(run_id: string) -> CancelOutcome`（IF-CX-DISPATCH）
+#### `cancelTask(task_id: string) -> CancelOutcome`（IF-CX-DISPATCH）
 
-- **Interface/Member ID、用途与提供责任**：`IF-CX-DISPATCH`；M005 `worker` 提供；M001 `task-api` 消费。M001 的 HTTP `POST /runs/{run_id}:cancel` 入口据此把请求交 M005 按 `runs.state` 分流到 `cancelQueued`/`cancelRunning`；`CancelOutcome` = `CancelledBeforeStart`/`StopRequested`/`AlreadyTerminal`。
-- **输入与前提**：`run_id`；同一 principal。
+- **Interface/Member ID、用途与提供责任**：`IF-CX-DISPATCH`；M005 `worker` 提供；M001 `task-api` 消费。M001 的 HTTP `POST /tasks/{task_id}:cancel` 入口据此把请求交 M005 按 `runs.state` 分流到 `cancelQueued`/`cancelTaskning`；`CancelOutcome` = `CancelledBeforeStart`/`StopRequested`/`AlreadyTerminal`。
+- **输入与前提**：`task_id`；同一 principal。
 - **成功输出与保证**：Queued → 单事务零调用 Result（`CancelledBeforeStart`）；Running → 写 stop intent 返回 `StopRequested`；终态 → `AlreadyTerminal`（幂等）。
 - **错误与合法下一步**：`NotFound`/`Gone`（404/410）。
 - **代表调用与验证**：PK-T05。
 
-#### `cancelQueued(run_id) -> CancelOutcome`（IF-CX-QUEUED）
+#### `cancelQueued(task_id) -> CancelOutcome`（IF-CX-QUEUED）
 
 - **Interface/Member ID、用途与提供责任**：`IF-CX-QUEUED`；M005 提供。
 - **输入与前提**：Run 仍 Queued。
@@ -187,7 +189,7 @@ flowchart LR
 - **错误与合法下一步**：非 Queued → 转 Running 路径。
 - **代表调用与验证**：PK-T05。
 
-#### `cancelRunning(run_id) -> CancelOutcome`（IF-CX-RUNNING）
+#### `cancelTaskning(task_id) -> CancelOutcome`（IF-CX-RUNNING）
 
 - **Interface/Member ID、用途与提供责任**：`IF-CX-RUNNING`；M005 提供。
 - **输入与前提**：Run Running。
@@ -215,14 +217,14 @@ flowchart LR
 
 ## 6. 正常端到端流程
 
-代表输入：cancel `run-043`（Running）。
+代表输入：cancel `task-043`（Running）。
 
-1. Slinky `POST /runs/run-043:cancel`；M001 鉴权 + 定位。
+1. Slinky `POST /tasks/task-043:cancel`；M001 鉴权 + 定位。
 2. M005 按 state 分流：Running → 写 stop intent + `runs.state='Cancelling'` → 202 `StopRequested`。
 3. M005 调 M006 `requestAbort(operation_id)`；Harness 停止 provider effect 并提交中断结果。
 4. M005 对账 in-flight tool（`replay:"never"` 无 outcome → `UnsafeRetryBlocked`）。
 5. M005 两步提交：写 `results`（`state=Cancelled`，`failure=CancelledByRequest/Cancellation`）+ `runs.state='Cancelled'` + release slot。
-6. Slinky 轮询 `GET /runs/run-043` → `state=Cancelled` 才证停止。
+6. Slinky 轮询 `GET /tasks/task-043` → `state=Cancelled` 才证停止。
 
 ```mermaid
 sequenceDiagram
@@ -231,14 +233,14 @@ sequenceDiagram
   participant W as M005 worker
   participant Repo as M003 task-repository
   participant PI as M006 pi-adapter
-  SL->>API: POST /runs/run-043:cancel
-  API->>W: cancel(run-043)
+  SL->>API: POST /tasks/task-043:cancel
+  API->>W: cancel(task-043)
   W->>Repo: state=Running → stop intent + Cancelling
   W-->>SL: 202 StopRequested
   W->>PI: requestAbort(operation_id)
   PI-->>W: 中断结果
   W->>Repo: 两步提交 results(Cancelled) + state=Cancelled + release slot
-  SL->>API: GET /runs/run-043
+  SL->>API: GET /tasks/task-043
   API-->>SL: state=Cancelled
 ```
 
@@ -255,29 +257,29 @@ sequenceDiagram
 **q1 Queued 取消** → 200：
 
 ```json
-{"run_id":"run-042","outcome":"CancelledBeforeStart"}
+{"task_id":"task-042","outcome":"CancelledBeforeStart"}
 ```
 
 **q2 Running 取消** → 202：
 
 ```json
-{"run_id":"run-043","outcome":"StopRequested"}
+{"task_id":"task-043","outcome":"StopRequested"}
 ```
 
 **q3 已终态取消** → 200：
 
 ```json
-{"run_id":"run-044","outcome":"AlreadyTerminal"}
+{"task_id":"task-044","outcome":"AlreadyTerminal"}
 ```
 
 #### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
-| 1 | 想取消 run-043 | `POST ...:cancel` | M001 鉴权 + M005 分流 | Running → 202 StopRequested | 轮询 state |
-| 2 | 收到 StopRequested | 不知是否已停 | `GET /runs/run-043` | M003 读 state | 只有 Cancelled 才证停 |
-| 3 | 想取消 run-042 | `POST ...:cancel` | M005 分流 | Queued → 200 + 零调用 Result | 完成 |
-| 4 | 想取消 run-044 | `POST ...:cancel` | M005 分流 | 终态 → 200 AlreadyTerminal | — |
+| 1 | 想取消 task-043 | `POST ...:cancel` | M001 鉴权 + M005 分流 | Running → 202 StopRequested | 轮询 state |
+| 2 | 收到 StopRequested | 不知是否已停 | `GET /tasks/task-043` | M003 读 state | 只有 Cancelled 才证停 |
+| 3 | 想取消 task-042 | `POST ...:cancel` | M005 分流 | Queued → 200 + 零调用 Result | 完成 |
+| 4 | 想取消 task-044 | `POST ...:cancel` | M005 分流 | 终态 → 200 AlreadyTerminal | — |
 
 **关键事实如何产生**：取消意图事实=`cancel_requested=1`（M003）；停止事实=`runs.state=Cancelled` + Pi operation 已停（M006 确认）。
 
@@ -322,7 +324,7 @@ stateDiagram-v2
 
 **旧执行停止未知时的隔离与出口**（abort 无法确认 = `Running`/`Cancelling` 时 Harness 未返回停止事实）：
 - **状态**：Run → `Failed`，`failure=ExecutionStateUnknown`；Pi operation 标记 `Unknown`（**不等于已停止**）。
-- **写权限隔离**：旧 operation 对 Task Store 的写入被 `run_id + generation + lease_epoch` fenced write 拒绝（旧 generation 的 `FencedWrite` 失败）；它不能再推进 Run 状态或发布 Result。但它仍可能在 Pi session 内继续运行。
+- **写权限隔离**：旧 operation 对 Task Store 的写入被 `task_id + generation + lease_epoch` fenced write 拒绝（旧 generation 的 `FencedWrite` 失败）；它不能再推进 Run 状态或发布 Result。但它仍可能在 Pi session 内继续运行。
 - **slot 释放前提**：只有下列之一成立才释放 slot 并允许新 Run 准入：
   1. 旧 Pi operation 被确认停止（Harness 报告或进程重启终止）；或
   2. 进程退出（进程死亡必然终止旧 operation）。
@@ -366,7 +368,7 @@ stateDiagram-v2
 | 入口/资产 | 身份来源与传播 | 授权对象/强制点 | 撤销/过期行为 | 拒绝与审计 | 验证 |
 |---|---|---|---|---|---|
 | cancel 请求 | Slinky bearer principal | M001 principal 校验 | credential 轮换需重启 | 401/404/410；audit event.run.terminated | PK-T05 |
-| run_id | 请求路径 | M003 定位 | — | tombstone → Gone | PK-T05 |
+| task_id | 请求路径 | M003 定位 | — | tombstone → Gone | PK-T05 |
 
 ## 12. 可观测性与证据
 
@@ -374,8 +376,8 @@ stateDiagram-v2
 
 | Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
 |---|---|---|---|---|---|
-| `piko.run.cancel.{queued,running,terminal}` | M005 生产 → M009 采集 | count / 区间 | per run_id | 不跨代次相加 | 低开销 |
-| `event.run.terminated` | M005 生产 → M009 | 事件 / — | run_id + generation | 不聚合 | 日志按 ops 留存 |
+| `piko.run.cancel.{queued,running,terminal}` | M005 生产 → M009 采集 | count / 区间 | per task_id | 不跨代次相加 | 低开销 |
+| `event.run.terminated` | M005 生产 → M009 | 事件 / — | task_id + generation | 不聚合 | 日志按 ops 留存 |
 
 ### 12.2 维护命令、自检与调试路径
 
@@ -405,7 +407,7 @@ stateDiagram-v2
 | 步骤 | 责任单元 | 输入 | 输出 |
 |---|---|---|---|
 | 接收 cancel | M001 | HTTP | 定位结果 |
-| state 分流 | M005 | run_id | 路径判定 |
+| state 分流 | M005 | task_id | 路径判定 |
 | 状态事务 | M003 | flag/state | 持久事实 |
 | abort + 对账 | M005+M006 | operation_id | 终态 |
 
@@ -416,7 +418,7 @@ stateDiagram-v2
 | IF-CX-QUEUED | M005 → M003 | flag+零调用 Result | 单事务 | §5.1 |
 | IF-CX-RUNNING | M005 → M003 | stop intent + Cancelling | 单事务 | §5.1 |
 | IF-CX-ABORT | M005 → M006 | `operation_id` | abort 对账；无法确认 → Unknown | §5.2 |
-| IF-CX-DISPATCH | M005 → M001 | `run_id` → `CancelOutcome` | Queued 零调用 Result；终态幂等 | §5.1 |
+| IF-CX-DISPATCH | M005 → M001 | `task_id` → `CancelOutcome` | Queued 零调用 Result；终态幂等 | §5.1 |
 
 ### 14.4 下级设计输入清单
 
@@ -432,11 +434,11 @@ stateDiagram-v2
 
 每条按"输入 → 注入/命中 → 状态/对象变化 → 外部可观察结果 → 清理"固定。
 
-**V-CX-N1（正常，Running 取消到停止）**：输入=`run-043` 处于 Running；注入=无；命中=cancel 请求；状态=写 stop intent → Cancelling → Harness 报告停止 → 对账 → Cancelled；外部结果=202 `StopRequested` 后轮询到 `state=Cancelled`、零或取消 Result、slot 释放；清理=清 test SQLite。
+**V-CX-N1（正常，Running 取消到停止）**：输入=`task-043` 处于 Running；注入=无；命中=cancel 请求；状态=写 stop intent → Cancelling → Harness 报告停止 → 对账 → Cancelled；外部结果=202 `StopRequested` 后轮询到 `state=Cancelled`、零或取消 Result、slot 释放；清理=清 test SQLite。
 
-**V-CX-N2（最危险反例，停止未知）**：输入=`run-043` Running；注入=mock Harness `requestAbort` 不返回停止事实；命中=abort 无法确认；状态=`runs.state=Failed` + `failure=ExecutionStateUnknown`、Pi operation 标 Unknown；外部结果=**slot 保持占用**、新 Run 准入被拒（`QueueFull`/占位）、旧 generation 的 fenced write 被拒；清理=进程重启（进程死亡终止旧 op）后 slot 释放、新任务可用新 `task_id`。
+**V-CX-N2（最危险反例，停止未知）**：输入=`task-043` Running；注入=mock Harness `requestAbort` 不返回停止事实；命中=abort 无法确认；状态=`runs.state=Failed` + `failure=ExecutionStateUnknown`、Pi operation 标 Unknown；外部结果=**slot 保持占用**、新 Run 准入被拒（`QueueFull`/占位）、旧 generation 的 fenced write 被拒；清理=进程重启（进程死亡终止旧 op）后 slot 释放、新任务可用新 `task_id`。
 
-**V-CX-N3（Queued 零调用）**：输入=`run-042` Queued；命中=cancel；状态=单事务 flag+零调用 Result+Cancelled；外部结果=200 `CancelledBeforeStart`、`model_attempts=0`；清理同 N1。
+**V-CX-N3（Queued 零调用）**：输入=`task-042` Queued；命中=cancel；状态=单事务 flag+零调用 Result+Cancelled；外部结果=200 `CancelledBeforeStart`、`model_attempts=0`；清理同 N1。
 
 独立判据=`runs.state` + `results` + Pi operation 状态 + slot 占用；Run 状态 NOT_RUN。
 
@@ -483,6 +485,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.2.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.1.2 | 2026-09-27 | §5.1/§14.3 命名 M001→M005 取消入口 `IF-CX-DISPATCH`，闭合 `OQ-TAPI-003` | corezilla, opencode |
 | v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-CANCEL 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 3 模块） | corezilla, opencode |

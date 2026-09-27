@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-config` |
-| Document Version | `0.5.4` |
-| Status | `Approved` |
+| Document Version | `0.6.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -38,7 +38,7 @@ flowchart LR
 
 
 - **机制形态与适用性 / 业务副作用**：**只读 + 启动绑定**。读取/校验 config 不改外部对象；tool profile 绑定决定后续业务行为。
-- **交接域**：**纯软件**。M000/M002 同进程；Secret provider 为受控后端。
+- **交接域**：**纯软件**。M000/M002 在 **P0**；Secret provider 为受控后端。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
 
 **教学路径**：本机制接近"只读观测"路径：读取与校验不改外部对象；区别是它决定后续业务行为，需与 MECH-RUN 组合验收。
@@ -105,11 +105,11 @@ flowchart LR
 | 生产（prod） | Operator 维护的 config 文件 | 生产 Secret provider | 实际运行 |
 
 - **进程模型**：M000/M002 同主进程；配置在启动时读取，进程寿命内不变。
-- **网络**：Secret provider 访问（进程内 reference 或受控后端）；preflight 出站到 LLMTier/Matrix。
+- **网络**：Secret provider 访问（进程内 reference 或受控后端）。**外部依赖探测（LLMTier/Matrix）由 P1 在启动时执行**，P0 只做本地就绪校验。
 - **持久层**：`instance_meta` 记 schema generation/boot id。
 - **生效方式**：重启生效（无在线热改）。
 
-**统筹者退出语义**：M000 启动中退出 → 未 READY，无业务入口；已 READY 后退出的语义等同进程退出（由 `MECH-RECOVERY` 处理）。配置快照随进程消亡，重启重读。
+**统筹者退出语义**：M000 启动中退出 → 未 READY，无业务入口。**P0 退出 = 整体重启**（P1 一并重启，由 `MECH-RECOVERY` 处理）；**P1 退出 = P0 重启 P1**，P0 不受影响。配置快照随 P0 消亡，重启重读。
 
 ## 4. 数据结构设计
 
@@ -541,6 +541,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.6.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.5.4 | 2026-09-27 | §4.3/§4.4 字段清单对齐锁定 schema `piko-runtime-config-v0.3.schema.json`（13 顶层段）与 `piko-tool-profile-v0.3.schema.json`（`profiles`/`recovery_contracts`），移除过时散文版字段；闭合 `OQ-POLICY-001/002` | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-CONFIG 16 节 + 附录 A/B | corezilla, opencode |

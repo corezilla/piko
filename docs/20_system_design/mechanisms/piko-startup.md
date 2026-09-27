@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-startup` |
-| Document Version | `0.1.2` |
-| Status | `Approved` |
+| Document Version | `0.2.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -497,6 +497,7 @@ stateDiagram-v2
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.2.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.1.2 | 2026-09-27 | 补 §14.4 行 `M-ST-DI-005`（policy，S3 启动绑定），使 §3.5 参与方与 §14.4 一致 | corezilla, opencode |
 | v0.1.1 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-STARTUP 16 节 + 附录 A/B；由 system-design §3.5 恢复（跨 5 模块） | corezilla, opencode |

@@ -37,17 +37,17 @@
 
 这四项操作是 Piko 任务事务层的边界，不暴露 Pi session 或 Agent loop 控制。Slinky 提交任务并读取稳定 Result；Piko 负责把任务适配进 Pi、保存执行事实和封装结果，执行内步骤由 Pi 驱动。
 
-`POST /runs` 的 body 必须包含 Slinky 在提交前生成的全局唯一 `task_id`。一个 `task_id` 只定义一个不可变逻辑任务并绑定一个 Run。重复提交已有 `task_id` 返回该 Run 的当前或终态视图，不创建、复制或重启执行；若携带的已校验任务定义与首次提交不同，保留原任务并返回 `TaskConflict`。详细记录清理后同一 ID 返回 `Gone`。新任务必须使用新 `task_id`。
+`POST /tasks` 的 body 必须包含 Slinky 在提交前生成的全局唯一 `task_id`。一个 `task_id` 只定义一个不可变逻辑任务并绑定一个 Run。重复提交已有 `task_id` 返回该 Run 的当前或终态视图，不创建、复制或重启执行；若携带的已校验任务定义与首次提交不同，保留原任务并返回 `TaskConflict`。详细记录清理后同一 ID 返回 `Gone`。新任务必须使用新 `task_id`。
 
-`GET /runs/{run_id}` 无副作用。Queued Run 的取消以 200 `CancelledBeforeStart` 返回，并在同一事务发布零调用的 Cancelled Result；Running Run 的 202 `StopRequested` 仅表示取消意图落盘；已终态返回 200 `AlreadyTerminal`。`GET .../result` 在非终态返回 `RunNotTerminal`；结果一旦发布，其 generation 内容不可变。
+`GET /tasks/{task_id}` 无副作用。Queued Run 的取消以 200 `CancelledBeforeStart` 返回，并在同一事务发布零调用的 Cancelled Result；Running Run 的 202 `StopRequested` 仅表示取消意图落盘；已终态返回 200 `AlreadyTerminal`。`GET .../result` 在非终态返回 `TaskNotTerminal`；结果一旦发布，其 generation 内容不可变，**且不含投递状态**——产出是否可读见 `TaskView.artifact_delivery`（**读产出字节前须确认 `state=delivered`**）。输入拉取失败为**执行前提失败**：零调用 `Failed(InputFetchFailed)`。
 
 ## 2. 请求与权限
 
-第一阶段整个 endpoint 只配置一个 Slinky bearer principal；credential 缺失或不匹配返回 `Unauthorized`，不支持请求内 principal 切换。请求只包含任务、workspace、read/write/tool 权限、deadline/调用预算、输出路径，以及讨论任务可选的标准 Matrix `discussion={room_id,trigger_event_id}`。model 由该 Piko 实例配置，不是外部必填或可选 selector。instruction 不扩大权限。所有路径必须是规范 workspace 相对路径，禁止绝对路径、反斜线、`.`/`..` segment、空 segment；解析 symlink 后仍须位于授权根内。
+第一阶段整个 endpoint 只配置一个 Slinky bearer principal；credential 缺失或不匹配返回 `Unauthorized`，不支持请求内 principal 切换。请求包含任务（`instruction`）、`workspace_ref`、read/write/tool 权限、`output_paths`、可选数据面 `input_refs` 与 `artifact_target`，以及讨论任务可选的标准 Matrix `discussion={room_id,trigger_event_id}`；**本版不含任务级 deadline / 调用预算**。model 由该 Piko 实例配置，不是外部必填或可选 selector。instruction 不扩大权限。所有路径必须是规范 workspace 相对路径，禁止绝对路径、反斜线、`.`/`..` segment、空 segment；解析 symlink 后仍须位于授权根内。
 
-处理顺序固定为：JSON/Schema → bearer principal → 按 `task_id` 查记录。已有完整任务先做定义比较并返回原 Run 或 `TaskConflict`；tombstone 返回 `Gone`。只有不存在的 ID 才检查 deadline、队列、依赖及动态授权事实，因此外部重试不会因环境变化改变已经受理任务的身份语义。
+处理顺序固定为：JSON/Schema → bearer principal → 按 `task_id` 查记录。已有完整任务先做定义比较并返回原 Run 或 `TaskConflict`；tombstone 返回 `Gone`。只有不存在的 ID 才检查队列、依赖及动态授权事实；**discussion 核实与输入拉取是异步执行前提**（失败 → 零调用 `Failed`），因此外部重试不会因环境变化改变已经受理任务的身份语义。
 
-一个 endpoint 面向一个稳定 Piko/Agent 实例；不传 agent/session/team/IR/Topic 对象。Slinky 若需要多个 Agent，分别调用多个实例。实例同一时刻只运行一个 Run；其他受理任务排队。每个 Run 使用隔离 Pi session，保留期内以 run_id 查询历史。
+一个 endpoint 面向一个稳定 Piko/Agent 实例；不传 agent/session/team/IR/Topic 对象。Slinky 若需要多个 Agent，分别调用多个实例。实例同一时刻只运行一个 Run；其他受理任务排队。每个 Run 使用隔离 Pi session，保留期内以 task_id 查询历史。
 
 ## 3. 结果
 
@@ -59,8 +59,8 @@ Matrix 讨论与 media 使用标准 Matrix API，不属于本 OpenAPI。LLMTier 
 
 ## 5. 保留与 404/410
 
-Run、完整任务定义和 Result 至少保留到 `max(request.deadline_at, accepted_at)+7d`。之后可清理大对象，但永久保留最小 `{task_id,run_id,Gone}` tombstone；该 `task_id` 永不复用，POST/GET 都可据此返回 410。活动任务或未知副作用事实不得仅因窗口到达删除。
+Run、完整任务定义和 Result 至少保留到 `accepted_at + storage.retention_days`（默认 7d）。之后可清理大对象，但永久保留最小 `{task_id, Gone}` tombstone；该 `task_id` 永不复用，POST/GET 都可据此返回 410。活动任务或未知副作用事实不得仅因窗口到达删除。
 
 ## 6. HTTP 与 typed error
 
-每个 operation/status 可返回的 typed code 由 OpenAPI `x-error-codes` 与 error catalog `operation_status_codes` 双向一致性测试强制。createRun 的讨论 room/event 冲突为 409 `InvalidDiscussionContext`；本地队列满且未创建 Run 为 429 `QueueFull`；终态 Run 丢失 durable Result 为 500 `ResultUnavailable`，不得伪装成 404 或成功空结果。不存在面向调用方的 same-run resume 动作或 `retryable_by_same_run` 字段。
+每个 operation/status 可返回的 typed code 由 OpenAPI `x-error-codes` 与 error catalog `operation_status_codes` 双向一致性测试强制。createTask 的讨论 room/event 冲突为 409 `InvalidDiscussionContext`；本地队列满且未创建 Run 为 429 `QueueFull`；终态 Run 丢失 durable Result 为 500 `ResultUnavailable`，不得伪装成 404 或成功空结果。不存在面向调用方的 same-run resume 动作或 `retryable_by_same_run` 字段。

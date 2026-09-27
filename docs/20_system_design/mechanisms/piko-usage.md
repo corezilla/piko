@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage` |
-| Document Version | `0.5.4` |
-| Status | `Approved` |
+| Document Version | `0.6.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -93,7 +93,7 @@ flowchart LR
 
 | 逻辑目标/身份 | 部署及访问路径 | 映射 authority | 共享故障域 | 旧代次处理 |
 |---|---|---|---|---|
-| `model_attempts`(`run_id`,`operation_id`,`step_id`,`attempt`) | 进程内 SQLite | M003 DDL | 与实例同域 | record_version 单调 |
+| `model_attempts`(`task_id`,`operation_id`,`step_id`,`attempt`) | 进程内 SQLite | M003 DDL | 与实例同域 | record_version 单调 |
 | attempt identity | M006 从 Harness 派生 | `stepId` + attempt ordinal | 同域 | 崩溃后保守计数 |
 
 #### 3.3.1 运行环境
@@ -174,7 +174,7 @@ RawUsage {
 
 #### 4.6.1 `ModelAttempt`
 
-- **定义与来源**：`(run_id, operation_id, step_id, attempt)` 主键 + `state`/`raw_usage_json`/`record_version`/`updated_at`。来源 M003 ISD §4.2.5。
+- **定义与来源**：`(task_id, operation_id, step_id, attempt)` 主键 + `state`/`raw_usage_json`/`record_version`/`updated_at`。来源 M003 ISD §4.2.5。
 - **字段与约束**：`state ∈ {Reserved, Started, UsageObserved, Terminal, Unknown}`。
 - **所有权/寿命**：M006 写，M007 读；Run 寿命 + retention。
 - **合法/拒绝实例**：Restart at attempt identity is idempotent。
@@ -211,7 +211,7 @@ MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator
 
 - **Interface/Member ID、用途与提供责任**：`IF-USAGE-RAW`；M006 `pi-adapter` 提供（hook）；M007 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；Proposed。
-- **输入与前提**：`(run_id, operation_id, step_id, attempt)` + `present_fields` + raw 值。
+- **输入与前提**：`(task_id, operation_id, step_id, attempt)` + `present_fields` + raw 值。
 - **成功输出与保证**：写 `model_attempts`；同 attempt 幂等。
 - **错误与合法下一步**：无独立错误；字段缺失是事实。
 - **代表调用与验证**：§6.1.1 q1/q2；PK-T10。
@@ -258,7 +258,7 @@ MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator
 
 1. M006 `onRawUsage` 逐 attempt 写 `raw_usage_json` + 字段存在性 → UsageObserved。
 2. Harness 形成 provider-effect intent → Started（保守计数）。
-3. Result 发布前 M005 调 M007 `snapshot(run_id)`。
+3. Result 发布前 M005 调 M007 `snapshot(task_id)`。
 4. M007 对每字段 F：全部 attempt 都有 F → `sum(F)`；否则 null + 入 missing_fields。
 5. `reasoning_tokens` 因 attempt2 缺失 → null + missing_fields；其余 5 字段完整 → `Partial`。
 6. M007 `validateBeforePublish` 校验算术与子集 → PASS。
@@ -272,7 +272,7 @@ sequenceDiagram
   participant Use as M007 usage
   PI->>Repo: onRawUsage -> model_attempts
   PI->>PI: attempt Started (effect intent)
-  W->>Use: snapshot(run_id)
+  W->>Use: snapshot(task_id)
   Use->>Repo: read all attempts
   Use-->>W: UsageSnapshot (Partial + missing_fields)
   W->>Use: validateBeforePublish(result, "0.3.0-simplified.6")
@@ -291,7 +291,7 @@ sequenceDiagram
 
 #### 6.1.1 完整调用实例（JSON）
 
-Run `run-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。
+Run `task-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。
 
 **q1 attempt1 raw usage（onRawUsage）**
 
@@ -329,7 +329,7 @@ Run `run-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `r
 |---|---|---|---|---|---|
 | 1 | 模型已响应 attempt1 | q1 RawUsage | M006 保存存在性 | 写 model_attempts | — |
 | 2 | attempt2 缺 reasoning | q2 RawUsage | M006 | 写 attempt（present_fields 少 1） | — |
-| 3 | 想要快照 | `snapshot(run-042)` | M007 读全量 | 逐字段 sum/null → q3 | 校验 |
+| 3 | 想要快照 | `snapshot(task-042)` | M007 读全量 | 逐字段 sum/null → q3 | 校验 |
 | 4 | 校验 | `validateBeforePublish(result,"0.3.0-simplified.6")` | M007 | SemanticCheck ok | M005 发布 |
 
 **关键事实如何产生**：字段存在性事实=`present_fields`（M006 在归一化前写）；完整性事实=逐字段 all-attempts 判定（M007）。
@@ -391,7 +391,7 @@ flowchart TD
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
-| `onRawUsage` 写前 | 可能缺该 attempt | `model_attempts(run_id, operation_id, step_id, attempt)` | 缺 → 该字段可能 missing |
+| `onRawUsage` 写前 | 可能缺该 attempt | `model_attempts(task_id, operation_id, step_id, attempt)` | 缺 → 该字段可能 missing |
 | 写后 | attempt 行 | `model_attempts` | 存在 → 直接聚合 |
 | Result 发布后 | frozen snapshot | `results.result_json.usage` | 冻结 → 迟到不改 |
 
@@ -400,8 +400,8 @@ flowchart TD
 ## 10. 并发、排序与容量
 
 - `model_attempts` 写经 SQLite 单 writer 串行。
-- attempt identity `(run_id, operation_id, step_id, attempt)` 唯一；同 attempt 幂等。
-- 无独立容量；ledger 行数 ≤ `max_model_calls`。
+- attempt identity `(task_id, operation_id, step_id, attempt)` 唯一；同 attempt 幂等。
+- 无独立容量；ledger 行数随实际 attempt 增长（本版无模型调用上限）。
 
 - 代表请求：`onRawUsage` 回调在 Harness 事件上下文写 `model_attempts`；Result 发布前 `snapshot` 在同一 SQLite writer 事务读全量 attempts。写入串行，读取与 writer 不并发修改同一行。
 - 无独立等待出口；迟到回调以 record_version 幂等替换。
@@ -423,11 +423,11 @@ flowchart TD
 
 | Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
 |---|---|---|---|---|---|
-| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 采集 | ratio / 区间 | per run_id | 不聚合 | 低开销 |
-| `event.model.usage` | M006 生产 → M009 | 事件 / — | run_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
-| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per run_id | 不跨代次相加 | 低开销 |
+| `piko.usage.quality.{Complete,Partial,Unknown}` | M007 生产 → M009 采集 | ratio / 区间 | per task_id | 不聚合 | 低开销 |
+| `event.model.usage` | M006 生产 → M009 | 事件 / — | task_id + stepId + attempt | 不聚合 | 日志按 ops 留存 |
+| `piko.model.attempts.{state}` | M006 生产 → M009 | count / 累计 | per task_id | 不跨代次相加 | 低开销 |
 
-关联键：`run_id` + `operation_id` + `step_id` + `attempt`。
+关联键：`task_id` + `operation_id` + `step_id` + `attempt`。
 
 ### 12.2 维护命令、自检与调试路径
 
@@ -472,7 +472,7 @@ flowchart TD
 | 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认、期限与失败 | 引用 |
 |---|---|---|---|---|
 | IF-USAGE-RAW | M006 → M007 | `ModelAttempt` → void | 同步写；同 attempt 幂等 | §5.1 |
-| IF-USAGE-SNAPSHOT | M005 → M007 | `run_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
+| IF-USAGE-SNAPSHOT | M005 → M007 | `task_id` → `UsageSnapshot` | 与 publish 同事务前置 | §5.1 |
 | IF-USAGE-VALIDATE | M005 → M007 | `AgentResult`+version → `SemanticCheck` | FAIL → `InternalError` | §5.1 |
 | IF-USAGE-STREAM | Pi provider → M006 | raw usage 事件 | record_version 替换 | §5.2 |
 
@@ -554,6 +554,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.6.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.5.4 | 2026-09-27 | 补 §14.4 行 `M-USAGE-DI-003`（worker，发布前 snapshot+validate） | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-USAGE 16 节 + 附录 A/B | corezilla, opencode |

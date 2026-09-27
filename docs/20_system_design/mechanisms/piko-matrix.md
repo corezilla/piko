@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix` |
-| Document Version | `0.5.3` |
-| Status | `Approved` |
+| Document Version | `0.6.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-26` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -40,7 +40,7 @@ flowchart LR
 
 
 - **机制形态与适用性 / 业务副作用**：**有副作用**。讨论事件落盘为 `discussion_turns`、cursor 推进、intake 关闭、send txn 均持久；事件复制进本地并可能触发 Pi 投喂。
-- **交接域**：**纯软件 + 外部 Matrix homeserver**。M003/M005/M008 同进程；homeserver 为外部 HTTPS 服务。
+- **交接域**：**纯软件 + 外部 Matrix homeserver + 跨进程**。M005/M008 在 **P1**（Matrix 置于 P1 以避免 E2EE/长轮询阻塞 P0 应答）；M003 在 **P0**；homeserver 为外部 HTTPS 服务。
 - **裁剪依据**：附录 A；§4.5/§5.3 因纯软件为 N/A；不支持 E2EE（见 §3.3.1）。
 
 **教学路径**：本机制属"有副作用的收口"路径（对应 STD EX-EXPORT 教学）：事件落盘与 intake 关闭都有持久后果。
@@ -61,9 +61,9 @@ flowchart LR
 
 | Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
-| M008 `matrix-adapter` / Piko Implementation Owner | 负责 `matrix-js-sdk` Client-Server 封装、membership 复核、sync、稳定 txn、media；不启用 AS 路径、不支持 E2EE | `matrix_state`/`matrix_events`/`matrix_sends` | 提供：`MatrixRuntime`；消费：Matrix homeserver | 进程内 `src/adapters/matrix/`（Planned） | MECH-RUN；固定 `matrix-js-sdk`（lockfile） |
-| M005 `worker` / Piko Implementation Owner | 负责 discussion intake CAS 与 turn 领取；不管理 homeserver 内部 | `discussion_turns` 状态推进 | 提供：intake 推进；消费：M008 + M003 | 进程内 `src/worker/`（Planned） | MECH-RUN |
-| M003 `task-repository` | 负责事务持久化与 fenced write | `matrix_*`/`discussion_turns` | 提供：事务接口 | 进程内 `src/store/`（Planned） | MECH-RUN |
+| M008 `matrix-adapter` / Piko Implementation Owner | 负责 `matrix-js-sdk` Client-Server 封装、membership 复核、sync、稳定 txn、media**、E2EE**；不启用 AS 路径 | crypto store（容器卷）+ 事实上报 P0（`matrix_*`/`discussion_turns`） | 提供：`MatrixRuntime`；消费：Matrix homeserver | **P1** `src/adapters/matrix/`（Planned） | MECH-RUN；固定 `matrix-js-sdk`（lockfile） |
+| M005 `worker` / Piko Implementation Owner | 负责 discussion intake CAS、turn 领取、**向运行中 operation 投喂 turn**；不管理 homeserver 内部 | `discussion_turns` 状态推进 | 提供：intake 推进；消费：M008 + M003 | **P1** `src/worker/`（Planned） | MECH-RUN |
+| M003 `task-repository` | 负责事务持久化与 fenced write | `matrix_*`/`discussion_turns` | 提供：事务接口 | **P0** `src/store/`（Planned） | MECH-RUN |
 
 **责任角色区分**：intake 状态转换的**决定**由 M005 worker 发出（CAS），**写入/事务**由 M003 task-repository 执行，**权威事实**以 `discussion_turns`/`matrix_state` 为准；崩溃恢复时 M005 读取 transcript + cursor（§9）。M008 只负责协议封装与 sync 事务。
 
@@ -151,10 +151,10 @@ flowchart LR
 
 #### 4.2.1 `DiscussionTurn`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`(run_id, event_id)` 主键 + `turn_seq`/`status`/`visible_content`/`pi_entry_id`/`pi_operation_id`。来源 M003 ISD §4.2.7。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`unique(run_id, turn_seq)`；`visible_content` 非空；`turn_seq` 单调递增。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`(task_id, event_id)` 主键 + `turn_seq`/`status`/`visible_content`/`pi_entry_id`/`pi_operation_id`。来源 M003 ISD §4.2.7。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`unique(task_id, turn_seq)`；`visible_content` 非空；`turn_seq` 单调递增。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写（sync 事务内）；Run 寿命 + retention。
-- **合法与拒绝实例、V/Case 与证据状态**：同 `(run_id, event_id)` 重复插入必须去重。Case PK-T08。
+- **合法与拒绝实例、V/Case 与证据状态**：同 `(task_id, event_id)` 重复插入必须去重。Case PK-T08。
 
 #### 4.2.2 `PikoDiscussionMessage`
 
@@ -219,7 +219,7 @@ PikoDiscussionMessage {
 
 #### 4.6.1 `MatrixSendRecord`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`txn_id` 主键 + `run_id`/`turn_seq`/`payload_sha256`/`event_id`/`state`。来源 M003 ISD §4.2.8。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`txn_id` 主键 + `task_id`/`turn_seq`/`payload_sha256`/`event_id`/`state`。来源 M003 ISD §4.2.8。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`txn_id` 由 instance/run/turn/action 确定性派生；`state ∈ {Pending, Sent, Unknown}`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M008 写；Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：同 payload retry 复用同 txn；不同 payload 不得复用 txn。
@@ -268,7 +268,7 @@ PikoDiscussionMessage {
 
 ### 5.1 API（适用时）
 
-MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /runs`）；进程内 `MatrixRuntime` 方法是本机制 API。
+MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /tasks`）；进程内 `MatrixRuntime` 方法是本机制 API。
 
 #### `verifyDiscussionStart(context: DiscussionContext) -> VerifiedEvent`（IF-MX-VERIFY）
 
@@ -376,9 +376,9 @@ Matrix Client-Server HTTP 端点（Piko 消费/发送的消息载荷）：
 
 1. **启动**：M008 `createClient({baseUrl:homeserver, accessToken, userId})`；`whoami()` 返回 user_id 与 config `identity_localpart` 一致，否则启动失败。
 2. **受理**：M001 受理任务 → M008 `IF-MX-VERIFY`（`GET .../event/$e-7` + membership）→ 通过后 M003 单事务写 `runs`(intake=Open) + 初始 `discussion_turns`(Pending, turn_seq=1) → 202。
-3. **首轮 accept**：M005 worker 取 lease → M006 `lane.accept({kind:"prompt", operationId:"run_id:initial", messages:[typedInstruction, PikoDiscussionMessage($e-7)]})`；Pi commit 后按 transcript `event_id` 把 turn_seq=1 标 Consumed。
+3. **首轮 accept**：M005 worker 取 lease → M006 `lane.accept({kind:"prompt", operationId:"task_id:initial", messages:[typedInstruction, PikoDiscussionMessage($e-7)]})`；Pi commit 后按 transcript `event_id` 把 turn_seq=1 标 Consumed。
 4. **持续 sync**：M008 pump `GET .../sync?since=<cursor>&timeout=30000` → 每批：BEGIN IMMEDIATE → 逐 event 复核 membership → 去重 `matrix_events` → 新 `m.room.message` 写 `discussion_turns`(Pending) → 更新 cursor → COMMIT。
-5. **投喂新 turn**：M005 按 `turn_seq` 领取 Pending → 若 Harness operation 运行中调 `followUp`，若 idle 用确定性 `pi_operation_id=run_id:turn:<turn_seq>` accept；Pi commit 后标 Consumed/QueuedInPi。
+5. **投喂新 turn**：M005 按 `turn_seq` 领取 Pending → 若 Harness operation 运行中调 `followUp`，若 idle 用确定性 `pi_operation_id=task_id:turn:<turn_seq>` accept；Pi commit 后标 Consumed/QueuedInPi。
 6. **关闭**：Pi 完成 assistant turn 回 idle → M005 `BEGIN IMMEDIATE` 查 Pending/QueuedInPi → 为空则 CAS intake Open→Closing。
 7. **Result**：Closing worker 进入 Result 两步提交；若 Failed/Cancelled 先把剩余 turn 标 Abandoned 再 Closed。
 8. **回复**（如需）：M008 先持久 `MatrixSendRecord`（稳定 txn）再 `PUT .../send/m.room.message/{txnId}` → 得 `event_id`。
@@ -418,7 +418,7 @@ flowchart TD
   E --> Q{"Pi idle 且无 pending?"}
   Q -- "是" --> CL["CAS Open→Closing"]
   Q -- "否" --> E
-  E -. "取消/deadline/membership 丢失" .-> AB["关闭 intake"]
+  E -. "取消/membership 丢失/进程重启" .-> AB["关闭 intake"]
   CL --> PUB["Result 两步提交"]
   AB --> AB2["剩余 turn → Abandoned；intake Closed"]
 ```
@@ -429,7 +429,7 @@ flowchart TD
 
 - 事件与 closing 竞争：writer lock 串行化；事件要么先入队阻止 closing，要么 closing 后只登记。
 - 后续消息不唤醒终态 Run；下一轮需新任务。
-- membership 撤销/deadline 可提前终止。
+- membership 撤销/取消/进程（P1）重启可提前终止或需恢复。
 - **截断（`limited=true`）处理**：`limited=true` 表示该批 timeline 被 homeserver 截断（期望窗口内可能有未返回事件）。M008 必须在推进 cursor 前执行**有界回补**：
   1. 以 `prev_batch` 调 `GET /_matrix/client/v3/rooms/{roomId}/messages?from=<prev_batch>&dir=b&limit=100`，按时间倒序取缺失事件；
   2. 回补到已知边界（返回条数 < limit 或到达 `prev_batch` 起点）→ 缺口闭合，按时间正序写 turn 后再推进 cursor；
@@ -476,7 +476,7 @@ Authorization: Bearer syt_xxx
 **q4 稳定事务发送（回复）**
 
 ```http
-PUT /_matrix/client/v3/rooms/!r-7:hs/send/m.room.message/run-042:turn:3:reply
+PUT /_matrix/client/v3/rooms/!r-7:hs/send/m.room.message/task-042:turn:3:reply
 Authorization: Bearer syt_xxx
 Content-Type: application/json
 
@@ -517,11 +517,11 @@ flowchart TD
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
 |---|---|---|---|---|---|
-| 1 | 需要带讨论的任务 | `POST /runs` 含 `discussion{room_id,trigger_event_id}` | M001 鉴权；M008 verify（GET event + membership） | 写 run(intake=Open)+Pending turn；202 | 保存 `run_id` |
-| 2 | 已受理 | `GET /runs/{run_id}` | M003 | 返回 `RunView{discussion_intake_state:"Open"}` | 等待或投喂 |
+| 1 | 需要带讨论的任务 | `POST /tasks` 含 `discussion{room_id,trigger_event_id}` | M001 鉴权；M008 verify（GET event + membership） | 写 run(intake=Open)+Pending turn；202 | 保存 `task_id` |
+| 2 | 已受理 | `GET /tasks/{task_id}` | M003 | 返回 `TaskView{discussion_intake_state:"Open"}` | 等待或投喂 |
 | 3 | 房间有新消息 | —（Matrix 侧） | M008 sync | 写 turn+cursor；事务提交 | 无需动作（自动） |
 | 4 | 想加一句话 | Matrix send | M008 sync 收到 | 生成 turn 或 closing 后登记 | — |
-| 5 | 读结果 | `GET /runs/{run_id}/result` | M003 | `AgentResult`（Completed 只在 Closing 后） | 验收 |
+| 5 | 读结果 | `GET /tasks/{task_id}/result` | M003 | `AgentResult`（Completed 只在 Closing 后） | 验收 |
 | 6 | membership 丢失 | — | M008 sync 403 | intake Closed + `DiscussionAccessLost` | 交 operator |
 
 **关键事实如何产生**：turn 事实=`discussion_turns` 行（M003）；同步事实=cursor 推进（M008 事务）；关闭事实=CAS Open→Closing（M005）。不以"已收到消息"代替"已投喂"。
@@ -598,12 +598,12 @@ flowchart TD
 | Pi commit 后、标记 Consumed 前 | transcript 有 `event_id`，turn 仍 Pending | transcript + `discussion_turns` | event 已存在 → 只补标记，不重复 followUp |
 | intake CAS 前 | ticket Pending | `runs.discussion_intake_state` | Open → 重判 CAS |
 
-身份固定：`event_id`、`turn_seq`、确定性 `pi_operation_id=run_id:turn:<n>`。
+身份固定：`event_id`、`turn_seq`、确定性 `pi_operation_id=task_id:turn:<n>`。
 
 ## 10. 并发、排序与容量
 
 - 单实例单 pump；不允许并发 sync；`syncOnce` 与 intake CAS 竞争同一 SQLite writer lock，先到者生效。
-- turn 按 `turn_seq` 顺序领取；`(run_id, event_id)` 唯一。
+- turn 按 `turn_seq` 顺序领取；`(task_id, event_id)` 唯一。
 - media 下载有字节上限（schema 控制）；超限拒绝。
 - 等待出口与期限：sync 长轮询 `timeout=30000 ms`（内部常量）；429 退避按 homeserver `retry_after_ms`；Pi followUp 等 Harness 空闲；membership 复核失败立即终止。每个等待有期限、事实来源（cursor/state）和合法出口。
 - rate limit 退避不消耗 Run 预算（属 adapter 内部）。
@@ -627,7 +627,7 @@ flowchart TD
 | `piko.matrix.sync.lag` | M008 sync 前后单调时钟 | 秒 / 当前 / monotonic | instance + cursor | 重启重置；不跨代次相加 | 指标无保留；低开销 |
 | `event.matrix.sync` | 每批 sync | 事件 / batch | room_id + cursor | 不聚合 | 日志按 ops 留存 |
 | `event.matrix.send` | 每次 send | 事件 / request | txn_id + event_id | 不聚合 | 日志按 ops 留存 |
-| `event.matrix.turn` | 每次 turn 状态变化 | 事件 / 状态 | run_id + event_id + turn_seq | 不聚合 | 日志按 ops 留存 |
+| `event.matrix.turn` | 每次 turn 状态变化 | 事件 / 状态 | task_id + event_id + turn_seq | 不聚合 | 日志按 ops 留存 |
 
 时间：`origin_server_ts` 仅排序参考；Piko 权威时间为持久 UTC + monotonic。
 
@@ -659,7 +659,7 @@ flowchart TD
 | Piko ↔ Matrix 事件 | `m.room.message`(text/image/file)、`m.room.member` | reaction 忽略；encrypted 拒绝 |
 | discussion 契约 | `PikoDiscussionMessage` | 不引入产品 envelope |
 
-部署：与 Piko 主进程同进程；外部依赖为 homeserver（HTTPS）。升级切换过程引用 §9 + MECH-CONFIG。
+部署：在 **P1** 执行进程内运行；外部依赖为 homeserver（HTTPS）。升级切换过程引用 §9 + MECH-CONFIG。
 
 ## 14. 跨责任单元分解与接口分配
 
@@ -784,6 +784,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.6.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-MATRIX 16 节 + 附录 A/B | corezilla, opencode |
 | v0.5.2 | 2026-09-25 | review 修复：piko-config §10 去重复行；piko-matrix §10 补 sync timeout 30000ms + 429 retry_after_ms；piko-recovery §10 补等待期限说明 | corezilla, opencode |

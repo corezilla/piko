@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-recovery` |
-| Document Version | `0.5.4` |
-| Status | `Approved` |
+| Document Version | `0.6.0` |
+| Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -38,7 +38,7 @@ flowchart LR
 
 
 - **机制形态与适用性 / 业务副作用**：**有副作用（恢复编排）**。补终态、drive 既有 operation、封装 Result 都改变持久状态；不重跑已完成 Pi。
-- **交接域**：**纯软件**。M003/M005/M006/M004 同进程；事实源为本地 SQLite + Pi JSONL。
+- **交接域**：**纯软件 + 跨进程**。M003/M004 在 **P0**；M005/M006 在 **P1**（受 P0 监督、可重启）；事实源为 P0 的 SQLite + Pi JSONL。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
 
 **教学路径**：本机制属"有副作用的收口"路径：恢复必须处理在途副作用与结果未知。
@@ -54,14 +54,16 @@ flowchart LR
 
 不支持：跨系统 exactly-once、自动绕过未知结果重试、日志推断成功。
 
+> **数据面交互**：恢复时输入预备/产出投递由 P1 的 `MECH-TRANSFER` 按 P0 事实重放（幂等 `(task_id,generation,path,sha256)`）；本机制只负责当前 Run 的执行事实与终态。
+
 ## 3. 参与方、责任和 authority
 
 | Participant / 工程 Owner | 负责/不负责 | 决定/写入/事实来源/恢复（适用时） | Provided/Consumed interface | 部署/实现位置 | 依赖机制与基线 |
 |---|---|---|---|---|---|
-| M005 `worker` / Piko Implementation Owner | 负责恢复编排与补终态；不重跑 Pi | 无独立 state；读写 runs/results | 提供：recovery 决策；消费：M003/M006 | 进程内 `src/worker/`（Planned） | MECH-RUN |
-| M003 `task-repository` / Piko Implementation Owner | 负责持久事实查询与 fenced write | tasks/runs/results/run_sessions/ledger | 提供：事务接口 | 进程内 `src/store/`（Planned） | MECH-RUN |
-| M006 `pi-adapter` / Piko Implementation Owner | 负责 Harness inspect/getResult；不重发旧请求 | Pi session JSONL | 提供：`inspect`/`drive`/`getResult` | 进程内 `src/adapters/pi/`（Planned） | MECH-RUN |
-| M004 `scheduler` | 负责新 lease epoch | execution_slot | 提供：acquireSlot/fence | 进程内 `src/scheduler/`（Planned） | MECH-RUN |
+| M005 `worker` / Piko Implementation Owner | 负责执行侧恢复配合（按 P0 指令续跑/补终态）；不重跑 Pi | 无独立 state；事实上报 P0 | 提供：执行侧 resume；消费：M006 | **P1** `src/worker/`（Planned） | MECH-RUN |
+| M003 `task-repository` / Piko Implementation Owner | 负责持久事实查询与 fenced write | tasks/tasks/results/run_sessions/ledger | 提供：事务接口 | **P0** `src/store/`（Planned） | MECH-RUN |
+| M006 `pi-adapter` / Piko Implementation Owner | 负责 Harness inspect/getResult；不重发旧请求 | Pi session JSONL | 提供：`inspect`/`drive`/`getResult` | **P1** `src/adapters/pi/`（Planned） | MECH-RUN |
+| M004 `scheduler` | 负责新 lease epoch | execution_slot | 提供：acquireSlot/fence | **P0** `src/scheduler/`（Planned） | MECH-RUN |
 
 **责任角色区分**：恢复**决定**由 M005 worker 发出，**写入**由 M003 task-repository 执行，**权威事实**以 `tasks`/`runs`/`results`/`run_sessions` + Pi transcript 为准；M005 是恢复读取者，M004 提供新 lease。恢复不改已发布 Result。
 
@@ -95,7 +97,7 @@ flowchart LR
 | 逻辑目标/身份 | 部署及访问路径 | 映射 authority | 共享故障域 | 旧代次处理 |
 |---|---|---|---|---|
 | 崩溃前 lease | execution_slot.lease_epoch | M004 | 与实例同域 | 新 epoch = 旧+1；旧被 fence |
-| Pi session | `pi_session_id=run_id` | M006 | 本地 FS + SQLite | inspect 对账，不重发 |
+| Pi session | `pi_session_id=task_id` | M006 | 本地 FS + SQLite | inspect 对账，不重发 |
 | results generation | results 表 | M003 | 同域 | 已存在不重写 |
 
 #### 3.3.1 运行环境
@@ -106,9 +108,9 @@ flowchart LR
 | 测试（test/CI） | 故障注入夹具 | 独立临时 SQLite | `tests/fault/restore.test.ts` |
 | 生产（prod） | 真实进程/SQLite/FS 故障 | 本地可靠 FS | 实际运行 |
 
-- **进程模型**：恢复在重启后的同一进程内编排（M000 启动 → M005 扫描）。
+- **进程模型**：恢复由 **P0** 编排（M000 启动 → P0 扫描持久事实 → 必要时 spawn/重启 P1 并按其能力续跑）。
 - **网络**：恢复需依赖可达（LLMTier/Matrix preflight）；不可达 → 不 READY。
-- **持久层**：SQLite（tasks/runs/results/run_sessions/ledger）+ Pi JSONL，均本地。
+- **持久层**：SQLite（tasks/tasks/results/run_sessions/ledger）+ Pi JSONL，均本地。
 - **时钟**：恢复判定用持久 UTC + monotonic；不依赖 wall clock 比较。
 
 **统筹者退出语义**：M005 恢复中退出 → 停机，不部分恢复；重启重新扫描（幂等，已补终态的不再处理）。恢复不产生第二写入者。
@@ -130,7 +132,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  DB["SQLite: tasks/runs/results<br/>/run_sessions/ledger"] -->|M005 探测| PROBE["RecoveryProbe"]
+  DB["SQLite: tasks/tasks/results<br/>/run_sessions/ledger"] -->|M005 探测| PROBE["RecoveryProbe"]
   PIS["Pi session JSONL"] -->|M006 inspect| PROBE
   PROBE -->|"result_exists"| PATCH["PatchedTerminal"]
   PROBE -->|"open_operation"| RESUME["ResumedOperation"]
@@ -152,7 +154,7 @@ flowchart LR
 ```text
 RecoveryProbe {
   result_exists: bool, result_generation?: uint,
-  run_state: RunState,
+  run_state: TaskState,
   lease_epoch: uint,
   pi_session: { session_id, exists, open_operations[], operation_result? },
   transcript_version?: uint,
@@ -207,7 +209,7 @@ RecoveryProbe {
 
 ### 5.1 API（适用时）
 
-MECH-RECOVERY 无对外 API；进程内恢复编排函数是本机制 API。
+MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息是本机制 API。
 
 #### `scanNonTerminalRuns() -> RunId[]`（IF-REC-SCAN）
 
@@ -222,7 +224,7 @@ MECH-RECOVERY 无对外 API；进程内恢复编排函数是本机制 API。
 
 - **Interface/Member ID、用途与提供责任**：`IF-REC-INSPECT`；M006 `pi-adapter` 提供；M005 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；固定 Pi `0.85.1`。
-- **输入与前提**：`handle{session_id=run_id}`。
+- **输入与前提**：`handle{session_id=task_id}`。
 - **成功输出与保证**：`PiRunObservation{open_operations, operation_result, lane_tip, transcript_version, durable_queues}`。
 - **错误与合法下一步**：session 损坏 → `InternalError`。
 - **代表调用与验证**：§6.1.1 q1-q5；PK-T12。
@@ -240,7 +242,7 @@ MECH-RECOVERY 无对外 API；进程内恢复编排函数是本机制 API。
 - **Interface/Member ID、用途与提供责任**：`IF-REC-FENCE`；M004 `scheduler` 提供。唯一签名与终态行为由 M004 设计 [`piko-scheduler`](../../40_module_design/piko-scheduler-design.md) §9.1.3 固定，本行与之一致（原简写 `acquireSlot(ownerId) -> Lease` 已废弃，避免与 `IF-RUN-SLOT` 同名异义）。
 - **唯一契约、版本与状态**：`piko-scheduler` §9.1.3（Proposed；随 M004 设计冻结，`system-design` §3.2 已登记 M004 提供 `fence`）。
 - **输入与前提**：重启后，`execution_slot` 仍绑定一个非终态 Run（`runs.state ∈ {Running, Cancelling}`）；`runId` 为该绑定 Run，`ownerId`/`bootId` 为当前进程。
-- **成功输出与保证**：绑定 Run 非终态 → 返回新 `Lease{run_id, owner_id, boot_id, epoch=旧+1, acquired_at, heartbeat_at}`，旧 epoch 的所有写入（`renewLease`、`finish`）从此 0 行生效。绑定 Run 已终态 → 原子清空 slot 并返回 `null`。
+- **成功输出与保证**：绑定 Run 非终态 → 返回新 `Lease{task_id, owner_id, boot_id, epoch=旧+1, acquired_at, heartbeat_at}`，旧 epoch 的所有写入（`renewLease`、`finish`）从此 0 行生效。绑定 Run 已终态 → 原子清空 slot 并返回 `null`。
 - **错误与合法下一步**：`execution_slot` 与 `run_sessions.lease_epoch` 不一致 → 内部不变量冲突，交 operator，不自行修复。
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`；在恢复门内调用，不与正常领取并发。
 - **代表调用与验证**：PK-T01/PK-T12。
@@ -249,8 +251,8 @@ MECH-RECOVERY 无对外 API；进程内恢复编排函数是本机制 API。
 
 #### Pi `inspect`/`getResult` 读取流（IF-REC-STREAM）
 
-- **来源**：Harness session JSONL（`pi_session_id=run_id`）。
-- **关联**：`run_id` + operation identity（`run_id:initial` / `run_id:turn:<n>`）。
+- **来源**：Harness session JSONL（`pi_session_id=task_id`）。
+- **关联**：`task_id` + operation identity（`task_id:initial` / `task_id:turn:<n>`）。
 - **确认**：有 open operation → drive；有 result → 封装；均无 → 允许 accept。
 - **代表调用与验证**：PK-T12。
 
@@ -267,7 +269,7 @@ Operator 恢复确认（store 可写、旧 lease 已 fence、session/operation �
 代表输入：worker 在写 `results` 第一步后崩溃。
 
 1. 进程重启；S1-S8 启动成功。
-2. M005 扫描非终态 Run：发现 `run_id="r-7"` 的 `runs.state='Running'`，但 `results` 已有 generation N。
+2. M005 扫描非终态 Run：发现 `task_id="r-7"` 的 `runs.state='Running'`，但 `results` 已有 generation N。
 3. 判定 `PatchedTerminal`：BEGIN IMMEDIATE → `UPDATE runs SET state='Completed', generation=N+1` + release slot → COMMIT。
 4. 不重跑 Pi；不重写 Result。
 5. Slinky 查询 → 200 Result（内容不变）。
@@ -310,26 +312,26 @@ flowchart TD
 
 #### 6.1.1 完整调用实例（JSON）
 
-**q1 扫描后探测（run-042：results 已有 gen 3，runs 仍 Running）**
+**q1 扫描后探测（task-042：results 已有 gen 3，runs 仍 Running）**
 
 ```json
-{"result_exists":true,"result_generation":3,"run_state":"Running","lease_epoch":7,"pi_session":{"session_id":"run-042","exists":true,"open_operations":["run-042:initial"],"operation_result":null},"transcript_version":14,"ledger_version":9,"matrix_cursor":"s101"}
+{"result_exists":true,"result_generation":3,"run_state":"Running","lease_epoch":7,"pi_session":{"session_id":"task-042","exists":true,"open_operations":["task-042:initial"],"operation_result":null},"transcript_version":14,"ledger_version":9,"matrix_cursor":"s101"}
 ```
 
 → 判定 `PatchedTerminal`：补第二步。
 
-**q2 有 operation result（run-043：Pi 已 commit，Result 未封装）**
+**q2 有 operation result（task-043：Pi 已 commit，Result 未封装）**
 
 ```json
-{"result_exists":false,"run_state":"Running","lease_epoch":8,"pi_session":{"session_id":"run-043","exists":true,"open_operations":[],"operation_result":{"operation_id":"run-043:initial","status":"Completed"}},"transcript_version":22,"ledger_version":11,"matrix_cursor":null}
+{"result_exists":false,"run_state":"Running","lease_epoch":8,"pi_session":{"session_id":"task-043","exists":true,"open_operations":[],"operation_result":{"operation_id":"task-043:initial","status":"Completed"}},"transcript_version":22,"ledger_version":11,"matrix_cursor":null}
 ```
 
 → 判定 `WrapResult`：封装 Result + 两步提交。
 
-**q3 有 open operation（run-044：崩溃于 drive 中）**
+**q3 有 open operation（task-044：崩溃于 drive 中）**
 
 ```json
-{"result_exists":false,"run_state":"Running","lease_epoch":9,"pi_session":{"session_id":"run-044","exists":true,"open_operations":["run-044:initial"],"operation_result":null},"transcript_version":5,"ledger_version":3,"matrix_cursor":null}
+{"result_exists":false,"run_state":"Running","lease_epoch":9,"pi_session":{"session_id":"task-044","exists":true,"open_operations":["task-044:initial"],"operation_result":null},"transcript_version":5,"ledger_version":3,"matrix_cursor":null}
 ```
 
 → 判定 `ResumedOperation`：drive/getResult，不重复 accept。
@@ -437,10 +439,10 @@ flowchart TD
 |---|---|---|---|
 | 有 open operation | `run_sessions.active_operation_id` | Harness open op | 存在 → drive/getResult |
 | 有 operation result | transcript 有 result | Harness `getResult` | 存在 → 封装 Result |
-| results 已写、终态未写 | `results(run_id, gen N)` | `results` + `runs.state` | 补第二步 |
+| results 已写、终态未写 | `results(task_id, gen N)` | `results` + `runs.state` | 补第二步 |
 | 无 admission | Task Store 无 Pi admission | Task Store + session | 允许 accept |
 
-身份固定：`pi_session_id=run_id`、lane `main`、operation `run_id:initial`。不重发旧请求。
+身份固定：`pi_session_id=task_id`、lane `main`、operation `task_id:initial`。不重发旧请求。
 
 ## 10. 并发、排序与容量
 
@@ -470,7 +472,7 @@ flowchart TD
 | Signal / schema | 生产/采集路径 | 口径、单位、窗口、时间源 | 关联身份/代次 | 清零/丢失/聚合规则 | 保留与开销 |
 |---|---|---|---|---|---|
 | `piko.recovery.outcomes.{resume,fenced,internal_error}` | M005 生产 → M009 采集 | count / 区间 | 全实例 | 重启重置 | 低开销 |
-| `event.recovery.{resume,fenced,internal_error}` | M005 生产 → M009 | 事件 / — | run_id + generation | 不聚合 | 日志按 ops 留存 |
+| `event.recovery.{resume,fenced,internal_error}` | M005 生产 → M009 | 事件 / — | task_id + generation | 不聚合 | 日志按 ops 留存 |
 
 ### 12.2 维护命令、自检与调试路径
 
@@ -599,6 +601,7 @@ flowchart LR
 
 | 版本 | 日期 | 修改与影响 | 作者 |
 |---|---|---|---|
+| 0.6.0 | 2026-09-28 | 本轮修订：全局 `task_id` 化（`run_id`→`task_id`、`/runs`→`/tasks`、`Run*`→`Task*`）；移除任务级 deadline/预算；进程模型改为 **P0 控制进程 + P1 执行进程**（`system-design` 关键决定 7）；数据面归 `MECH-TRANSFER` | corezilla, opencode |
 | v0.5.4 | 2026-09-27 | 补 §14.4 行 `M-REC-DI-004`（scheduler，新 lease epoch），闭合 §3.5 参与方缺口 | corezilla, opencode |
 | v0.5.3 | 2026-09-26 | review 修复（AMENDMENT P1/P2）：统一依赖图（区分上级机制/设计前置/运行时消费/恢复读取，仅设计前置参与无环检查），§A.1/§16 同步；矩阵截断回补与 E2EE 唯一结果；取消停止未知时的隔离/释放/再准入；接口闭合与可执行验证向量 | corezilla, opencode |
 | v0.1.0 | 2026-09-25 | 初稿：MECH-RECOVERY 16 节 + 附录 A/B | corezilla, opencode |
