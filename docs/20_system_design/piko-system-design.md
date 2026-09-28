@@ -323,6 +323,7 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 | CAP-CANCEL · 任务取消 | Slinky 取消一个 Run；入口 `POST /tasks/{task_id}:cancel`（§8.1） | `task_id` 路径参数；同一 principal | 200 `CancelledBeforeStart`（Queued）或 202 `StopRequested`（Running）或 200 `AlreadyTerminal`；失败 401 / 404 / 410 | M001 `task-api` + M005 `worker` + M003 `task-repository`；过程 §6.4 | Draft / PK-T05 |
 | CAP-RESULT · 任务结果查询 | Slinky 读取 Run 稳定 Result；入口 `GET /tasks/{task_id}/result`（§8.1） | `task_id` 路径参数；同一 principal | 200 + `AgentResult`；失败 409 `TaskNotTerminal` / 401 / 404 / 410 / 500 `ResultUnavailable` | M001 `task-api` + M003 `task-repository`；过程 §6.2 | Draft / PK-T16 |
 | CAP-DIAG · 内部诊断（只读） | Operator 读取实例诊断快照；入口由 ops 文档定义（§8.4） | operator authorization；目标为唯一 Piko 实例 | 200 + 诊断 snapshot（redacted）；失败 401 / 403 | M000 `bootstrap` + M009 `observability`；ops 文档 | Approved（设计阶段，激活由 ops Gate） / PK-T12 |
+| CAP-PURGE · 运维清理（写） | Operator 强制清理记录（指定 `task_id` 或全局 retention GC）；入口由 ops 文档定义 | operator authorization；`task_id` 或 `--all`；写 `audit_events` | 清理大对象；**保留 `{task_id, Gone}` tombstone**；失败 401/403/404 | M003 `task-repository` + M009 `observability`；ops 文档 | Planned / PK-T12 |
 
 Framework: 功能与用户交互按"用户任务"组织：每个 CAP 对应一个用户任务（派 Run / 查状态 / 取消 / 读 Result / 诊断），不是按控件或命令名。§3.6.2 说明每个任务的完成事实与失败边界，§8.4 说明入口合同。
 
@@ -807,7 +808,7 @@ sequenceDiagram
 
 - 缓存：内存 lease；usage snapshot 缓存；Matrix sync cursor 缓存。失效：lease fence / Result 发布 / sync 推进。
 - 持久数据保留：`accepted_at + storage.retention_days`（默认 7d）；之后可清理大对象，永久保留最小 `{task_id, Gone}` tombstone。详见 contract §3.6。
-- 删除权限：worker / Result publisher；不允许 HTTP handler 删除任务。
+- 删除权限：**worker / Result publisher**（按 retention 自动清理，§7.11 窗口）；**operator 可触发运维 purge**（强制清指定 `task_id` 或全局 GC；写 `audit_events`）；**Slinky / HTTP handler 不得删除**。purge **不**移除 tombstone：`task_id` 仍永久保留、永不复用（否则破坏幂等与追溯）。
 - 临时产物寿命：Media 下载存 staging 目录，校验后移动到允许路径，失败/取消按 retention policy 清理。
 - 数据迁移：`PRAGMA user_version` 单调整数；v1→v2 增加 `Abandoned` discussion turn 状态；失败保持旧库可读，worker 不启动。
 
@@ -862,6 +863,15 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **错误与合法下一步**：401/403；未知实例返回拒绝，不改选其他实例。
 - **交互与生命周期**：只读；受控不写。
 - **实现与验证**：由 ops 文档与本设计 §3.6.1 shutdown 协议约束；Case PK-T12。
+
+#### Operator Purge · `PurgeReceipt` | `<Error>`
+
+- **Interface/Member ID、用途、提供责任与唯一来源**：**写操作**；仅 operator authorization（非 Slinky API）；定义见 `piko-runtime-release-and-operations-v0.3`。
+- **输入与前提**：`{ task_id }` 或 `--all`（全局 retention GC）；operator 已授权。
+- **成功输出与保证**：`PurgeReceipt`（清了多少对象）；**大对象删除但 `{task_id, Gone}` tombstone 永久保留**——`task_id` 永不复用，之后 POST/GET 仍 410。
+- **错误与合法下一步**：401/403；`task_id` 不存在 → 404（但 tombstone 语义不变）。
+- **交互与生命周期**：写；必须写 `audit_events`（`event.audit.forced-purge`）；不改动其他 task。
+- **实现与验证**：M003 `task-repository`（唯一 writer）+ M009；Case PK-T12。
 
 ### 8.2 消息与数据流接口
 
@@ -923,7 +933,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 
 ### 8.4 人机与维护接口
 
-操作员诊断入口见 §8.1 `Operator Diagnostics`。CLI 暂无；Slinky 通过 HTTP API 接入。Operator authorization 通过 ops 文档定义。
+操作员入口见 §8.1 `Operator Diagnostics`（只读）与 `Operator Purge`（写，运维清理）。CLI 暂无；Slinky 通过 HTTP API 接入。Operator authorization 通过 ops 文档定义。
 
 ## 9. 配置与环境管理设计
 
@@ -997,7 +1007,7 @@ Piko 配置由 `interfaces/schemas/piko-runtime-config-v0.3.schema.json` + `inte
 | `piko.transfer.bytes.{in,out}` | bytes / 区间 | per task_id | M010 搬运计数 | metric；脱敏 | 搬运量 |
 | `piko.transfer.outcomes.{fetched,delivered,partial,failed}` | count / 区间 | per task_id | `artifact_delivery` + 拉取结果 | metric；脱敏 | 数据面健康 |
 
-结构化日志事件：`event.run.{created,started,terminated}` / `event.tool.{reserved,started,terminal,unknown}` / `event.model.{attempt,usage,retry}` / `event.matrix.{sync,send,turn}` / `event.transfer.{fetch,deliver,retry}` / `event.recovery.{resume,fenced,internal_error}` / `event.audit.credential-ref-changed` / `event.audit.run-state-changed` / `event.audit.forced-fence` / `event.audit.schema-migration` / `event.audit.responses-probe`。每条必含 `event_name`、`instance_id`、`task_id?`、`generation`、`epoch?`、`redacted_error_class?`；禁止 instruction 正文、credential、access token、完整模型 input/output、附件内容。日志留存由 ops 配置，不在本设计声明。
+结构化日志事件：`event.run.{created,started,terminated}` / `event.tool.{reserved,started,terminal,unknown}` / `event.model.{attempt,usage,retry}` / `event.matrix.{sync,send,turn}` / `event.transfer.{fetch,deliver,retry}` / `event.recovery.{resume,fenced,internal_error}` / `event.audit.credential-ref-changed` / `event.audit.run-state-changed` / `event.audit.forced-fence` / `event.audit.forced-purge` / `event.audit.schema-migration` / `event.audit.responses-probe`。每条必含 `event_name`、`instance_id`、`task_id?`、`generation`、`epoch?`、`redacted_error_class?`；禁止 instruction 正文、credential、access token、完整模型 input/output、附件内容。日志留存由 ops 配置，不在本设计声明。
 
 ### 10.3 自检与诊断设计
 
@@ -1107,7 +1117,7 @@ Oracle 独立于被测实现：`validate_v03_contract.py` + JSON Schema + semant
 - **执行点**：worker / `pi-adapter` / `matrix-adapter` / `task-repository`；权限由 `permissions` 集合与 instance policy 交集。
 - **凭据取得/更新/撤销**：Secret provider 启动时解析；credential 明文不入 config dump / DB / Result / log；operator 显式轮换。
 - **加密与脱敏**：transport 由 Slinky ↔ Piko / Piko ↔ LLMTier / Piko ↔ Matrix 各自 TLS；脱敏 policy 见 §6.2。
-- **调试限制**：operator 诊断仅只读；restart / lease fence / migration / credential change / responses probe 需 operator authorization；强制 fence 与 schema migration 写 `audit_events`。
+- **调试限制**：operator 诊断仅只读；**运维 purge** / restart / lease fence / migration / credential change / responses probe 需 operator authorization；**purge**、强制 fence 与 schema migration 写 `audit_events`。
 - **依赖/构建/插件来源**：Pi upstream commit 锁定 + adapter patch manifest hash 校验；`matrix-js-sdk` 由 lockfile 固定；SQLite 驱动为 Node 内置 `node:sqlite`（`DatabaseSync`）；LLMTier endpoint 由 config 指定 + preflight 探测；Matrix homeserver 由 config 指定 + whoami 验证。
 - **数据面边界（M010 `transfer`）**：出站仅走 `transfer.target_allowlist` 白名单主机；`scp` 主机公钥由 `known_hosts` 固定（**不自动接受 host key**）；凭据（scp 私钥等）经 **secret 挂载**，不进载荷 / DB / Result / 日志；单文件输入受 `transfer.max_input_bytes` 限制；产出按 `(task_id,generation,path,sha256)` **幂等**投递，仅写白名单目标。
 - **升级验证**：Pi 升级必须独立设计评审；不能热切；lockfile 锁定所有传递依赖。
@@ -1197,6 +1207,7 @@ Piko 由 11 个直属模块组成，STD 要求每模块独立 design.definition 
 文档控制信息见文末 STD 文档控制块（Authority/Authors/Created Date/Template Conformance/Tailoring Reference/Migration Map Reference/Repository/Canonical Path/Supersedes）。
 
 | 文档版本 / 日期 | 变更和设计影响 | 作者 / 评审记录 |
+| v0.12.0-draft.1 / 2026-09-28 | **运维 purge**：新增 CAP-PURGE / `Operator Purge`（operator 授权写操作，清大对象但保留 `{task_id, Gone}` tombstone、不改幂等语义）；§7.11 删除权限、§8.4、§13.1 同步。 | corezilla, opencode |
 | v0.12.0-draft.1 / 2026-09-28 | 本轮重设计：**新增数据面 `transfer` M010 + `MECH-TRANSFER` + PK-21**（输入拉取 / 产出投递，`scp`/`mount`/`object_store`；投递**不阻塞执行终态**；`artifact_delivery` 移 **Run 侧**可变字段，不再进 Result）；**移除任务级截止 / 预算**（PK-04 撤销、去 `DeadlineExceeded`/`BudgetExceeded`、retention 改 `accepted_at + retention_days`）；**全局 `run_id`→`task_id`**、路径 `/runs`→`/tasks`、类型 `Run*`→`Task*`、`RunNotTerminal`→`TaskNotTerminal`；新增错误码 `InputFetchFailed`；`AgentResult` 增 `stats`、去 `artifact_delivery`；`TaskView` 增 `progress`/`result_available`/`artifact_delivery`、补回 `discussion_intake_state`；机制 7→8、模块 10→11；Status `Approved`→`Draft`。**本轮补充**：①`§5.1` 明确 CPU 让出 / event-loop 不被执行饿死；②输入预备移到 **Queued 阶段、不占 execution slot**（慢 `scp` 不拖住执行），`TaskView` 新增 `input_staging`、契约新增 `InputStaging`；③`transfer` M010 搬运**可中断**，cancel 在预备中 → 中断 `scp` + 零调用 `Cancelled`。**接口推演（第二轮）**：④**关键决定 7 定案**——**P0 只保有权威状态并应答（无外部 IO）、P1 承载一切会阻塞的外部交互与执行**；M008 `matrix-adapter` 由 P0 **移到 P1**；新增约束 **PK-22**（进程隔离 / 轮询独立）。⑤`progress` 改为**由已有 durable 事实派生**（`model_attempts`/`tool_calls`），不加高频通道。⑥受理**不做同步外部调用**（discussion 核实/输入拉取异步化）；⑦新增 `P0↔P1` IPC 接口 + 数据面 / Secret provider / Slinky 存储主机接口登记（§8.2），环境图补外部对象；⑧Pi 如实标注为 **vendored 源码（内部路径）**，非稳定 SDK；⑨存储驱动对齐为 `node:sqlite`；⑩补路径基准与幂等语义（§8.1） | corezilla, opencode |
 | v0.11.4 / 2026-09-27 | §5 运行环境补充：**Piko 常以容器部署**（1 实例=1 容器 · 持久卷 · 出站 scp · secret 挂载 · 入站 HTTP）；§5.2 明确**数据面/控制面分离**（文件经 scp 由 Piko 主动搬运、**不传字节**；HTTP 只传路径/引用与执行结果；**工作区持久化归 Slinky**）；§5.3 增 `TOP-2 生产跨机` / `TOP-3 多 Piko 实例`；§6 增 `P-INPUT`（输入拉取）/ `P-ARTIFACT`（产出投递）；§5 增 `SCN-1` 应用场景图（单任务择一·不广播；各实例独立连同一 LLMTier；Matrix 协作通信） | corezilla, opencode |
 | v0.11.3 / 2026-09-27 | §3.2 M001 行消费清单纠偏：`HTTPClient`（非模块）→ 实际模块交接 `policy`(M002)、`task-repository`(M003)，与 `piko-run` §3.5 M001 行一致 | corezilla, opencode |
