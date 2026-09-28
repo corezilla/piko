@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-api` |
-| Document Version | `0.1.2` |
+| Document Version | `0.1.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -120,7 +120,7 @@ task-api 是**服务端点型**模块：它监听本地端口，把一个 HTTP �
 
 #### 3.1 `S-TAPI-HTTP` · Piko Agent Runtime HTTP 端点集
 
-- **类型 / 位置**：HTTP-RPC 端点集；执行位置为 Piko 单进程 `node:http` 服务，监听 `config.listen.host:config.listen.port`，路径前缀为部署路由（契约示例 `https://piko.example/agent-runtime/v1`）。
+- **类型 / 位置**：HTTP-RPC 端点集；执行位置为 **P0 控制进程**的 `node:http` 服务，监听 `config.listen.host:config.listen.port`，路径前缀为部署路由（契约示例 `https://piko.example/agent-runtime/v1`）。
 - **调用者 / 身份 / 被操作对象**：Slinky 项目经理（唯一配置的 bearer principal）；被操作对象是 Run 提交/状态/取消/结果四项。Operator 只读诊断是另一个 Surface，由 ops 文档承载，不属本模块。
 - **操作与入口**：`POST /tasks`（createTask）、`GET /tasks/:task_id`（getTask）、`POST /tasks/:task_id:cancel`（cancelTask）、`GET /tasks/:task_id/result`（getTaskResult）；对应 §9.1.1–§9.1.4。
 - **输入与校验**：`Authorization: Bearer <credential>`、可选 `X-Request-ID`、JSON body（仅 `POST /tasks` 需要）。校验顺序：bearer → 路由匹配 → body 读取/JSON/Schema → 路径参数。未知路由 404 `NotFound`。

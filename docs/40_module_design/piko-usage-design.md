@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage-design` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -151,7 +151,7 @@ flowchart LR
 
 #### 4.1 `DEP-USAGE-PIADAPTER` · M006 `pi-adapter`（原始 usage 观察者）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
 - **本模块调用或消费**：消费 M006 观察并落库的原始 usage 事实：每 attempt 的 `present_fields` 与 6 字段值（`RawUsage`，`piko-usage.md` §4.4.1）。M007 **不**直接持有 `onRawUsage` 回调；事实经 `model_attempts.raw_usage_json` 落库后由 §9.2 端口读取。
 

@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scheduler` |
-| Document Version | `0.1.2` |
+| Document Version | `0.1.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -149,7 +149,7 @@ flowchart LR
 
 #### 4.1 `DEP-SCHED-REPO` · M003 `task-repository`（持久化与事务权威）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
 - **本模块调用或消费**：slot 持久化原语：`readSlot`、`listQueued`、`tryClaimSlot`、`renewSlot`、`fenceSlot`（§9.2 `IF-SCHED-STORE`；`fenceSlot` 覆盖 `T-SCHED-04`/`T-SCHED-06`）。M003 另在终态事务内调用 `releaseSlot`（scheduler 不调用）。不消费 `createOrGetRun`/`mutateRun`/`publishResult` 等 Run/Result 操作。
 

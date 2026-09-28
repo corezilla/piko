@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-matrix-adapter",
   "document_type": "design.definition",
-  "document_version": "0.1.1",
+  "document_version": "0.1.2",
   "title": "Piko 模块设计：matrix-adapter（M008）",
   "document_owner": "Piko Implementation Owner",
   "authors": [

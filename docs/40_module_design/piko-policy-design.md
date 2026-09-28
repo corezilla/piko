@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-policy` |
-| Document Version | `0.1.2` |
+| Document Version | `0.1.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -183,7 +183,7 @@ flowchart LR
 
 #### 4.1 `DEP-POLICY-CONFIG` · M000 `bootstrap`（已校验 config + registry）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
 - **本模块调用或消费**：消费 M000 已 schema 校验的 `PikoRuntimeConfig`（读 `workspace.roots`）与 `ToolRegistry`（含 `recovery_contracts`、`profiles`）。二者是 policy 的唯一配置输入来源。
 

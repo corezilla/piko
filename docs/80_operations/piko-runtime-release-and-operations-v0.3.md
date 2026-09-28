@@ -7,7 +7,7 @@
 |---|---|
 | Document ID | `piko-runtime-release-and-operations-v0.3` |
 | Document Version | `0.1.1` |
-| Status | `Approved` |
+| Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Operator |

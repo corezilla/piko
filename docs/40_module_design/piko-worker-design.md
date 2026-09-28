@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-worker` |
-| Document Version | `0.1.2` |
+| Document Version | `0.1.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -311,7 +311,7 @@ flowchart LR
 
 #### 4.1 `DEP-WORKER-REPO` · M003 `task-repository`（持久化与事务权威）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P1**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
 - **本模块调用或消费**：Run/Result 事务原语：`publishResult(FencedPublishResult)`、终态发布（`runs.state`+`generation`+`releaseSlot`）、`scanNonTerminalRuns`、`patchTerminal`（恢复补第二步）、run/turn/intake 的 fenced write、`result(task_id)`（恢复探测）。worker 不自开 SQLite 连接。
 

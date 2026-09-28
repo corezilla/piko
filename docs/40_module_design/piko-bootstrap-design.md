@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-bootstrap` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -44,7 +44,7 @@ bootstrap 承接两条上级约束：`CON-ST-001`（PK-12，启动顺序 S1–S8
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-startup.md` §3.1 `CON-ST-001` · PK-12 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文：启动顺序 S1-S8；未 READY 不接受 Run；自由度：内部检查实现；不可变：不部分就绪。
 
-- **适用条件**：每次冷启动（supervisor 拉起进程）与每次重启（P-CONFIG/P-STOP 后）；单实例单进程（PK-01）。
+- **适用条件**：每次冷启动（supervisor 拉起进程）与每次重启（P-CONFIG/P-STOP 后）；单实例、**P0 控制进程 + 受监督 P1 执行进程**（PK-01 + PK-22）。
 
 - **继承预算或行为保证**：不跳级；未 READY 不接受 Run（端口未绑定）；任一阶段失败 = F1（关闭句柄 + 非零退出）；进程寿命内配置不变。
 
@@ -198,7 +198,7 @@ Tailoring 依据：STD `design.definition` §3 "模块没有任何直接操作�
 
 - **类型 / 位置**：CLI/进程入口（启动命令 + POSIX 信号）；执行位置 = 宿主进程 `src/main.ts`（Planned 委托给 `src/bootstrap/`）。
 
-- **调用者 / 身份 / 被操作对象**：部署工具/supervisor（无 bearer 身份，属进程级 operator 动作）；被操作对象 = Piko 单进程实例及其启动/停机生命周期。
+- **调用者 / 身份 / 被操作对象**：部署工具/supervisor（无 bearer 身份，属进程级 operator 动作）；被操作对象 = P0 控制进程（含 P1 的 spawn/监督）及其启动/停机生命周期。
 
 - **操作与入口**：启动 `tsx src/main.ts [config-path]`（或 `node dist/main.js`，config 亦可经 `PIKO_CONFIG`）；停止 `SIGTERM`/`SIGINT`。
 

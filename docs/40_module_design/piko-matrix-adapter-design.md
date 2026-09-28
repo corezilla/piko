@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix-adapter` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -195,7 +195,7 @@ flowchart LR
 
 #### 4.2 `DEP-MATRIX-REPO` · M003 `task-repository`（持久化与事务权威）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P1**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
 - **本模块调用或消费**：matrix 持久化原语：`matrixCursor`/`setMatrixCursor`、`openDiscussionRuns(room)`、`hasMatrixEvent(room,event)`、`ingestMatrixBatch(events, cursor)`、`recordMatrixEvent`、`markDiscussionAccessLost(room)`、`prepareMatrixSend`/`finishMatrixSend`/`unknownMatrixSend`（§9.2 `IF-MX-TURN`/`IF-MX-STORE`）。
 
@@ -1026,7 +1026,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 #### 12.1 `CAP-MATRIX-SYNC-BATCH` · sync 批与回补规模
 
 - **目标 / 限制 / 单位**：单批处理事件数无 Piko 硬上限（由 homeserver `timeline.limit` 决定，典型 ≤ 20–100）；回补每页 `<limit>`（100），页数上限由 §8.4 有界（默认 1 页，最多按缺口逐页到边界）。
-- **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：`matrix.sync_timeout_ms`（1000–120000，默认 30000）；单进程单 pump；homeserver 侧限制。
+- **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：`matrix.sync_timeout_ms`（1000–120000，默认 30000）；**P1 单进程单 pump**；homeserver 侧限制。
 - **负载、数据规模与并发口径**：单讨论房间典型消息率低（人工讨论）；峰值 = 一批内多事件；无并发 pump。
 - **推导 / 测量方法与证据等级**：Modeled（按 homeserver timeline limit 与 SQLite 单事务行数推导）；未实测。
 - **共享资源扣减 / 峰值重叠 / 余量**：批事务占用 M003 单 writer（与 worker/scheduler 共用）；批越大人越久占用写锁；余量依赖 SQLite busy_timeout。

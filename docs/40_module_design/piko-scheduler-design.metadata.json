@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-scheduler",
   "document_type": "design.definition",
-  "document_version": "0.1.2",
+  "document_version": "0.1.3",
   "title": "Piko 模块设计：scheduler（M004）",
   "document_owner": "Piko Implementation Owner",
   "authors": [

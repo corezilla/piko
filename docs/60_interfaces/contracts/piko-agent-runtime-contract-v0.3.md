@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.0` |
-| Status | `Approved` |
+| Document Version | `0.4.1` |
+| Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `contracts.specification` |
 | Template Version | `0.4.0` |
 | Template Conformance | `tailored` |
@@ -49,9 +49,15 @@
 
 一个 endpoint 面向一个稳定 Piko/Agent 实例；不传 agent/session/team/IR/Topic 对象。Slinky 若需要多个 Agent，分别调用多个实例。实例同一时刻只运行一个 Run；其他受理任务排队。每个 Run 使用隔离 Pi session，保留期内以 task_id 查询历史。
 
+**数据面字段（本版新增，向后兼容）**。`input_refs` = `[{source, dest?, sha256?}]`：`source` 是外部存储引用（如 `scp user@host:/path`），`dest` 相对任务 staging 根（缺省取 basename），`sha256` 给定时**拉取后必须校验**。`artifact_target` = `{method: scp|mount|object_store, target, secret_ref?}`：`target` 为投递目标（`scp` 为 Slinky 预建目录）。**路径基准**：`input_refs[].dest` / `permissions.read_paths` / `write_paths` / `output_paths` 统一相对任务 staging 根 `<workspace_root>/<task_id>/`；`workspace_ref` 为 Slinky 侧工作区标识（审计/映射用）。`output_paths[i]` 投递映射为 `<artifact_target.target>/<output_paths[i]>`（保留相对结构、不重命名）。**文件内容不经 HTTP**：任务只传路径/引用，文件由 Piko 主动 `scp`（方法可换）。**幂等**：同 `task_id` 比较基于任务定义字段（含声明的 `input_refs` 与给定 `sha256`）；要内容级幂等，Slinky 必须给 `sha256` 或换新 `task_id`。
+
 ## 3. 结果
 
 结果包含状态、partial、summary、outputs、known_actions、task token usage 和 failure。`Completed` 强制 `partial=false/failure=null`；`Failed` 必须有 failure；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。`Completed` 不代表业务接受。失败也必须尽可能返回部分输出、已知动作和 usage。Usage 的 Complete/Partial/Unknown 与 null/missing_fields 由机器 Schema 约束；每个 token 字段只有在全部 durable Pi provider-effect attempt 都提供该字段时才返回完整 sum，否则为 null 并列入 missing_fields。Complete 表示六项都完整，Partial 表示部分字段完整，Unknown 表示无字段能完整聚合；Unknown 的 usage_observed_attempts 可以非零。零模型调用的 Cancelled Result 使用全零 Complete。跨字段attempt数量、加法与token子集关系由契约版本绑定的executable semantic validator在Result持久化前强制；Schema `x-semantic-invariants`列出相同规则。Result 发布冻结 UsageSnapshot，迟到 usage 不修改 generation；未知不填零。Cost 不存在于本契约。
+
+**执行统计**。`Result.stats` 提供 `model_calls`（逻辑调用，不含重试）/`tool_calls`/`duration_ms`/`outputs_count`/`outputs_bytes`；token 明细仍见 `usage`。
+
+**投递与 Result 解耦**。`Result` **不含投递状态**；产出是否可读见 `TaskView.artifact_delivery`（`none|pending|in_progress|delivered|partial|failed`），**读产出字节前必须确认 `state=delivered`**（`partial` 时按 `delivered[]`）。产出投递**不改变执行终态**：投递失败时 `Result` 与 `failure` 不变。输入拉取失败是**执行前提失败**：零调用 `Failed`，`failure.code=InputFetchFailed`（`cause_class=Dependency`）。输入预备状态见 `TaskView.input_staging`（`none|pending|in_progress|ready|failed`）。
 
 ## 4. 标准外部服务
 

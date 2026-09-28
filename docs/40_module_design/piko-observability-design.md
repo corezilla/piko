@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-observability` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -192,7 +192,7 @@ flowchart LR
 
 #### 4.1 `DEP-OBS-PRODUCERS` · 全部事件生产者（M000-M008）
 
-- **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：各模块 Implementation Owner；本模块不拥有其生命周期。
+- **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 横切（P0/P1 两进程内）**（见 `system-design` §3.3 关键决定 7）；Owner：各模块 Implementation Owner；本模块不拥有其生命周期。
 
 - **本模块调用或消费**：消费生产者传入的 `LogEventInput`/metric 操作/`AuditRecordInput`。生产者必须传结构化字段，不得传 credential、instruction 正文、完整模型 input/output、附件内容。
 
