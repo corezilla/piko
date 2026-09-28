@@ -129,7 +129,7 @@ components:
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     RunNotTerminal:
       description: Run 尚未终态，结果不可读取。
-      x-error-codes: [RunNotTerminal]
+      x-error-codes: [TaskNotTerminal]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
     Unprocessable:
       description: 语法正确但当前不可受理（前提不满足，例如 workspace_ref 无法解析）。注意：输入拉取发生在受理之后，其失败按 Run Failed（InputFetchFailed）体现，不在此。
