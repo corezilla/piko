@@ -26,7 +26,7 @@ Piko 仓库只有一份顶层软件设计：`system-design`（本文）。模板
 
 | 设计位置 / 本对象 ID | 父对象 / 父 Document ID 或无父理由 | 固定输入 / Constraint ID | 承担范围 / 不承担范围 |
 |---|---|---|---|
-| `SW-P` · 软件系统 Piko Agent Runtime V0.3 · `system-design` · `design_level=system` · `domain=[software]` | 无父对象（纯软件项目顶层，无总体系统父稿） | PK-01..PK-22（PK-04 本版撤销）（见 `piko-requirements-traceability-v0.3`；PK-04 本版撤销）；机器契约 `0.3.0-simplified.6` | 承担：四项 HTTP API、单 Agent execution slot、Task Store、Pi session 绑定、Matrix discussion adapter、Usage 聚合、稳定 Result、**数据面搬运（输入拉取 / 产出投递）**、内部诊断与恢复。**不承担**：Slinky 业务流程、Memory authority、LLMTier Agent 状态、Matrix homeserver、工具自身业务语义、supervisor/Secret backend、跨系统 exactly-once、产品 Topic/SID/RID、非 SSE Responses fallback。下游：11 个直属模块（M000-M010），无 subsystem（详见 §3.1 + §3.6）。 |
+| `SW-P` · 软件系统 Piko Agent Runtime V0.3 · `system-design` · `design_level=system` · `domain=[software]` | 无父对象（纯软件项目顶层，无总体系统父稿） | PK-01..PK-12（本视图）+ 需求 PK-21/PK-22；需求 PK-04（期限/模型预算）本版撤销（见 `piko-requirements-traceability-v0.3`）；机器契约 `0.3.0-simplified.6` | 承担：四项 HTTP API、单 Agent execution slot、Task Store、Pi session 绑定、Matrix discussion adapter、Usage 聚合、稳定 Result、**数据面搬运（输入拉取 / 产出投递）**、内部诊断与恢复。**不承担**：Slinky 业务流程、Memory authority、LLMTier Agent 状态、Matrix homeserver、工具自身业务语义、supervisor/Secret backend、跨系统 exactly-once、产品 Topic/SID/RID、非 SSE Responses fallback。下游：11 个直属模块（M000-M010），无 subsystem（详见 §3.1 + §3.6）。 |
 
 ## 2. 产品应用与设计目标
 
@@ -128,7 +128,7 @@ flowchart LR
 |---|---|---|---|---|
 | PK-01 单 Agent 路径 | 单实例一 Agent，跨实例需另接 Slinky | 同一实例同时至多 1 个 Running Run | 集成测试 + 设计文档保持 | 多 Agent、多 slot；执行优先级或抢占 |
 | PK-02 任务事务稳定身份 | Slinky 在提交前生成全局唯一 `task_id` | 重复同 ID 同内容返回原 Run；不同内容 409 `TaskConflict`；tombstone 410 `Gone` | 契约测试 `tests/contract/agent-runtime.test.ts` | 同 ID 同内容被环境变化改变语义 |
-| PK-04 期限/模型预算（本版撤销） | — | 本版**不实现**任务级截止/预算；请求不携带 `deadline_at`/`max_model_calls`/`max_tool_calls`（见附录 B 修订记录） | 不适用 | 上游 `piko-requirements-traceability-v0.3` 的 PK-04 **已标记撤销** |
+| 需求 PK-04（期限/模型预算）· 本版撤销 | — | 本版**不实现**任务级截止/预算；请求不携带 `deadline_at`/`max_model_calls`/`max_tool_calls`（见附录 B 修订记录） | 不适用 | 上游 `piko-requirements-traceability-v0.3` 的 PK-04 **已标记撤销** |
 | PK-04 模型路径单一 | Pi `0.85.1` @ commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282` + Pi `openai-responses` provider + LLMTier SSE | 非 SSE / 第二路径不实现 | LLMTier 联调 | non-stream Responses fallback |
 | PK-05 工具调用记账与幂等 | `before_tool` 以 `(task_id, operation_id, tool_call_id)` 原子登记工具调用 | 重复意图不重复执行；**无预算上限** | fault 注入 + Pi 集成 | 运行时新增 `safe` 声明 |
 | PK-06 工具 `replay:safe` 验证 | 启动时绑定 `recovery_contract_ref` 与已注册实现 | 未绑定/不一致 → 启动失败 | bootstrap preflight | 自行放宽为 `safe` |
@@ -263,7 +263,7 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 |---|---|---|---|---|---|
 | PK-01 单 slot + 独立 Pi session | `task-repository` M003 + `scheduler` M004 + `pi-adapter` M006 | lease epoch 唯一 fencing；`pi_session_id=task_id` 确定性绑定 | worker 内部不引入并行阶段 | mechanism `MECH-RUN`（`piko-run.md` 已建）+ M003/M004/M006 ISD | 集成测试 + cross-check Result→Run→lease→Pi session→Harness |
 | PK-02 任务事务稳定身份 | `task-api` M001 + `policy` M002 + `task-repository` M003 | tombstone 永久拒绝；同 ID 同内容不重新检查动态条件 | path 集合字段按集合比较、时间按 UTC instant、对象成员顺序忽略 | contract `piko-agent-runtime-contract-v0.3` §1 | 契约测试 PK-T03 / PK-T15 |
-| PK-04 期限/模型预算（本版撤销） | — | 本版不实现任务级截止/预算（见附录 B 修订记录） | — | — | 不适用 |
+| 需求 PK-04（期限/模型预算）· 本版撤销 | — | 本版不实现任务级截止/预算（见附录 B 修订记录） | — | — | 不适用 |
 | PK-04 Responses SSE 唯一路径 | `pi-adapter` M006 | `stream:true`、`store:false`、`maxRetries=0` | 不替换 provider adapter；不静默切 non-stream | contract `0.3.0-simplified.6` | LLMTier 联调 PK-T09/PK-T10 |
 | PK-05/06 工具记账/幂等 + `replay:safe` 绑定 | `pi-adapter` M006 + `policy` M002 | `tool_calls` 表登记（`(task_id, operation_id, tool_call_id)`）；启动时 `recovery_contract_ref` 必须解析 | runtime 不新增 `safe` 声明；**无预算上限** | M006 ISD | PK-T06 / PK-T17 |
 | PK-07 Result 两步提交 | `task-repository` M003 + `worker` M005 | 写 `results` 与写终态不可合并 | 恢复器只补第二步 | mechanism `MECH-RUN` + M003/M005 ISD | PK-T05 / PK-T15 |
