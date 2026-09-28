@@ -10,6 +10,7 @@ import { ApiServer } from "../../src/server.js";
 import { PiRuntime } from "../../src/pi-runtime.js";
 import { RunWorker } from "../../src/worker.js";
 import { Transfer } from "../../src/transfer.js";
+import { FactHandler, LocalChannel } from "../../src/ipc.js";
 import { preflightModelProvider } from "../../src/provider-preflight.js";
 import { startMockLlmtier, type MockLlmtier, type ScriptStep } from "../common/mock-llmtier.js";
 import Ajv, { type ValidateFunction } from "ajv/dist/2020.js";
@@ -43,8 +44,9 @@ async function makeStack(mock: MockLlmtier, opts?: { timeoutMs?: number }) {
   const matrix = new MatrixRuntime(config, store);
   const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("test-token")));
   await server.listen();
-  const pi = new PiRuntime(config, tools, store, "test-key");
-  const worker = new RunWorker(config, store, pi, matrix, new Transfer(config));
+  const channel = new LocalChannel(new FactHandler(store));
+  const pi = new PiRuntime(config, tools, store, channel, "test-key");
+  const worker = new RunWorker(config, store, pi, matrix, new Transfer(config), channel);
   worker.start();
   const stack: Stack = {
     baseUrl: `http://127.0.0.1:${config.listen.port}`,

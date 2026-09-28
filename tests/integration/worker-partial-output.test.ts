@@ -6,6 +6,7 @@ import {loadConfig} from "../../src/config.js";
 import {TaskStore} from "../../src/store.js";
 import {RunWorker} from "../../src/worker.js";
 import {Transfer} from "../../src/transfer.js";
+import {FactHandler,LocalChannel} from "../../src/ipc.js";
 
 describe("worker failure finalization",()=>{
   const temporary:string[]=[];
@@ -19,7 +20,7 @@ describe("worker failure finalization",()=>{
     const task={task_id:"partial-output",instruction:"produce then fail",workspace_ref:"test",permissions:{read_paths:["partial.txt"],write_paths:["partial.txt"],tool_profile_ref:"workspace-standard"},output_paths:["partial.txt"]};
     const run=store.createOrGet(task,"slinky",10);
     const pi={execute:async()=>{await writeFile(join(root,"partial.txt"),"durable partial output\n");throw Object.assign(new Error("synthetic provider failure"),{pikoCode:"ModelUnavailable",cause:"Dependency"})}};
-    const worker=new RunWorker(config,store,pi as any,{} as any,new Transfer(config));worker.start();
+    const worker=new RunWorker(config,store,pi as any,{} as any,new Transfer(config),new LocalChannel(new FactHandler(store)));worker.start();
     try{
       for(let i=0;i<50&&!store.getRun(run.task_id!).result_available;i++)await new Promise(resolve=>setTimeout(resolve,10));
       expect(store.result(run.task_id!)).toMatchObject({state:"Failed",partial:true,outputs:[{path:"partial.txt",size_bytes:23}],failure:{code:"ModelUnavailable",cause_class:"Dependency"}});

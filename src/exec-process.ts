@@ -7,6 +7,7 @@ import { MatrixRuntime } from "./matrix.js";
 import { PiRuntime } from "./pi-runtime.js";
 import { RunWorker } from "./worker.js";
 import { Transfer } from "./transfer.js";
+import { ProcessChannel, type Command } from "./ipc.js";
 
 /**
  * P1 entrypoint (separate OS process). Carries all blocking external IO:
@@ -21,9 +22,15 @@ export async function runExecutionProcess(configPath: string, root: string) {
     config.matrix.enabled && config.matrix.access_token_secret_ref ? await resolveSecret(config.matrix.access_token_secret_ref) : undefined;
   const matrix = new MatrixRuntime(config, store, matrixToken);
   await matrix.start();
-  const pi = new PiRuntime(config, tools, store, llmKey);
+  const channel = new ProcessChannel(
+    (msg) => process.send?.(msg),
+    (cmd: Command) => {
+      if (cmd.kind === "shutdown") void shutdown();
+    },
+  );
+  const pi = new PiRuntime(config, tools, store, channel, llmKey);
   const transfer = new Transfer(config);
-  const worker = new RunWorker(config, store, pi, matrix, transfer);
+  const worker = new RunWorker(config, store, pi, matrix, transfer, channel);
   worker.start();
 
   const heartbeat = setInterval(() => process.send?.({ type: "heartbeat", at: Date.now() }), 1000);

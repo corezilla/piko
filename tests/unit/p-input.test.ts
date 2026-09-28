@@ -6,6 +6,7 @@ import { TaskStore } from "../../src/store.js";
 import { RunWorker } from "../../src/worker.js";
 import { Transfer } from "../../src/transfer.js";
 import type { RuntimeConfig, TaskRequest } from "../../src/types.js";
+import { FactHandler, LocalChannel } from "../../src/ipc.js";
 
 const stores: TaskStore[] = [];
 const roots: string[] = [];
@@ -21,7 +22,8 @@ async function fixture() {
   stores.push(store);
   const cfg = { workspace: { roots: { t: root }, staging_root: join(root, "staging") }, transfer: { method: "mount", target_allowlist: [], max_input_bytes: 1024, retry: { max_attempts: 1, base_delay_ms: 0 } } } as unknown as RuntimeConfig;
   const transfer = new Transfer(cfg);
-  const worker = new RunWorker(cfg, store, { execute: async () => ({ status: "completed", summary: "ok" }) } as any, {} as any, transfer);
+  const channel = new LocalChannel(new FactHandler(store));
+  const worker = new RunWorker(cfg, store, { execute: async () => ({ status: "completed", summary: "ok" }) } as any, {} as any, transfer, channel);
   return { store, worker, root };
 }
 

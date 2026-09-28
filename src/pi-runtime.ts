@@ -12,6 +12,7 @@ import type { AgentResult, RuntimeConfig, TaskRequest } from "./types.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
+import type { Channel, Fact } from "./ipc.js";
 import type { ToolRegistry } from "./config.js";
 import { DurableNodeExecutionEnv } from "./durable-fs.js";
 import { authorizePath } from "./workspace.js";
@@ -44,7 +45,7 @@ const finalText=async(lane:AgentLane)=>{
 
 export class PiRuntime {
   private readonly repo:JsonlSessionRepo;
-  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,apiKey:string){
+  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string){
     process.env.PIKO_LLM_API_KEY=apiKey;
     const root=Object.values(config.workspace.roots)[0]??process.cwd();
     this.repo=new JsonlSessionRepo({fileSystem:new DurableNodeExecutionEnv({cwd:root}),sessionsRoot:config.pi.session_root});
@@ -64,11 +65,11 @@ export class PiRuntime {
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
     let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
-    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)this.store.observeUsage(runId,active.op,active.step,active.attempt,normalizeRawUsage(usage));latestUsage=usage}},BACKGROUND_CONTEXT);
+    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);
     const lane=await created.harness.lane("main",BACKGROUND_CONTEXT);
     created.harness.hooks.on("before_request",event=>{
       const step=event.stepId;active={op:event.runId,step,attempt:event.attempt};
-      this.store.reserveModel(runId,event.runId,step,event.attempt)
+      void this.channel.report({kind:"reserveModel",task_id:runId,operation:event.runId,step,attempt:event.attempt})
       return {streamOptions:{maxRetries:0,headers:{"X-Correlation-ID":runId}}};
     });
     const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
@@ -77,11 +78,11 @@ export class PiRuntime {
     let payloadSentAt=0;
     created.harness.hooks.on("before_payload",event=>{payloadSentAt=Date.now();if(providerDebug){const payload=(event as {payload?:unknown}).payload;debugLine({kind:"request",model,bytes:JSON.stringify(payload??null).length})}return undefined;});
     created.harness.hooks.on("after_response",event=>{
-      if(active)this.store.terminalModel(runId,active.op,active.step,active.attempt);
+      if(active)void this.channel.report({kind:"terminalModel",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,unknown:false});
       const ev=event as {runId?:string;status?:number;headers?:Record<string,string>};
       const requestId=ev.headers?.["x-request-id"]??ev.headers?.["X-Request-ID"]??null;
       const latencyMs=payloadSentAt?Date.now()-payloadSentAt:null;payloadSentAt=0;
-      const note=latestUsage?.source==="injected"?"injected":"";latestUsage=undefined;try{this.store.recordProviderCall(runId,ev.runId??runId,ev.status??null,requestId,note,latencyMs)}catch{/* observability must not break execution */}
+      const note=latestUsage?.source==="injected"?"injected":"";latestUsage=undefined;try{void this.channel.report({kind:"providerCall",task_id:runId,operation:ev.runId??runId,status:ev.status??null,request_id:requestId,note,latency_ms:latencyMs})}catch{/* observability must not break execution */}
       debugLine({kind:"response",operation_id:ev.runId??runId,status:ev.status??null,request_id:requestId,latency_ms:latencyMs});
       return undefined;
     });
@@ -94,11 +95,11 @@ export class PiRuntime {
         const staging=resolve(this.config.workspace.staging_root,runId),candidate=resolve(path),rel=relative(staging,candidate),stagedRead=!write&&(rel===""||(!rel.startsWith(`..${sep}`)&&rel!==".."&&!rel.startsWith(sep)));
         if(!stagedRead)try{await authorizePath(workspace,path,write?task.permissions.write_paths:task.permissions.read_paths,write)}catch(error){toolFailure=error instanceof Error?error.message:String(error);return {block:{reason:toolFailure,terminate:true}}}
       }
-      const admission=this.store.reserveTool(runId,event.runId,event.toolCallId,event.toolName,policy.effect,policy.replay,policy.recovery_contract_ref);
+      const admission=(await this.channel.report({kind:"reserveTool",task_id:runId,operation:event.runId,tool_call_id:event.toolCallId,name:event.toolName,effect:policy.effect,replay:policy.replay,contract:policy.recovery_contract_ref})).value as "Admitted"|"UnsafeRetryBlocked";
       if(admission==="UnsafeRetryBlocked"){unsafeRetry=true;return {block:{reason:"UnsafeRetryBlocked",terminate:true}}}return undefined;
     });
-    created.harness.hooks.on("after_tool",event=>{this.store.terminalTool(runId,event.runId,event.toolCallId,false);return undefined});
-    created.harness.events.on("tool_end",event=>{const recovered=(event as any).recovery===true;const interrupted=event.isError&&event.result.content.some((x:any)=>x.type==="text"&&typeof x.text==="string"&&x.text.includes("Tool execution was interrupted"));if(recovered&&interrupted){unsafeRetry=true;this.store.terminalTool(runId,event.runId,event.toolCallId,true)}});
+    created.harness.hooks.on("after_tool",event=>{void this.channel.report({kind:"terminalTool",task_id:runId,operation:event.runId,tool_call_id:event.toolCallId,unknown:false});return undefined});
+    created.harness.events.on("tool_end",event=>{const recovered=(event as any).recovery===true;const interrupted=event.isError&&event.result.content.some((x:any)=>x.type==="text"&&typeof x.text==="string"&&x.text.includes("Tool execution was interrupted"));if(recovered&&interrupted){unsafeRetry=true;void this.channel.report({kind:"terminalTool",task_id:runId,operation:event.runId,tool_call_id:event.toolCallId,unknown:true})}});
     let operation=created.open.find(x=>x.lane==="main");let recoveredOutcome:any;
     const queuedTurn=this.store.pendingTurns(runId).find(x=>x.status==="QueuedInPi");
     if(queuedTurn){
@@ -113,14 +114,14 @@ export class PiRuntime {
     if(!operation){
       const initialId=`${runId}:initial`;const prior=await lane.getResult(initialId,BACKGROUND_CONTEXT);
       if(prior){operation={lane:"main",operationId:initialId,kind:"run",startedAt:prior.startedAt};recoveredOutcome=prior}
-      else {const initialTurn=task.discussion?this.store.pendingTurns(runId).find(x=>x.turn_seq===1):undefined;if(initialTurn){this.store.markTurn(runId,initialTurn.event_id,"QueuedInPi",undefined,initialId);activeTurn={event:initialTurn.event_id,seq:initialTurn.turn_seq}}const accepted=await lane.accept({kind:"prompt",operationId:initialId,prompt:initialPrompt(task,initialTurn)},BACKGROUND_CONTEXT);if(!accepted.ok)throw accepted.error;operation={lane:"main",operationId:accepted.value.operationId,kind:"run",startedAt:accepted.value.startedAt}}
+      else {const initialTurn=task.discussion?this.store.pendingTurns(runId).find(x=>x.turn_seq===1):undefined;if(initialTurn){void this.channel.report({kind:"turn",task_id:runId,event_id:initialTurn.event_id,status:"QueuedInPi",operation:initialId});activeTurn={event:initialTurn.event_id,seq:initialTurn.turn_seq}}const accepted=await lane.accept({kind:"prompt",operationId:initialId,prompt:initialPrompt(task,initialTurn)},BACKGROUND_CONTEXT);if(!accepted.ok)throw accepted.error;operation={lane:"main",operationId:accepted.value.operationId,kind:"run",startedAt:accepted.value.startedAt}}
     }
     const cancelTimer=setInterval(()=>{if(isCancelled())void lane.requestAbort(operation!.operationId,BACKGROUND_CONTEXT)},250);
     try{
       for(;;){
         let outcome=recoveredOutcome;recoveredOutcome=undefined;
         if(!outcome){const driven=await lane.drive({operationId:operation.operationId,waitForRetry:true,pollDeferred:true},BACKGROUND_CONTEXT);if(!driven.ok)throw driven.error;if(driven.value.kind==="waiting")continue;outcome=driven.value.outcome}
-        if(activeTurn){const turn=activeTurn;if(outcome.status==="completed"&&onDiscussionReply)await onDiscussionReply(turn.event,turn.seq,await finalText(lane));this.store.markTurn(runId,turn.event,"Consumed",undefined,operation.operationId);activeTurn=undefined}
+        if(activeTurn){const turn=activeTurn;if(outcome.status==="completed"&&onDiscussionReply)await onDiscussionReply(turn.event,turn.seq,await finalText(lane));void this.channel.report({kind:"turn",task_id:runId,event_id:turn.event,status:"Consumed",operation:operation.operationId});activeTurn=undefined}
         if(toolFailure)return {status:"failed",summary:toolFailure,failure:{code:"ToolFailure",cause_class:"Tool",message:toolFailure}};
         if(unsafeRetry)return {status:"failed",summary:"Unsafe tool replay was blocked.",failure:{code:"UnsafeRetryBlocked",cause_class:"ExecutionUnknown",message:"A non-replayable tool call was encountered again."}};
         if(outcome.status==="completed"){
@@ -128,14 +129,14 @@ export class PiRuntime {
             const pending=this.store.pendingTurns(runId);
             if(pending.length){
               const turn=pending[0];const nextId=`${runId}:turn:${turn.turn_seq}`;
-              this.store.markTurn(runId,turn.event_id,"QueuedInPi",undefined,nextId);
+              void this.channel.report({kind:"turn",task_id:runId,event_id:turn.event_id,status:"QueuedInPi",operation:nextId});
               const accepted=await lane.accept({kind:"prompt",operationId:nextId,prompt:discussionMessage(turn)},BACKGROUND_CONTEXT);
               if(!accepted.ok)throw accepted.error;
               operation={lane:"main",operationId:accepted.value.operationId,kind:"run",startedAt:accepted.value.startedAt};
               activeTurn={event:turn.event_id,seq:turn.turn_seq};
               continue;
             }
-            if(!this.store.tryCloseIntake(runId,epoch))continue;
+            if(!(await this.channel.report({kind:"closeIntake",task_id:runId,lease_epoch:epoch})).value)continue;
           }
           return {status:"completed",summary:await finalText(lane)};
         }

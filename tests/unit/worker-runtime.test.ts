@@ -6,6 +6,7 @@ import { TaskStore } from "../../src/store.js";
 import { RunWorker } from "../../src/worker.js";
 import { Transfer } from "../../src/transfer.js";
 import type { RuntimeConfig, TaskRequest } from "../../src/types.js";
+import { FactHandler, LocalChannel } from "../../src/ipc.js";
 
 const stores: TaskStore[] = [];
 const roots: string[] = [];
@@ -37,7 +38,7 @@ async function fixture(id: string, execute: any, extra: Partial<TaskRequest> = {
   store.createOrGet(definition, "slinky", 10);
   const claim = store.tryClaimSlot("worker", "boot") as any;
   const cfg = config(root);
-  const worker = new RunWorker(cfg, store, { execute } as any, {} as any, new Transfer(cfg));
+  const worker = new RunWorker(cfg, store, { execute } as any, {} as any, new Transfer(cfg), new LocalChannel(new FactHandler(store)));
   return { store, claim, worker, definition, root };
 }
 

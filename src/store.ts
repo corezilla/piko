@@ -745,3 +745,34 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
     return this.purge("all").removed;
   }
 }
+
+
+/**
+ * Read-only view of the Task Store. P1 may read authoritative facts directly
+ * (WAL-safe concurrent readers), but MUST apply every write through the P0 data
+ * channel (src/ipc.ts) so the P0 process stays the single writer.
+ */
+export type TaskStoreReader = Pick<
+  TaskStore,
+  | "getTask"
+  | "getRun"
+  | "cancelRequested"
+  | "generation"
+  | "pendingTurns"
+  | "rawUsage"
+  | "knownActions"
+  | "discussionAccessLost"
+>;
+
+export function asReader(store: TaskStore): TaskStoreReader {
+  return {
+    getTask: store.getTask.bind(store),
+    getRun: store.getRun.bind(store),
+    cancelRequested: store.cancelRequested.bind(store),
+    generation: store.generation.bind(store),
+    pendingTurns: store.pendingTurns.bind(store),
+    rawUsage: store.rawUsage.bind(store),
+    knownActions: store.knownActions.bind(store),
+    discussionAccessLost: store.discussionAccessLost.bind(store),
+  };
+}

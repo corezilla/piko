@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { AgentResult, RuntimeConfig, TaskRequest, TokenUsage } from "./types.js";
 import { PikoError } from "./types.js";
-import type { TaskStore } from "./store.js";
+import type { TaskStore, TaskStoreReader } from "./store.js";
+import type { Channel, Fact } from "./ipc.js";
 import type { PiRuntime } from "./pi-runtime.js";
 import type { MatrixRuntime } from "./matrix.js";
 import type { Transfer } from "./transfer.js";
@@ -10,108 +11,106 @@ import { isPermanentMatrixError } from "./matrix.js";
 import { isProviderUnavailableMessage } from "./pi-runtime.js";
 
 /**
- * M005 `worker` — Run orchestration. Runs in P1 (may block). Uses Pi's native
- * hook surface; no task-level deadline/budget. Data-plane IO is delegated to M010.
+ * M005 `worker` — Run orchestration. Runs in P1 (may block).
+ *
+ * Reads authoritative facts directly (WAL-safe read-only view); applies EVERY
+ * write through the P0 data channel so P0 remains the single Task Store writer
+ * (key decision 7). No task-level deadline/budget.
  */
 export class RunWorker {
   private stopped = false;
   private loopPromise?: Promise<void>;
   private readonly owner = `worker-${randomUUID()}`;
   private readonly boot = randomUUID();
-  private lastPurge = 0;
 
   constructor(
     private config: RuntimeConfig,
-    private store: TaskStore,
+    private store: TaskStoreReader,
     private pi: PiRuntime,
     private matrix: MatrixRuntime,
     private transfer: Transfer,
+    private channel: Channel,
   ) {}
+
+  /** Report a fact to P0; a fact that could not be committed must not be treated as applied. */
+  private async report(fact: Fact): Promise<unknown> {
+    const outcome = await this.channel.report(fact);
+    if (!outcome.ok) throw new PikoError("InternalError", 500, `fact ${fact.kind} rejected: ${outcome.error}`);
+    return outcome.value;
+  }
 
   start() {
     this.loopPromise = this.loop();
   }
 
   private async loop() {
-    // MECH-RECOVERY: adopt an orphaned Run first, then schedule.
-    let recovery = this.store.recoverOrphaned(this.owner, this.boot);
+    // MECH-RECOVERY: P0 already reclaimed any orphaned Run on boot; P1 polls P0's
+    // authoritative queue/inputs view through the read handle.
     while (!this.stopped) {
-      if (Date.now() - this.lastPurge > 3_600_000) {
-        this.store.purgeExpired();
-        this.lastPurge = Date.now();
-      }
-      // P-INPUT staging lane: runs BEFORE the slot is acquired, serial (concurrency=1),
-      // and never holds a lease. Slow scp therefore cannot occupy the execution slot.
-      const needsStaging = this.store.nextNeedingStaging();
-      if (needsStaging) {
-        await this.stageInputs(needsStaging);
-        continue;
-      }
-      const claim = recovery ?? this.store.tryClaimSlot(this.owner, this.boot);
-      recovery = null;
-      if (!claim || claim === "slot_busy") {
+      const claim = await this.claimNext();
+      if (!claim) {
         await new Promise((r) => setTimeout(r, 200));
         continue;
       }
-      await this.run(claim.task_id, claim.lease_epoch);
+      if (claim.kind === "staging") await this.stageInputs(claim.task_id);
+      else await this.run(claim.task_id, claim.lease_epoch);
     }
   }
 
-  /** P-INPUT: fetch declared inputs into staging; failure is an execution-precondition failure. */
+  /**
+   * Ask P0 for the next unit of work. P0 (single writer) decides: a Queued Run
+   * needing input staging, or the oldest ready Queued Run winning the slot.
+   * Until the channel exposes an explicit `claim` command, P1 performs the same
+   * decision against the read-only view and P0 validates on commit (fencing).
+   */
+  private async claimNext(): Promise<{ kind: "staging"; task_id: string } | { kind: "run"; task_id: string; lease_epoch: number } | null> {
+    // P0 is the decider: ask it for the next staging unit, else for the slot.
+    const staging = (await this.channel.report({ kind: "stagingClaim" })).value as { task_id: string } | null;
+    if (staging) return { kind: "staging", task_id: staging.task_id };
+    const grant = (await this.channel.report({ kind: "claim", owner: this.owner, boot: this.boot })).value as { task_id: string; lease_epoch: number } | null;
+    if (!grant) return null;
+    return { kind: "run", task_id: grant.task_id, lease_epoch: grant.lease_epoch };
+  }
+
   private async stageInputs(taskId: string) {
     const task = this.store.getTask(taskId);
     const refs = task.input_refs ?? [];
-    this.store.setInputStaging(taskId, { state: "in_progress", fetched: [], failed: [] });
-    // Abort an in-flight scp if the task is cancelled while still Queued.
+    await this.report({ kind: "staging", task_id: taskId, staging: { state: "in_progress", fetched: [], failed: [] } });
     const controller = new AbortController();
     const poll = setInterval(() => {
       if (this.store.cancelRequested(taskId)) controller.abort();
     }, 250);
     try {
-      if (this.store.cancelRequested(taskId)) {
-        this.transfer.clearStaging(taskId);
-        this.store.cancel(taskId);
-        return;
-      }
       let staging: Awaited<ReturnType<Transfer["fetchInputs"]>>;
       try {
         staging = refs.length
           ? await this.transfer.fetchInputs(taskId, refs, controller.signal)
           : { state: "none" as const, fetched: [], failed: [] };
       } catch (error) {
-        // TransferNeverThrows: containment — a transfer error is a precondition failure.
         this.transfer.clearStaging(taskId);
-        this.publishPreconditionFailure(taskId, {
+        await this.reportPreconditionFailure(taskId, {
           code: "InputFetchFailed",
           cause_class: "Dependency",
           message: error instanceof Error ? error.message : String(error),
         });
         return;
       }
-      if (controller.signal.aborted || this.store.cancelRequested(taskId)) {
-        this.transfer.clearStaging(taskId);
-        this.store.cancel(taskId);
-        return;
-      }
       if (staging.state === "failed") {
-        // Zero-call Failed: never claims a slot.
         this.transfer.clearStaging(taskId);
-        this.publishPreconditionFailure(taskId, {
+        await this.reportPreconditionFailure(taskId, {
           code: "InputFetchFailed",
           cause_class: "Dependency",
           message: `input fetch failed: ${staging.failed.map((f) => f.source).join(", ")}`,
         });
         return;
       }
-      this.store.setInputStaging(taskId, staging.state === "none" ? { state: "none", fetched: [], failed: [] } : staging);
+      await this.report({ kind: "staging", task_id: taskId, staging: staging.state === "none" ? { state: "none", fetched: [], failed: [] } : staging });
     } finally {
       clearInterval(poll);
     }
   }
 
-  /** Publish a terminal Result for a Queued Run without ever taking the slot. */
-  private publishPreconditionFailure(taskId: string, failure: { code: any; cause_class: any; message: string }) {
-    const view = this.store.getRun(taskId);
+  private async reportPreconditionFailure(taskId: string, failure: { code: any; cause_class: any; message: string }) {
     const result: AgentResult = {
       task_id: taskId,
       generation: this.store.generation(taskId),
@@ -125,7 +124,7 @@ export class RunWorker {
       failure,
       published_at: new Date().toISOString(),
     };
-    this.store.finishQueued(result);
+    await this.report({ kind: "preconditionFailure", result });
   }
 
   private async run(taskId: string, epoch: number) {
@@ -135,23 +134,14 @@ export class RunWorker {
     const accessLostFailure = { code: "DiscussionAccessLost" as const, cause_class: "Authorization" as const, message: "Piko lost access to the discussion room." };
     try {
       const workspace = await resolveWorkspace(task.workspace_ref, this.config.workspace.roots);
-      timer = setInterval(() => this.store.renewSlot(taskId, epoch), 1000);
-      // P-INPUT runs before the slot is granted (see worker.loop / tryClaimSlot gating);
-      // at this point inputs are already `ready` (or there are none).
+      timer = setInterval(() => void this.report({ kind: "heartbeat", at: Date.now() }).catch(() => {}), 1000);
       if (accessLost()) throw Object.assign(new Error(accessLostFailure.message), { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
 
-      const outcome = await this.pi.execute(
-        taskId,
-        epoch,
-        task,
-        workspace,
-        () => this.store.cancelRequested(taskId) || accessLost(),
-        task.discussion
-          ? async (event, turn, body) => {
-              await sendDiscussionReplyWithRetry(this.matrix, taskId, task.discussion!.room_id, event, turn, body);
-            }
-          : undefined,
-      );
+      const outcome = await this.pi.execute(taskId, epoch, task, workspace, () => this.store.cancelRequested(taskId) || accessLost(), task.discussion
+        ? async (event, turn, body) => {
+            await sendDiscussionReplyWithRetry(this.matrix, taskId, task.discussion!.room_id, event, turn, body);
+          }
+        : undefined);
 
       const attempts = this.store.getRun(taskId).progress.model_calls;
       const usage = aggregateUsage(this.store.rawUsage(taskId), attempts);
@@ -159,11 +149,10 @@ export class RunWorker {
       const publishedAt = new Date().toISOString();
       const lost = accessLost();
 
-      // P-ARTIFACT: deliver outputs to the artifact target (does NOT change terminal state).
       if (task.artifact_target) {
-        this.store.setArtifactDelivery(taskId, { state: "in_progress", delivered: [], failed: [] });
+        await this.report({ kind: "delivery", task_id: taskId, delivery: { state: "in_progress", delivered: [], failed: [] } });
         const delivery = await this.transfer.deliverArtifacts(taskId, task.output_paths, task.artifact_target, undefined, workspace);
-        this.store.setArtifactDelivery(taskId, delivery);
+        await this.report({ kind: "delivery", task_id: taskId, delivery });
       }
 
       const state = outcome.status === "completed" ? "Completed" : lost ? "Failed" : outcome.status === "cancelled" ? "Cancelled" : "Failed";
@@ -171,8 +160,6 @@ export class RunWorker {
       if (state === "Failed" && failure && failure.code === "ModelResponseInvalid" && isProviderUnavailableMessage(failure.message)) {
         failure = { code: "ModelUnavailable", cause_class: "Dependency", message: failure.message };
       }
-      const stats = buildStats(this.store.getRun(taskId), outputs, null);
-      // Two-step publish: step 1 Result, step 2 terminal + release slot.
       const result: AgentResult = {
         task_id: taskId,
         generation: this.store.generation(taskId),
@@ -180,14 +167,14 @@ export class RunWorker {
         partial: state !== "Completed" && outputs.length > 0,
         summary: outcome.summary,
         outputs,
-        stats,
+        stats: buildStats(this.store.getRun(taskId), outputs),
         known_actions: this.store.knownActions(taskId),
         usage,
         failure,
         published_at: publishedAt,
       };
-      this.store.publishResult(result, epoch);
-      this.store.finish(result, epoch);
+      await this.report({ kind: "publishResult", result, lease_epoch: epoch });
+      await this.report({ kind: "finish", result, lease_epoch: epoch });
     } catch (error) {
       const e = error as any;
       const publishedAt = new Date().toISOString();
@@ -225,14 +212,14 @@ export class RunWorker {
           partial: outputs.length > 0,
           summary: e.message ?? String(e),
           outputs,
-          stats: buildStats(this.store.getRun(taskId), outputs, null),
+          stats: buildStats(this.store.getRun(taskId), outputs),
           known_actions: this.store.knownActions(taskId),
           usage: aggregateUsage(this.store.rawUsage(taskId), attempts),
           failure: { code: code as any, cause_class: cause_class as any, message: e.message ?? String(e) },
           published_at: publishedAt,
         };
-        this.store.publishResult(result, epoch);
-        this.store.finish(result, epoch);
+        await this.report({ kind: "publishResult", result, lease_epoch: epoch });
+        await this.report({ kind: "finish", result, lease_epoch: epoch });
       } catch (finalize) {
         console.error("run finalization failed", taskId, finalize);
       }
@@ -247,7 +234,7 @@ export class RunWorker {
   }
 }
 
-function buildStats(view: ReturnType<TaskStore["getRun"]>, outputs: AgentResult["outputs"], _startedAt: string | null): AgentResult["stats"] {
+function buildStats(view: ReturnType<TaskStore["getRun"]>, outputs: AgentResult["outputs"]): AgentResult["stats"] {
   return {
     model_calls: view.progress.model_calls,
     tool_calls: view.progress.tool_calls,
@@ -289,9 +276,7 @@ async function sendDiscussionReplyWithRetry(matrix: MatrixRuntime, taskId: strin
       lastError = error;
       if (isPermanentMatrixError(error)) break;
       if (error instanceof Error) {
-        const name = error.name;
-        const msg = String(error.message ?? "");
-        const transient = name === "ConnectionError" || /ConnectionError|fetch failed|ECONNREFUSED|ETIMEDOUT|socket hang up|aborted/i.test(msg);
+        const transient = error.name === "ConnectionError" || /ConnectionError|fetch failed|ECONNREFUSED|ETIMEDOUT|socket hang up|aborted/i.test(String(error.message ?? ""));
         if (!transient) break;
       }
       if (attempt < DISCUSSION_RETRY_DELAYS_MS.length) await new Promise((r) => setTimeout(r, DISCUSSION_RETRY_DELAYS_MS[attempt]));

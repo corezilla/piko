@@ -1,5 +1,6 @@
 import { fork, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { attachChildToHandler, type Command, type FactHandler } from "./ipc.js";
 
 /**
  * Key decision 7 — P0 control process supervises a P1 execution process.
@@ -14,9 +15,11 @@ export class ExecutionProcessSupervisor {
   private lastHeartbeat = 0;
   private watchdog: NodeJS.Timeout | null = null;
 
+  private channel?: { send: (cmd: Command) => void };
   constructor(
     private readonly env: NodeJS.ProcessEnv,
     private readonly onExit: (code: number | null, signal: NodeJS.Signals | null) => void,
+    private readonly facts?: FactHandler,
   ) {}
 
   spawn() {
@@ -24,12 +27,15 @@ export class ExecutionProcessSupervisor {
     const entry = fileURLToPath(new URL("./exec-process.ts", import.meta.url));
     this.child = fork(entry, [], { env: this.env, stdio: ["ignore", "inherit", "inherit", "ipc"] });
     this.lastHeartbeat = Date.now();
+    if (this.facts) {
+      this.channel = attachChildToHandler(this.child as any, this.facts);
+    }
     this.child.on("message", (msg: any) => {
-      if (msg?.type === "heartbeat") {
+      if (msg?.type === "heartbeat" || msg?.fact?.kind === "heartbeat") {
         this.lastHeartbeat = Date.now();
         return;
       }
-      if (msg?.type === "ready") this.restartDelay = 250;
+      if (msg?.type === "ready" || msg?.fact?.kind === "ready") this.restartDelay = 250;
     });
     this.child.on("exit", (code, signal) => {
       this.child = null;
@@ -91,3 +97,6 @@ export class ExecutionProcessSupervisor {
     });
   }
 }
+
+/** Send a command to the running P1 (e.g. abort/shutdown). */
+// (kept on the instance via this.channel)

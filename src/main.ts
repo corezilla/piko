@@ -5,6 +5,7 @@ import { TaskStore } from "./store.js";
 import { BearerAuth } from "./auth.js";
 import { ApiServer } from "./server.js";
 import { ExecutionProcessSupervisor } from "./supervisor.js";
+import { FactHandler } from "./ipc.js";
 
 /**
  * P0 entrypoint (control process). Serves HTTP and owns the Task Store; spawns and
@@ -20,6 +21,7 @@ export async function runControlProcess(configPath: string, root: string) {
   const supervisor = new ExecutionProcessSupervisor(
     { ...process.env, PIKO_EXEC_CONFIG: configPath, PIKO_EXEC_ROOT: root, PIKO_ROLE: "exec" },
     (code: number | null, signal: NodeJS.Signals | null) => console.error(`[P0] execution process exited code=${code} signal=${signal}`),
+    new FactHandler(store),
   );
   supervisor.spawn();
 
