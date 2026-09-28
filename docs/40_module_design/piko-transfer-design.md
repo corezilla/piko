@@ -69,7 +69,7 @@ M010 `transfer` 解决一个问题：任务的**输入文件**与**产出文件*
 - `TransportTransport`（方法抽象：`scp`/`mount`/`object_store`）。
 - `ChecksumVerifier`（`sha256`+size）。
 - `RetryPolicy`（有界重试 + 退避）。
-- `StagingManager`（`<workspace_root>/<task_id>/` 的建/清）。
+- `StagingManager`（相对 `workspace.roots[workspace_ref]` 的输入落点建/清）。
 - `DeliveryTracker`（幂等键去重 + 上报事实）。
 
 ### 5.2 内部调用过程

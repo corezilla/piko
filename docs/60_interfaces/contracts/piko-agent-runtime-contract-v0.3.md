@@ -49,7 +49,7 @@
 
 一个 endpoint 面向一个稳定 Piko/Agent 实例；不传 agent/session/team/IR/Topic 对象。Slinky 若需要多个 Agent，分别调用多个实例。实例同一时刻只运行一个 Run；其他受理任务排队。每个 Run 使用隔离 Pi session，保留期内以 task_id 查询历史。
 
-**数据面字段（本版新增，向后兼容）**。`input_refs` = `[{source, dest?, sha256?}]`：`source` 是外部存储引用（如 `scp user@host:/path`），`dest` 相对任务 staging 根（缺省取 basename），`sha256` 给定时**拉取后必须校验**。`artifact_target` = `{method: scp|mount|object_store, target, secret_ref?}`：`target` 为投递目标（`scp` 为 Slinky 预建目录）。**路径基准**：`input_refs[].dest` / `permissions.read_paths` / `write_paths` / `output_paths` 统一相对任务 staging 根 `<workspace_root>/<task_id>/`；`workspace_ref` 为 Slinky 侧工作区标识（审计/映射用）。`output_paths[i]` 投递映射为 `<artifact_target.target>/<output_paths[i]>`（保留相对结构、不重命名）。**文件内容不经 HTTP**：任务只传路径/引用，文件由 Piko 主动 `scp`（方法可换）。**幂等**：同 `task_id` 比较基于任务定义字段（含声明的 `input_refs` 与给定 `sha256`）；要内容级幂等，Slinky 必须给 `sha256` 或换新 `task_id`。
+**数据面字段（本版新增，向后兼容）**。`input_refs` = `[{source, dest?, sha256?}]`：`source` 是外部存储引用（如 `scp user@host:/path`），`dest` 相对 `workspace_ref` 解析出的 workspace 根（缺省取 basename），`sha256` 给定时**拉取后必须校验**。`artifact_target` = `{method: scp|mount|object_store, target, secret_ref?}`：`target` 为投递目标（`scp` 为 Slinky 预建目录）。**路径基准**：`permissions.read_paths` / `write_paths` / `output_paths` 统一相对 **`workspace_ref` 解析出的 workspace 根**（`workspace.roots[workspace_ref]`）；`workspace_ref` 为 Slinky 侧工作区标识（审计/映射用）。`output_paths[i]` 投递映射为 `<artifact_target.target>/<output_paths[i]>`（保留相对结构、不重命名）。**文件内容不经 HTTP**：任务只传路径/引用，文件由 Piko 主动 `scp`（方法可换）。**幂等**：同 `task_id` 比较基于任务定义字段（含声明的 `input_refs` 与给定 `sha256`）；要内容级幂等，Slinky 必须给 `sha256` 或换新 `task_id`。
 
 ## 3. 结果
 

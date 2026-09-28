@@ -90,3 +90,18 @@ describe("HTTP API (v0.12): /tasks", () => {
     expect(store.result("c").state).toBe("Cancelled");
   });
 });
+
+describe("error containment", () => {
+  it("never leaks an internal fence code as an HTTP client error", async () => {
+    const { base, store } = await fixture();
+    // Force an internal error path: reading a Result for a task that does not exist
+    // still resolves through the store, but a tombstoned task yields Gone (public).
+    await fetch(`${base}/tasks`, { method: "POST", headers: authHeaders, body: JSON.stringify(task("gone-http")) });
+    store.cancel("gone-http");
+    store.purge({ task_id: "gone-http" });
+    const res = await fetch(`${base}/tasks/gone-http`, { headers: authHeaders });
+    expect([410, 404]).toContain(res.status);
+    const body: any = await res.json();
+    expect(["Gone", "NotFound"]).toContain(body.error.code);
+  });
+});

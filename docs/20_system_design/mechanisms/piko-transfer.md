@@ -56,7 +56,7 @@ Slinky 派来的任务，其输入（`input_refs`）与产出（`output_paths`�
 ## 4. 数据结构设计
 
 ### 4.2 业务与操作数据结构
-- `InputRef { source, dest?, sha256? }`；`dest` 相对任务 staging 根。
+- `InputRef { source, dest?, sha256? }`；`dest` 相对 `workspace_ref` 解析出的 workspace 根。
 - `ArtifactTarget { method, target, secret_ref? }`。
 - `OutputArtifact { path, sha256, size_bytes }`；`FailedItem { path/source, error }`。
 - 定义与机器契约同源：`interfaces/schemas/agent-runtime-v0.3.schema.json`。

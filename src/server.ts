@@ -89,7 +89,7 @@ export class ApiServer {
 
       throw new PikoError("NotFound", 404, "route not found");
     } catch (error) {
-      const e = error instanceof PikoError ? error : new PikoError("DependencyUnavailable", 503, error instanceof Error ? error.message : String(error));
+      const e = mapError(error);
       const headers: Record<string, string> = e.status === 429 || e.status === 503 ? { "retry-after": "5" } : {};
       send(res, e.status, { error: { code: e.code, message: e.message, request_id: requestId } }, headers);
     }
@@ -107,4 +107,31 @@ export class ApiServer {
   async close() {
     await new Promise<void>((resolve, reject) => this.server.close((e) => (e ? reject(e) : resolve())));
   }
+}
+
+/** The public HTTP codes are exactly the error catalog; internal fences/typed errors
+ *  never leak as client codes. Only admission-path codes pass through. */
+const PUBLIC_CODES = new Set([
+  "InvalidRequest",
+  "Unauthorized",
+  "ScopeDenied",
+  "NotFound",
+  "Gone",
+  "TaskConflict",
+  "TaskNotTerminal",
+  "InvalidDiscussionContext",
+  "QueueFull",
+  "ResultUnavailable",
+  "DependencyUnavailable",
+]);
+
+function mapError(error: unknown): { code: string; status: number; message: string } {
+  if (error instanceof PikoError && PUBLIC_CODES.has(error.code)) {
+    return { code: error.code, status: error.status, message: error.message };
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  // Unknown / internal (FencedWrite, LeaseLost, DiscussionNotClosed, InputFetchFailed,
+  // schema errors, ...) are contained as a retryable dependency failure, never a
+  // fabricated client code and never a leaked internal fence.
+  return { code: "DependencyUnavailable", status: 503, message };
 }
