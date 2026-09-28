@@ -48,7 +48,7 @@ let skipMatrix = !PIKO_BEARER || !SECOND_TOK || !PIKO_BOT_TOK || !BEN_TOK || !RO
 let skipSlow = (process.env.SKIP_SLOW ?? "0") !== "0";
 
 interface MatrixSendResult { event_id: string }
-interface RunView { run_id: string; task_id: string; state: string }
+interface TaskView { task_id: string; state: string }
 interface RunResult {
   state: string; partial?: boolean; summary?: string;
   failure?: { code: string; cause_class: string; message: string };
@@ -84,39 +84,39 @@ async function pikoCreateRun(taskId: string, instruction: string, discussion?: {
     instruction,
     workspace_ref: "piko",
     permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" },
-    limits: { deadline_at: deadline, max_model_calls: 2, max_tool_calls: 0 },
+    
     output_paths: [],
     ...(discussion ? { discussion } : {}),
   };
-  const res = await fetch(`${PIKO_URL}/runs`, {
+  const res = await fetch(`${PIKO_URL}/tasks`, {
     method: "POST",
     headers: { Authorization: `Bearer ${PIKO_BEARER}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  await expectStatus(res, 202, "POST /runs");
-  return (await jsonOf<RunView>(res)).run_id;
+  await expectStatus(res, 202, "POST /tasks");
+  return (await jsonOf<TaskView>(res)).task_id;
 }
 
-async function pikoGetRun(runId: string): Promise<RunView> {
-  const res = await fetch(`${PIKO_URL}/runs/${runId}`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
-  await expectStatus(res, 200, `GET /runs/${runId}`);
-  return jsonOf<RunView>(res);
+async function pikoGetRun(taskId: string): Promise<TaskView> {
+  const res = await fetch(`${PIKO_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
+  await expectStatus(res, 200, `GET /tasks/${taskId}`);
+  return jsonOf<TaskView>(res);
 }
 
-async function pikoWaitTerminal(runId: string, timeoutMs = 90_000): Promise<RunView> {
+async function pikoWaitTerminal(taskId: string, timeoutMs = 90_000): Promise<TaskView> {
   const start = Date.now();
-  let last: RunView | undefined;
+  let last: TaskView | undefined;
   while (Date.now() - start < timeoutMs) {
-    last = await pikoGetRun(runId);
+    last = await pikoGetRun(taskId);
     if (["Completed", "Failed", "Cancelled"].includes(last.state)) return last;
     await new Promise((r) => setTimeout(r, 1_500));
   }
-  throw new Error(`run ${runId} did not reach terminal in ${timeoutMs}ms (last=${last?.state})`);
+  throw new Error(`run ${taskId} did not reach terminal in ${timeoutMs}ms (last=${last?.state})`);
 }
 
-async function pikoGetResult(runId: string): Promise<RunResult> {
-  const res = await fetch(`${PIKO_URL}/runs/${runId}/result`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
-  await expectStatus(res, 200, `GET /runs/${runId}/result`);
+async function pikoGetResult(taskId: string): Promise<RunResult> {
+  const res = await fetch(`${PIKO_URL}/tasks/${taskId}/result`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
+  await expectStatus(res, 200, `GET /tasks/${taskId}/result`);
   return jsonOf<RunResult>(res);
 }
 
@@ -173,7 +173,7 @@ async function restartPiko(): Promise<void> {
   );
   for (let i = 0; i < 20; i++) {
     try {
-      const r = await fetch(`${PIKO_URL}/runs`, { method: "POST", headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
+      const r = await fetch(`${PIKO_URL}/tasks`, { method: "POST", headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
       if (r.status === 400 || r.status === 401) return;
     } catch { /* keep polling */ }
     await new Promise((r) => setTimeout(r, 1_000));
@@ -223,7 +223,7 @@ async function ensureValidPikoBotSession(): Promise<void> {
 
 beforeAll(async () => {
   try {
-    const r = await fetch(`${PIKO_URL}/runs`, { method: "POST", headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
+    const r = await fetch(`${PIKO_URL}/tasks`, { method: "POST", headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
     pikoUp = r.status === 400 || r.status === 401;
   } catch { pikoUp = false; }
   try {
@@ -255,18 +255,18 @@ describe("PK-T11 — Matrix transport acceptance", () => {
   it.skipIf(skipMatrix)("ingests two-room messages into one Open Run", async () => {
     if (!matrixUp) return;
     const trigger = await matrixSend(SECOND_TOK, ROOM_ID, `t11-${Date.now()}`);
-    const runId = await pikoCreateRun(
+    const taskId = await pikoCreateRun(
       `acc-t11-${Date.now()}`,
       "Reply briefly: ack",
       { room_id: ROOM_ID, trigger_event_id: trigger },
     );
-    const initial = await pikoGetRun(runId);
+    const initial = await pikoGetRun(taskId);
     expect(["Queued", "Running"]).toContain(initial.state);
 
     await matrixSend(SECOND_TOK, ROOM_ID, `t11-followup-${Date.now()}`);
-    const final = await pikoWaitTerminal(runId);
+    const final = await pikoWaitTerminal(taskId);
     expect(final.state).toBe("Completed");
-    const result = await pikoGetResult(runId);
+    const result = await pikoGetResult(taskId);
     expect(result.usage?.usage_observed_attempts).toBeGreaterThanOrEqual(1);
   }, 180_000);
 });
@@ -275,12 +275,12 @@ describe("PK-T17 / PK-T25 — homeserver restart acceptance", () => {
   it.skipIf(skipMatrix || skipSlow)("continues ingesting after Synapse SIGKILL+restart", async () => {
     if (!matrixUp) return;
     const trigger = await matrixSend(SECOND_TOK, ROOM_ID, `t17-pre-${Date.now()}`);
-    const runId = await pikoCreateRun(
+    const taskId = await pikoCreateRun(
       `acc-t17-${Date.now()}`,
       "ack",
       { room_id: ROOM_ID, trigger_event_id: trigger },
     );
-    await pikoWaitTerminal(runId);
+    await pikoWaitTerminal(taskId);
 
     await restartHomeserver();
     await new Promise((r) => setTimeout(r, 5_000));

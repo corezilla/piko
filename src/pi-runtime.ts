@@ -63,12 +63,12 @@ export class PiRuntime {
     const available:any={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
-    let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let budgetExceeded=false;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
+    let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
     const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)this.store.observeUsage(runId,active.op,active.step,active.attempt,normalizeRawUsage(usage));latestUsage=usage}},BACKGROUND_CONTEXT);
     const lane=await created.harness.lane("main",BACKGROUND_CONTEXT);
     created.harness.hooks.on("before_request",event=>{
       const step=event.stepId;active={op:event.runId,step,attempt:event.attempt};
-      if(!this.store.reserveModel(runId,event.runId,step,event.attempt)){budgetExceeded=true;throw new Error("ModelCallLimitExceeded")}
+      this.store.reserveModel(runId,event.runId,step,event.attempt)
       return {streamOptions:{maxRetries:0,headers:{"X-Correlation-ID":runId}}};
     });
     const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
@@ -95,7 +95,6 @@ export class PiRuntime {
         if(!stagedRead)try{await authorizePath(workspace,path,write?task.permissions.write_paths:task.permissions.read_paths,write)}catch(error){toolFailure=error instanceof Error?error.message:String(error);return {block:{reason:toolFailure,terminate:true}}}
       }
       const admission=this.store.reserveTool(runId,event.runId,event.toolCallId,event.toolName,policy.effect,policy.replay,policy.recovery_contract_ref);
-      if(admission==="BudgetExceeded"){budgetExceeded=true;return {block:{reason:"ToolCallLimitExceeded",terminate:true}}}
       if(admission==="UnsafeRetryBlocked"){unsafeRetry=true;return {block:{reason:"UnsafeRetryBlocked",terminate:true}}}return undefined;
     });
     created.harness.hooks.on("after_tool",event=>{this.store.terminalTool(runId,event.runId,event.toolCallId,false);return undefined});
@@ -124,7 +123,6 @@ export class PiRuntime {
         if(activeTurn){const turn=activeTurn;if(outcome.status==="completed"&&onDiscussionReply)await onDiscussionReply(turn.event,turn.seq,await finalText(lane));this.store.markTurn(runId,turn.event,"Consumed",undefined,operation.operationId);activeTurn=undefined}
         if(toolFailure)return {status:"failed",summary:toolFailure,failure:{code:"ToolFailure",cause_class:"Tool",message:toolFailure}};
         if(unsafeRetry)return {status:"failed",summary:"Unsafe tool replay was blocked.",failure:{code:"UnsafeRetryBlocked",cause_class:"ExecutionUnknown",message:"A non-replayable tool call was encountered again."}};
-        if(budgetExceeded)return {status:"failed",summary:"Execution budget was exceeded.",failure:{code:"BudgetExceeded",cause_class:"Budget",message:"The configured model or tool call budget was exceeded."}};
         if(outcome.status==="completed"){
           if(task.discussion){
             const pending=this.store.pendingTurns(runId);

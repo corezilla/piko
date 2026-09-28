@@ -34,7 +34,7 @@ assert openapi["info"]["version"] == VERSION
 assert fixtures["fixture_version"] == VERSION
 assert catalog["catalog_version"] == f"agent-runtime-errors/{VERSION}"
 assert set(openapi["paths"]) == {
-    "/runs", "/runs/{run_id}", "/runs/{run_id}:cancel", "/runs/{run_id}/result"
+    "/tasks", "/tasks/{task_id}", "/tasks/{task_id}:cancel", "/tasks/{task_id}/result"
 }
 
 validator = Draft202012Validator(schema, format_checker=FormatChecker())
@@ -52,7 +52,8 @@ config_example = {
     "instance_id": "piko-main", "listen": {"host": "127.0.0.1", "port": 8443},
     "api_auth": {"mode": "bearer", "principal_id": "slinky-main", "bearer_token_secret_ref": "env:PIKO_SLINKY_TOKEN"},
     "task_store": {"sqlite_path": "/var/lib/piko/tasks.db", "busy_timeout_ms": 5000},
-    "pi": {"version": "0.85.1", "commit": "9767ba275f3e9a5ee0f5c5342249b629ab1b2282", "session_root": "/var/lib/piko/pi", "adapter_patch_manifest_path": "/etc/piko/pi-patches.json", "adapter_patch_sha256": "a" * 64},
+    "pi": {"version": "0.85.1", "commit": "9767ba275f3e9a5ee0f5c5342249b629ab1b2282", "session_root": "/var/lib/piko/pi"},
+    "transfer": {"method": "scp", "credential_ref": "env:PIKO_SCP_KEY", "target_allowlist": ["slinky-store:/srv/piko"], "max_input_bytes": 104857600, "retry": {"max_attempts": 3, "base_delay_ms": 500}},
     "agent": {"model": "coding-standard", "profile_ref": "agent:default"},
     "workspace": {"roots": {"approved": "/srv/piko/workspaces"}, "staging_root": "/var/lib/piko/staging"},
     "tools": {"profile_registry_path": "/etc/piko/tools.json"},
@@ -191,7 +192,7 @@ assert list(validator.evolve(schema=schema["$defs"]["TokenUsage"]).iter_errors(p
 
 failed_without_start = copy.deepcopy(by_id["queued-run"])
 failed_without_start.update({"state": "Failed", "finished_at": "2026-09-17T10:01:00Z", "result_available": True})
-assert list(validator.evolve(schema=schema["$defs"]["RunView"]).iter_errors(failed_without_start))
+assert list(validator.evolve(schema=schema["$defs"]["TaskView"]).iter_errors(failed_without_start))
 
 
 def aggregate_usage(attempts: list[dict]) -> dict:

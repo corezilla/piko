@@ -30,11 +30,11 @@ export class MatrixRuntime {
     const sender=event.getSender()??"",txn=event.getUnsigned()?.transaction_id;
     if(sender===this.config.matrix.user_id)return {room,event:id,sender,txn,turns:[]};
     const content=event.getContent();if(typeof content.msgtype!=="string"||!["m.text","m.file","m.image","m.audio","m.video"].includes(content.msgtype)||typeof content.body!=="string")return;
-    if(this.store.hasMatrixEvent(room,id))return undefined;const turns:{run:string;visible:string}[]=[];
+    if(this.store.hasMatrixEvent(room,id))return undefined;const turns:{task:string;visible:string}[]=[];
     for(const run of this.store.openDiscussionRuns(room)){
       let visible=content.body;
       if(content.msgtype!=="m.text")visible+=`\n${await this.downloadMedia(run,id,content)}`;
-      turns.push({run,visible});
+      turns.push({task:run,visible});
     }
     return {room,event:id,sender,txn,turns};
   }

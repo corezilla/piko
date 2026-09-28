@@ -2,7 +2,7 @@ import {describe,expect,it} from "vitest";
 import {discussionMessage,initialPrompt,normalizeRawUsage} from "../../src/pi-runtime.js";
 import type {TaskRequest} from "../../src/types.js";
 
-const task:TaskRequest={task_id:"t",instruction:"typed instruction",workspace_ref:"repo",permissions:{read_paths:[],write_paths:[],tool_profile_ref:"workspace-standard"},limits:{deadline_at:new Date(Date.now()+60000).toISOString(),max_model_calls:2,max_tool_calls:2},output_paths:[],discussion:{room_id:"!r:x",trigger_event_id:"$e"}};
+const task:TaskRequest={task_id:"t",instruction:"typed instruction",workspace_ref:"repo",permissions:{read_paths:[],write_paths:[],tool_profile_ref:"workspace-standard"},output_paths:[],discussion:{room_id:"!r:x",trigger_event_id:"$e"}};
 const turn={event_id:"$e",turn_seq:1,status:"Pending",visible_content:"trigger body"};
 
 describe("discussion prompt projection",()=>{

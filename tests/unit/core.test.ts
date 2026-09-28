@@ -4,7 +4,7 @@ import { sameTask } from "../../src/task-equality.js";
 import { validateUsage } from "../../src/semantic.js";
 import type { TaskRequest, TokenUsage } from "../../src/types.js";
 
-const task=(id="t1"):TaskRequest=>({task_id:id,instruction:"write result",workspace_ref:"repo",permissions:{read_paths:["src","README.md"],write_paths:["out"],tool_profile_ref:"workspace-standard"},limits:{deadline_at:new Date(Date.now()+60000).toISOString(),max_model_calls:3,max_tool_calls:4},output_paths:["out/result.txt"]});
+const task=(id="t1"):TaskRequest=>({task_id:id,instruction:"write result",workspace_ref:"repo",permissions:{read_paths:["src","README.md"],write_paths:["out"],tool_profile_ref:"workspace-standard"},output_paths:["out/result.txt"]});
 
 describe("core semantics",()=>{
   it("authenticates a single bearer principal",()=>{const auth=new BearerAuth("slinky",Buffer.from("secret"));expect(auth.authenticate("Bearer secret")).toBe("slinky");expect(()=>auth.authenticate("Bearer wrong")).toThrowError(/invalid/)});

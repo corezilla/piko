@@ -9,13 +9,14 @@ import { MatrixRuntime } from "../../src/matrix.js";
 import { ApiServer } from "../../src/server.js";
 import { PiRuntime } from "../../src/pi-runtime.js";
 import { RunWorker } from "../../src/worker.js";
+import { Transfer } from "../../src/transfer.js";
 import { preflightModelProvider } from "../../src/provider-preflight.js";
 import { startMockLlmtier, type MockLlmtier, type ScriptStep } from "../common/mock-llmtier.js";
 import Ajv, { type ValidateFunction } from "ajv/dist/2020.js";
 
 /** Load LLMTier candidate.7 OpenAPI schemas for wire-conformance validation. */
 async function llmtierValidator(def: "ResponsesRequest" | "ResponseStreamEvent"): Promise<ValidateFunction> {
-  const doc = JSON.parse(await readFile("/Users/ben/work/LLMTier/interfaces/openapi/llmtier-v0.3.openapi.json", "utf8"));
+  const doc = JSON.parse(await readFile("/Users/ben/work/LLMTier/interfaces/openapi/llmtier.openapi.json", "utf8"));
   const AjvCtor: any = (Ajv as any).default ?? Ajv;
   const ajv = new AjvCtor({ strict: false, allErrors: true });
   ajv.addSchema(doc, "llmtier-openapi");
@@ -36,13 +37,14 @@ async function makeStack(mock: MockLlmtier, opts?: { timeoutMs?: number }) {
   config.llmtier.base_url = mock.baseUrl;
   config.llmtier.models_timeout_ms = opts?.timeoutMs ?? 8000;
   config.workspace.roots.piko = root;
+  config.pi.session_root = join(root, "pi-sessions");
   config.listen.port = 21000 + Math.floor(Math.random() * 20000);
   const store = new TaskStore(":memory:", 1000);
   const matrix = new MatrixRuntime(config, store);
   const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("test-token")), matrix);
   await server.listen();
   const pi = new PiRuntime(config, tools, store, "test-key");
-  const worker = new RunWorker(config, store, pi, matrix);
+  const worker = new RunWorker(config, store, pi, matrix, new Transfer(config));
   worker.start();
   const stack: Stack = {
     baseUrl: `http://127.0.0.1:${config.listen.port}`,
@@ -65,28 +67,27 @@ function task(taskId: string, instruction: string, extra?: Partial<Record<string
     instruction,
     workspace_ref: "piko",
     permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" },
-    limits: { deadline_at: new Date(Date.now() + 120_000).toISOString(), max_model_calls: 5, max_tool_calls: 5 },
     output_paths: [],
     ...extra,
   };
 }
 
-async function submit(stack: Stack, body: unknown): Promise<{ status: number; runId: string | null; json: any }> {
-  const res = await fetch(`${stack.baseUrl}/runs`, {
+async function submit(stack: Stack, body: unknown): Promise<{ status: number; taskId: string | null; json: any }> {
+  const res = await fetch(`${stack.baseUrl}/tasks`, {
     method: "POST",
     headers: { authorization: "Bearer test-token", "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   const json: any = await res.json();
-  return { status: res.status, runId: json.run_id ?? null, json };
+  return { status: res.status, taskId: json.task_id ?? null, json };
 }
 
-async function waitTerminal(stack: Stack, runId: string, timeoutMs = 60_000): Promise<any> {
+async function waitTerminal(stack: Stack, taskId: string, timeoutMs = 60_000): Promise<any> {
   const start = Date.now();
   for (;;) {
-    const view = stack.store.getRun(runId);
-    if (["Completed", "Failed", "Cancelled"].includes(view.state)) return stack.store.result(runId);
-    if (Date.now() - start > timeoutMs) throw new Error(`run ${runId} not terminal after ${timeoutMs}ms (state=${view.state})`);
+    const view = stack.store.getRun(taskId);
+    if (["Completed", "Failed", "Cancelled"].includes(view.state)) return stack.store.result(taskId);
+    if (Date.now() - start > timeoutMs) throw new Error(`run ${taskId} not terminal after ${timeoutMs}ms (state=${view.state})`);
     await new Promise((r) => setTimeout(r, 100));
   }
 }
@@ -102,9 +103,9 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t41", "reply ok"));
-      expect(runId).toBeTruthy();
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t41", "reply ok"));
+      expect(taskId).toBeTruthy();
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(mock.requests.length).toBeGreaterThanOrEqual(1);
       const first = mock.requests.find((r) => r.path.endsWith("/responses"))!;
@@ -131,8 +132,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t43", "say contract-ok"));
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t43", "say contract-ok"));
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(result.summary).toBe("contract-ok");
       expect(result.usage).toMatchObject({
@@ -153,8 +154,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t47", "minimal usage"));
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t47", "minimal usage"));
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(result.usage.quality).toBe("Partial");
       expect(result.usage.input_tokens).toBe(10);
@@ -182,10 +183,10 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     try {
       stack = await makeStack(mock);
       await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed-bytes-42");
-      const { runId } = await submit(stack, task("t42", "read seed.txt via tool", {
+      const { taskId } = await submit(stack, task("t42", "read seed.txt via tool", {
         permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
       }));
-      const result = await waitTerminal(stack, runId!);
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(mock.requests.filter((r) => r.path.endsWith("/responses")).length).toBe(2);
       const second = mock.requests.filter((r) => r.path.endsWith("/responses"))[1]!.body as any;
@@ -205,8 +206,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t44", "try incomplete"));
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t44", "try incomplete"));
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).not.toBe("Completed");
       expect(result.state).toBe("Failed");
     } finally {
@@ -220,8 +221,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t45", "trigger failed event"));
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t45", "trigger failed event"));
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Failed");
       expect(result.failure!.code).toBe("ModelResponseInvalid");
       expect(result.failure!.cause_class).toBe("ModelProtocol");
@@ -237,8 +238,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t46-refusal", "trigger refusal"));
-      const result = await waitTerminal(stack, runId!);
+      const { taskId } = await submit(stack, task("t46-refusal", "trigger refusal"));
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(result.summary).toContain("Cannot comply");
     } finally {
@@ -259,10 +260,10 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     try {
       stack = await makeStack(mock);
       await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
-      const { runId } = await submit(stack, task("wire-001", "wire conformance", {
+      const { taskId } = await submit(stack, task("wire-001", "wire conformance", {
         permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
       }));
-      const result = await waitTerminal(stack, runId!);
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
 
       const validateRequest = await llmtierValidator("ResponsesRequest");
@@ -302,10 +303,10 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     try {
       stack = await makeStack(mock);
       await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
-      const { runId } = await submit(stack, task("t46", "reasoning replay", {
+      const { taskId } = await submit(stack, task("t46", "reasoning replay", {
         permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
       }));
-      const result = await waitTerminal(stack, runId!);
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       const second = mock.requests.filter((r) => r.path.endsWith("/responses"))[1]!.body as any;
       const rs = second.input.filter((x: any) => x.type === "reasoning");
@@ -328,12 +329,12 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t48", "survive truncation"));
-      const result = await waitTerminal(stack, runId!, 90_000);
+      const { taskId } = await submit(stack, task("t48", "survive truncation"));
+      const result = await waitTerminal(stack, taskId!, 90_000);
       expect(result.state).toBe("Completed");
       const posts = mock.requests.filter((r) => r.path.endsWith("/responses")).length;
       expect(posts).toBe(2);
-      const attempts = stack.store.usage(runId!);
+      const attempts = stack.store.rawUsage(taskId!);
       expect(result.usage.model_attempts).toBe(2);
       expect(result.usage.usage_observed_attempts).toBe(1);
       expect(attempts.length).toBe(1);
@@ -348,11 +349,11 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock, { timeoutMs: 600 });
-      const { runId } = await submit(stack, task("t49", "hang forever"));
-      const result = await waitTerminal(stack, runId!, 90_000);
+      const { taskId } = await submit(stack, task("t49", "hang forever"));
+      const result = await waitTerminal(stack, taskId!, 90_000);
       expect(result.state).toBe("Failed");
       expect(["ModelUnavailable", "ModelResponseInvalid"]).toContain(result.failure!.code);
-      const view = stack.store.getRun(runId!);
+      const view = stack.store.getRun(taskId!);
       expect(view.progress.model_calls).toBeLessThanOrEqual(5);
     } finally {
       await mock.close();
@@ -365,8 +366,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock, { timeoutMs: 3000 });
-      const { runId } = await submit(stack, task("t50", "malformed body"));
-      const result = await waitTerminal(stack, runId!, 90_000);
+      const { taskId } = await submit(stack, task("t50", "malformed body"));
+      const result = await waitTerminal(stack, taskId!, 90_000);
       expect(result.state).toBe("Failed");
       expect(["ModelUnavailable", "ModelResponseInvalid"]).toContain(result.failure!.code);
     } finally {
@@ -385,8 +386,8 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock, { timeoutMs: 3000 });
-      const { runId } = await submit(stack, task(`t51-${status}`, "http status failure"));
-      const result = await waitTerminal(stack, runId!, 90_000);
+      const { taskId } = await submit(stack, task(`t51-${status}`, "http status failure"));
+      const result = await waitTerminal(stack, taskId!, 90_000);
       expect(result.state).toBe("Failed");
       expect(["ModelUnavailable", "ModelResponseInvalid"]).toContain(result.failure!.code);
     } finally {
@@ -415,18 +416,18 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock);
-      const { runId } = await submit(stack, task("t53", "publish then late usage"));
-      const result = await waitTerminal(stack, runId!);
-      const before = JSON.stringify(stack.store.result(runId!));
+      const { taskId } = await submit(stack, task("t53", "publish then late usage"));
+      const result = await waitTerminal(stack, taskId!);
+      const before = JSON.stringify(stack.store.result(taskId!));
       expect(before).toBe(JSON.stringify(result));
-      const attempts = stack.store.usage(runId!);
+      const attempts = stack.store.rawUsage(taskId!);
       expect(attempts.length).toBe(1);
       // Parse op/step/attempt from known_actions ("op/step attempt N") since usage() returns raw JSON only.
       const description = result.known_actions.find((a: any) => a.kind === "ModelCall")!.description;
       const [opStep, attemptPart] = description.split(" attempt ");
       const [op, step] = opStep.split("/");
-      stack.store.observeUsage(runId!, op, step, Number(attemptPart), { input: 999, output: 999, totalTokens: 1998 });
-      const after = JSON.stringify(stack.store.result(runId!));
+      stack.store.observeUsage(taskId!, op, step, Number(attemptPart), { input: 999, output: 999, totalTokens: 1998 });
+      const after = JSON.stringify(stack.store.result(taskId!));
       expect(after).toBe(before);
     } finally {
       await mock.close();
@@ -441,39 +442,39 @@ describe("LLMTier consumption contract (mock, PK-T41..T54)", () => {
       stack = await makeStack(mock);
       const headers = { authorization: "Bearer test-token", "content-type": "application/json" };
       const body = task("t54", "full chain");
-      const first = await fetch(`${stack.baseUrl}/runs`, { method: "POST", headers, body: JSON.stringify(body) });
+      const first = await fetch(`${stack.baseUrl}/tasks`, { method: "POST", headers, body: JSON.stringify(body) });
       expect(first.status).toBe(202);
       const run: any = await first.json();
-      const result = await waitTerminal(stack, run.run_id);
+      const result = await waitTerminal(stack, run.task_id);
       expect(result.state).toBe("Completed");
 
-      const resultRes = await fetch(`${stack.baseUrl}/runs/${run.run_id}/result`, { headers });
+      const resultRes = await fetch(`${stack.baseUrl}/tasks/${run.task_id}/result`, { headers });
       expect(resultRes.status).toBe(200);
 
-      const again = await fetch(`${stack.baseUrl}/runs`, { method: "POST", headers, body: JSON.stringify(body) });
+      const again = await fetch(`${stack.baseUrl}/tasks`, { method: "POST", headers, body: JSON.stringify(body) });
       expect(again.status).toBe(202);
       const againJson: any = await again.json();
-      expect(againJson.run_id).toBe(run.run_id);
+      expect(againJson.task_id).toBe(run.task_id);
 
-      const conflicted = await fetch(`${stack.baseUrl}/runs`, {
+      const conflicted = await fetch(`${stack.baseUrl}/tasks`, {
         method: "POST", headers,
         body: JSON.stringify({ ...body, instruction: "different definition" }),
       });
       expect(conflicted.status).toBe(409);
 
-      const queued = await fetch(`${stack.baseUrl}/runs`, {
+      const queued = await fetch(`${stack.baseUrl}/tasks`, {
         method: "POST", headers,
         body: JSON.stringify(task("t54-cancel", "will be cancelled before start")),
       });
       const queuedRun: any = await queued.json();
-      const cancel = await fetch(`${stack.baseUrl}/runs/${queuedRun.run_id}:cancel`, { method: "POST", headers });
+      const cancel = await fetch(`${stack.baseUrl}/tasks/${queuedRun.task_id}:cancel`, { method: "POST", headers });
       expect([200, 202]).toContain(cancel.status);
-      const cancelled = await waitTerminal(stack, queuedRun.run_id);
+      const cancelled = await waitTerminal(stack, queuedRun.task_id);
       expect(cancelled.state).toBe("Cancelled");
 
-      const missing = await fetch(`${stack.baseUrl}/runs/run-not-there`, { headers });
+      const missing = await fetch(`${stack.baseUrl}/tasks/run-not-there`, { headers });
       expect(missing.status).toBe(404);
-      const nonTerminal = await fetch(`${stack.baseUrl}/runs/${run.run_id}/result`, { headers });
+      const nonTerminal = await fetch(`${stack.baseUrl}/tasks/${run.task_id}/result`, { headers });
       expect(nonTerminal.status).toBe(200);
     } finally {
       await mock.close();
@@ -495,11 +496,11 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
     try {
       stack = await makeStack(mock);
       await mkdir(join(stack.config.workspace.roots.piko, "out"), { recursive: true });
-      const { runId } = await submit(stack, task("gap-write-1", "write it", {
+      const { taskId } = await submit(stack, task("gap-write-1", "write it", {
         permissions: { read_paths: [], write_paths: ["out/gap1.txt"], tool_profile_ref: "workspace-standard" },
         output_paths: ["out/gap1.txt"],
       }));
-      const result = await waitTerminal(stack, runId!);
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Completed");
       expect(result.outputs.length).toBe(1);
       expect(result.outputs[0].path).toBe("out/gap1.txt");
@@ -517,17 +518,17 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
     let stack: Stack | undefined;
     try {
       stack = await makeStack(mock, { timeoutMs: 25_000 });
-      const { runId } = await submit(stack, task("gap-cancel-1", "will be cancelled mid-stream"));
+      const { taskId } = await submit(stack, task("gap-cancel-1", "will be cancelled mid-stream"));
       for (let i = 0; i < 100; i++) {
-        if (stack.store.getRun(runId!).state === "Running") break;
+        if (stack.store.getRun(taskId!).state === "Running") break;
         await new Promise((r) => setTimeout(r, 200));
       }
       const { outcome } = await (async () => {
-        const res = await fetch(`${stack.baseUrl}/runs/${runId}:cancel`, { method: "POST", headers: { authorization: "Bearer test-token" } });
+        const res = await fetch(`${stack.baseUrl}/tasks/${taskId}:cancel`, { method: "POST", headers: { authorization: "Bearer test-token" } });
         return { outcome: ((await res.json()) as any).outcome as string };
       })();
       expect(["StopRequested", "AlreadyTerminal"]).toContain(outcome);
-      const result = await waitTerminal(stack, runId!, 60_000);
+      const result = await waitTerminal(stack, taskId!, 60_000);
       expect(result.state).toBe("Cancelled");
       expect(result.failure?.code).toBe("CancelledByRequest");
     } finally {
@@ -536,55 +537,15 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
     }
   }, 90_000);
 
-  it("gap-3: tool budget exhaustion maps to BudgetExceeded", async () => {
-    const mock = await startMockLlmtier({
-      model: "piko-test-model",
-      script: [{ kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_gap3" }],
-      loopLast: true,
-    });
-    let stack: Stack | undefined;
-    try {
-      stack = await makeStack(mock);
-      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
-      const { runId } = await submit(stack, task("gap-toolbudget", "read", {
-        permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
-        limits: { deadline_at: new Date(Date.now() + 120_000).toISOString(), max_model_calls: 5, max_tool_calls: 0 },
-      }));
-      const result = await waitTerminal(stack, runId!);
-      expect(result.state).toBe("Failed");
-      expect(result.failure?.code).toBe("BudgetExceeded");
-      expect(result.failure?.cause_class).toBe("Budget");
-    } finally {
-      await mock.close();
-      await stack?.close();
-    }
-  }, 60_000);
+  it("gap-3: retired (task-level limits removed, PK-04)", () => {
+    // N/A · 本版撤销：任务级 deadline/预算已移除，该用例不再适用。
+    expect(true).toBe(true);
+  });
 
-  it("gap-4: model budget exhaustion maps to BudgetExceeded", async () => {
-    const mock = await startMockLlmtier({
-      model: "piko-test-model",
-      script: [
-        { kind: "toolCall", toolName: "read", args: JSON.stringify({ path: "seed.txt" }), callId: "call_gap4" },
-        { kind: "completed", text: "second call" },
-      ],
-    });
-    let stack: Stack | undefined;
-    try {
-      stack = await makeStack(mock);
-      await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "seed");
-      const { runId } = await submit(stack, task("gap-modelbudget", "two calls", {
-        permissions: { read_paths: ["seed.txt"], write_paths: [], tool_profile_ref: "workspace-standard" },
-        limits: { deadline_at: new Date(Date.now() + 120_000).toISOString(), max_model_calls: 1, max_tool_calls: 5 },
-      }));
-      const result = await waitTerminal(stack, runId!, 90_000);
-      expect(result.state).toBe("Failed");
-      expect(result.failure?.code).toBe("BudgetExceeded");
-      expect(result.failure?.cause_class).toBe("Budget");
-    } finally {
-      await mock.close();
-      await stack?.close();
-    }
-  }, 90_000);
+  it("gap-4: retired (task-level limits removed, PK-04)", () => {
+    // N/A · 本版撤销：任务级 deadline/预算已移除，该用例不再适用。
+    expect(true).toBe(true);
+  });
 
   it("gap-5: scope denial is a formal ToolFailure, not a crash", async () => {
     const mock = await startMockLlmtier({
@@ -596,10 +557,10 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
     try {
       stack = await makeStack(mock);
       await writeFile(join(stack.config.workspace.roots.piko, "seed.txt"), "secret");
-      const { runId } = await submit(stack, task("gap-scope", "read unauthorized", {
+      const { taskId } = await submit(stack, task("gap-scope", "read unauthorized", {
         permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" },
       }));
-      const result = await waitTerminal(stack, runId!);
+      const result = await waitTerminal(stack, taskId!);
       expect(result.state).toBe("Failed");
       expect(result.failure?.code).toBe("ToolFailure");
       expect(result.failure?.cause_class).toBe("Tool");
@@ -612,23 +573,10 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
     }
   }, 60_000);
 
-  it("gap-6: deadline elapsing mid-execution maps to DeadlineExceeded", async () => {
-    const mock = await startMockLlmtier({ model: "piko-test-model", loopLast: true, script: [{ kind: "hang", ms: 30_000 }] });
-    let stack: Stack | undefined;
-    try {
-      stack = await makeStack(mock, { timeoutMs: 25_000 });
-      const { runId } = await submit(stack, task("gap-deadline", "slow", {
-        limits: { deadline_at: new Date(Date.now() + 3_000).toISOString(), max_model_calls: 3, max_tool_calls: 0 },
-      }));
-      const result = await waitTerminal(stack, runId!, 60_000);
-      expect(result.state).toBe("Failed");
-      expect(result.failure?.code).toBe("DeadlineExceeded");
-      expect(result.failure?.cause_class).toBe("TaskDeadline");
-    } finally {
-      await mock.close();
-      await stack?.close();
-    }
-  }, 90_000);
+  it("gap-6: retired (task-level limits removed, PK-04)", () => {
+    // N/A · 本版撤销：任务级 deadline/预算已移除，该用例不再适用。
+    expect(true).toBe(true);
+  });
 
   it("gap-7: two Runs keep independent Pi sessions (session isolation A/B)", async () => {
     const mock = await startMockLlmtier({
@@ -643,18 +591,18 @@ describe("Offline gap closure — 09-18 live scenarios replayed against mock (PK
       const markerB = `SESSION_B_MARKER_${Date.now()}`;
       const a = await submit(stack, task("gap-iso-a", `Memorize and repeat: ${markerA}`));
       const b = await submit(stack, task("gap-iso-b", `Memorize and repeat: ${markerB}`));
-      const ra = await waitTerminal(stack, a.runId!);
-      const rb = await waitTerminal(stack, b.runId!);
+      const ra = await waitTerminal(stack, a.taskId!);
+      const rb = await waitTerminal(stack, b.taskId!);
       expect(ra.state).toBe("Completed");
       expect(rb.state).toBe("Completed");
 
       const sessionRoot = stack.config.pi.session_root;
       const { execFileSync } = await import("node:child_process");
       const files = execFileSync("find", [sessionRoot, "-type", "f", "-name", "*.jsonl"]).toString().trim().split("\n").filter(Boolean);
-      const fa = files.find((f) => f.includes(a.runId!));
-      const fb = files.find((f) => f.includes(b.runId!));
-      expect(fa, `session file for ${a.runId} exists`).toBeTruthy();
-      expect(fb, `session file for ${b.runId} exists`).toBeTruthy();
+      const fa = files.find((f) => f.includes(a.taskId!));
+      const fb = files.find((f) => f.includes(b.taskId!));
+      expect(fa, `session file for ${a.taskId} exists`).toBeTruthy();
+      expect(fb, `session file for ${b.taskId} exists`).toBeTruthy();
       const contentA = await readFile(fa!, "utf8");
       const contentB = await readFile(fb!, "utf8");
       expect(contentA).toContain(markerA);

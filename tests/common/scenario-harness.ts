@@ -46,7 +46,7 @@ function httpCode(url: string): string {
 }
 
 export function liveAvailableSync(): boolean {
-  if (!["404", "401", "400"].includes(httpCode(`${PIKO_URL}/runs/none`))) return false;
+  if (!["404", "401", "400"].includes(httpCode(`${PIKO_URL}/tasks/none`))) return false;
   const llm = httpCode(`${process.env.LLM_BASE ?? "http://127.0.0.1:9000/v1/"}models`);
   return llm === "200" || llm === "401";
 }
@@ -63,8 +63,7 @@ export interface RunParams {
   cancel_after?: number;
 }
 
-export interface RunView {
-  run_id: string;
+export interface TaskView {
   task_id: string;
   state: string;
   result_available?: boolean;
@@ -78,7 +77,6 @@ export interface Failure {
   message: string;
 }
 export interface AgentResult {
-  run_id: string;
   task_id: string;
   state: "Completed" | "Failed" | "Cancelled";
   partial: boolean;
@@ -144,7 +142,7 @@ export function sha256File(path: string): string {
 
 export async function pikoHealthy(): Promise<boolean> {
   try {
-    const r = await fetch(`${PIKO_URL}/runs/none`, {
+    const r = await fetch(`${PIKO_URL}/tasks/none`, {
       headers: { Authorization: `Bearer ${PIKO_BEARER}` },
     });
     return r.status === 404 || r.status === 401 || r.status === 400;
@@ -189,8 +187,8 @@ export function matrixReachableSync(): boolean {
 }
 
 export interface RunHandle {
-  runId: string;
-  view: RunView;
+  task_id: string;
+  view: TaskView;
   result: AgentResult;
   elapsedMs: number;
   cancelReceipt?: { status: number; body: unknown };
@@ -208,8 +206,6 @@ export async function runCase(caseName: string, opts: RunOptions = {}): Promise<
   const params = readParams(caseName);
   const instruction = opts.instruction ?? readInstruction(caseName);
   const taskId = opts.taskId ?? `scen-${caseName}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-  const deadlineSecs = params.deadline_secs ?? 900;
-  const deadline = new Date(Date.now() + deadlineSecs * 1000).toISOString();
   const payload = {
     task_id: taskId,
     instruction,
@@ -219,24 +215,19 @@ export async function runCase(caseName: string, opts: RunOptions = {}): Promise<
       write_paths: params.write,
       tool_profile_ref: params.profile ?? "workspace-exec",
     },
-    limits: {
-      deadline_at: deadline,
-      max_model_calls: params.max_model_calls ?? 24,
-      max_tool_calls: params.max_tool_calls ?? 24,
-    },
     output_paths: params.output,
   };
   const created = await postRun(payload);
   if (created.status !== 202) {
-    throw new Error(`POST /runs ${caseName} -> ${created.status}: ${JSON.stringify(created.body)}`);
+    throw new Error(`POST /tasks ${caseName} -> ${created.status}: ${JSON.stringify(created.body)}`);
   }
-  const runId = (created.body as RunView).run_id;
+  const taskIdValue = (created.body as TaskView).task_id;
   const cancelAfter = opts.cancelAfterSec ?? params.cancel_after ?? 0;
-  return waitRun(runId, { cancelAfterSec: cancelAfter, timeoutMs: opts.timeoutMs });
+  return waitRun(taskIdValue, { cancelAfterSec: cancelAfter, timeoutMs: opts.timeoutMs });
 }
 
 export async function postRun(payload: unknown): Promise<{ status: number; body: unknown }> {
-  const res = await fetch(`${PIKO_URL}/runs`, {
+  const res = await fetch(`${PIKO_URL}/tasks`, {
     method: "POST",
     headers: { Authorization: `Bearer ${PIKO_BEARER}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -245,50 +236,50 @@ export async function postRun(payload: unknown): Promise<{ status: number; body:
 }
 
 export async function waitRun(
-  runId: string,
+  taskIdValue: string,
   opts: { cancelAfterSec?: number; timeoutMs?: number } = {},
 ): Promise<RunHandle> {
   const start = Date.now();
   const timeout = opts.timeoutMs ?? 300_000;
   let cancelRequested = false;
   let cancelReceipt: { status: number; body: unknown } | undefined;
-  let view: RunView | undefined;
+  let view: TaskView | undefined;
   for (;;) {
-    view = await getRun(runId);
+    view = await getRun(taskIdValue);
     if (
       opts.cancelAfterSec &&
       !cancelRequested &&
       Date.now() - start >= opts.cancelAfterSec * 1000
     ) {
-      cancelReceipt = await cancelRun(runId);
+      cancelReceipt = await cancelRun(taskIdValue);
       cancelRequested = true;
     }
     if (["Completed", "Failed", "Cancelled"].includes(view.state)) break;
     if (Date.now() - start > timeout) {
-      throw new Error(`run ${runId} did not reach terminal in ${timeout}ms (state=${view.state})`);
+      throw new Error(`run ${taskIdValue} did not reach terminal in ${timeout}ms (state=${view.state})`);
     }
     await sleep(2_000);
   }
-  const result = await getResult(runId);
-  return { runId, view, result, elapsedMs: Date.now() - start, cancelReceipt };
+  const result = await getResult(taskIdValue);
+  return { task_id: taskIdValue, view, result, elapsedMs: Date.now() - start, cancelReceipt };
 }
 
-export async function getRun(runId: string): Promise<RunView> {
-  const res = await fetch(`${PIKO_URL}/runs/${runId}`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
-  if (res.status !== 200) throw new Error(`GET /runs/${runId} -> ${res.status}`);
-  return (await res.json()) as RunView;
+export async function getRun(taskIdValue: string): Promise<TaskView> {
+  const res = await fetch(`${PIKO_URL}/tasks/${taskIdValue}`, { headers: { Authorization: `Bearer ${PIKO_BEARER}` } });
+  if (res.status !== 200) throw new Error(`GET /tasks/${taskIdValue} -> ${res.status}`);
+  return (await res.json()) as TaskView;
 }
 
-export async function getResult(runId: string): Promise<AgentResult> {
-  const res = await fetch(`${PIKO_URL}/runs/${runId}/result`, {
+export async function getResult(taskIdValue: string): Promise<AgentResult> {
+  const res = await fetch(`${PIKO_URL}/tasks/${taskIdValue}/result`, {
     headers: { Authorization: `Bearer ${PIKO_BEARER}` },
   });
-  if (res.status !== 200) throw new Error(`GET /runs/${runId}/result -> ${res.status}`);
+  if (res.status !== 200) throw new Error(`GET /tasks/${taskIdValue}/result -> ${res.status}`);
   return (await res.json()) as AgentResult;
 }
 
-export async function cancelRun(runId: string): Promise<{ status: number; body: unknown }> {
-  const res = await fetch(`${PIKO_URL}/runs/${runId}:cancel`, {
+export async function cancelRun(taskIdValue: string): Promise<{ status: number; body: unknown }> {
+  const res = await fetch(`${PIKO_URL}/tasks/${taskIdValue}:cancel`, {
     method: "POST",
     headers: { Authorization: `Bearer ${PIKO_BEARER}` },
   });

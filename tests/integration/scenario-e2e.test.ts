@@ -67,11 +67,7 @@ function payload(
       write_paths: o.write ?? [],
       tool_profile_ref: o.profile ?? "workspace-standard",
     },
-    limits: {
-      deadline_at: new Date(Date.now() + (o.deadlineSecs ?? 900) * 1000).toISOString(),
-      max_model_calls: o.maxModel ?? 24,
-      max_tool_calls: o.maxTool ?? 24,
-    },
+    
     output_paths: o.output ?? [],
     ...(o.discussion ? { discussion: o.discussion } : {}),
   };
@@ -376,10 +372,10 @@ d("PTS-10 任务协议韧性", () => {
     });
     const a = await H.postRun(p);
     expect(a.status).toBe(202);
-    const runA = (a.body as H.RunView).run_id;
+    const runA = (a.body as H.TaskView).task_id;
     const b = await H.postRun(p);
     expect(b.status).toBe(202);
-    expect((b.body as H.RunView).run_id).toBe(runA);
+    expect((b.body as H.TaskView).task_id).toBe(runA);
     const c = await H.postRun({ ...p, instruction: "Different instruction entirely." });
     expect(c.status).toBe(409);
   });
@@ -398,8 +394,8 @@ d("PTS-10 任务协议韧性", () => {
     const b = await H.postRun(payload(uid("scen-10-c2b"), slow.instruction, slow));
     expect(a.status).toBe(202);
     expect(b.status).toBe(202);
-    const runA = (a.body as H.RunView).run_id;
-    const runB = (b.body as H.RunView).run_id;
+    const runA = (a.body as H.TaskView).task_id;
+    const runB = (b.body as H.TaskView).task_id;
 
     try {
       // B should still be Queued while A holds the single execution slot.
@@ -448,11 +444,11 @@ d("PTS-10 任务协议韧性", () => {
       deadlineSecs: 300,
     };
     const created = await H.postRun(payload(uid("scen-10-c3"), slow.instruction, slow));
-    const runId = (created.body as H.RunView).run_id;
+    const taskId = (created.body as H.TaskView).task_id;
     const allowed = new Set(["Queued", "Running", "Cancelling", "Completed", "Failed", "Cancelled"]);
     const seen: string[] = [];
     for (let i = 0; i < 6; i++) {
-      const v = await H.getRun(runId);
+      const v = await H.getRun(taskId);
       expect(allowed.has(v.state)).toBe(true);
       seen.push(v.state);
       if (v.state === "Running") expect(v.result_available).toBe(false);
@@ -462,8 +458,8 @@ d("PTS-10 任务协议韧性", () => {
       }
       await H.sleep(1_000);
     }
-    await H.cancelRun(runId);
-    const done = await H.waitRun(runId, { timeoutMs: 120_000 });
+    await H.cancelRun(taskId);
+    const done = await H.waitRun(taskId, { timeoutMs: 120_000 });
     expect(["Completed", "Failed", "Cancelled"]).toContain(done.view.state);
     expect(done.view.result_available).toBe(true);
   });
@@ -508,30 +504,30 @@ d("PTS-10 任务协议韧性", () => {
           }),
         );
         expect(created.status).toBe(202);
-        const runId = (created.body as H.RunView).run_id;
+        const taskId = (created.body as H.TaskView).task_id;
 
         let inFlight = false;
         for (let i = 0; i < 70; i++) {
           const st = await H.sqliteScalar(
-            `SELECT state FROM tool_calls WHERE run_id='${runId}' AND tool_name='bash' LIMIT 1;`,
+            `SELECT state FROM tool_calls WHERE run_id='${taskId}' AND tool_name='bash' LIMIT 1;`,
           );
           if (st === "Reserved" || st === "Started") {
             inFlight = true;
             break;
           }
-          const v = await H.getRun(runId);
+          const v = await H.getRun(taskId);
           if (["Completed", "Failed", "Cancelled"].includes(v.state)) break;
           await H.sleep(1_000);
         }
         if (!inFlight) {
           // Model emitted the tool call as text instead of invoking it -> INVALID retry.
-          await H.waitRun(runId, { timeoutMs: 60_000 }).catch(() => undefined);
+          await H.waitRun(taskId, { timeoutMs: 60_000 }).catch(() => undefined);
           continue;
         }
 
         await H.killPiko();
         await H.restartPiko();
-        const done = await H.waitRun(runId, { timeoutMs: 120_000 });
+        const done = await H.waitRun(taskId, { timeoutMs: 120_000 });
         expect(done.result.state).toBe("Failed");
         expect(done.result.failure?.code).toBe("UnsafeRetryBlocked");
         const hits = H.readText(sentinel)
@@ -573,17 +569,17 @@ d("PTS-06 多 IR 房间评审", () => {
       }),
     );
     expect(created.status).toBe(202);
-    const runId = (created.body as H.RunView).run_id;
+    const taskId = (created.body as H.TaskView).task_id;
     const followup = await H.matrixSend(t.second, t.roomId, `pts-06-c1 followup ${Date.now()}`);
-    const done = await H.waitRun(runId, { timeoutMs: 120_000 });
+    const done = await H.waitRun(taskId, { timeoutMs: 120_000 });
     expect(done.result.state).toBe("Completed");
 
     const turns = await H.sqliteScalar(
-      `SELECT count(*) FROM discussion_turns WHERE run_id='${runId}';`,
+      `SELECT count(*) FROM discussion_turns WHERE run_id='${taskId}';`,
     );
     expect(Number(turns)).toBeGreaterThanOrEqual(2);
     const consumed = await H.sqliteScalar(
-      `SELECT count(*) FROM discussion_turns WHERE run_id='${runId}' AND status='Consumed';`,
+      `SELECT count(*) FROM discussion_turns WHERE run_id='${taskId}' AND status='Consumed';`,
     );
     expect(Number(consumed)).toBeGreaterThanOrEqual(2);
 
@@ -608,9 +604,9 @@ d("PTS-06 多 IR 房间评审", () => {
         discussion: { room_id: t.roomId, trigger_event_id: trigger },
       }),
     );
-    const runId = (created.body as H.RunView).run_id;
+    const taskId = (created.body as H.TaskView).task_id;
     const followup = await H.matrixSend(t.second, t.roomId, `pts-06-c2 followup ${Date.now()}`);
-    await H.waitRun(runId, { timeoutMs: 120_000 });
+    await H.waitRun(taskId, { timeoutMs: 120_000 });
 
     let botReply: H.MatrixEvent | undefined;
     for (let i = 0; i < 30 && !botReply; i++) {
@@ -632,7 +628,7 @@ d("PTS-06 多 IR 房间评审", () => {
   it.skipIf(!matrixReady)("C3 membership: stops ingesting after piko-bot is kicked", async () => {
     const t = matrixTokens!;
     const room = H.createScenarioRoom();
-    let runId = "";
+    let taskId = "";
     try {
       const trigger = await H.matrixSend(t.second, room, `pts-06-c3 trigger ${Date.now()}`);
       // A slow instruction keeps the discussion intake Open while we kick.
@@ -647,7 +643,7 @@ d("PTS-06 多 IR 房间评审", () => {
           discussion: { room_id: room, trigger_event_id: trigger },
         }),
       );
-      runId = (created.body as H.RunView).run_id;
+      taskId = (created.body as H.TaskView).task_id;
       await H.sleep(4_000); // let the run start with an Open intake
 
       await H.matrixKick(t.ben, room, BOT_ID);
@@ -660,7 +656,7 @@ d("PTS-06 多 IR 房间评审", () => {
       expect(ingested, "event ingested after membership loss (not fail-closed)").toBe(0);
 
       // Design contract: the Run ends Failed/DiscussionAccessLost, not Cancelled.
-      const done = await H.waitRun(runId, { timeoutMs: 120_000 });
+      const done = await H.waitRun(taskId, { timeoutMs: 120_000 });
       expect(done.result.state).toBe("Failed");
       expect(done.result.failure?.code).toBe("DiscussionAccessLost");
       expect(done.result.failure?.cause_class).toBe("Authorization");
@@ -670,11 +666,11 @@ d("PTS-06 多 IR 房间评审", () => {
       // the matrix-acceptance suite): rejoin, then restart Piko.
       await H.matrixInvite(t.ben, room, BOT_ID).catch(() => undefined);
       await H.matrixJoin(t.pikoBot, room).catch(() => undefined);
-      if (runId) {
-        const v = await H.getRun(runId).catch(() => undefined);
+      if (taskId) {
+        const v = await H.getRun(taskId).catch(() => undefined);
         if (v && !["Completed", "Failed", "Cancelled"].includes(v.state)) {
-          await H.cancelRun(runId).catch(() => undefined);
-          await H.waitRun(runId, { timeoutMs: 60_000 }).catch(() => undefined);
+          await H.cancelRun(taskId).catch(() => undefined);
+          await H.waitRun(taskId, { timeoutMs: 60_000 }).catch(() => undefined);
         }
       }
       await H.restartPiko().catch(() => undefined);
