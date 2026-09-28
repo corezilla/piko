@@ -40,6 +40,13 @@ export class RunWorker {
         this.store.purgeExpired();
         this.lastPurge = Date.now();
       }
+      // P-INPUT staging lane: runs BEFORE the slot is acquired, serial (concurrency=1),
+      // and never holds a lease. Slow scp therefore cannot occupy the execution slot.
+      const needsStaging = this.store.nextNeedingStaging();
+      if (needsStaging) {
+        await this.stageInputs(needsStaging);
+        continue;
+      }
       const claim = recovery ?? this.store.tryClaimSlot(this.owner, this.boot);
       recovery = null;
       if (!claim || claim === "slot_busy") {
@@ -48,6 +55,77 @@ export class RunWorker {
       }
       await this.run(claim.task_id, claim.lease_epoch);
     }
+  }
+
+  /** P-INPUT: fetch declared inputs into staging; failure is an execution-precondition failure. */
+  private async stageInputs(taskId: string) {
+    const task = this.store.getTask(taskId);
+    const refs = task.input_refs ?? [];
+    this.store.setInputStaging(taskId, { state: "in_progress", fetched: [], failed: [] });
+    // Abort an in-flight scp if the task is cancelled while still Queued.
+    const controller = new AbortController();
+    const poll = setInterval(() => {
+      if (this.store.cancelRequested(taskId)) controller.abort();
+    }, 250);
+    try {
+      if (this.store.cancelRequested(taskId)) {
+        this.transfer.clearStaging(taskId);
+        this.store.cancel(taskId);
+        return;
+      }
+      let staging: Awaited<ReturnType<Transfer["fetchInputs"]>>;
+      try {
+        staging = refs.length
+          ? await this.transfer.fetchInputs(taskId, refs, controller.signal)
+          : { state: "none" as const, fetched: [], failed: [] };
+      } catch (error) {
+        // TransferNeverThrows: containment — a transfer error is a precondition failure.
+        this.transfer.clearStaging(taskId);
+        this.publishPreconditionFailure(taskId, {
+          code: "InputFetchFailed",
+          cause_class: "Dependency",
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
+      if (controller.signal.aborted || this.store.cancelRequested(taskId)) {
+        this.transfer.clearStaging(taskId);
+        this.store.cancel(taskId);
+        return;
+      }
+      if (staging.state === "failed") {
+        // Zero-call Failed: never claims a slot.
+        this.transfer.clearStaging(taskId);
+        this.publishPreconditionFailure(taskId, {
+          code: "InputFetchFailed",
+          cause_class: "Dependency",
+          message: `input fetch failed: ${staging.failed.map((f) => f.source).join(", ")}`,
+        });
+        return;
+      }
+      this.store.setInputStaging(taskId, staging.state === "none" ? { state: "none", fetched: [], failed: [] } : staging);
+    } finally {
+      clearInterval(poll);
+    }
+  }
+
+  /** Publish a terminal Result for a Queued Run without ever taking the slot. */
+  private publishPreconditionFailure(taskId: string, failure: { code: any; cause_class: any; message: string }) {
+    const view = this.store.getRun(taskId);
+    const result: AgentResult = {
+      task_id: taskId,
+      generation: this.store.generation(taskId),
+      state: "Failed",
+      partial: false,
+      summary: failure.message,
+      outputs: [],
+      stats: { model_calls: 0, tool_calls: 0, duration_ms: 0, outputs_count: 0, outputs_bytes: 0 },
+      known_actions: [],
+      usage: aggregateUsage([], 0),
+      failure,
+      published_at: new Date().toISOString(),
+    };
+    this.store.finishQueued(result);
   }
 
   private async run(taskId: string, epoch: number) {
@@ -84,7 +162,7 @@ export class RunWorker {
       // P-ARTIFACT: deliver outputs to the artifact target (does NOT change terminal state).
       if (task.artifact_target) {
         this.store.setArtifactDelivery(taskId, { state: "in_progress", delivered: [], failed: [] });
-        const delivery = await this.transfer.deliverArtifacts(taskId, task.output_paths, task.artifact_target);
+        const delivery = await this.transfer.deliverArtifacts(taskId, task.output_paths, task.artifact_target, undefined, workspace);
         this.store.setArtifactDelivery(taskId, delivery);
       }
 

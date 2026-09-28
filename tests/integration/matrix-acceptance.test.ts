@@ -78,13 +78,11 @@ async function matrixSend(token: string, room: string, body: string): Promise<st
 }
 
 async function pikoCreateRun(taskId: string, instruction: string, discussion?: { room_id: string; trigger_event_id: string }): Promise<string> {
-  const deadline = new Date(Date.now() + 5 * 60_000).toISOString();
   const payload = {
     task_id: taskId,
     instruction,
     workspace_ref: "piko",
     permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" },
-    
     output_paths: [],
     ...(discussion ? { discussion } : {}),
   };

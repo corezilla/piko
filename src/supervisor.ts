@@ -12,6 +12,7 @@ export class ExecutionProcessSupervisor {
   private stopped = false;
   private restartDelay = 250;
   private lastHeartbeat = 0;
+  private watchdog: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly env: NodeJS.ProcessEnv,
@@ -39,6 +40,19 @@ export class ExecutionProcessSupervisor {
         setTimeout(() => this.spawn(), delay);
       }
     });
+    this.startWatchdog();
+  }
+
+  /** A hung P1 (no heartbeat) is force-killed, which triggers restart on the exit handler. */
+  private startWatchdog() {
+    if (this.watchdog) return;
+    this.watchdog = setInterval(() => {
+      if (this.stopped || !this.child) return;
+      if (this.unhealthy()) {
+        console.error("[P0] execution process heartbeat lost; forcing restart");
+        this.child.kill("SIGKILL");
+      }
+    }, 5000);
   }
 
   /** Kill P1 unconditionally (used by cancel timeouts / shutdown). */
@@ -60,6 +74,8 @@ export class ExecutionProcessSupervisor {
 
   async stop() {
     this.stopped = true;
+    if (this.watchdog) clearInterval(this.watchdog);
+    this.watchdog = null;
     if (!this.child) return;
     const child = this.child;
     await new Promise<void>((resolve) => {

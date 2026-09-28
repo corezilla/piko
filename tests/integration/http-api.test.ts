@@ -8,7 +8,7 @@ import { ApiServer } from "../../src/server.js";
 describe("HTTP task API",()=>{
   it("accepts, queries, cancels, and returns one stable result",async()=>{
     const {config}=await loadConfig("config/runtime.example.json");config.listen.port=20000+Math.floor(Math.random()*20000);
-    const store=new TaskStore(":memory:",1000);const matrix=new MatrixRuntime(config,store);const server=await ApiServer.create(config,store,new BearerAuth("slinky",Buffer.from("test-token")),matrix);await server.listen();
+    const store=new TaskStore(":memory:",1000);const server=await ApiServer.create(config,store,new BearerAuth("slinky",Buffer.from("test-token")));await server.listen();
     const headers={authorization:"Bearer test-token","content-type":"application/json"};const task={task_id:"http-task",instruction:"do it",workspace_ref:"piko",permissions:{read_paths:["src"],write_paths:["var"],tool_profile_ref:"workspace-standard"},output_paths:[]};
     try{
       const accepted=await fetch(`http://127.0.0.1:${config.listen.port}/tasks`,{method:"POST",headers,body:JSON.stringify(task)});expect(accepted.status).toBe(202);const run:any=await accepted.json();

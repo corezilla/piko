@@ -22,6 +22,12 @@ function run(cmd: string, args: string[], signal?: AbortSignal): Promise<{ stdou
 }
 
 /** Resolve a path inside the task staging root; reject escapes. */
+function safeJoinIn(base: string, rel: string): string {
+  const target = resolve(base, rel);
+  const relCheck = relative(resolve(base), target);
+  if (relCheck.startsWith("..") || isAbsolute(relCheck)) throw new PikoError("InvalidRequest", 400, `path escapes workspace: ${rel}`);
+  return target;
+}
 export function safeJoin(stagingRoot: string, taskId: string, rel: string): string {
   const base = resolve(stagingRoot, taskId);
   const target = resolve(base, rel);
@@ -31,7 +37,18 @@ export function safeJoin(stagingRoot: string, taskId: string, rel: string): stri
 }
 
 export class Transfer {
+  private keyPath?: string;
   constructor(private readonly config: RuntimeConfig) {}
+
+  /** Resolve the scp identity file from the credential reference (e.g. `env:PIKO_SCP_KEY`). */
+  private async scpKeyPath(): Promise<string | undefined> {
+    const ref = this.config.transfer.credential_ref;
+    if (!ref) return undefined;
+    if (this.keyPath) return this.keyPath;
+    const { resolveSecret } = await import("./config.js");
+    this.keyPath = await resolveSecret(ref);
+    return this.keyPath;
+  }
 
   private get stagingRoot() {
     return this.config.workspace.staging_root;
@@ -44,10 +61,11 @@ export class Transfer {
     }
   }
 
-  private scpArgs(remote: string, local: string, direction: "pull" | "push") {
+  private async scpArgs(remote: string, local: string, direction: "pull" | "push") {
     const args: string[] = ["-B", "-q", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes"];
     if (this.config.transfer.known_hosts) args.push("-o", `UserKnownHostsFile=${this.config.transfer.known_hosts}`);
-    if (this.config.transfer.credential_ref) args.push("-i", this.config.transfer.credential_ref);
+    const key = await this.scpKeyPath();
+    if (key) args.push("-i", key);
     if (direction === "pull") args.push("--", remote, local);
     else args.push("--", local, remote);
     return args;
@@ -81,7 +99,7 @@ export class Transfer {
         const local = safeJoin(this.stagingRoot, taskId, dest);
         mkdirSync(resolve(local, ".."), { recursive: true });
         if (this.config.transfer.method === "scp") {
-          await this.withRetry(() => run("scp", this.scpArgs(ref.source, local, "pull"), signal));
+          await this.withRetry(() => this.scpArgs(ref.source, local, "pull").then((args) => run("scp", args, signal)));
         } else if (this.config.transfer.method === "mount") {
           // mount: source is already a local path; copy is handled by the OS mount.
         } else {
@@ -98,20 +116,21 @@ export class Transfer {
     return { state: failed.length ? "failed" : "ready", fetched, failed };
   }
 
-  /** P-ARTIFACT: deliver declared outputs to the artifact target. Does not touch the execution terminal state. */
-  async deliverArtifacts(taskId: string, outputPaths: string[], target: ArtifactTarget, signal?: AbortSignal): Promise<DeliveryResult> {
+  /** P-ARTIFACT: deliver declared outputs to the artifact target. Does not touch the execution terminal state.
+   *  `baseDir` is the resolved workspace root, so delivery reads exactly where execution wrote. */
+  async deliverArtifacts(taskId: string, outputPaths: string[], target: ArtifactTarget, signal?: AbortSignal, baseDir?: string): Promise<DeliveryResult> {
     if (!outputPaths.length || !target) return { state: "none", delivered: [], failed: [] };
     this.assertAllowed(target.target);
     const delivered: OutputArtifact[] = [];
     const failed: { path: string; error: string }[] = [];
     for (const rel of outputPaths) {
       try {
-        const local = safeJoin(this.stagingRoot, taskId, rel);
+        const local = baseDir ? safeJoinIn(baseDir, rel) : safeJoin(this.stagingRoot, taskId, rel);
         const st = statSync(local);
         const digest = sha256(local);
         const remote = `${target.target.replace(/\/+$/, "")}/${rel}`;
         if (target.method === "scp") {
-          await this.withRetry(() => run("scp", this.scpArgs(remote, local, "push"), signal));
+          await this.withRetry(() => this.scpArgs(remote, local, "push").then((args) => run("scp", args, signal)));
         } else if (target.method === "mount") {
           // mounted target: write directly.
         } else {

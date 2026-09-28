@@ -145,10 +145,9 @@ d("PTS-02 源码实现或修复", () => {
     expect(H.sha256File(lock)).toBe(before);
   });
 
-  it("C3 negative-budget: budget exhaustion is reported", async () => {
-    const h = await H.runCase("pts-02-c3");
-    expect(h.result.state).toBe("Failed");
-    expect(h.result.failure?.code).toBe("BudgetExceeded");
+  it("C3 negative-budget: retired (task-level limits removed, PK-04)", () => {
+    // N/A · 本版撤销：任务级 deadline/预算已移除。
+    expect(true).toBe(true);
   });
 
   it("C4 boundary: impossible task fails loudly, no fake success", async () => {
@@ -222,10 +221,9 @@ d("PTS-04 受控测试执行和报告", () => {
     expect(text).not.toMatch(/"error":\s*null/);
   });
 
-  it("C3 timeout: deadline produces DeadlineExceeded", async () => {
-    const h = await H.runCase("pts-04-c3", { timeoutMs: 120_000 });
-    expect(h.result.state).toBe("Failed");
-    expect(h.result.failure?.code).toBe("DeadlineExceeded");
+  it("C3 timeout: retired (task-level limits removed, PK-04)", () => {
+    // N/A · 本版撤销：任务级 deadline/预算已移除。
+    expect(true).toBe(true);
   });
 
   it("C4 cancel: cancel receipt then terminal state", async () => {
@@ -509,7 +507,7 @@ d("PTS-10 任务协议韧性", () => {
         let inFlight = false;
         for (let i = 0; i < 70; i++) {
           const st = await H.sqliteScalar(
-            `SELECT state FROM tool_calls WHERE run_id='${taskId}' AND tool_name='bash' LIMIT 1;`,
+            `SELECT state FROM tool_calls WHERE task_id='${taskId}' AND tool_name='bash' LIMIT 1;`,
           );
           if (st === "Reserved" || st === "Started") {
             inFlight = true;
@@ -575,11 +573,11 @@ d("PTS-06 多 IR 房间评审", () => {
     expect(done.result.state).toBe("Completed");
 
     const turns = await H.sqliteScalar(
-      `SELECT count(*) FROM discussion_turns WHERE run_id='${taskId}';`,
+      `SELECT count(*) FROM discussion_turns WHERE task_id='${taskId}';`,
     );
     expect(Number(turns)).toBeGreaterThanOrEqual(2);
     const consumed = await H.sqliteScalar(
-      `SELECT count(*) FROM discussion_turns WHERE run_id='${taskId}' AND status='Consumed';`,
+      `SELECT count(*) FROM discussion_turns WHERE task_id='${taskId}' AND status='Consumed';`,
     );
     expect(Number(consumed)).toBeGreaterThanOrEqual(2);
 

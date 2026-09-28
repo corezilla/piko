@@ -7,7 +7,6 @@ import type { TaskRequest, RuntimeConfig } from "./types.js";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { BearerAuth } from "./auth.js";
-import type { MatrixRuntime } from "./matrix.js";
 
 async function body(req: IncomingMessage, max = 2 * 1024 * 1024) {
   let size = 0;
@@ -41,12 +40,11 @@ export class ApiServer {
     private config: RuntimeConfig,
     private store: TaskStore,
     private auth: BearerAuth,
-    private matrix: MatrixRuntime,
   ) {
     this.server = createServer((req, res) => void this.route(req, res));
   }
-  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth, matrix: MatrixRuntime) {
-    const x = new ApiServer(config, store, auth, matrix);
+  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth) {
+    const x = new ApiServer(config, store, auth);
     const schema = JSON.parse(await readFile(new URL("../interfaces/schemas/agent-runtime-v0.3.schema.json", import.meta.url), "utf8"));
     const AjvCtor: any = (Ajv as any).default ?? Ajv;
     const formats: any = (addFormats as any).default ?? addFormats;

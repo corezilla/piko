@@ -41,7 +41,7 @@ async function makeStack(mock: MockLlmtier, opts?: { timeoutMs?: number }) {
   config.listen.port = 21000 + Math.floor(Math.random() * 20000);
   const store = new TaskStore(":memory:", 1000);
   const matrix = new MatrixRuntime(config, store);
-  const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("test-token")), matrix);
+  const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("test-token")));
   await server.listen();
   const pi = new PiRuntime(config, tools, store, "test-key");
   const worker = new RunWorker(config, store, pi, matrix, new Transfer(config));

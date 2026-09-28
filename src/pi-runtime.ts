@@ -73,7 +73,7 @@ export class PiRuntime {
     });
     const providerDebug=process.env.PIKO_PROVIDER_DEBUG==="1";
     const debugFile=process.env.PIKO_PROVIDER_DEBUG_FILE??`${this.config.pi.session_root}/provider-debug.jsonl`;
-    const debugLine=(obj:Record<string,unknown>)=>{if(!providerDebug)return;try{appendFileSync(debugFile,JSON.stringify({ts:new Date().toISOString(),run_id:runId,...obj})+"\n")}catch{/* debug writes must not break execution */}};
+    const debugLine=(obj:Record<string,unknown>)=>{if(!providerDebug)return;try{appendFileSync(debugFile,JSON.stringify({ts:new Date().toISOString(),task_id:runId,...obj})+"\n")}catch{/* debug writes must not break execution */}};
     let payloadSentAt=0;
     created.harness.hooks.on("before_payload",event=>{payloadSentAt=Date.now();if(providerDebug){const payload=(event as {payload?:unknown}).payload;debugLine({kind:"request",model,bytes:JSON.stringify(payload??null).length})}return undefined;});
     created.harness.hooks.on("after_response",event=>{

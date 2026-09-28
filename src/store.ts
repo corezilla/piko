@@ -193,7 +193,7 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
       if (q >= capacity) return { kind: "queue_full" };
       const accepted = now();
       const purge = new Date(Date.now() + 7 * 864e5).toISOString();
-      const staging: InputStaging = { state: "none", fetched: [], failed: [] };
+      const staging: InputStaging = { state: task.input_refs?.length ? "pending" : "none", fetched: [], failed: [] };
       const delivery: ArtifactDelivery = { state: "none", delivered: [], failed: [] };
       this.db
         .prepare("INSERT INTO tasks VALUES(?,?,?,?,?,?)")
@@ -351,6 +351,16 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
   }
   scanNonTerminal(): string[] {
     return (this.db.prepare("SELECT task_id FROM runs WHERE state NOT IN('Completed','Failed','Cancelled') ORDER BY accepted_at").all() as any[]).map((x) => x.task_id);
+  }
+
+  /** P-INPUT pre-slot gate: the oldest Queued Run whose inputs still need staging. */
+  nextNeedingStaging(): string | null {
+    const r = this.db
+      .prepare(
+        "SELECT task_id FROM runs WHERE state='Queued' AND json_extract(input_staging_json,'$.state')='pending' ORDER BY accepted_at,task_id LIMIT 1",
+      )
+      .get() as any;
+    return r?.task_id ?? null;
   }
 
   /** M003 §5.1.14 (ledger) — model/tool attempt reservation (no budget caps). */
@@ -675,6 +685,22 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
       this.db
         .prepare("UPDATE execution_slot SET task_id=NULL,owner_id=NULL,boot_id=NULL,heartbeat_at=NULL WHERE slot_id=1 AND task_id=? AND lease_epoch=?")
         .run(result.task_id, epoch);
+    });
+  }
+
+  /** Terminal publish for a Queued Run that never took the slot (P-INPUT precondition failure). */
+  finishQueued(result: AgentResult): void {
+    this.tx(() => {
+      const r = this.db.prepare("SELECT state FROM runs WHERE task_id=?").get(result.task_id) as any;
+      if (!r) throw new PikoError("NotFound", 404, "run not found");
+      if (isTerminal(r.state)) return;
+      if (!this.db.prepare("SELECT 1 FROM results WHERE task_id=? AND generation=?").get(result.task_id, result.generation)) {
+        this.insertResult(result);
+      }
+      this.db
+        .prepare("UPDATE runs SET state=?,finished_at=?,discussion_intake_state=CASE WHEN discussion_intake_state='Disabled' THEN 'Disabled' ELSE 'Closed' END WHERE task_id=?")
+        .run(result.state, result.published_at, result.task_id);
+      this.db.prepare("UPDATE discussion_turns SET status='Abandoned' WHERE task_id=? AND status IN('Pending','QueuedInPi')").run(result.task_id);
     });
   }
 

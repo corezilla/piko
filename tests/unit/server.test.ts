@@ -24,7 +24,7 @@ async function fixture(capacity = 10) {
   config.queue.capacity = capacity;
   const store = new TaskStore(":memory:", 1000);
   const matrix = new MatrixRuntime(config, store, undefined);
-  const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("token")), matrix);
+  const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("token")));
   await server.listen();
   cleanups.push(async () => {
     await server.close();

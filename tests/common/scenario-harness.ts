@@ -57,9 +57,6 @@ export interface RunParams {
   write: string[];
   output: string[];
   profile?: string;
-  max_model_calls?: number;
-  max_tool_calls?: number;
-  deadline_secs?: number;
   cancel_after?: number;
 }
 
