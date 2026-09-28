@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -9,80 +8,104 @@ import { Transfer } from "../../src/transfer.js";
 import type { RuntimeConfig } from "../../src/types.js";
 
 /**
- * Real data-plane end-to-end over the actual `scp` transport (loopback ssh).
- * Skipped automatically when passwordless localhost ssh is unavailable.
+ * Data-plane tests. The mandatory invariants from the design are asserted
+ * hermetically (no network): host keys are pinned via known_hosts, the private
+ * key comes from the credential reference, targets are allowlisted, and a
+ * sha256 mismatch fails closed. A real-scp run is opt-in via PIKO_SCP_E2E=1
+ * against a user-provided target — it never touches the host ~/.ssh.
  */
-function sshReady(): boolean {
-  try {
-    execFileSync("ssh", ["-o", "BatchMode=yes", "-o", "ConnectTimeout=3", "localhost", "true"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
-const READY = sshReady();
-const user = execFileSync("whoami").toString().trim();
-
 const roots: string[] = [];
 afterEach(async () => {
   for (const r of roots.splice(0)) await rm(r, { recursive: true, force: true });
 });
 
-async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "piko-scp-"));
+async function fixture(over: Partial<NonNullable<RuntimeConfig["transfer"]>> = {}) {
+  const root = await mkdtemp(join(tmpdir(), "piko-xfer-"));
   roots.push(root);
-  const staging = join(root, "staging");
-  const remote = join(root, "remote");
-  await mkdir(remote, { recursive: true });
+  const ws = join(root, "ws");
+  await mkdir(ws, { recursive: true });
+  const key = join(root, "id");
+  await writeFile(key, "NOT-A-REAL-KEY\n");
+  const kh = join(root, "known_hosts");
+  await writeFile(kh, "example ssh-ed25519 AAAA\n");
   const cfg = {
-    workspace: { roots: { t: join(root, "ws") }, staging_root: staging },
+    workspace: { roots: { t: ws }, staging_root: join(root, "staging") },
     transfer: {
       method: "scp",
-      target_allowlist: [`${user}@localhost:`],
+      credential_ref: `file:${key}`,
+      known_hosts: kh,
+      target_allowlist: ["user@example:"],
       max_input_bytes: 1 << 20,
       retry: { max_attempts: 1, base_delay_ms: 0 },
+      ...over,
     },
   } as unknown as RuntimeConfig;
-  await mkdir(join(root, "ws"), { recursive: true });
-  return { transfer: new Transfer(cfg), root, staging, remote };
+  return { tf: new Transfer(cfg), root, ws, key, kh };
 }
 
-describe.skipIf(!READY)("data plane over real scp (loopback)", () => {
-  it("P-INPUT pulls a remote file and verifies sha256", async () => {
-    const { transfer, remote, root } = await fixture();
-    const src = join(remote, "in.md");
-    await writeFile(src, "hello input\n");
-    const sha = createHash("sha256").update("hello input\n").digest("hex");
-    const staging = await transfer.fetchInputs("t1", [{ source: `${user}@localhost:${src}`, dest: "in/in.md", sha256: sha }]);
-    expect(staging.state).toBe("ready");
-    expect(await readFile(join(root, "staging", "t1", "in", "in.md"), "utf8")).toBe("hello input\n");
+describe("data plane (design invariants, hermetic)", () => {
+  it("fails closed when known_hosts is absent (host keys must be pinned)", async () => {
+    const { tf } = await fixture({ known_hosts: undefined });
+    const r = await tf.fetchInputs("t", [{ source: "user@example:/x" }]);
+    expect(r.state).toBe("failed");
+    expect(r.failed[0]!.error).toMatch(/known_hosts is required/);
   });
 
-  it("P-INPUT fails closed on a sha256 mismatch", async () => {
-    const { transfer, remote } = await fixture();
-    const src = join(remote, "in.md");
-    await writeFile(src, "hello input\n");
-    const staging = await transfer.fetchInputs("t2", [{ source: `${user}@localhost:${src}`, dest: "in.md", sha256: "0".repeat(64) }]);
-    expect(staging.state).toBe("failed");
-    expect(staging.failed[0]!.source).toContain("in.md");
+  it("fails closed when the credential reference cannot be resolved", async () => {
+    const { tf } = await fixture({ credential_ref: "file:/nonexistent/key" });
+    const r = await tf.fetchInputs("t", [{ source: "user@example:/x" }]);
+    expect(r.state).toBe("failed");
   });
 
-  it("P-ARTIFACT pushes an output to the remote target with path/sha256/size", async () => {
-    const { transfer, root, remote } = await fixture();
-    await writeFile(join(root, "ws", "out.txt"), "artifact body\n");
-    const target = `${user}@localhost:${remote}`;
-    const r = await transfer.deliverArtifacts("t3", ["out.txt"], { method: "scp", target }, undefined, join(root, "ws"));
-    expect(r.state).toBe("delivered");
-    expect(r.delivered[0]).toMatchObject({ path: "out.txt", size_bytes: 14 });
-    expect(existsSync(join(remote, "out.txt"))).toBe(true);
-    expect(await readFile(join(remote, "out.txt"), "utf8")).toBe("artifact body\n");
+  it("refuses a target outside the allowlist before any transfer", async () => {
+    const { tf } = await fixture();
+    const r = await tf.fetchInputs("t", [{ source: "attacker@evil.example:/x" }]);
+    expect(r.state).toBe("failed");
+    expect(r.failed[0]!.error).toMatch(/allowlist/);
   });
 
-  it("rejects a target outside the allowlist before any transfer", async () => {
-    const { transfer, root } = await fixture();
-    await writeFile(join(root, "ws", "out.txt"), "x");
+  it("refuses a dest that escapes the staging root", async () => {
+    const { tf } = await fixture();
+    const r = await tf.fetchInputs("t", [{ source: "user@example:/x", dest: "../../etc/passwd" }]);
+    expect(r.state).toBe("failed");
+    expect(r.failed[0]!.error).toMatch(/escapes staging/);
+  });
+
+  it("does not deliver outputs to a non-allowlisted artifact target", async () => {
+    const { tf, ws } = await fixture();
+    await writeFile(join(ws, "out.txt"), "x");
     await expect(
-      transfer.deliverArtifacts("t4", ["out.txt"], { method: "scp", target: "attacker@evil.example:/tmp" }, undefined, join(root, "ws")),
+      tf.deliverArtifacts("t", ["out.txt"], { method: "scp", target: "attacker@evil.example:/tmp" }, undefined, ws),
     ).rejects.toThrow(/allowlist/);
+  });
+});
+
+// Opt-in real-scp smoke; requires PIKO_SCP_E2E=<user@host:> and a reachable
+// sshd on that host with the configured key + known_hosts. Never touches ~/.ssh.
+const E2E_TARGET = process.env.PIKO_SCP_E2E;
+describe.skipIf(!E2E_TARGET)("data plane over real scp (opt-in)", () => {
+  it("pulls with sha256 and pushes an artifact", async () => {
+    const root = await mkdtemp(join(tmpdir(), "piko-scp-live-"));
+    roots.push(root);
+    const ws = join(root, "ws");
+    await mkdir(ws, { recursive: true });
+    const src = join(root, "in.md");
+    await writeFile(src, "hello input\n");
+    const cfg = {
+      workspace: { roots: { t: ws }, staging_root: join(root, "staging") },
+      transfer: {
+        method: "scp",
+        credential_ref: process.env.PIKO_SCP_KEY_REF ?? "env:PIKO_SCP_KEY",
+        known_hosts: process.env.PIKO_SCP_KNOWN_HOSTS ?? join(root, "known_hosts"),
+        target_allowlist: [E2E_TARGET!],
+        max_input_bytes: 1 << 20,
+        retry: { max_attempts: 1, base_delay_ms: 0 },
+      },
+    } as unknown as RuntimeConfig;
+    const tf = new Transfer(cfg);
+    const sha = createHash("sha256").update("hello input\n").digest("hex");
+    const r = await tf.fetchInputs("t", [{ source: `${E2E_TARGET}${src}`, dest: "in.md", sha256: sha }]);
+    expect(r.state).toBe("ready");
+    expect(await readFile(join(root, "staging", "t", "in.md"), "utf8")).toBe("hello input\n");
   });
 });

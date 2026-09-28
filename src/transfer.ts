@@ -62,10 +62,21 @@ export class Transfer {
   }
 
   private async scpArgs(remote: string, local: string, direction: "pull" | "push") {
-    const args: string[] = ["-B", "-q", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes"];
-    if (this.config.transfer.known_hosts) args.push("-o", `UserKnownHostsFile=${this.config.transfer.known_hosts}`);
+    // Design: host keys are PINNED via known_hosts (never auto-accepted); the private
+    // key comes from the credential reference (secret mount). Both are mandatory for
+    // scp — fail closed rather than fall back to ~/.ssh or a password prompt.
+    const knownHosts = this.config.transfer.known_hosts;
+    if (!knownHosts) throw new PikoError("InputFetchFailed", 422, "transfer.known_hosts is required for scp (host keys must be pinned)");
     const key = await this.scpKeyPath();
-    if (key) args.push("-i", key);
+    if (!key) throw new PikoError("InputFetchFailed", 422, "transfer.credential_ref is required for scp (private key via secret)");
+    const args: string[] = [
+      "-B", "-q",
+      "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes",
+      "-o", "IdentitiesOnly=yes",
+      "-o", `UserKnownHostsFile=${knownHosts}`,
+      "-i", key,
+    ];
     if (direction === "pull") args.push("--", remote, local);
     else args.push("--", local, remote);
     return args;
