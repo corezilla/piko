@@ -4,7 +4,9 @@
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "type": "module",
-  "engines": {"node": ">=22.19.0"},
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "start": "tsx src/main.ts",
@@ -12,7 +14,8 @@
     "test": "vitest run",
     "check": "tsc -p tsconfig.json --noEmit && vitest run && python3 tests/contract/validate_v03_contract.py",
     "test:scenario": "vitest run --config vitest.live.config.ts tests/integration/scenario-e2e.test.ts",
-    "test:live": "vitest run --config vitest.live.config.ts"
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "test:xfer": "PIKO_SCP_REMOTE=${PIKO_SCP_REMOTE:-} vitest run tests/integration/transfer-scp-live.test.ts"
   },
   "dependencies": {
     "ajv": "8.17.1",
