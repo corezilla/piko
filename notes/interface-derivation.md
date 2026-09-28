@@ -177,3 +177,22 @@
 - 模块设计 10 份 + 新建 M010 `transfer`（definition）；ISD 10 份 + 新建 M010 ISD。需：`run_id`/limits/进程模型（P0/P1）同步、M010 归口、§14 接口分配。
 - 验证文档（测试规格/计划）里 limits（deadline/预算）与 `run_id` 残留（~20 文件）。
 - `system-design` §2.2 PK 表与需求对齐。
+
+## 10. 校验口径（重要）
+
+`validate-design` 默认读取**它所在 STD checkout 的工作树**，而项目只用 **lock 固定**的 revision
+（`docs/std.lock.json.source_revision`）。若 STD 工作树已前进（本机当前 HEAD `318b037` 比锁定的
+`46e0806` 新），会出现 `metadata.template-version-mismatch` / `source-manifest.hash-mismatch`
+——**这是 STD 侧漂移，不是项目缺陷**（STD §3：项目不自动跟随 STD）。
+
+正确校验方式（在锁定 revision 上跑）：
+
+```
+git -C /Users/ben/work/STD worktree add /tmp/std-locked \
+  $(python3 -c "import json;print(json.load(open('/Users/ben/work/piko/docs/std.lock.json'))['source_revision'])")
+python3 /tmp/std-locked/scripts/validate-design --project-root /Users/ben/work/piko
+git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
+```
+
+在该口径下，本项目当前结果 = **new=24**（全部是 `.review-materials/slinky-round1-*` 旧副本缺 sidecar，
+既有、与本轮无关）。
