@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-task-repository-impl",
   "document_type": "design.implementation",
-  "document_version": "0.1.1",
+  "document_version": "0.1.2",
   "title": "Piko 实现规格：task-repository（M003）",
   "document_owner": "Piko Implementation Owner",
   "authors": [

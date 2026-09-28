@@ -6,7 +6,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-repository-impl` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
@@ -149,6 +149,12 @@
 - **实现自由度**：日志字段实现；不可记录 `task_json`/`result_json` 正文或 credential。
 
 - **原 V/Case 及本地验证位置**：`VRC-REPO-004`（日志不含敏感字段由审查核对）。
+
+### 1.2.9 `H-REPO-PURGE` · 运维清理
+
+- **上游信息项 / 规则 ID**：`CAP-PURGE`（`system-design` §3.6/§8.1 `Operator Purge`）、需求 `PK-19`；本模块为唯一 writer。
+- **ISD 细化内容 / 章节**：§3.9 `purge.ts`；§5.1.15 `purge`；§6.8 `R-REPO-PURGE`；§9.1.9 `VRC-REPO-009`。
+- **原 V/Case 及本地验证位置**：`VRC-REPO-009`。
 
 ## 2. 既有实现差异（条件章节）
 
@@ -375,6 +381,10 @@ flowchart LR
 - **构建目标 / 生成源 / 输出**：`tsx src/main.ts`；`tsc` 类型检查。
 
 - **实现状态**：`IN_PROGRESS`。
+
+### 3.9 `src/store/purge.ts`
+
+`purge(scope): PurgeReceipt`：operator 触发的清理；删大对象、保留 tombstone；写 `audit_events`。
 
 ## 4. 数据结构设计
 
@@ -1198,6 +1208,13 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-006`。
 - **装配、合法及拒绝实例**：合法重复 reserve；拒绝 `replay='never'` 重放。`NOT_RUN`。
 
+#### 5.1.15 `TaskRepository.purge(scope: { task_id: string } | "all"): PurgeReceipt`
+
+- **输入**：`{task_id}` 或 `"all"`（全局 retention GC）。
+- **行为**：单事务删大对象（`matrix_sends`/`discussion_turns`/`discussion_access_loss`/`provider_calls`/`tool_calls`/`model_attempts`/`results`/`run_sessions`）→ 删 `runs` → 置 `tasks.identity_state='Tombstone'`、`task_json=NULL`；**保留 tombstone**；写 `audit_events`。
+- **输出**：`PurgeReceipt{ removed, tombstones }`。
+- **不变量**：`task_id` 仍永不复用；同 ID 之后 POST/GET 仍 410。
+
 ### 5.2 消息与数据流接口（适用时）
 
 **N/A。** 本层无跨边界消息/队列/流：与 M001/M004/M005/M006/M008 的协作均为进程内函数调用（已记于 §5.1）。依据：ISD 规范 §3，不为满足模板虚构队列。
@@ -1361,6 +1378,21 @@ flowchart TD
 - **失败、取消与清理**：ROLLBACK 保旧库；启动 F1。
 - **代表输入与中间值**：见 §7.2.3 六类库状态。
 - **规则 / 接口 / 验证引用**：§5.1.13；`R-REPO-MIGRATE`；`VRC-REPO-005`。
+
+### 6.8 `R-REPO-PURGE` · 运维清理（伪代码）
+
+```
+BEGIN IMMEDIATE
+FOR id IN (scope==all ? terminalExpiredTaskIds() : [scope.task_id]) :
+  IF identity_state=='Tombstone': CONTINUE
+  DELETE 大对象 WHERE task_id=id
+  DELETE runs WHERE task_id=id
+  UPDATE tasks SET identity_state='Tombstone', task_json=NULL WHERE task_id=id
+INSERT audit_events(event='event.audit.forced-purge', task_id, at)
+COMMIT -> PurgeReceipt
+```
+
+- **不变量**：tombstone 永久、`task_id` 不复用；`all` 只清到期的。
 
 ## 7. 并发、失败、持久化与安全生命周期
 
@@ -1528,7 +1560,7 @@ flowchart TD
 - **文件与目录权限 / umask**：目录由 `mkdirSync` 创建；权限由宿主/部署 umask 决定，进程不额外放宽。
 - **Symlink / hardlink / 路径替换策略**：路径由 config 提供绝对路径；canonicalize 由 M002/M000 在 S4 处理；本模块不跟随符号链接语义，按 SQLite 直接打开。
 - **备份 / 恢复 / 敏感数据静态保护**：不在本模块加密；DB 内含 `task_json`（可能敏感），依赖宿主磁盘保护与 operator 备份策略。
-- **删除 / 擦除 / 保留期限**：purge 按 `retention.minimum_query_days` 删除大对象，保留 tombstone。
+- **删除 / 擦除 / 保留期限**：`purge`（§5.1.15，operator 授权）按 retention 删除大对象、**保留 tombstone**；`task_id` 永不复用；写 `event.audit.forced-purge`。
 - **磁盘耗尽 / 只读文件系统行为**：`SQLITE_FULL`/`SQLITE_READONLY` → 事务失败；启动时 → `StoreUnavailable` → F1。
 - **检查时点 / 判定 / 拒绝或降级出口**：`openStore` 打开与 `assertIntegrity`；运行期每个事务；无降级。
 - **验证项**：`VRC-REPO-005`。
@@ -1667,6 +1699,11 @@ flowchart TD
 
 <a id="isd-tasks"></a>
 
+### 9.1.9 `VRC-REPO-009` · 运维 purge
+
+- **验证要求**：`purge({task_id})` / `purge("all")` 删除大对象后，`{task_id, Gone}` tombstone 仍在；之后 POST/GET 仍 410；写 `event.audit.forced-purge`。
+- **入口 / 证据**：局部 `tests/unit/purge.test.ts`（Planned）；`NOT_RUN`。
+
 ### 9.2.1 `T-REPO-01` · 冻结 slot 原语与 DDL 基线
 
 - **顺序 / 前置项**：先于所有实现；依赖 M004 端口（`OQ-REPO-001`）。
@@ -1706,6 +1743,10 @@ flowchart TD
 - **完成检查**：`VRC-REPO-002/003/006/008`；PK-T01/PK-T05/PK-T15 集成可用。
 - **实现状态**：`PLANNED`。
 - **验证状态 / Run**：`NOT_RUN`。
+
+### 9.2.5 `T-REPO-05` · 实现 `purge.ts` + 审计
+
+实现 §3.9 / §5.1.15 / §6.8，按 §9.1.9 验证。
 
 ## 10. 映射、复核与未决项
 
@@ -1768,6 +1809,10 @@ flowchart TD
 - **验证项**：`VRC-REPO-006`。
 - **实现状态**：`PLANNED`。
 - **验证状态 / Run**：`NOT_RUN`。
+
+### 10.1.7 `MAP-REPO-IF-PURGE` · `CAP-PURGE` 映射
+
+`system-design` `CAP-PURGE`/`Operator Purge` ↔ §5.1.15 `purge`；tombstone 语义与 `VRC-REPO-001` 一致。
 
 ### 10.2 状态一致性复核
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-runtime-release-and-operations-v0.3` |
-| Document Version | `0.1.0` |
+| Document Version | `0.1.1` |
 | Status | `Approved` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Operator |
 | Authors | corezilla |
 | Created Date | `2026-09-17` |
-| Last Modified Date | `2026-09-25` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `operations.release` |
 | Template Version | `0.2.0` |
 | Template Conformance | `tailored` |
@@ -49,7 +49,7 @@
 
 ## 6. 升级、迁移、回滚和恢复
 
-升级前停止新受理并等待或明确fence当前worker；保存RunSessionRecord/Result generation边界，再迁移schema。回滚只允许到能读取现有记录的版本。重启恢复按Result→Run→lease→确定性Pi session→Harness open operation/result/transcript顺序对账；unknown side effect不重放。任何状态改变、credential修改、强制lease回收或数据修复需operator授权。
+升级前停止新受理并等待或明确fence当前worker；保存RunSessionRecord/Result generation边界，再迁移schema。回滚只允许到能读取现有记录的版本。重启恢复按Result→Run→lease→确定性Pi session→Harness open operation/result/transcript顺序对账；unknown side effect不重放。任何状态改变、credential修改、强制lease回收或数据修复需operator授权。 **运维 purge**（强制清理指定 `task_id` 或全局 retention GC）属 operator-authorized 维护写操作。
 
 ## 7. 操作、监控、告警与 SLO
 
@@ -61,7 +61,7 @@
 
 ## 9. 数据保留、备份、审计与安全
 
-Run、完整任务定义与Result至少保存到`accepted_at + storage.retention_days`（默认 7d），随后永久保留最小`{task_id, Gone}` tombstone；活动或unknown事实继续保留。备份必须成组覆盖SQLite与Harness session，并记录同一快照边界；Matrix token与Secret不进入普通诊断包。恢复不得复活旧lease、取消意图或已撤销权限。
+Run、完整任务定义与Result至少保存到`accepted_at + storage.retention_days`（默认 7d），随后永久保留最小`{task_id, Gone}` tombstone；活动或unknown事实继续保留。备份必须成组覆盖SQLite与Harness session，并记录同一快照边界；Matrix token与Secret不进入普通诊断包。恢复不得复活旧lease、取消意图或已撤销权限。 **运维 purge**：operator 可对指定 `task_id` 或全局执行 retention GC——删除大对象但**永久保留 `{task_id, Gone}` tombstone**，写 `audit_events`（`event.audit.forced-purge`）；purge **不改变幂等语义**（`task_id` 永不复用）。Slinky / HTTP API 不得触发删除。
 
 ## 10. Acceptance、交接与退役
 
