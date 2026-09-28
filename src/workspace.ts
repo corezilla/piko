@@ -10,12 +10,18 @@ export async function resolveWorkspace(ref:string,roots:Record<string,string>):P
   const configured=roots[ref]; if(!configured)throw new PikoError("InvalidWorkspace",422,`unknown workspace_ref: ${ref}`);
   return realpath(configured);
 }
+/** realpath of the nearest existing ancestor, so validation works before a dir is created. */
+async function realpathNearestAncestor(p:string):Promise<string>{
+  let cur=p;
+  for(;;){try{return await realpath(cur)}catch{const parent=dirname(cur);if(parent===cur)throw new PikoError("ScopeDenied",403,"no resolvable ancestor");cur=parent}}
+}
 export async function authorizePath(workspace:string,input:string,allowed:string[],write=false):Promise<string>{
   const wsReal=await realpath(workspace).catch(()=>workspace);
   const candidate=resolve(workspace,input);
   if(!inside(workspace,candidate))throw new PikoError("ScopeDenied",403,"path escapes workspace");
   let checked:string;
-  try{checked=await realpath(write?dirname(candidate):candidate)}catch{checked=await realpath(dirname(candidate))}
+  try{checked=await realpath(write?dirname(candidate):candidate)}
+  catch{checked = write ? await realpathNearestAncestor(dirname(candidate)) : await realpathNearestAncestor(candidate)}
   const target=write?resolve(checked,candidate.split(sep).at(-1)!):checked;
   if(!inside(wsReal,target))throw new PikoError("ScopeDenied",403,"path resolves outside workspace");
   const allowedAbs=allowed.map(p=>resolve(wsReal,p));
@@ -29,4 +35,19 @@ export async function collectOutputs(task:TaskRequest,workspace:string){
     try{const absolute=await authorizePath(workspace,p,[...task.permissions.read_paths,...task.permissions.write_paths]);const s=await stat(absolute);if(!s.isFile())continue;const data=await readFile(absolute);out.push({path:p,sha256:createHash("sha256").update(data).digest("hex"),size_bytes:data.byteLength})}catch{/* absent output is not fabricated */}
   }
   return out;
+}
+
+/** Create the parent directories the task is authorised to write into. */
+export async function ensureTaskDirs(workspace: string, task: TaskRequest): Promise<void> {
+  const { mkdir } = await import("node:fs/promises");
+  const dirs = new Set<string>();
+  for (const p of [...task.permissions.write_paths, ...task.output_paths]) {
+    const abs = resolve(workspace, p);
+    if (!inside(workspace, abs)) continue;
+    dirs.add(dirname(abs));
+  }
+  for (const d of dirs) {
+    if (!inside(workspace, d)) continue;
+    await mkdir(d, { recursive: true });
+  }
 }

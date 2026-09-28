@@ -6,7 +6,7 @@ import type { Channel, Fact } from "./ipc.js";
 import type { PiRuntime } from "./pi-runtime.js";
 import type { MatrixRuntime } from "./matrix.js";
 import type { Transfer } from "./transfer.js";
-import { collectOutputs, resolveWorkspace } from "./workspace.js";
+import { collectOutputs, resolveWorkspace, ensureTaskDirs } from "./workspace.js";
 import { isPermanentMatrixError } from "./matrix.js";
 import { isProviderUnavailableMessage } from "./pi-runtime.js";
 
@@ -134,6 +134,7 @@ export class RunWorker {
     const accessLostFailure = { code: "DiscussionAccessLost" as const, cause_class: "Authorization" as const, message: "Piko lost access to the discussion room." };
     try {
       const workspace = await resolveWorkspace(task.workspace_ref, this.config.workspace.roots);
+      await ensureTaskDirs(workspace, task);
       timer = setInterval(() => void this.report({ kind: "heartbeat", at: Date.now() }).catch(() => {}), 1000);
       if (accessLost()) throw Object.assign(new Error(accessLostFailure.message), { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
 
