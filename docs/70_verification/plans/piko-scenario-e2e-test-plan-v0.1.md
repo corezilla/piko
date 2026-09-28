@@ -120,6 +120,30 @@
 - 公共任务参数：本版无任务级 deadline/预算（`PK-04` 撤销）；
   逐 case 参数见规格 §3.1。
 
+### 5.1 数据面（scp）测试环境准备与复位
+
+数据面（`input_refs` / `artifact_target`，`PK-21`）的 e2e **不使用运行环境的 `~/.ssh`**；测试自带隔离的 sshd 与凭据。
+
+**环境准备（幂等脚本 `scripts/datanode-env.sh`，建议）**
+1. **隔离 HOME**：为本次运行创建临时 `HOME`（如 `var/datanode/home`），所有 ssh 配置、`known_hosts`、私钥只存在于该临时目录；不改动真实 `~/.ssh`。
+2. **独立 sshd**：用**临时端口**（非 22）与临时 `sshd_config` 启动一个测试 sshd，`AuthorizedKeysFile` 指向测试 `authorized_keys`，`Subsystem sftp internal-sftp`；测试结束按 PID 关闭。
+3. **测试密钥**：`ssh-keygen` 生成**测试专用** ed25519 密钥；私钥路径作为 `transfer.credential_ref = file:<测试私钥>` 注入；**不得使用真实私钥**。
+4. **固定 host key**：由测试 sshd 的 host key 生成 `known_hosts`（`ssh-keyscan` 到临时端口），作为 `transfer.known_hosts`；**禁止 `accept-new` / 自动接受**。
+5. **预置输入源 / 产出目标**：在临时目录建"远程"输入文件与产出目标目录；`transfer.target_allowlist` 设为该测试目标前缀。
+6. **Piko 配置**：写临时 `runtime.json`，`transfer.method=scp`，接入以上 `credential_ref` / `known_hosts` / `target_allowlist`；`workspace.roots` 指向临时 workspace。
+
+**环境检查（执行前，任一不过则 Blocked）**
+- 测试 sshd 可达（临时端口）且 `sftp` 子系统可用；
+- `transfer.known_hosts` 存在且**匹配**测试 host key（故意不写入时应被拒绝）；
+- `transfer.credential_ref` 可解析（`file:` 指向存在的测试私钥）；
+- 目标落在 `transfer.target_allowlist` 内（白名单外必须被拒）。
+
+**环境复位（执行后）**
+- 关闭测试 sshd（按 PID）、删除临时 HOME / 私钥 / known_hosts / staging / 目标目录；
+- **不遗留任何真实 `~/.ssh` 改动**；输入源与产出目标目录清空即复位。
+
+**与设计的对应**：设计 §10.3 自检第 8 条（`transfer` 边界：白名单 / `known_hosts` / `credential_ref`）；系统设计 §5.2/§6.5、§13.1 数据面安全边界；`PK-21`、`CON-XFER-001..003`；验证项 `PK-T41`/`PK-T42`。
+
 ## 6. Test Types 与 Case Families（按场景）
 
 - **normal**：PTS-01-C1、PTS-02-C1、PTS-03-C1、PTS-04-C1、PTS-05-C1/C2、PTS-06-C1、PTS-07-C1、PTS-08-C1、PTS-09-C1/C2、PTS-10-C1..C5。

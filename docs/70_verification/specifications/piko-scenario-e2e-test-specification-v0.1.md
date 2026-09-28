@@ -49,7 +49,7 @@ recovery / usage 等不同维度。
   `scripts/scenario-seeds.sh` 确定性重建（先 `rm -rf` 再生成），每个 case 的种子与**冻结指令**
   （`instruction.txt`）都在其中。`workspace_ref="piko"` 解析到仓库根，故所有路径为相对仓库根的路径。
 - **权限前置（实现约束，务必遵守）**：
-  1. `write_paths` 指向的**目录必须预先存在**——`authorizePath` 对写入取父目录 `realpath`，父目录不存在会直接 `ToolFailure(ENOENT)`；种子脚本已创建各 case 的产出目录。
+  1. `write_paths` 的父目录由 **Piko 执行前创建**（`workspace.ensureTaskDirs`，见 §2.1 数据面）；种子脚本仍预建目录以保持确定性。若目录缺失且 Piko 侧未创建，会直接 `ToolFailure(ENOENT)`。
   2. 若 case 需要 agent **读回自己写出的产物**（自检/复核），产出目录必须**同时**列入 `read_paths`；`read` 工具只查 `read_paths`，否则会得到 `ToolFailure(path is outside task permissions)`。
   3. `read_paths` 可覆盖整个 case 子树（含 inputs 与 outputs）；`output_paths` 只用于回收产物 sha256。
 - **指令冻结**：每个 case 的任务指令以 `instruction.txt` 为准，不得临场改写——措辞会改变模型行为（例如是否报告缺失材料、是否在不可行时停止）。指令中的路径必须写成**仓库根相对路径**（`var/scenario-seeds/...`），并要求禁止绝对路径与 `..`，否则模型可能越界触发 `ToolFailure`。
@@ -244,6 +244,30 @@ v0.1 规格的 SC-01..SC-06 六次执行（报告 `piko-scenario-e2e-report-2026
 SC-06→PTS-02-C1、SC-05→PTS-04-C1、SC-04→PTS-05-C1、SC-02→PTS-05-C2（均 PASS）；
 SC-01（设计文档产出）与 SC-03（多语言代码产出）为**补充证据**，分别邻近 PTS-08/PTS-02；
 对应 case 的正式判定以本规格自动化执行结果为准（见 §3.4）。
+
+### 3.5 数据面（scp）环境准备、检查与用例（PK-T41 / PK-T42）
+
+数据面 e2e **自带隔离环境**（临时 HOME + 临时 sshd + 测试密钥 + 固定 `known_hosts`），**绝不改动运行环境的 `~/.ssh`**。准备/复位过程见测试计划 §5.1。
+
+**环境检查（执行前，任一不过则 Blocked）**
+| 检查 | 期望 |
+|---|---|
+| 测试 sshd 可达（临时端口）、`sftp` 子系统可用 | 连通 |
+| `transfer.known_hosts` 存在且匹配测试 host key | 命中；不写入时 scp **拒绝**（不自动接受） |
+| `transfer.credential_ref` 可解析为存在的测试私钥 | 解析成功；缺失时 **fail closed** |
+| 目标落在 `transfer.target_allowlist` | 白名单内放行；白名单外**拒绝**，且不发起传输 |
+| `dest` 不逃逸 workspace/staging | `../../etc/...` 被拒 |
+
+**用例**
+
+| Case | 层级 | 场景 | 步骤 | 期望 | 证据 |
+|---|---|---|---|---|---|
+| PK-T41 | L2 | **输入拉取 = 执行前提** | ① 预置远程输入 `in.md`，`input_refs=[{source,dest,sha256}]`；② 提交任务；③ 轮询状态 | `input_staging` `pending→in_progress→ready` 后才领 slot；产出引用与源一致 | `TaskView.input_staging`；Titan staging 目录；`sha256` 比对 |
+| PK-T41-N | L2 | **输入失败零调用** | ① `sha256` 置错 / 源不可达；② 提交 | 终态 `Failed`，`failure.code=InputFetchFailed`（`Dependency`），`stats.model_calls=0`，**从未领 slot**；同 `task_id` 不重跑（换新 ID 才重试） | Result JSON；`execution_slot` 为空 |
+| PK-T42 | L2 | **产出投递与终态解耦** | ① 任务产出 `out.txt`；`artifact_target` 指向测试目标；② 执行到终态 | 终态 `Completed` 后 `artifact_delivery` `pending→in_progress→delivered`；`Result.outputs` 含 `path/sha256/size`；目标侧文件字节一致 | `TaskView.artifact_delivery`；目标目录文件；`Result.outputs` |
+| PK-T42-F | L2 | **投递失败不改终态** | ① 目标不可达 / 拒绝；② 执行到终态 | 执行终态**仍为 `Completed`**，`failure=null`；`artifact_delivery.state=failed`（逐项 `failed[]`）；有界重试、幂等 `(task_id,generation,path,sha256)` | Result JSON（`failure` 未变）；`artifact_delivery` |
+
+**复位**：关闭测试 sshd、删除临时 HOME/私钥/known_hosts/staging/目标目录；确认未改动真实 `~/.ssh`（`git status` 无关；`authorized_keys` 未见新增行）。
 
 ## 4. 正常、边界、负向与并发场景
 

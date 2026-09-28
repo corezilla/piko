@@ -46,3 +46,14 @@ Piko 只需**注册**，`upstream/pi` 只锁 commit、不改源码。
 - [ ] `config.ts` 现有 `adapter_patches` 字符串检查逻辑（`grep` 某些源文件）**删除**或改为
       "校验该 Pi 版本导出了所需 hook 名"。
 - [ ] 确认 `before_request` 的返回能否注入 Piko 需要的 step/operation id（当前用法在 `pi-runtime.ts:69`）。
+
+## 数据面测试环境（scp）——本机约束与做法
+
+本机有 **Clash HTTP/SOCKS 代理（端口 7897）**，会拦截 `ssh` 出站；因此"起一个临时 sshd 让 scp 连本机"的做法在本机**不可靠**（连接被代理劫持到 7897）。
+
+设计要求的实质是三条不变量，已用**密闭单测**在无网络下强制（`tests/integration/transfer-scp.test.ts`）：
+1. `known_hosts` **必填**、host key **不自动接受**；
+2. 私钥来自 `credential_ref`（secret），**不用** `~/.ssh`；
+3. 目标**白名单**、`dest` 不逃逸。
+
+真实 scp 冒烟**改为 opt-in**（`PIKO_SCP_E2E`，配合 `scripts/datanode-env.sh`），并在有代理/无可用 sshd 时**跳过**——绝不改动运行环境（`~/.ssh`）。
