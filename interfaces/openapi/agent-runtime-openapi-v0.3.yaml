@@ -79,7 +79,7 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
-        '409': {$ref: '#/components/responses/RunNotTerminal'}
+        '409': {$ref: '#/components/responses/TaskNotTerminal'}
         '410': {$ref: '#/components/responses/Gone'}
         '500': {$ref: '#/components/responses/ResultUnavailable'}
 components:
@@ -94,7 +94,7 @@ components:
     Forbidden: {$ref: '#/components/x-error-responses/Forbidden'}
     NotFound: {$ref: '#/components/x-error-responses/NotFound'}
     Conflict: {$ref: '#/components/x-error-responses/Conflict'}
-    RunNotTerminal: {$ref: '#/components/x-error-responses/RunNotTerminal'}
+    TaskNotTerminal: {$ref: '#/components/x-error-responses/TaskNotTerminal'}
     Unprocessable: {$ref: '#/components/x-error-responses/Unprocessable'}
     QueueFull: {$ref: '#/components/x-error-responses/QueueFull'}
     Unavailable: {$ref: '#/components/x-error-responses/Unavailable'}
@@ -127,7 +127,7 @@ components:
       description: task_id 已绑定不同任务定义，或讨论上下文冲突。
       x-error-codes: [TaskConflict, InvalidDiscussionContext]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
-    RunNotTerminal:
+    TaskNotTerminal:
       description: Run 尚未终态，结果不可读取。
       x-error-codes: [TaskNotTerminal]
       content: {application/json: {schema: {$ref: '../schemas/agent-runtime-v0.3.schema.json#/$defs/ErrorEnvelope'}}}
