@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-observability` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -22,12 +22,13 @@ M009 `observability` 解决一个问题：Piko 的每个模块都在产生"这�
 
 observability 只做"采集、整形、脱敏、导出"，**不决策业务**：不改写 Run 状态（M003/MECH-RUN）、不参与调度（M004）、不编排恢复（M005）、不解析 provider 响应（M006/M007）。它从所有模块接收事件，向共享宿主 HTTP server 提供 redacted 诊断/指标端点，向 operator 提供只读诊断快照。audit 的持久化不由本模块拥有：`audit_events` 表的 schema 与事务 authority 属 M003 `task-repository`，observability 只通过 M003 端口追加记录（见 §9.2.1）。
 
-用一次调用说明：M006 `pi-adapter` 在一次模型 attempt 结束时调用 `Observability.emit({event_name:"event.model.attempt", run_id, generation, epoch, level:"info", fields:{attempt_state:"Completed"}})`；observability 先按 `R-OBS-ENVELOPE` 补齐 envelope 必填字段，再按 `R-OBS-REDACT` 删除 deny-list 字段，随后写入日志 sink 并把 `piko.model.attempts.{state}` 计数加一。若 sink 抛错，observability 捕获后走 stderr 兜底并保持调用方流程继续（`R-OBS-FAILOPEN`），返回 `void`，不向业务抛错。
+用一次调用说明：M006 `pi-adapter` 在一次模型 attempt 结束时调用 `Observability.emit({event_name:"event.model.attempt", task_id, generation, epoch, level:"info", fields:{attempt_state:"Completed"}})`；observability 先按 `R-OBS-ENVELOPE` 补齐 envelope 必填字段，再按 `R-OBS-REDACT` 删除 deny-list 字段，随后写入日志 sink 并把 `piko.model.attempts.{state}` 计数加一。若 sink 抛错，observability 捕获后走 stderr 兜底并保持调用方流程继续（`R-OBS-FAILOPEN`），返回 `void`，不向业务抛错。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M009 / `observability` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | 横切（P0/P1 两进程内；audit/指标权威落 P0）（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §16.1 下游承接表；本模块登记见 §3.2 M009 行、§16.1 M009 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | 结构化日志/metric/audit 的集中口径、集中脱敏与失败隔离，避免各模块自建观测面并漂移 |
@@ -97,7 +98,7 @@ observability 的可观察功能是四个进程内操作：发送结构化日志
 
 - **调用方**：全部模块（M000-M008），在状态迁移、attempt、工具、Matrix、恢复、审计性操作等时点各调用若干次。
 
-- **输入与前提**：`LogEventInput{event_name, run_id?, generation?, epoch?, level, fields?, redacted_error_class?}`；进程已 READY 后；调用方不传 credential/instruction 正文。
+- **输入与前提**：`LogEventInput{event_name, task_id?, generation?, epoch?, level, fields?, redacted_error_class?}`；进程已 READY 后；调用方不传 credential/instruction 正文。
 
 - **行为**：按 `R-OBS-ENVELOPE` 补齐 `instance_id`/`boot_id`/`generation`/`occurred_at` 等必填字段；按 `R-OBS-REDACT` 删除 deny-list 字段；序列化为单行 JSON；经 `SinkFanout` 写日志 sink（stdout + 有界内存 tail ring，`R-OBS-RING`）；若 `event_name` 属已知集，同步驱动对应 metric（§8.3）。
 
@@ -105,7 +106,7 @@ observability 的可观察功能是四个进程内操作：发送结构化日志
 
 - **错误与边界**：未知 `event_name`：拒绝采集并记 `ERR-OBS-UNKNOWN-EVENT`（编程错误），但不抛出到业务；sink 抛错：走 `R-OBS-FAILOPEN` 兜底（stderr 一次），调用方继续。
 
-- **验收条件**：给定 `event.model.attempt` + `run_id` + `fields:{attempt_state:"Completed"}`，日志 sink 收到一行 JSON，必含 `event_name`/`instance_id`/`generation`/`occurred_at` 且不含 credential/instruction 字段；`piko.model.attempts.{state}` 计数加一。
+- **验收条件**：给定 `event.model.attempt` + `task_id` + `fields:{attempt_state:"Completed"}`，日志 sink 收到一行 JSON，必含 `event_name`/`instance_id`/`generation`/`occurred_at` 且不含 credential/instruction 字段；`piko.model.attempts.{state}` 计数加一。
 
 ### 2.2 `F-OBS-METRIC` · 记录 metric
 
@@ -129,7 +130,7 @@ observability 的可观察功能是四个进程内操作：发送结构化日志
 
 - **调用方**：M000 `bootstrap`（credential 轮换、schema migration）、M004/M005（forced fence）、M006（responses probe）。
 
-- **输入与前提**：`AuditRecordInput{event_name（`event.audit.*` 之一）, actor_class, run_id?, detail}`；M003 `task-repository` 可用。
+- **输入与前提**：`AuditRecordInput{event_name（`event.audit.*` 之一）, actor_class, task_id?, detail}`；M003 `task-repository` 可用。
 
 - **行为**：按 `R-OBS-REDACT` 对 `detail` 脱敏；经 `IF-OBS-AUDITSTORE`（M003）在单事务内 INSERT `audit_events`（`occurred_at` 由 M003 以其 UTC now 写入）；同时发一条同 `event_name` 的结构化日志事件。
 
@@ -137,7 +138,7 @@ observability 的可观察功能是四个进程内操作：发送结构化日志
 
 - **错误与边界**：非 `event.audit.*` 名称：拒绝（`ERR-OBS-UNKNOWN-EVENT`）。M003 不可用：按 `R-OBS-FAILOPEN` 记录降级痕迹并返回；**audit 失败不阻断调用方业务**，但调用方（如 forced fence）应把"审计未落盘"作为可观测事实自行决定后续（见 §10.3）。
 
-- **验收条件**：调 `audit({event_name:"event.audit.forced-fence", run_id, detail})` 后 `audit_events` 表新增 1 行且 `detail_json` 不含 credential；返回 `void` 且不抛错。
+- **验收条件**：调 `audit({event_name:"event.audit.forced-fence", task_id, detail})` 后 `audit_events` 表新增 1 行且 `detail_json` 不含 credential；返回 `void` 且不抛错。
 
 ### 2.4 `F-OBS-SNAPSHOT` · 生成脱敏诊断快照
 
@@ -207,7 +208,7 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。`audit_events` 表的 schema、DDL、连接与事务均属 M003。
 
-- **本模块调用或消费**：调用 `appendAudit(record)`：在单事务内 INSERT 一行 `audit_events`。当前代码事实：`src/store.ts:29` 已建 `audit_events` 表（`audit_id, event_name, actor_class, run_id, detail_json, occurred_at`），但**尚无写入者**（见 ISD §2）。本模块是首个写入者。
+- **本模块调用或消费**：调用 `appendAudit(record)`：在单事务内 INSERT 一行 `audit_events`。当前代码事实：`src/store.ts:29` 已建 `audit_events` 表（`audit_id, event_name, actor_class, task_id, detail_json, occurred_at`），但**尚无写入者**（见 ISD §2）。本模块是首个写入者。
 
 - **本模块提供**：无。observability 不向 M003 提供接口。
 
@@ -554,7 +555,7 @@ observability 拥有的运行态数据是进程内 `MetricRegistry` 与 `LogTail
     event_name: EventName,          // §6.1.2
     instance_id: string,            // 来自配置，进程恒定
     boot_id: string,                // 来自 M000，进程恒定
-    run_id: string | null,          // 业务关联，可空
+    task_id: string | null,          // 业务关联，可空
     generation: number,             // Run generation；无 Run 时 0
     epoch: number | null,           // 租约代号；无 lease 时 null
     level: LogLevel,                // §6.1.1
@@ -564,7 +565,7 @@ observability 拥有的运行态数据是进程内 `MetricRegistry` 与 `LogTail
   }
   ```
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`event_name` 必填且属固定集；`instance_id`/`boot_id` 必填非空；`run_id` 可空；`generation` 必填整数 `>= 0`；`epoch` 可空，非空时整数 `>= 1`；`level` 必填；`occurred_at` 必填 UTC ISO-8601；`fields` 必填对象但可为空。跨字段：`redacted_error_class` 非空仅当 `level ∈ {warn,error}`。禁止 `fields` 出现 deny-list 键（`R-OBS-REDACT`）。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`event_name` 必填且属固定集；`instance_id`/`boot_id` 必填非空；`task_id` 可空；`generation` 必填整数 `>= 0`；`epoch` 可空，非空时整数 `>= 1`；`level` 必填；`occurred_at` 必填 UTC ISO-8601；`fields` 必填对象但可为空。跨字段：`redacted_error_class` 非空仅当 `level ∈ {warn,error}`。禁止 `fields` 出现 deny-list 键（`R-OBS-REDACT`）。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 `Observability.emit` 从调用方输入构造；不可变值对象（`Object.freeze`）；可见点 = `SinkFanout.write` 与 tail ring；寿命到写入完成（ring 保留副本至被覆盖）。
 
@@ -596,7 +597,7 @@ observability 拥有的运行态数据是进程内 `MetricRegistry` 与 `LogTail
   AuditRecord {
     event_name: AuditEventName,     // §6.1.4
     actor_class: string,            // 如 operator / system / worker
-    run_id: string | null,
+    task_id: string | null,
     detail: Record<string, unknown> // 已脱敏，序列化为 detail_json
   }
   -- occurred_at / audit_id 由 M003 生成（不在本类型）
@@ -606,7 +607,7 @@ observability 拥有的运行态数据是进程内 `MetricRegistry` 与 `LogTail
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 `Observability.audit` 脱敏后构造；所有权移交 M003；可见点 = `audit_events` 提交（M003）；寿命 = 表留存（ops）。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`{event_name:"event.audit.forced-fence", actor_class:"operator", run_id:"run-1", detail:{reason:"manual"}}`。拒绝：`detail:{access_token:"..."}`（脱敏删除）。`VRC-OBS-005`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`{event_name:"event.audit.forced-fence", actor_class:"operator", task_id:"run-1", detail:{reason:"manual"}}`。拒绝：`detail:{access_token:"..."}`（脱敏删除）。`VRC-OBS-005`；`NOT_RUN`。
 
 #### 6.2.4 `DiagnosticSnapshot`
 
@@ -835,13 +836,13 @@ flowchart TD
 
 - **允许替换范围 / 不可改变保证**：可换实现（正则/遍历），但不可去掉"任何 sink/DB/快照前必须脱敏"与 deny-list 覆盖上述类别。
 
-- **具体输入推演 / 验证项**：`{run_id:"r1", authorization:"Bearer x"}` → `{run_id:"r1"}`；字符串 `"token=abc"` → `"[redacted]"`。`VRC-OBS-001`。
+- **具体输入推演 / 验证项**：`{task_id:"r1", authorization:"Bearer x"}` → `{task_id:"r1"}`；字符串 `"token=abc"` → `"[redacted]"`。`VRC-OBS-001`。
 
 #### 8.2 `R-OBS-ENVELOPE` · 事件 envelope 补齐
 
 - **输入前提 / 适用条件**：每次 `emit`；`event_name` 已属固定集。
 
-- **算法 / 规则 / 选择依据**：必填字段集合 = `{event_name, instance_id, boot_id, generation, level, occurred_at, fields}`；`instance_id`/`boot_id` 由注入补齐；`occurred_at` 取宿主 UTC now；`generation` 缺省 0；`run_id`/`epoch` 可空；`redacted_error_class` 仅 `warn/error` 时填。依据：`system-design` §10.2 "每条必含 `event_name`、`instance_id`、`run_id?`、`generation`、`epoch?`、`redacted_error_class?`"。
+- **算法 / 规则 / 选择依据**：必填字段集合 = `{event_name, instance_id, boot_id, generation, level, occurred_at, fields}`；`instance_id`/`boot_id` 由注入补齐；`occurred_at` 取宿主 UTC now；`generation` 缺省 0；`task_id`/`epoch` 可空；`redacted_error_class` 仅 `warn/error` 时填。依据：`system-design` §10.2 "每条必含 `event_name`、`instance_id`、`task_id?`、`generation`、`epoch?`、`redacted_error_class?`"。
 
 - **结果 / 不变量 / 边界**：结果 = 字段完整的 `LogEvent`。边界：调用方越权覆盖 `instance_id`/`occurred_at` 时被忽略（以宿主为准）。
 
@@ -897,7 +898,7 @@ flowchart TD
 
 - **输入前提 / 适用条件**：`audit` 调用且 M003 可用。
 
-- **算法 / 规则 / 选择依据**：经 `appendAudit(record)` 在 M003 单事务内 `INSERT audit_events(event_name, actor_class, run_id, detail_json, occurred_at)`；`occurred_at` 由 M003 以其 UTC now 写入（不由调用方传入）。选择 M003 事务而非本模块自建有连接：schema/事务 authority 属 M003（§6.7）。
+- **算法 / 规则 / 选择依据**：经 `appendAudit(record)` 在 M003 单事务内 `INSERT audit_events(event_name, actor_class, task_id, detail_json, occurred_at)`；`occurred_at` 由 M003 以其 UTC now 写入（不由调用方传入）。选择 M003 事务而非本模块自建有连接：schema/事务 authority 属 M003（§6.7）。
 
 - **结果 / 不变量 / 边界**：结果 = 一行提交或依赖错误。边界：`detail` 必须先脱敏（`INV-OBS-4`）；失败不阻断业务但须记降级（§10.3）。
 
@@ -917,7 +918,7 @@ observability 的对外接口是 §9.1 的四个进程内函数；被消费的�
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-OBS-EVENT`；发送结构化日志事件。来源：本模块拥有。
 
-- **输入与前提**：`input{event_name, run_id?, generation?, epoch?, level, fields?, redacted_error_class?}`；`event_name` 必填且属固定集；进程已构造。无鉴权（进程内调用）。
+- **输入与前提**：`input{event_name, task_id?, generation?, epoch?, level, fields?, redacted_error_class?}`；`event_name` 必填且属固定集；进程已构造。无鉴权（进程内调用）。
 
 - **成功输出与保证**：返回 `void`；日志 sink 收到一行脱敏 JSON；已知事件驱动对应 metric；event 不修改任何业务状态（`INV-OBS-1`）。
 
@@ -945,7 +946,7 @@ observability 的对外接口是 §9.1 的四个进程内函数；被消费的�
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-OBS-AUDIT`；追加审计事件。来源：本模块拥有（持久化经 M003）。
 
-- **输入与前提**：`{event_name ∈ AuditEventName, actor_class, run_id?, detail}`；M003 可用（否则降级）。
+- **输入与前提**：`{event_name ∈ AuditEventName, actor_class, task_id?, detail}`；M003 可用（否则降级）。
 
 - **成功输出与保证**：返回 `void`；`audit_events` 新增一行脱敏记录；同 `event_name` 日志发出。
 
@@ -982,7 +983,7 @@ observability 不跨部署边界发消息；但本模块与 M003 的进程内协
   // occurred_at / audit_id 由 M003 以自身 UTC now 与自增主键生成，不由调用方传入
   ```
 
-- **输入、输出及关联身份**：输入已脱敏 `AuditRecord`（§6.2.3）；输出 `void` 或依赖错误。关联身份 `run_id?`。单语句/单事务原子执行；无中间可见态。
+- **输入、输出及关联身份**：输入已脱敏 `AuditRecord`（§6.2.3）；输出 `void` 或依赖错误。关联身份 `task_id?`。单语句/单事务原子执行；无中间可见态。
 
 - **交互、错误及生命周期**：同步进程内；依赖错误上抛给 `Observability.audit` 后按 `R-OBS-FAILOPEN` 处理；无背压/消息语义。
 
@@ -1103,7 +1104,7 @@ observability 不跨部署边界发消息；但本模块与 M003 的进程内协
 
 - **输入信任 / 身份 / 授权**：observability 对进程内调用者无身份、无授权分支（不携带 principal）；唯一面向外部的是 `SURF-OBS-DIAG`，其鉴权由共享宿主中间件（operator authorization）完成，observability 不重复鉴权、不解释 principal、不因鉴权失败默认放行。权限边界（bearer、path、tool profile）由 M001/M002 承载，不在本模块。
 
-- **敏感数据**：禁止记录：instruction 正文、credential / access token / bearer、完整模型 input/output、附件内容、绝对 workspace 路径（可选）。`R-OBS-REDACT`（§8.1）在写 sink/DB/快照前统一删除；`INV-OBS-4` 保证无未脱敏旁路。`instance_id`/`boot_id`/`run_id` 为进程内标识，可入日志。
+- **敏感数据**：禁止记录：instruction 正文、credential / access token / bearer、完整模型 input/output、附件内容、绝对 workspace 路径（可选）。`R-OBS-REDACT`（§8.1）在写 sink/DB/快照前统一删除；`INV-OBS-4` 保证无未脱敏旁路。`instance_id`/`boot_id`/`task_id` 为进程内标识，可入日志。
 
 - **继承上级指标与口径**：继承 `system-design` §10.2 全部指标与日志事件（如 `piko.queue.depth`、`piko.slot.lease_epoch`、`piko.recovery.outcomes.*`）与各机制 §12 的"生成/聚合/重置"口径（生产方 → M009 采集）；本模块是**采集点**，不新增指标/事件名，不改变单位与重置口径。
 
@@ -1135,7 +1136,7 @@ observability 不跨部署边界发消息；但本模块与 M003 的进程内协
 
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：同 §12.1；`max_label_cardinality=64`（内部常量）。
 
-- **负载、数据规模与并发口径**：单实例；label 值域来自固定枚举（如 `{state}` ∈ RunState、`{llmtier,matrix,store}`），不来自用户输入。
+- **负载、数据规模与并发口径**：单实例；label 值域来自固定枚举（如 `{state}` ∈ TaskState、`{llmtier,matrix,store}`），不来自用户输入。
 
 - **推导 / 测量方法与证据等级**：推导：label 值域由 `system-design` §10.2 固定，理论上界可枚举；实现加运行时护栏。证据等级 `Modeled`。
 

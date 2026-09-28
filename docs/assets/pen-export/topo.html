@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter%3Awght%40100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      *, ::before, ::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body style="background-color: #FFFFFF">
+    <div style="height: 930px; position: relative; width: 1680px">
+      <div
+        data-pencil-name="Frame"
+        style="background-color: #FFFFFF; box-sizing: border-box; height: 600px; left: 0px; overflow: hidden; position: absolute; top: 0px; width: 800px"
+      ></div>
+      <div
+        data-pencil-name="Piko 部署拓扑"
+        style="background-color: #FFFFFF; box-sizing: border-box; height: 930px; left: 0px; overflow: hidden; position: absolute; top: 0px; width: 1680px"
+      >
+        <div
+          data-pencil-name="标题"
+          style="box-sizing: border-box; color: #0F172A; font-family: Inter, system-ui, sans-serif; font-size: 24px; font-style: normal; font-weight: 700; left: 40px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 34px; white-space: nowrap; z-index: 0"
+        >
+          Piko 运行环境 / 部署拓扑
+        </div>
+        <div
+          data-pencil-name="副标题"
+          style="box-sizing: border-box; color: #64748B; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-style: normal; font-weight: 400; left: 40px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 66px; white-space: nowrap; z-index: 1"
+        >
+          数据流 Slinky → Piko → LLMTier；回程 Piko → Slinky；全部直线连接
+        </div>
+        <div
+          data-pencil-name="Slinky 主机"
+          style="background-color: #F8FAFC; border-radius: 18px; box-sizing: border-box; height: 750px; left: 40px; outline-offset: -1px; outline: 2px solid #CBD5E1; position: absolute; top: 130px; width: 340px; z-index: 2"
+        >
+          <div
+            data-pencil-name="n"
+            style="box-sizing: border-box; color: #0F172A; font-family: Inter, system-ui, sans-serif; font-size: 19px; font-style: normal; font-weight: 700; left: 24px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 20px; white-space: nowrap; z-index: 0"
+          >
+            Slinky 主机
+          </div>
+          <div
+            data-pencil-name="n2"
+            style="box-sizing: border-box; color: #64748B; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; left: 24px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 44px; white-space: nowrap; z-index: 1"
+          >
+            业务流程方
+          </div>
+          <div
+            data-pencil-name="请求"
+            style="align-items: flex-start; background-color: #EFF6FF; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; height: 170px; justify-content: flex-start; left: 30px; outline-offset: -1px; outline: 2px solid #2563EB; padding: 22px; position: absolute; top: 90px; width: 280px; z-index: 2"
+          >
+            <svg
+              data-icon-name="send"
+              data-icon-set="lucide"
+              viewBox="0 0 13.99993896484375 14"
+              preserveAspectRatio="xMidYMid meet"
+              xmlns="http://www.w3.org/2000/svg"
+              style="box-sizing: border-box; flex-shrink: 0; height: 26px; width: 26px"
+            >
+              <path
+                d="M12.43115 0.58789q-0.01367 0.01367-0.02734 0.01367-0.04102 0-0.60156 0.18115l-5.19532 1.78077q-5.40381 1.8457-5.53027 1.90381-0.26318 0.12305-0.39648 0.38281-0.1333 0.25977-0.07862 0.52636 0.02734 0.19482 0.14698 0.37256 0.11963 0.17432 0.2871 0.27002 0.09912 0.04443 2.39942 0.96729 2.30371 0.92285 2.40283 0.98096 0.14014 0.06836 0.2085 0.22216 0.04443 0.05811 0.96728 2.36182 0.92285 2.30029 0.96729 2.41308 0.0957 0.16748 0.27002 0.28711 0.17773 0.11963 0.37256 0.16065 0.23926 0.02734 0.46826-0.06836 0.23242-0.09912 0.35888-0.29736 0.08203-0.0957 0.15381-0.30762 0.2085-0.57422 1.99951-5.83106 1.79443-5.25684 1.80811-5.32519 0.01367-0.09912 0-0.21191-0.04101-0.3623-0.32813-0.59131-0.28711-0.23242-0.65283-0.19141z m-3.87597 4.0332l-2.26954 2.25245-1.98925-0.79639q-1.98584-0.7998-1.97217-0.81348l8.46973-2.89844q0.01367 0-2.23877 2.25586z m2.92578-0.93994q-0.09912 0.2666-1.45606 4.22803-1.2749 3.75293-1.28857 3.7666-0.01367 0.01367-0.57422-1.38428l-1.03565-2.57714 4.50831-4.50831q0 0-0.15381 0.4751z"
+                fill="#2563EB"
+              ></path>
+            </svg>
+            <div
+              data-pencil-name="t"
+              style="box-sizing: border-box; color: #2563EB; font-family: Inter, system-ui, sans-serif; font-size: 20px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+            >
+              请求
+            </div>
+            <div
+              data-pencil-name="s"
+              style="box-sizing: border-box; color: #2563EB; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+            >
+              提交 / 取消（HTTPS + bearer）
+            </div>
+          </div>
+          <div
+            data-pencil-name="结果"
+            style="align-items: flex-start; background-color: #F5F3FF; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; height: 170px; justify-content: flex-start; left: 30px; outline-offset: -1px; outline: 2px solid #7C3AED; padding: 22px; position: absolute; top: 290px; width: 280px; z-index: 3"
+          >
+            <svg
+              data-icon-name="circle-check"
+              data-icon-set="lucide"
+              viewBox="0 0 13.99993896484375 14"
+              preserveAspectRatio="xMidYMid meet"
+              xmlns="http://www.w3.org/2000/svg"
+              style="box-sizing: border-box; flex-shrink: 0; height: 26px; width: 26px"
+            >
+              <path
+                d="M6.69238 0.60156q-1.16211 0.04102-2.22851 0.50586-1.06299 0.46143-1.90381 1.26807-0.8374 0.80322-1.34326 1.85254-0.48877 1.0083-0.60157 2.15674-0.02734 0.19482-0.02734 0.61523 0 0.42041 0.02734 0.61523 0.11279 1.14844 0.60157 2.15674 0.65967 1.40137 1.89697 2.33789 1.24072 0.93652 2.75146 1.20313 0.5332 0.09912 1.13477 0.09912 0.75537 0 1.43213-0.15381 0.68018-0.15381 1.35351-0.4751 1.26123-0.61865 2.16358-1.70215 0.90234-1.0835 1.25439-2.44384 0.29395-1.11768 0.18116-2.25244-0.11279-1.13477-0.60157-2.17041-0.58789-1.20313-1.62011-2.08497-1.02881-0.88184-2.31397-1.2749-1.0083-0.30762-2.15674-0.25293z m0.96729 1.18946q1.07666 0.14014 1.99267 0.68017 0.91602 0.54004 1.56201 1.4082 0.82715 1.104 1.00831 2.54639 0.01367 0.16748 0.01367 0.57422 0 0.40674-0.01367 0.57422-0.14014 1.16211-0.7212 2.12939-0.58105 0.96387-1.53466 1.62354-0.4751 0.33496-1.04932 0.56055-0.57422 0.22217-1.18945 0.30761-0.25293 0.04102-0.72803 0.04102-0.4751 0-0.72803-0.04102-1.07666-0.15381-1.95849-0.68701-0.88184-0.5332-1.52784-1.3877-0.82715-1.104-1.0083-2.54638-0.01367-0.16748-0.01367-0.57422 0-0.40674 0.01367-0.57422 0.14014-1.12109 0.66993-2.05078 0.5332-0.92969 1.43212-1.58936 0.54346-0.40674 1.20655-0.66992 0.6665-0.2666 1.32617-0.3247l0.25293-0.02735q0.0957-0.01367 0.4751 0 0.37939 0.01367 0.51953 0.02735z m0.95019 3.47265q-0.06836 0.02734-0.12646 0.05127-0.05469 0.02051-1.06299 1.02539l-0.99463 0.99463-0.40674-0.40332q-0.2666-0.2666-0.3623-0.33838-0.12646-0.11279-0.19824-0.14013-0.06836-0.02734-0.19483-0.02735-0.12646 0-0.16748 0.01367-0.04102 0.01367-0.09912 0.04102-0.18115 0.09912-0.28027 0.2666-0.04102 0.08545-0.04102 0.25293l0 0.01367q0 0.14014 0.03418 0.21192 0.0376 0.06836 0.17774 0.22216 0.0957 0.11279 0.48876 0.50586l0.04102 0.04102q0.42041 0.42041 0.55371 0.54687 0.1333 0.12305 0.20166 0.15381 0.14014 0.06836 0.29395 0.05469 0.15381-0.01367 0.28027-0.09912 0.07178-0.05469 1.28857-1.27149 0.86816-0.86816 1.04932-1.06298 0.18457-0.19824 0.21192-0.27002 0.0957-0.27686-0.05811-0.52295-0.15381-0.24609-0.44775-0.25977-0.12646-0.01367-0.18116 0z"
+                fill="#7C3AED"
+              ></path>
+            </svg>
+            <div
+              data-pencil-name="t"
+              style="box-sizing: border-box; color: #7C3AED; font-family: Inter, system-ui, sans-serif; font-size: 20px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+            >
+              结果
+            </div>
+            <div
+              data-pencil-name="s"
+              style="box-sizing: border-box; color: #7C3AED; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+            >
+              状态 / Result JSON 回程
+            </div>
+          </div>
+          <div
+            data-pencil-name="数据"
+            style="align-items: flex-start; background-color: #F0FDF4; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; height: 170px; justify-content: flex-start; left: 30px; outline-offset: -1px; outline: 2px solid #16A34A; padding: 22px; position: absolute; top: 490px; width: 280px; z-index: 4"
+          >
+            <svg
+              data-icon-name="database"
+              data-icon-set="lucide"
+              viewBox="0 0 13.99993896484375 14"
+              preserveAspectRatio="xMidYMid meet"
+              xmlns="http://www.w3.org/2000/svg"
+              style="box-sizing: border-box; flex-shrink: 0; height: 26px; width: 26px"
+            >
+              <path
+                d="M6.49756 0.60156q-0.98096 0.02734-1.87647 0.16748-0.89551 0.14014-1.58252 0.3794-1.59619 0.56055-1.83544 1.46972-0.02734 0.09912-0.02735 0.70069l0 3.68115 0 3.68115q0 0.60156 0.02734 0.70069 0.21191 0.81348 1.4834 1.34326 0.86816 0.35205 2.08496 0.5332 1.22021 0.18115 2.52247 0.15381 1.32959-0.02734 2.50537-0.25293 0.86816-0.16748 1.51758-0.44092 0.65283-0.27344 1.01513-0.61523 0.36572-0.3418 0.46484-0.72119 0.02734-0.09912 0.02735-0.68702l0-3.69482 0-3.69482q0-0.58789-0.02735-0.68702-0.19824-0.76904-1.37402-1.28515-1.17578-0.51953-3.10693-0.69043-0.29395-0.02734-0.70069-0.04102l-0.51611-0.01367q-0.14014 0-0.60156 0.01367z m1.14502 1.16211q2.06104 0.09912 3.27783 0.61524 0.30762 0.14014 0.52295 0.29394 0.21875 0.15381 0.20508 0.25293 0.01367 0.02734-0.07178 0.11279-0.26318 0.28027-0.95703 0.52637-0.69385 0.24268-1.63037 0.38281-0.5332 0.07178-0.89209 0.09229-0.35547 0.02051-1.09717 0.02051-0.7417 0-1.10059-0.02051-0.35547-0.02051-0.88867-0.09229-0.81006-0.11279-1.44238-0.31445-0.62891-0.20166-0.96387-0.44092-0.09912-0.07178-0.17773-0.15381-0.0752-0.08545-0.0752-0.11279 0-0.09912 0.18115-0.23926 0.61865-0.4751 2.06446-0.73144 1.44922-0.25977 3.04541-0.19141z m-4.91162 2.79932q0.86816 0.36572 2.12597 0.54687 1.23389 0.16748 2.56348 0.14014 1.37061-0.04102 2.53272-0.29395 0.88184-0.18115 1.62353-0.51953l0.09912-0.04101-0.01367 2.63183-0.04102 0.05811q-0.05811 0.06836-0.21875 0.18115-0.16064 0.11279-0.32812 0.19483-0.92285 0.44775-2.53272 0.62548-1.60986 0.17432-3.17871-0.01025-0.72803-0.08203-1.37402-0.24268-0.64258-0.16064-1.05615-0.3623-0.41357-0.20508-0.54004-0.37256l-0.05469-0.07178-0.01367-2.63183 0.40674 0.16748z m0.02734 4.10156q1.16211 0.46484 2.98047 0.61865 0.33838 0.04102 1.26123 0.04102 0.92285 0 1.26123-0.04102 1.53809-0.14014 2.60107-0.47851 0.43408-0.15381 0.72803-0.29395l0.08545-0.04101 0 2.61816-0.05469 0.07178q-0.16748 0.23584-0.73486 0.4751-0.56738 0.23584-1.30908 0.37597-1.22021 0.23926-2.57715 0.23926-1.35693 0-2.57715-0.23926-0.7417-0.14014-1.30908-0.37597-0.56738-0.23926-0.73486-0.4751l-0.05469-0.07178 0-2.61816 0.11279 0.05468q0.0957 0.05811 0.32129 0.14014z"
+                fill="#16A34A"
+              ></path>
+            </svg>
+            <div
+              data-pencil-name="t"
+              style="box-sizing: border-box; color: #16A34A; font-family: Inter, system-ui, sans-serif; font-size: 20px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+            >
+              数据
+            </div>
+            <div
+              data-pencil-name="s"
+              style="box-sizing: border-box; color: #16A34A; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+            >
+              工作区 / 产物（持久化归 Slinky）
+            </div>
+          </div>
+        </div>
+        <div
+          data-pencil-name="Matrix homeserver"
+          style="align-items: flex-start; background-color: #FEF2F2; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; height: 84px; justify-content: center; left: 420px; outline-offset: -1px; outline: 2px solid #F87171; padding: 16px; position: absolute; top: 36px; width: 250px; z-index: 3"
+        >
+          <div
+            data-pencil-name="t"
+            style="box-sizing: border-box; color: #7F1D1D; font-family: Inter, system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+          >
+            Matrix homeserver
+          </div>
+          <div
+            data-pencil-name="s"
+            style="box-sizing: border-box; color: #B91C1C; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+          >
+            discussion intake / sync
+          </div>
+        </div>
+        <div
+          data-pencil-name="Piko 实例群"
+          style="background-color: #FBFDFF; border-radius: 18px; box-sizing: border-box; height: 750px; left: 680px; outline-offset: -1px; outline: 2px solid #CBD5E1; position: absolute; top: 130px; width: 560px; z-index: 4"
+        >
+          <div
+            data-pencil-name="n"
+            style="box-sizing: border-box; color: #0F172A; font-family: Inter, system-ui, sans-serif; font-size: 19px; font-style: normal; font-weight: 700; left: 24px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 20px; white-space: nowrap; z-index: 0"
+          >
+            Piko 实例群
+          </div>
+          <div
+            data-pencil-name="n2"
+            style="box-sizing: border-box; color: #64748B; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; left: 24px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 44px; white-space: nowrap; z-index: 1"
+          >
+            每实例单节点 · 各自独立 Task Store
+          </div>
+          <div
+            data-pencil-name="Piko 实例 1"
+            style="align-items: flex-start; background-color: #EEF2FF; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; height: 270px; justify-content: flex-start; left: 30px; outline-offset: -1px; outline: 2px solid #4338CA; padding: 20px; position: absolute; top: 90px; width: 500px; z-index: 2"
+          >
+            <div
+              data-pencil-name="t"
+              style="box-sizing: border-box; color: #1E1B4B; font-family: Inter, system-ui, sans-serif; font-size: 18px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+            >
+              Piko 实例 1
+            </div>
+            <div
+              data-pencil-name="l2"
+              style="box-sizing: border-box; color: #3730A3; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+            >
+              API + scheduler + worker（同进程） · 单 execution slot
+            </div>
+            <div
+              data-pencil-name="本地可靠 FS"
+              style="align-items: flex-start; background-color: #FEF9C3; border-radius: 10px; box-sizing: border-box; display: flex; flex-direction: column; flex: 1 1 0; gap: 6px; justify-content: flex-start; outline-offset: -1px; outline: 2px solid #A16207; padding: 16px; width: 100%"
+            >
+              <div
+                data-pencil-name="ft"
+                style="box-sizing: border-box; color: #713F12; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+              >
+                本地可靠 FS
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                Task Store（SQLite WAL）
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                Pi session（JSONL）
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                staging（临时产物）· Pi SDK 进程内
+              </div>
+            </div>
+          </div>
+          <div
+            data-pencil-name="Piko 实例 2 .. N"
+            style="align-items: flex-start; background-color: #EEF2FF; border-radius: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; height: 270px; justify-content: flex-start; left: 30px; outline-offset: -1px; outline: 2px solid #4338CA; padding: 20px; position: absolute; top: 400px; width: 500px; z-index: 3"
+          >
+            <div
+              data-pencil-name="t"
+              style="box-sizing: border-box; color: #1E1B4B; font-family: Inter, system-ui, sans-serif; font-size: 18px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+            >
+              Piko 实例 2 .. N
+            </div>
+            <div
+              data-pencil-name="l2"
+              style="box-sizing: border-box; color: #3730A3; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+            >
+              同构：各自单节点、各自 Task Store
+            </div>
+            <div
+              data-pencil-name="本地可靠 FS"
+              style="align-items: flex-start; background-color: #FEF9C3; border-radius: 10px; box-sizing: border-box; display: flex; flex-direction: column; flex: 1 1 0; gap: 6px; justify-content: flex-start; outline-offset: -1px; outline: 2px solid #A16207; padding: 16px; width: 100%"
+            >
+              <div
+                data-pencil-name="ft"
+                style="box-sizing: border-box; color: #713F12; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+              >
+                本地可靠 FS
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                Task Store（SQLite WAL）
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                Pi session（JSONL）
+              </div>
+              <div
+                data-pencil-name="fl"
+                style="box-sizing: border-box; color: #854D0E; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+              >
+                staging（临时产物）· Pi SDK 进程内
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          data-pencil-name="LLMTier 主机"
+          style="align-items: flex-start; background-color: #FEF2F2; border-radius: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; height: 440px; justify-content: center; left: 1320px; outline-offset: -1px; outline: 2px solid #EF4444; padding: 24px; position: absolute; top: 300px; width: 320px; z-index: 5"
+        >
+          <svg
+            data-icon-name="cloud"
+            data-icon-set="lucide"
+            viewBox="0 0 13.99993896484375 14"
+            preserveAspectRatio="xMidYMid meet"
+            xmlns="http://www.w3.org/2000/svg"
+            style="box-sizing: border-box; flex-shrink: 0; height: 28px; width: 28px"
+          >
+            <path
+              d="M4.95605 2.33789q-1.09375 0.07178-2.05419 0.63232-0.95703 0.55713-1.5586 1.4834-0.56055 0.85107-0.71435 1.90381-0.04102 0.22217-0.04102 0.58789 0 0.3623 0.02734 0.57422 0.12646 1.04932 0.66309 1.93115 0.54004 0.88184 1.42529 1.45606 0.43408 0.28027 0.88868 0.45459 0.45459 0.17432 1.01513 0.25976 0.16748 0.02734 0.55713 0.04102l2.38233 0q2.1123 0.01367 2.58056 0 0.47168-0.01367 0.73486-0.05469 0.92627-0.19824 1.60987-0.88183 0.68701-0.68701 0.88525-1.61329 0.15381-0.79639-0.07861-1.56542-0.23242-0.77246-0.80322-1.34327-0.3794-0.39307-0.89893-0.64599-0.36231-0.16748-0.71436-0.23584-0.34863-0.07178-0.90917-0.07178l-0.37598 0-0.08545-0.18115q-0.39307-0.86816-1.09375-1.51074-0.69727-0.646-1.59277-0.96045-0.89551-0.31445-1.84913-0.2461l0-0.01367z m0.81348 1.20313q1.18945 0.18457 2.01318 1.04931 0.15381 0.1709 0.23926 0.2666 0.34863 0.46143 0.54688 1.03565 0.06836 0.21191 0.14355 0.31103 0.07861 0.0957 0.21875 0.16748l0.1128 0.04102 0.74169 0.01367q0.7417 0.01367 0.8545 0.04102 0.4751 0.11279 0.84423 0.40674 0.37256 0.29395 0.57081 0.72802 0.14014 0.29395 0.17431 0.62549 0.03418 0.32813-0.02051 0.64941-0.11279 0.50244-0.47168 0.91602-0.35547 0.41357-0.83056 0.58106l-0.07178 0.02734q-0.14014 0.04443-0.2666 0.0581-0.18115 0.02734-0.66992 0.02735l-2.19776 0q-2.77197 0-2.92578-0.01367-0.99463-0.15381-1.75-0.77588-0.75537-0.62549-1.08008-1.54834-0.18115-0.5332-0.18115-1.13477 0-0.43408 0.08545-0.81006 0.22217-0.95361 0.90918-1.65429 0.68701-0.70068 1.62354-0.93653 0.22559-0.05811 0.39306-0.07177l0.22217-0.02735q0.07178-0.01367 0.35889 0 0.28711 0.01367 0.41357 0.02735z"
+              fill="#DC2626"
+            ></path>
+          </svg>
+          <div
+            data-pencil-name="t"
+            style="box-sizing: border-box; color: #7F1D1D; font-family: Inter, system-ui, sans-serif; font-size: 19px; font-style: normal; font-weight: 700; letter-spacing: 0px; line-height: normal; text-align: left; white-space: nowrap"
+          >
+            LLMTier 主机
+          </div>
+          <div
+            data-pencil-name="s"
+            style="box-sizing: border-box; color: #B91C1C; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+          >
+            OpenAI-compatible Responses SSE（唯一模型路径）
+          </div>
+          <div
+            data-pencil-name="s2"
+            style="box-sizing: border-box; color: #B91C1C; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; letter-spacing: 0px; line-height: normal; text-align: left; width: 100%"
+          >
+            stream:true · store:false · maxRetries=0
+          </div>
+        </div>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 300 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 380px; overflow: visible; position: absolute; top: 305px; width: 300px; z-index: 6"
+        >
+          <path
+            d="M0 0 L300 0"
+            fill="none"
+            stroke="#2563EB"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 680px; overflow: visible; position: absolute; top: 305px; width: 14px; z-index: 7"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#2563EB"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 300 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 680px; overflow: visible; position: absolute; top: 505px; transform-origin: top left; transform: rotate(180deg); width: 300px; z-index: 8"
+        >
+          <path
+            d="M0 0 L300 0"
+            fill="none"
+            stroke="#7C3AED"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 380px; overflow: visible; position: absolute; top: 505px; transform-origin: top left; transform: rotate(180deg); width: 14px; z-index: 9"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#7C3AED"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 300 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 380px; overflow: visible; position: absolute; top: 705px; width: 300px; z-index: 10"
+        >
+          <path
+            d="M0 0 L300 0"
+            fill="none"
+            stroke="#16A34A"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 680px; overflow: visible; position: absolute; top: 705px; width: 14px; z-index: 11"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#16A34A"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 300 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 680px; overflow: visible; position: absolute; top: 745px; transform-origin: top left; transform: rotate(180deg); width: 300px; z-index: 12"
+        >
+          <path
+            d="M0 0 L300 0"
+            fill="none"
+            stroke="#16A34A"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 380px; overflow: visible; position: absolute; top: 745px; transform-origin: top left; transform: rotate(180deg); width: 14px; z-index: 13"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#16A34A"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 80 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 1240px; overflow: visible; position: absolute; top: 355px; width: 80px; z-index: 14"
+        >
+          <path
+            d="M0 0 L80 0"
+            fill="none"
+            stroke="#DC2626"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 1320px; overflow: visible; position: absolute; top: 355px; width: 14px; z-index: 15"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#DC2626"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 80 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 1240px; overflow: visible; position: absolute; top: 665px; width: 80px; z-index: 16"
+        >
+          <path
+            d="M0 0 L80 0"
+            fill="none"
+            stroke="#DC2626"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 1320px; overflow: visible; position: absolute; top: 665px; width: 14px; z-index: 17"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#DC2626"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 240.20824298928628 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 560px; overflow: visible; position: absolute; top: 122px; transform-origin: top left; transform: rotate(2.386deg); width: 240.208px; z-index: 18"
+        >
+          <path
+            d="M0 0 L240.20824298928628 0"
+            fill="none"
+            stroke="#64748B"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 800px; overflow: visible; position: absolute; top: 132px; transform-origin: top left; transform: rotate(2.386deg); width: 14px; z-index: 19"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#64748B"></path>
+        </svg>
+        <svg
+          data-pencil-name="连线"
+          viewBox="0 -2 260.1922366251537 4"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 4px; left: 640px; overflow: visible; position: absolute; top: 122px; transform-origin: top left; transform: rotate(2.203deg); width: 260.192px; z-index: 20"
+        >
+          <path
+            d="M0 0 L260.1922366251537 0"
+            fill="none"
+            stroke="#64748B"
+            stroke-width="3.5"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+        <svg
+          data-pencil-name="箭头"
+          viewBox="-14 -8 14 16"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style="box-sizing: border-box; height: 16px; left: 900px; overflow: visible; position: absolute; top: 132px; transform-origin: top left; transform: rotate(2.203deg); width: 14px; z-index: 21"
+        >
+          <path d="M0 0 L-14 -7 L-14 7 Z" fill="#64748B"></path>
+        </svg>
+        <div
+          data-pencil-name="l1"
+          style="box-sizing: border-box; color: #2563EB; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 700; left: 398px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 284px; white-space: nowrap; z-index: 22"
+        >
+          ① 请求
+        </div>
+        <div
+          data-pencil-name="l3"
+          style="box-sizing: border-box; color: #7C3AED; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 700; left: 398px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 484px; white-space: nowrap; z-index: 23"
+        >
+          ③ 结果回程
+        </div>
+        <div
+          data-pencil-name="l4"
+          style="box-sizing: border-box; color: #16A34A; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 700; left: 398px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 764px; white-space: nowrap; z-index: 24"
+        >
+          ④ 数据 / WorkspaceBinding
+        </div>
+        <div
+          data-pencil-name="l2"
+          style="box-sizing: border-box; color: #DC2626; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 700; left: 1246px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 334px; white-space: nowrap; z-index: 25"
+        >
+          ② Responses SSE
+        </div>
+        <div
+          data-pencil-name="l5"
+          style="box-sizing: border-box; color: #64748B; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-style: normal; font-weight: 700; left: 470px; letter-spacing: 0px; line-height: normal; position: absolute; text-align: left; top: 120px; white-space: nowrap; z-index: 26"
+        >
+          ⑤ discussion
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

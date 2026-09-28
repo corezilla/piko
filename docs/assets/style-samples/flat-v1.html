@@ -1,0 +1,79 @@
+<!doctype html><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+<style>
+:root{--blue:#2E6BE6;--tile1:#5B9BFF;--tile2:#2563EB;--v1:#A78BFA;--v2:#7C3AED;--g1:#4ADE80;--g2:#16A34A;--ink:#111827;--mut:#64748B;--cst:#C6D7EF}
+*{box-sizing:border-box}
+body{margin:0;background:#F4F6F9;font-family:-apple-system,"PingFang SC","Inter",sans-serif;color:var(--ink)}
+.wrap{padding:30px 38px}
+.t{font-size:22px;font-weight:800;margin:0 0 4px}.s{color:var(--mut);font-size:13px;margin:0 0 6px}
+#cv{position:relative;width:1180px;height:600px}
+.msr{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block}
+.box{position:absolute;border-radius:20px;padding:14px 16px;z-index:2}
+.host{background:#EAF1FB;border:1.5px solid var(--cst)}
+.piko{background:#EDF0FD;border:1.5px solid #CFD4F2}
+.llm{background:#EDF1FE;border:1.5px solid #C9D4FB}
+.mx{background:#EFF2F6;border:1.5px solid #D3DAE3}
+h2{font-size:15px;font-weight:800;margin:0 0 2px}.m{font-size:11px;color:var(--mut);margin:0 0 10px}
+.tag{display:inline-block;font-size:10px;font-weight:800;color:#3730A3;background:#E0E7FF;border-radius:999px;padding:3px 8px;margin:0 0 10px}
+.tiles{display:flex;gap:10px}
+.tile{width:58px;height:58px;border-radius:16px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,var(--tile1),var(--tile2));box-shadow:0 6px 14px rgba(37,99,235,.28)}
+.tile .msr{font-size:24px}.tile b{font-size:10.5px;font-weight:700}
+.tile.v{background:linear-gradient(160deg,var(--v1),var(--v2));box-shadow:0 6px 14px rgba(124,58,237,.28)}
+.tile.g{background:linear-gradient(160deg,var(--g1),var(--g2));box-shadow:0 6px 14px rgba(22,163,74,.28)}
+.tile.i{background:linear-gradient(160deg,#818CF8,#4338CA);box-shadow:0 6px 14px rgba(67,56,202,.28)}
+.tile.c{background:linear-gradient(160deg,#38BDF8,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.28)}
+.tile.m{background:linear-gradient(160deg,#94A3B8,#64748B);box-shadow:0 6px 14px rgba(100,116,139,.28)}
+.row{display:flex;align-items:center;gap:12px}
+.fs{margin-top:10px;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:10px;padding:7px 10px;font-size:10.5px;line-height:1.5;color:#854D0E}
+.ln{position:absolute;height:2px;background:var(--blue);z-index:1;transform-origin:50% 50%}
+.ln.ret{background:#7C3AED}.ln.mx{background:#8A93A3}
+.lab{position:absolute;font-size:12.5px;font-weight:800;color:var(--ink);z-index:3;white-space:nowrap}
+.cap{font-size:13px;font-weight:800;color:var(--ink);text-align:center}
+</style><div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p><p class=s>Slinky → 多个 Piko（各自独立主机）→ LLMTier；回程 Piko → Slinky；Matrix 在 Slinky 与 Piko 之间；工作区归 Slinky</p>
+<div id=cv>
+ <div class="box host" id=slinky style="left:16px;top:220px;width:236px;height:170px">
+  <h2>Slinky 主机</h2><p class=m>业务流程方 · 持有工作区</p>
+  <div class=tiles>
+   <div class="tile"><span class=msr>send</span><b>请求</b></div>
+   <div class="tile v"><span class=msr>task_alt</span><b>结果</b></div>
+   <div class="tile g"><span class=msr>database</span><b>数据</b></div>
+  </div>
+ </div>
+ <div class="box mx" id=matrix style="left:300px;top:22px;width:250px;height:96px">
+  <div class=row><div class="tile m" style="width:46px;height:46px;border-radius:12px"><span class=msr style="font-size:22px">forum</span></div>
+  <div><h2 style="font-size:14px;margin:0">Matrix homeserver</h2><p class=m style="margin:2px 0 0">discussion intake / sync</p></div></div>
+ </div>
+ <div class="box piko" id=piko1 style="left:600px;top:96px;width:330px;height:186px">
+  <div class=row>
+   <div class="tile i"><span class=msr>dns</span><b>Piko</b></div>
+   <div><h2>Piko 主机 A（实例 1）</h2><span class=tag>独立主机 · 独立 Task Store</span></div>
+  </div>
+  <div class=fs>本地可靠 FS：Task Store（SQLite WAL） · Pi session（JSONL） · staging</div>
+ </div>
+ <div class="box piko" id=piko2 style="left:600px;top:396px;width:330px;height:186px">
+  <div class=row>
+   <div class="tile i"><span class=msr>dns</span><b>Piko</b></div>
+   <div><h2>Piko 主机 B（实例 2..N）</h2><span class=tag>独立主机 · 独立 Task Store</span></div>
+  </div>
+  <div class=fs>本地可靠 FS：Task Store（SQLite WAL） · Pi session（JSONL） · staging</div>
+ </div>
+ <div class="box llm" id=llm style="left:980px;top:216px;width:190px;height:176px">
+  <div class=row><div class="tile c"><span class=msr>cloud</span><b>LLM</b></div>
+  <div><h2 style="font-size:14px">LLMTier 主机</h2></div></div>
+  <div style="margin-top:10px;font-size:11px;color:#3730A3;line-height:1.6">OpenAI-compatible Responses SSE<br><span style="color:#B91C1C">stream:true · maxRetries=0</span></div>
+ </div>
+</div>
+<script>
+const cv=document.getElementById('cv'),LN=[]
+function A(id,side,f){const e=document.getElementById(id),x=e.offsetLeft,y=e.offsetTop,w=e.offsetWidth,h=e.offsetHeight;return {r:[x+w,y+h*f],l:[x,y+h*f],t:[x+w*f,y],b:[x+w*f,y+h]}[side]}
+function line(a,b,cls,label,lx,ly){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;const cx=(a[0]+b[0])/2,cy=(a[1]+b[1])/2;
+ const d=document.createElement('div');d.className='ln '+(cls||'');d.style.left=cx+'px';d.style.top=cy+'px';d.style.width=len+'px';d.style.marginLeft=(-len/2)+'px';d.style.marginTop='-1px';d.style.transform='rotate('+ang+'deg)';cv.appendChild(d);
+ if(label){const l=document.createElement('div');l.className='lab';l.textContent=label;l.style.left=(cx-len*lx)+'px';l.style.top=(cy+ly)+'px';cv.appendChild(l)}}
+line(A('slinky','r',0.32),A('piko1','l',0.5),'','① 请求（提交 / 取消）',0.34,-10)
+line(A('slinky','r',0.70),A('piko2','l',0.5),'','',0,0)
+line(A('piko1','r',0.5),A('llm','l',0.3),'','② Responses SSE',0.40,-10)
+line(A('piko2','r',0.5),A('llm','l',0.72),'','',0,0)
+line(A('piko1','l',0.86),A('slinky','r',0.86),'ret','③ 结果回程（状态 / Result JSON）',0.40,12)
+line(A('matrix','b',0.5),A('piko1','t',0.5),'mx','⑤ discussion',0.42,-4)
+</script></div>

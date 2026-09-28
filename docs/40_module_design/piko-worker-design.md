@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-worker` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -22,16 +22,17 @@ M005 `worker` 解决一个问题：一次已受理的 Run 在取得唯一执行�
 
 worker 的核心不变量来自 `MECH-RUN` 的 **Result 两步提交协议**：第一步把不可变的 Result generation 写入 `results`，第二步把 `runs.state` 与 `runs.generation` 写入终态并释放 `execution_slot`；两步不可合并，两步之间崩溃时恢复器只补第二步、绝不重跑 Pi。worker 另承担 `MECH-CANCEL` 的取消分流（Queued 单事务零调用 Result、Running 写停止意图后 abort 并补终态）、`MECH-RECOVERY` 的恢复编排（Result → Run → lease → Pi session → Harness → ledger → Matrix）、`MECH-USAGE` 的发布前快照与语义校验、`MECH-MATRIX` 的 discussion intake CAS。
 
-用一次调用说明：M004 `scheduler` 领取 slot 后把 `Lease` 交给 worker；worker 在 M003 单事务内把 `runs.state` 由 `Queued` 推进到 `Running`、创建 `run_sessions`（`pi_session_id=run_id`），经 M006 `openOrCreateRunSession` + `lane.accept(typedInstruction)` 提交一次 durable Pi operation，并在宿主事件循环上持续 `drive` 其结果、接受取消/截止/讨论事件；operation 结束后 worker 对账在途工具、调用 M007 `snapshot(run_id)` + `validateBeforePublish(result, contractVersion)`，通过则执行 Result 两步提交，失败则抛 `InternalError` 且不写任何 Result。
+用一次调用说明：M004 `scheduler` 领取 slot 后把 `Lease` 交给 worker；worker 在 M003 单事务内把 `runs.state` 由 `Queued` 推进到 `Running`、创建 `run_sessions`（`pi_session_id=task_id`），经 M006 `openOrCreateRunSession` + `lane.accept(typedInstruction)` 提交一次 durable Pi operation，并在宿主事件循环上持续 `drive` 其结果、接受取消/截止/讨论事件；operation 结束后 worker 对账在途工具、调用 M007 `snapshot(task_id)` + `validateBeforePublish(result, contractVersion)`，通过则执行 Result 两步提交，失败则抛 `InternalError` 且不写任何 Result。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M005 / `worker` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P1 执行进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.1 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 204 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | Run 生命周期协调、取消/截止分流、Result 两步发布、崩溃后可对账恢复 |
-| 提供的能力 | `generateResult`（Result generation）、`cancelQueued`、`cancelRunning`；经 M003 持久化、经 M006/M007 校验/驱动 |
+| 提供的能力 | `generateResult`（Result generation）、`cancelQueued`、`cancelTaskning`；经 M003 持久化、经 M006/M007 校验/驱动 |
 | 主要使用者 | M004 `scheduler`（dispatch 到 worker）、M001 `task-api`（取消入口到 worker）、M003/M006/M007/M008（协作） |
 | 不负责 | Run/Result 持久 authority 与 DDL（M003）；Pi Agent loop、工具循环与 provider 重试（M006）；Usage 聚合算法（M007）；HTTP 路由（M001）；Matrix 协议（M008）；优先级/抢占（明确不做） |
 
@@ -57,13 +58,13 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 #### 1.1.2 `CON-RUN-003` · 截止与预算
 
-- **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-03 行）+ `piko-run.md` §3.1 `CON-RUN-003` · PK-03 · Approved。上级原文：deadline + max_model_calls + max_tool_calls；worker 不修改 deadline 语义；budget CAS 在 `before_tool`。
+- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文：本版不实现任务级截止/预算——worker 不读取也不判定任何 deadline/预算字段。
 
-- **适用条件**：每次 Run 的整个执行期；deadline 与预算由 M002 `policy` 受理时固定。
+- **适用条件**：每次 Run 的整个执行期（**本版无 deadline/预算**）。
 
-- **继承预算或行为保证**：worker 只读取 `task.limits.deadline_at`/`max_model_calls`/`max_tool_calls`，不修改其语义、不在运行期放宽；到达 deadline 或预算耗尽时以固定 failure code（`DeadlineExceeded`/`BudgetExceeded`）终止并发布 Failed Result。
+- **继承预算或行为保证**：**本版撤销**（PK-04）；worker 不读取任何任务级截止/预算字段，也不据此终止。
 
-- **可自行选择/不可改变**：不可改变：deadline 语义、failure 映射、预算不在 worker 重算。可自行设计：检查时点与 poll 频率、与取消的优先级实现（预算事实由 M006 在 `before_tool` CAS 产生）。
+- **可自行选择/不可改变**：不可改变：failure 映射、取消分流语义。可自行设计：检查时点与 poll 频率、与取消的优先级实现。
 
 - **本地落实/内部再分配**：§2.6 `F-WORKER-DEADLINE`；§8.3 `R-WORKER-DEADLINE`；§10 `C-WORKER-04`；§11（不做身份/授权）。
 
@@ -77,7 +78,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **适用条件**：每个 Run 到达终态；discussion Run 额外在同第二步事务内改 intake `Closed` 并把未消费 turn 置 `Abandoned`。
 
-- **继承预算或行为保证**：第一步 `INSERT results(run_id, generation N, result_json, sha256)` 与第二步 `UPDATE runs SET state, generation=N+1` + `releaseSlot` 是两个独立事务；任何操作不得合并；两步间崩溃后只补第二步，绝不重跑 Pi。
+- **继承预算或行为保证**：第一步 `INSERT results(task_id, generation N, result_json, sha256)` 与第二步 `UPDATE runs SET state, generation=N+1` + `releaseSlot` 是两个独立事务；任何操作不得合并；两步间崩溃后只补第二步，绝不重跑 Pi。
 
 - **可自行选择/不可改变**：不可改变：两步不可合并、generation 单调、发布后 Result 内容冻结、恢复只补第二步。可自行设计：事务内语句组织、Result 构造顺序、对账实现。
 
@@ -93,7 +94,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **适用条件**：每次 Run 进入 Result 发布前。
 
-- **继承预算或行为保证**：worker 在发布前调用 M007 `snapshot(run_id)` 取 6 字段 sum/null + `missing_fields` + `quality`，不自行聚合、不把归一化 input 冒充完整、不以缺失字段填下界。
+- **继承预算或行为保证**：worker 在发布前调用 M007 `snapshot(task_id)` 取 6 字段 sum/null + `missing_fields` + `quality`，不自行聚合、不把归一化 input 冒充完整、不以缺失字段填下界。
 
 - **可自行选择/不可改变**：不可改变：usage 字段口径与 `quality` 三态、由 M007 拥有聚合 authority。可自行设计：调用时点（发布第一步之前）与错误出口实现。
 
@@ -159,9 +160,9 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **继承预算或行为保证**：Queued：worker（经 M003）单事务写 `cancel_requested=1` + 零调用 immutable Result + `state=Cancelled`。Running：写停止意图并置 `Cancelling`，abort Pi operation 后对账，只有证明 operation 已停止才写 `CancelledByRequest` 终态；无法证明停止写 `ExecutionStateUnknown`。
 
-- **可自行选择/不可改变**：不可改变：分流语义、`StopRequested` 只证意图、零调用 Result 结构。可自行设计：abort+对账实现、与 deadline 的优先级。
+- **可自行选择/不可改变**：不可改变：分流语义、`StopRequested` 只证意图、零调用 Result 结构。可自行设计：abort+对账实现。
 
-- **本地落实/内部再分配**：§2.4 `F-WORKER-CANCEL`；§7 `P-WORKER-CANCEL`；§8.2 `R-WORKER-CANCEL-DISPATCH`；§9.1 `cancelQueued`/`cancelRunning`；§9.2 `IF-CX-ABORT`；§10 `C-WORKER-02`。
+- **本地落实/内部再分配**：§2.4 `F-WORKER-CANCEL`；§7 `P-WORKER-CANCEL`；§8.2 `R-WORKER-CANCEL-DISPATCH`；§9.1 `cancelQueued`/`cancelTaskning`；§9.2 `IF-CX-ABORT`；§10 `C-WORKER-02`。
 
 - **验证方法与结果/证据**：局部 `VRC-WORKER-002`；组合 PK-T05；当前 `NOT_RUN`。
 
@@ -169,7 +170,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 ## 2. 需求、功能与验收条件
 
-worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Result、按 Run state 分流取消、以 deadline/预算终止、维护 discussion intake、崩溃后恢复。这些功能不可由外部 HTTP 直接触发（HTTP 由 M001 承载），调用方是 M004 `scheduler`（dispatch）、M001（取消）与 M000 `bootstrap`（恢复编排入口）。
+worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Result、按 Run state 分流取消、维护 discussion intake、崩溃后恢复。这些功能不可由外部 HTTP 直接触发（HTTP 由 M001 承载），调用方是 M004 `scheduler`（dispatch）、M001（取消）与 M000 `bootstrap`（恢复编排入口）。
 
 ### 2.1 `F-WORKER-EXEC` · 驱动 Run 执行
 
@@ -177,9 +178,9 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **调用方**：M004 `scheduler` 领取 slot 后 dispatch；worker 在宿主事件循环上驱动。
 
-- **输入与前提**：`Lease{run_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}`；Run 已 `Running`；M003/M006 可用；M005 恢复门已完成。
+- **输入与前提**：`Lease{task_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}`；Run 已 `Running`；M003/M006 可用；M005 恢复门已完成。
 
-- **行为**：在 M003 单事务创建 `run_sessions`（`pi_session_id=run_id`、lane `main`）、绑定 `lease_epoch`；经 M006 `openOrCreateRunSession` 与 `lane.accept(typedInstruction, operationId)` 提交 durable Pi operation；在宿主事件循环上 `drive` 结果、接受取消/截止/讨论事件；operation 结束后对账在途工具。
+- **行为**：在 M003 单事务创建 `run_sessions`（`pi_session_id=task_id`、lane `main`）、绑定 `lease_epoch`；经 M006 `openOrCreateRunSession` 与 `lane.accept(typedInstruction, operationId)` 提交 durable Pi operation；在宿主事件循环上 `drive` 结果、接受取消/截止/讨论事件；operation 结束后对账在途工具。
 
 - **输出**：终态前的 `PiOperationOutcome`（含 summary / failure / 已提交操作事实）与对账后的 `AgentResult` 素材；进入 `F-WORKER-PUBLISH`。
 
@@ -193,9 +194,9 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **调用方**：worker 在 Result 第一步发布之前内部调用。
 
-- **输入与前提**：`run_id`；全部 durable attempt 已落 `model_attempts`；契约版本 `0.3.0-simplified.6`。
+- **输入与前提**：`task_id`；全部 durable attempt 已落 `model_attempts`；契约版本 `0.3.0-simplified.6`。
 
-- **行为**：调用 M007 `snapshot(run_id)` 取得 `UsageSnapshot`；调用 M007 `validateBeforePublish(result, contractVersion)` 做语义校验（attempts 数量、精确算术、token 子集）。
+- **行为**：调用 M007 `snapshot(task_id)` 取得 `UsageSnapshot`；调用 M007 `validateBeforePublish(result, contractVersion)` 做语义校验（attempts 数量、精确算术、token 子集）。
 
 - **输出**：`UsageSnapshot`（6 字段 sum/null + `missing_fields` + `quality`）与 `SemanticCheck{ok, reason?}`。
 
@@ -209,9 +210,9 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **调用方**：worker 在 operation 结束（或恢复补写）时执行。
 
-- **输入与前提**：对账后的 `AgentResult` 素材；`UsageSnapshot` 已通过校验；`run_id` 仍由本 worker 持有 lease。
+- **输入与前提**：对账后的 `AgentResult` 素材；`UsageSnapshot` 已通过校验；`task_id` 仍由本 worker 持有 lease。
 
-- **行为**：第一步经 M003 `publishResult(FencedPublishResult)` 在单事务 `INSERT results(run_id, generation N, result_json, sha256)`（generation N = 当前 `runs.generation + 1`，即不可变 Result 的 generation）。第二步在独立单事务 `UPDATE runs SET state, generation = N+1, finished_at, discussion_intake_state` 并 `releaseSlot(run_id, epoch)`；discussion Run 同事务把未消费 `discussion_turns` 置 `Abandoned`。
+- **行为**：第一步经 M003 `publishResult(FencedPublishResult)` 在单事务 `INSERT results(task_id, generation N, result_json, sha256)`（generation N = 当前 `runs.generation + 1`，即不可变 Result 的 generation）。第二步在独立单事务 `UPDATE runs SET state, generation = N+1, finished_at, discussion_intake_state` 并 `releaseSlot(task_id, epoch)`；discussion Run 同事务把未消费 `discussion_turns` 置 `Abandoned`。
 
 - **输出**：已发布的 immutable `ResultRecord`（generation N）与终态 `runs` 行（generation N+1）；slot 释放回 `FREE`。
 
@@ -223,9 +224,9 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **上级需求 / Constraint ID**：`CON-CX-001`（PK-03）。
 
-- **调用方**：M001 `task-api` 取消入口 → worker `cancelQueued`/`cancelRunning`（进程内）。
+- **调用方**：M001 `task-api` 取消入口 → worker `cancelQueued`/`cancelTaskning`（进程内）。
 
-- **输入与前提**：`run_id`；Run 处于 `Queued`/`Running`/终态之一。
+- **输入与前提**：`task_id`；Run 处于 `Queued`/`Running`/终态之一。
 
 - **行为**：`Queued`：单事务写 `cancel_requested=1`、写 `model_attempts=0` 的零调用 immutable Result、置 `state=Cancelled`（经 M003）。`Running`：写停止意图并置 `Cancelling`，对 Pi operation 调 `requestAbort`，等待对账；对账证明 operation 已停止 → 走两步发布 `Cancelled` Result（`CancelledByRequest`/`Cancellation`）；无法证明停止 → `ExecutionStateUnknown`。终态 → `AlreadyTerminal`。
 
@@ -257,15 +258,15 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **调用方**：worker 在执行前检查 + 执行中 poll。
 
-- **输入与前提**：`task.limits.deadline_at`（持久 UTC）与预算上限；执行中事实来自 M006（`before_tool` CAS、预算终止）。
+- **输入与前提**：执行中事实来自 M006（工具调用/usage；本版无 deadline/预算）。
 
-- **行为**：持久判定用 UTC wall clock：`Date.parse(deadline_at) <= now` 即到期；进程内 elapsed 用 monotonic。到期且非取消请求 → `DeadlineExceeded`/`TaskDeadline` Failed；预算耗尽（M006 终止）→ `BudgetExceeded`/`Budget` Failed；已 `cancel_requested` 则优先级归取消。
+- **行为**：**本版撤销**（PK-04）：无 deadline/预算判定；只按取消分流。进程内计时用 monotonic。
 
 - **输出**：对应的 failure code 与 Failed/Cancelled 终态 Result。
 
-- **错误与边界**：worker 不修改 deadline 语义；时钟回拨不改变 CAS 正确性（判定口径固定为持久 UTC）。
+- **错误与边界**：本版无 deadline/预算判定。
 
-- **验收条件**：deadline 已过 → 终态 `Failed` 且 `failure.code=DeadlineExceeded`；预算耗尽 → `BudgetExceeded`；同时取消与到期 → 取消优先。
+- **验收条件**：取消分流正确；本版无 deadline/预算用例。
 
 ### 2.7 `F-WORKER-RECOVER` · 崩溃恢复编排
 
@@ -285,7 +286,7 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 ## 3. UI、CLI、服务端点或设备操作面
 
-**N/A。** worker 是纯进程内模块，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是进程内函数调用：M004 `scheduler` 领取 slot 后 dispatch（§9.1）、M001 `task-api` 取消入口转调 `cancelQueued`/`cancelRunning`（§9.1）、M000 `bootstrap` 触发恢复编排（§2.7）。对外可观察的 HTTP 面（`POST /runs`、`POST /runs/:run_id:cancel` 等）由 M001 承载，worker 只是其后台推进的终点。
+**N/A。** worker 是纯进程内模块，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是进程内函数调用：M004 `scheduler` 领取 slot 后 dispatch（§9.1）、M001 `task-api` 取消入口转调 `cancelQueued`/`cancelTaskning`（§9.1）、M000 `bootstrap` 触发恢复编排（§2.7）。对外可观察的 HTTP 面（`POST /tasks`、`POST /tasks/:task_id:cancel` 等）由 M001 承载，worker 只是其后台推进的终点。
 
 维护/诊断入口不新增：Run 生命周期状态经 M003 查询与系统指标 `event.run.{started,terminated}`、`piko.recovery.outcomes.*`（§11）暴露。
 
@@ -298,7 +299,7 @@ worker 的位置：被 M004 `scheduler` dispatch，编排 M006 `pi-adapter`、M0
 ```mermaid
 flowchart LR
     S["M004 scheduler<br/>acquireSlot/fence"] -->|"dispatch(Lease)"| W["M005 worker<br/>src/worker/"]
-    API["M001 task-api<br/>cancel 入口"] -->|"cancelQueued / cancelRunning"| W
+    API["M001 task-api<br/>cancel 入口"] -->|"cancelQueued / cancelTaskning"| W
     W -->|"openOrCreateRunSession / lane.accept / drive / requestAbort"| PI["M006 pi-adapter"]
     W -->|"snapshot / validateBeforePublish"| U["M007 usage"]
     W -->|"syncOnce / sendWithStableTxn / media"| MX["M008 matrix-adapter"]
@@ -312,7 +313,7 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程（PK-01 单进程）；Owner：Piko Implementation Owner。
 
-- **本模块调用或消费**：Run/Result 事务原语：`publishResult(FencedPublishResult)`、终态发布（`runs.state`+`generation`+`releaseSlot`）、`scanNonTerminalRuns`、`patchTerminal`（恢复补第二步）、run/turn/intake 的 fenced write、`result(run_id)`（恢复探测）。worker 不自开 SQLite 连接。
+- **本模块调用或消费**：Run/Result 事务原语：`publishResult(FencedPublishResult)`、终态发布（`runs.state`+`generation`+`releaseSlot`）、`scanNonTerminalRuns`、`patchTerminal`（恢复补第二步）、run/turn/intake 的 fenced write、`result(task_id)`（恢复探测）。worker 不自开 SQLite 连接。
 
 - **本模块提供**：无反向接口；worker 提交 mutation 命令由 M003 原子执行。
 
@@ -326,13 +327,13 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
-- **本模块调用或消费**：`openOrCreateRunSession(run_id)`、`lane.accept(typedInstruction, operationId)`、`drive`/`getResult`、`requestAbort(operation_id)`、`inspect(handle)`；`PikoDiscussionMessage` 投影。
+- **本模块调用或消费**：`openOrCreateRunSession(task_id)`、`lane.accept(typedInstruction, operationId)`、`drive`/`getResult`、`requestAbort(operation_id)`、`inspect(handle)`；`PikoDiscussionMessage` 投影。
 
 - **本模块提供**：worker 提供 drive 循环与对账调用上下文（不替 Pi 实现 loop）。
 
 - **契约 authority / 版本 / selector**：`IF-RUN-SESSION`/`IF-RUN-ACCEPT`/`IF-RUN-DRIVE`（`piko-run.md` §5.1/§5.2）；`IF-CX-ABORT`（`piko-cancel.md` §5.2）；固定 Pi `0.85.1` @ commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`。
 
-- **同步方式 / timeout / 生命周期**：`accept` 异步返回 durable op（确认即 Pi commit）；`drive`/`getResult` 拉取；abort 后等待 in-flight tool 对账；关联身份 `run_id`/`pi_operation_id`/`stepId`。
+- **同步方式 / timeout / 生命周期**：`accept` 异步返回 durable op（确认即 Pi commit）；`drive`/`getResult` 拉取；abort 后等待 in-flight tool 对账；关联身份 `task_id`/`pi_operation_id`/`stepId`。
 
 - **不可用或失败影响 / 责任出口**：Harness fault/invariant → worker 映射 `UnsafeRetryBlocked`/`ExecutionStateUnknown`；不可恢复 session → `InternalError`；不重发旧请求。
 
@@ -340,7 +341,7 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
-- **本模块调用或消费**：`snapshot(run_id) -> UsageSnapshot`（`IF-RUN-SNAPSHOT`/`IF-USAGE-SNAPSHOT`）；`validateBeforePublish(result, contractVersion) -> SemanticCheck`（`IF-USAGE-VALIDATE`）。
+- **本模块调用或消费**：`snapshot(task_id) -> UsageSnapshot`（`IF-RUN-SNAPSHOT`/`IF-USAGE-SNAPSHOT`）；`validateBeforePublish(result, contractVersion) -> SemanticCheck`（`IF-USAGE-VALIDATE`）。
 
 - **本模块提供**：无；worker 只调用。
 
@@ -447,7 +448,7 @@ flowchart TB
 
 - **职责与非职责**：按 `runs.state` 分流取消：Queued 零调用 Result 路径、Running stop intent + abort + 对账、终态 `AlreadyTerminal`。非职责：不做 HTTP 映射、不直接 abort Pi（经 I5→M006）。
 
-- **输入、处理与输出**：输入 `run_id`；输出 `CancelOutcome`；Running 路径产生 side effect 命令交 S1/I5。
+- **输入、处理与输出**：输入 `task_id`；输出 `CancelOutcome`；Running 路径产生 side effect 命令交 S1/I5。
 
 - **协作对象**：被 S1 调用；依赖 I5 的 M003/M006 端口。
 
@@ -459,7 +460,7 @@ flowchart TB
 
 - **职责与非职责**：实现 R1-R7 编排：探测、判定 `RecoveryOutcome`、生成只补第二步/resume/accept/内部失败的下一步命令。非职责：不做 Pi inspect 实现（经 I5→M006）、不改已发布 Result。
 
-- **输入、处理与输出**：输入 `run_id` + `RecoveryProbe`；输出 `RecoveryOutcome` 与命令序列。
+- **输入、处理与输出**：输入 `task_id` + `RecoveryProbe`；输出 `RecoveryOutcome` 与命令序列。
 
 - **协作对象**：被 S1（恢复入口）调用；依赖 I5 的 M003/M006 端口。
 
@@ -471,7 +472,7 @@ flowchart TB
 
 - **职责与非职责**：intake CAS（Open→Closing）与 turn 领取/消费/封存；保证 Completed Result 前 `Closing` 且无 pending。非职责：不做 Matrix sync/发送协议（经 I5→M008）、不管理 homeserver 内部。
 
-- **输入、处理与输出**：输入 `run_id`、Pi idle/abort 事件；输出 intake 状态推进与 `PikoDiscussionMessage`。
+- **输入、处理与输出**：输入 `task_id`、Pi idle/abort 事件；输出 intake 状态推进与 `PikoDiscussionMessage`。
 
 - **协作对象**：被 S1 调用；依赖 I5 的 M003/M008 端口。
 
@@ -511,7 +512,7 @@ flowchart TB
 
 - **调用链（文件 / symbol → 文件 / symbol）**：`RunCoordinator.onLease` → `WorkerPorts.createSession`（M003）→ `WorkerPorts.openOrCreateRunSession`（M006）→ `WorkerPorts.accept`（M006）→ `drive` 循环（M006 `IF-RUN-DRIVE`）→ `IntakeController` 处理 idle/discussion（I4）→ `ResultBuilder.build`（I1）→ `WorkerPorts.snapshot`/`validate`（M007）→ `P-WORKER-PUBLISH`。
 
-- **逐步传递的数据**：`Lease` → `run_id`/`epoch` → `PiRunHandle` → `typedInstruction` + `PikoDiscussionMessage?` → `PiOperationOutcome` → `AgentResult` 素材 + `UsageSnapshot`。
+- **逐步传递的数据**：`Lease` → `task_id`/`epoch` → `PiRunHandle` → `typedInstruction` + `PikoDiscussionMessage?` → `PiOperationOutcome` → `AgentResult` 素材 + `UsageSnapshot`。
 
 - **返回、异常与清理**：正常返回进入发布；`LeaseLost` → 停止驱动、清 drive 定时器、不写终态；Harness fault → 映射 failure 后走发布；依赖错误按位置收口。清理：关闭 drive 轮询与续租看护。
 
@@ -523,7 +524,7 @@ flowchart TB
 
 - **调用链（文件 / symbol → 文件 / symbol）**：`RunCoordinator.publish` → `ResultBuilder.build`（I1）→ `WorkerPorts.validate`（M007）→ `WorkerPorts.publishResult`（M003 第一步）→ `WorkerPorts.finishTerminal`（M003 第二步：state+generation+releaseSlot）→ `IntakeController.close`（I4，discussion）。
 
-- **逐步传递的数据**：`{run_id, generation=N, result_json, sha256}` → `ResultRecord`；`{run_id, state, generation=N+1, finished_at}` → 终态行。
+- **逐步传递的数据**：`{task_id, generation=N, result_json, sha256}` → `ResultRecord`；`{task_id, state, generation=N+1, finished_at}` → 终态行。
 
 - **返回、异常与清理**：正常：Result 发布、终态提交、slot 释放；校验 FAIL：抛 `InternalError` 不写；fencing 失败：内部 `FencedWrite`、停止且不伪装成功；第一步后崩溃：第二步由 `I3` 补。
 
@@ -531,15 +532,15 @@ flowchart TB
 
 #### 5.2.3 `P-WORKER-CANCEL` · 取消分流
 
-- **入口与调用上下文**：M001 取消入口 → `CancelRouter.route(run_id)`。
+- **入口与调用上下文**：M001 取消入口 → `CancelRouter.route(task_id)`。
 
-- **调用链（文件 / symbol → 文件 / symbol）**：`CancelRouter.route` → `WorkerPorts.getRun`（M003 读 state）→ 分支：Queued → `WorkerPorts.cancelQueued`（M003 单事务零调用 Result）；Running → `WorkerPorts.writeStopIntent`（M003 `Cancelling`）+ `WorkerPorts.requestAbort`（M006）+ 对账 → `P-WORKER-PUBLISH`。
+- **调用链（文件 / symbol → 文件 / symbol）**：`CancelRouter.route` → `WorkerPorts.getTask`（M003 读 state）→ 分支：Queued → `WorkerPorts.cancelQueued`（M003 单事务零调用 Result）；Running → `WorkerPorts.writeStopIntent`（M003 `Cancelling`）+ `WorkerPorts.requestAbort`（M006）+ 对账 → `P-WORKER-PUBLISH`。
 
-- **逐步传递的数据**：`run_id` → `RunState` → `CancelOutcome`；Running 分支 → `operation_id` → abort 对账事实。
+- **逐步传递的数据**：`task_id` → `TaskState` → `CancelOutcome`；Running 分支 → `operation_id` → abort 对账事实。
 
 - **返回、异常与清理**：Queued 返回 `CancelledBeforeStart`；Running 返回 `StopRequested` 并随后终态；终态返回 `AlreadyTerminal`；abort 后无法证明停止 → `ExecutionStateUnknown`。
 
-- **对应流程 / 接口 / 验证**：§7 `M-WRK-P3`；§9.1 `cancelQueued`/`cancelRunning`、§9.2 `IF-CX-ABORT`；`VRC-WORKER-002`。
+- **对应流程 / 接口 / 验证**：§7 `M-WRK-P3`；§9.1 `cancelQueued`/`cancelTaskning`、§9.2 `IF-CX-ABORT`；`VRC-WORKER-002`。
 
 #### 5.2.4 `P-WORKER-RECOVER` · 崩溃恢复编排
 
@@ -547,7 +548,7 @@ flowchart TB
 
 - **调用链（文件 / symbol → 文件 / symbol）**：`RecoveryPlanner.plan` → `WorkerPorts.scanNonTerminalRuns`（M003）→ `WorkerPorts.resultExists`（M003）→ `WorkerPorts.inspect`（M006）→ 判定 → `WorkerPorts.patchTerminal`（M003 补第二步）或 `drive`/`accept`（M006）或 `Scheduler.fence`（M004）→ `WorkerPorts.matrixReconcile`（M008 cursor）。
 
-- **逐步传递的数据**：非终态 `run_id[]` → `RecoveryProbe` → `RecoveryOutcome` → 命令序列。
+- **逐步传递的数据**：非终态 `task_id[]` → `RecoveryProbe` → `RecoveryOutcome` → 命令序列。
 
 - **返回、异常与清理**：每个 Run 得到一个 outcome；不可恢复 → `InternalError` Failed 并交 operator；恢复完成后置恢复门完成标志，放行 M004 正常领取。
 
@@ -555,11 +556,11 @@ flowchart TB
 
 #### 5.2.5 `P-WORKER-INTAKE` · intake 推进
 
-- **入口与调用上下文**：Pi idle/abort 事件 → `IntakeController.onIdle(run_id)` / `onAbort(run_id)`。
+- **入口与调用上下文**：Pi idle/abort 事件 → `IntakeController.onIdle(task_id)` / `onAbort(task_id)`。
 
 - **调用链（文件 / symbol → 文件 / symbol）**：`IntakeController.onIdle` → `WorkerPorts.casIntake`（M003 Open→Closing）→ `WorkerPorts.listPendingTurns`（M003）→ 构造 `PikoDiscussionMessage` → `WorkerPorts.accept`（M006）→ `WorkerPorts.markTurnConsumed`（M003）。`onAbort` → `WorkerPorts.abandonTurns`（M003）。
 
-- **逐步传递的数据**：`run_id` → `DiscussionIntakeState`；`DiscussionTurn` → `PikoDiscussionMessage`（`event_id` 仅持久层）→ `pi_entry_id`/`pi_operation_id`。
+- **逐步传递的数据**：`task_id` → `DiscussionIntakeState`；`DiscussionTurn` → `PikoDiscussionMessage`（`event_id` 仅持久层）→ `pi_entry_id`/`pi_operation_id`。
 
 - **返回、异常与清理**：CAS 失败 → 重判；无 pending 且 `Closing` → 允许发布；abort/failure → 未消费 turn 置 `Abandoned`。清理：无长期资源。
 
@@ -621,7 +622,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 #### 6.1.1 `CancelOutcome`
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：`CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。权威来源 = contract §1 + OpenAPI `cancelRun`；worker 为产生方。`CancelledBeforeStart`＝Queued 已取消（终态）；`StopRequested`＝Running 意图落盘（未停）；`AlreadyTerminal`＝已终态。未知值拒绝。
+- **完整定义、Data/Type/Data ID 与唯一来源**：`CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。权威来源 = contract §1 + OpenAPI `cancelTask`；worker 为产生方。`CancelledBeforeStart`＝Queued 已取消（终态）；`StopRequested`＝Running 意图落盘（未停）；`AlreadyTerminal`＝已终态。未知值拒绝。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：worker `CancelRouter` 产生，M001 经 HTTP 映射；寿命 = 单次取消请求；失败出口 = 非上述三值即内部编程错误。
 
@@ -639,7 +640,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 #### 6.2.1 `AgentResult`（worker 构造、M003 持久化）
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：`AgentResult`；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.AgentResult`。worker 是生产/构造者，M003 是持久化者，M001 是读路径提供者。字段：`run_id`、`task_id`、`generation`、`state ∈ {Completed,Failed,Cancelled}`、`partial`、`summary`、`outputs[]`、`known_actions[]`、`usage`、`failure`、`published_at`。
+- **完整定义、Data/Type/Data ID 与唯一来源**：`AgentResult`；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.AgentResult`。worker 是生产/构造者，M003 是持久化者，M001 是读路径提供者。字段：`task_id`、`task_id`、`generation`、`state ∈ {Completed,Failed,Cancelled}`、`partial`、`summary`、`outputs[]`、`known_actions[]`、`usage`、`failure`、`published_at`。
 
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`generation` 为正整数；跨字段：`Completed` 强制 `failure=null` 且 `partial=false`；`Failed` 强制 `failure` 非空；`Cancelled` 强制 `failure.code=CancelledByRequest` 且 `cause_class=Cancellation`。`usage` 为 `TokenUsage`（§6.2.2）。
 
@@ -659,9 +660,9 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 #### 6.2.3 `FencedPublishResult`
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：`FencedPublishResult { run_id, generation, result_json, result_sha256 }`；来源 `piko-run.md` §4.4.2 + M003 ISD §4.6。worker 生产命令、M003 执行。
+- **完整定义、Data/Type/Data ID 与唯一来源**：`FencedPublishResult { task_id, generation, result_json, result_sha256 }`；来源 `piko-run.md` §4.4.2 + M003 ISD §4.6。worker 生产命令、M003 执行。
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`generation >= 1`；`result_sha256` 为 `result_json` 的 SHA-256（64 hex）；`WHERE run_id=? AND generation=?` 必须影响 1 行（fencing）。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`generation >= 1`；`result_sha256` 为 `result_json` 的 SHA-256（64 hex）；`WHERE task_id=? AND generation=?` 必须影响 1 行（fencing）。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：worker 构造；M003 以 fenced write 提交；失败出口 = `FencedWrite`（lease/generation 不符）。
 
@@ -669,7 +670,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 #### 6.2.4 `WorkerRunPlan`（私有）
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：私有类型 `WorkerRunPlan { run_id: string, lease_epoch: number, workspace: ResolvedWorkspace, instruction: string, discussion?: DiscussionContext, limits: RunLimits }`；来源 = 本设计 §5.1.1，字段引自机器契约 `AgentTaskRequest`。
+- **完整定义、Data/Type/Data ID 与唯一来源**：私有类型 `WorkerRunPlan { task_id: string, lease_epoch: number, workspace: ResolvedWorkspace, instruction: string, discussion?: DiscussionContext, limits: RunLimits }`；来源 = 本设计 §5.1.1，字段引自机器契约 `AgentTaskRequest`。
 
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`lease_epoch >= 1`；`workspace` 已 canonicalize 且在 root 内；`limits` 来自 M002 固定；`discussion` 仅 discussion Run。
 
@@ -693,7 +694,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
   语义来源 = 模块设计 §2 与 `system-design` §6.2.1。
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：由 `runs.state`（M003）+ Pi operation 事实派生：`Queued→Running` 后 `DISPATCHED`；`accept` 成功 `DRIVING`；收到 cancel/deadline → `DRAINING`（abort 对账中）；对账完成 → `PUBLISHING`；终态提交 → `DONE`；`LeaseLost`/`LeaseRenewalUnavailable` → `DETACHED`（停止驱动不写终态）。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：由 `runs.state`（M003）+ Pi operation 事实派生：`Queued→Running` 后 `DISPATCHED`；`accept` 成功 `DRIVING`；收到 cancel → `DRAINING`（abort 对账中）；对账完成 → `PUBLISHING`；终态提交 → `DONE`；`LeaseLost`/`LeaseRenewalUnavailable` → `DETACHED`（停止驱动不写终态）。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：owner = worker（只读投影，不写回）；寿命 = 一次 Run 协调期；不持久化、不单独提交；转换与 M003 事务一一对应。
 
@@ -704,7 +705,7 @@ stateDiagram-v2
     [*] --> DISPATCHED: D1 acquireSlot 后 dispatch
     DISPATCHED --> DRIVING: D2 accept 成功
     DRIVING --> DRIVING: D3 drive 事件
-    DRIVING --> DRAINING: D4 cancel 或 deadline
+    DRIVING --> DRAINING: D4 cancel
     DRIVING --> PUBLISHING: D5 operation result
     DRAINING --> PUBLISHING: D6 对账证明已停止
     DRAINING --> DETACHED: D7 无法证明停止
@@ -718,10 +719,10 @@ stateDiagram-v2
 
   | Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 的权威事实来源 | 动作 / 提交点 | 迟到 / 失败出口 | 不变量 | VRC |
   |---|---|---|---|---|---|---|---|
-  | D1 | DISPATCHED → DISPATCHED | `acquireSlot` dispatch / M004 | `execution_slot.run_id` 绑定且 `runs.state=Running`（`piko-scheduler` §9.1.1） | 创建 `run_sessions`、置 `DRIVING` 前置 | lease 忙/无候选 → 未 dispatch | INV-WORKER-1 | `VRC-WORKER-001` |
+  | D1 | DISPATCHED → DISPATCHED | `acquireSlot` dispatch / M004 | `execution_slot.task_id` 绑定且 `runs.state=Running`（`piko-scheduler` §9.1.1） | 创建 `run_sessions`、置 `DRIVING` 前置 | lease 忙/无候选 → 未 dispatch | INV-WORKER-1 | `VRC-WORKER-001` |
   | D2 | DISPATCHED → DRIVING | `lane.accept` / worker | M006 返回 durable op（Harness commit） | 提交 `typedInstruction` + turn；启动 drive | accept fault → 映射 failure 走发布 | INV-WORKER-2 | `VRC-WORKER-001` |
   | D3 | DRIVING → DRIVING | drive 事件 / M006 | ordered stream events；raw usage 归 M007 | 收集 outcome 素材 | stream 断流由 Harness 形成 recoverable op | INV-WORKER-2 | `VRC-WORKER-001` |
-  | D4 | DRIVING → DRAINING | cancel/deadline / M001/M002 | `runs.cancel_requested` 或 `deadline_at<=now` | `requestAbort(operation_id)` + 对账 | abort 不抢占在途 provider effect | INV-WORKER-3 | `VRC-WORKER-002/003` |
+  | D4 | DRIVING → DRAINING | cancel / M001 | `runs.cancel_requested` | `requestAbort(operation_id)` + 对账 | abort 不抢占在途 provider effect | INV-WORKER-3 | `VRC-WORKER-002` |
   | D5 | DRIVING → PUBLISHING | operation result / M006 | Harness 提交 operation result | 对账 in-flight tool → 进入两步 | 对账未知 → `UnsafeRetryBlocked`/`ExecutionStateUnknown` | INV-WORKER-4 | `VRC-WORKER-001` |
   | D6 | DRAINING → PUBLISHING | 对账完成 / worker | operation 已停止事实（M006 对账） | 构造 `Cancelled` Result | 无法证明停止 → `ExecutionStateUnknown` | INV-WORKER-3 | `VRC-WORKER-002` |
   | D7 | DRAINING → DETACHED | `LeaseLost` / M004 回调 | `renewLease=false` 或 `LeaseRenewalUnavailable` | 停止驱动、清定时器；不写终态 | slot 保留（依赖错误）或由 M003 释放 | INV-WORKER-5 | `VRC-WORKER-007` |
@@ -731,13 +732,13 @@ stateDiagram-v2
   **不变量**：
 
   - `INV-WORKER-1`：同一时刻 worker 只协调一个 Run；不并发第二个 `accept`。
-  - `INV-WORKER-2`：`drive` 期间不重新 `accept` 同一 operation；`pi_session_id=run_id` 确定性。
+  - `INV-WORKER-2`：`drive` 期间不重新 `accept` 同一 operation；`pi_session_id=task_id` 确定性。
   - `INV-WORKER-3`：`Cancelled` 终态只在 operation 停止对账完成后写；`StopRequested` 不等于停止。
   - `INV-WORKER-4`：语义校验未通过时不写 `results`、不写终态。
   - `INV-WORKER-5`：`DETACHED`（lease 丢失）后不再产生任何 Run/Result 写入。
   - `INV-WORKER-6`：`results.generation = N` 与 `runs.generation = N+1` 一一对应；两步不合并。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`DRIVING{run_id:"run-042", lease_epoch:3}` → `PUBLISHING` → `DONE`。拒绝：`DETACHED` 后再写终态（违反 `INV-WORKER-5`）；两步合并（违反 `INV-WORKER-6`）。`VRC-WORKER-001/002/006/007`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`DRIVING{task_id:"task-042", lease_epoch:3}` → `PUBLISHING` → `DONE`。拒绝：`DETACHED` 后再写终态（违反 `INV-WORKER-5`）；两步合并（违反 `INV-WORKER-6`）。`VRC-WORKER-001/002/006/007`；`NOT_RUN`。
 
 ### 6.7 数据库表结构
 
@@ -749,7 +750,7 @@ stateDiagram-v2
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：内部类型，不进入 HTTP 契约：`FencedWrite`（fenced write 未命中：lease/generation 不符，来自 M003）、`LeaseLost`（`piko-scheduler` 续租 CAS 未命中）、`DiscussionNotClosed`（Completed 前 intake 未 `Closing` 或仍有 pending）。定义在 `src/worker/types.ts`（Planned）+ M003/M004。三者不可互相替代：`FencedWrite` 是写入被拒，`LeaseLost` 是失去执行权，`DiscussionNotClosed` 是讨论结果前提未满足。
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`FencedWrite` 携带 `{run_id, expected_generation?, expected_epoch?}`；`LeaseLost` 携带 `{run_id, epoch}`；`DiscussionNotClosed` 携带 `{run_id, pending_turns}`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`FencedWrite` 携带 `{task_id, expected_generation?, expected_epoch?}`；`LeaseLost` 携带 `{task_id, epoch}`；`DiscussionNotClosed` 携带 `{task_id, pending_turns}`。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：`FencedWrite` 由 M003 抛、worker 停止且不制造成功；`LeaseLost` 由 M004 产生经回调交 worker → 停止驱动；`DiscussionNotClosed` 由 M003 `finish` guard 抛、worker 回退重判 intake。
 
@@ -757,13 +758,13 @@ stateDiagram-v2
 
 #### 6.8.2 对外 Result `failure.code` 映射（worker 生产）
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：worker 把执行/取消/截止事实映射为 contract §6 的 `Failure.code`：`DeadlineExceeded`/`TaskDeadline`、`BudgetExceeded`/`Budget`、`ModelUnavailable`/`Dependency`、`ModelResponseInvalid`/`ModelProtocol`、`ToolFailure`/`Tool`、`UnsafeRetryBlocked`/`ExecutionUnknown`、`ExecutionStateUnknown`/`ExecutionUnknown`、`DiscussionAccessLost`/`Authorization`、`CancelledByRequest`/`Cancellation`、`InternalError`/`Internal`。
+- **完整定义、Data/Type/Error ID 与唯一来源**：worker 把执行/取消/截止事实映射为 contract §6 的 `Failure.code`：`ModelUnavailable`/`Dependency`、`ModelResponseInvalid`/`ModelProtocol`、`ToolFailure`/`Tool`、`UnsafeRetryBlocked`/`ExecutionUnknown`、`ExecutionStateUnknown`/`ExecutionUnknown`、`DiscussionAccessLost`/`Authorization`、`CancelledByRequest`/`Cancellation`、`InternalError`/`Internal`。
 
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Failure {code, cause_class, message}`；`message` 非空不超过 8192；`Failed` 必须 non-null，`Completed` 强制 null，`Cancelled` 强制 `CancelledByRequest`。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：worker 唯一构造者，随 Result 冻结；可见点 `results.result_json`。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：截止耗尽 → `DeadlineExceeded`。拒绝：`Completed` 带 failure。`VRC-WORKER-002/003/004`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：工具失败 → `ToolFailure`。拒绝：`Completed` 带 failure。`VRC-WORKER-002/004`；`NOT_RUN`。
 
 ## 7. 主流程与数据流
 
@@ -772,14 +773,14 @@ stateDiagram-v2
 ```mermaid
 flowchart TD
     A["M004 dispatch Lease → onLease"] --> B["M003 建 run_sessions + 绑 lease_epoch"]
-    B --> C{"deadline/access 预检通过？"}
+    B --> C{"access 预检通过？"}
     C -->|否| Z["映射 failure → P-WORKER-PUBLISH"]
     C -->|是| D["M006 openOrCreateRunSession"]
     D --> E["M006 lane.accept typedInstruction"]
     E --> F["drive 事件循环（含 discussion turn）"]
     F --> G{"终止原因？"}
     G -->|operation result| H["对账 in-flight tool"]
-    G -->|cancel/deadline| I["requestAbort + 对账"]
+    G -->|cancel| I["requestAbort + 对账"]
     G -->|LeaseLost| Z2["DETACHED 停止驱动，不写终态"]
     H --> J["M007 snapshot + validate"]
     I --> J
@@ -815,7 +816,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["cancelRun → CancelRouter.route run_id"] --> B{"runs.state？"}
+    A["cancelTask → CancelRouter.route task_id"] --> B{"runs.state？"}
     B -->|Queued| C["单事务 flag + 零调用 Result + Cancelled"]
     B -->|Running| D["写 stop intent + state=Cancelling"]
     B -->|终态| E["AlreadyTerminal"]
@@ -873,7 +874,7 @@ flowchart TD
 
 - **输入前提 / 适用条件**：每次 Run 到达终态；当前 `runs.generation = G`。
 
-- **算法 / 规则 / 选择依据**：第一步在单事务 `INSERT results(run_id, generation=G+1, result_json, sha256)`（不可变 Result generation）；第二步在独立单事务 `UPDATE runs SET state=终态, generation=G+2, finished_at`，discussion Run 同事务置 `discussion_intake_state=Closed` 并把 `Pending`/`QueuedInPi` turn 置 `Abandoned`，最后 `releaseSlot(run_id, epoch)`。选择两步而非合并：使“Pi 已执行、Result 已定但终态未提交”成为可恢复的中间事实，恢复器只补第二步。
+- **算法 / 规则 / 选择依据**：第一步在单事务 `INSERT results(task_id, generation=G+1, result_json, sha256)`（不可变 Result generation）；第二步在独立单事务 `UPDATE runs SET state=终态, generation=G+2, finished_at`，discussion Run 同事务置 `discussion_intake_state=Closed` 并把 `Pending`/`QueuedInPi` turn 置 `Abandoned`，最后 `releaseSlot(task_id, epoch)`。选择两步而非合并：使“Pi 已执行、Result 已定但终态未提交”成为可恢复的中间事实，恢复器只补第二步。
 
 - **结果 / 不变量 / 边界**：结果 = `results.generation = G+1` 且 `runs.generation = G+2`。不变量 `INV-WORKER-6`。边界：`Completed` 要求 intake `Closing` 且 pending=0（否则 `DiscussionNotClosed`）。
 
@@ -885,31 +886,21 @@ flowchart TD
 
 #### 8.2 `R-WORKER-CANCEL-DISPATCH` · 按 state 分流
 
-- **输入前提 / 适用条件**：`cancelRun(run_id)`；读取 `runs.state`。
+- **输入前提 / 适用条件**：`cancelTask(task_id)`；读取 `runs.state`。
 
 - **算法 / 规则 / 选择依据**：`Queued`：单事务 `cancel_requested=1` + 写 `model_attempts=0` 的零调用 Result（`CancelledByRequest`）+ `state=Cancelled`，返回 `CancelledBeforeStart`。`Running`：单事务 `cancel_requested=1` + `state=Cancelling`，返回 `StopRequested`；随后 `requestAbort` + 对账，证明停止 → 两步发布 `Cancelled`；否则 `ExecutionStateUnknown` Failed。终态 → `AlreadyTerminal`。选择依据：`piko-cancel.md` 明确 `StopRequested` 只证意图。
 
 - **结果 / 不变量 / 边界**：结果 = 三种 `CancelOutcome`。不变量 `INV-WORKER-3`。边界：abort 不抢占在途 provider effect；不撤销已生效取消。
 
-- **复杂度 / 资源限制**：Queued O(1)；Running 取决于 Harness 对账时延（受 deadline 有界）。
+- **复杂度 / 资源限制**：Queued O(1)；Running 取决于 Harness 对账时延（有界）。
 
 - **允许替换范围 / 不可改变保证**：可换 abort/对账实现；不可把 `StopRequested` 当停止、不可在 Queued 路径取得 lease。
 
 - **具体输入推演 / 验证项**：Queued → `CancelledBeforeStart` + 零调用 Result；Running → `StopRequested` 后终态 `Cancelled`。`VRC-WORKER-002`。
 
-#### 8.3 `R-WORKER-DEADLINE` · 截止判定
+#### 8.3 截止/预算判定 · N/A
 
-- **输入前提 / 适用条件**：执行前与执行中；`task.limits.deadline_at`（持久 UTC）。
-
-- **算法 / 规则 / 选择依据**：`expired = Date.parse(deadline_at) <= now`（UTC wall clock）；进程内 elapsed 用 monotonic。到期且未 `cancel_requested` → `DeadlineExceeded`/`TaskDeadline`；已取消则取消优先。预算由 M006 `before_tool` CAS 产生事实，耗尽 → `BudgetExceeded`。
-
-- **结果 / 不变量 / 边界**：结果 = 失败终态或继续。边界：时钟回拨不改 CAS；worker 不放宽 deadline。
-
-- **复杂度 / 资源限制**：O(1) 判定；poll 频率宿主固定。
-
-- **允许替换范围 / 不可改变保证**：可换检查时点；不可改 deadline 语义与 failure 映射。
-
-- **具体输入推演 / 验证项**：deadline 已过 → `Failed{DeadlineExceeded}`；同时取消 → `Cancelled`。`VRC-WORKER-003`。
+**N/A · 本版撤销**：`PK-04` 撤销，worker 不判定任务级 deadline/预算字段。
 
 #### 8.4 `R-WORKER-INTAKE-CAS` · intake 推进
 
@@ -943,7 +934,7 @@ flowchart TD
 
 - **输入前提 / 适用条件**：Result 第一步之前。
 
-- **算法 / 规则 / 选择依据**：`snapshot(run_id)` → `validateBeforePublish(result, "0.3.0-simplified.6")`；`ok=false` → 抛 `InternalError("semantic-validator-fail")` 且不写 Result/终态。字段缺失是 `Partial`/`Unknown` 事实，不是错误。
+- **算法 / 规则 / 选择依据**：`snapshot(task_id)` → `validateBeforePublish(result, "0.3.0-simplified.6")`；`ok=false` → 抛 `InternalError("semantic-validator-fail")` 且不写 Result/终态。字段缺失是 `Partial`/`Unknown` 事实，不是错误。
 
 - **结果 / 不变量 / 边界**：结果 = ok/fail。不变量 `INV-WORKER-4`。边界：`model_attempts=0` 时零调用 Complete 合法。
 
@@ -981,13 +972,13 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **成功输出与保证**：单事务写 `cancel_requested=1` + 零调用 immutable Result + `state=Cancelled`；返回 `CancelledBeforeStart`。
 
-- **错误与合法下一步**：非 Queued → 转 `cancelRunning` 路径；`Gone`/`NotFound` 由 M001 前置处理。
+- **错误与合法下一步**：非 Queued → 转 `cancelTaskning` 路径；`Gone`/`NotFound` 由 M001 前置处理。
 
 - **交互与生命周期**：同步单事务；不取得 lease。
 
 - **实现与验证**：`src/worker/cancel.ts`（Planned）。`VRC-WORKER-002`；`NOT_RUN`。
 
-#### 9.1.3 `cancelRunning(runId) -> CancelOutcome`（`IF-CX-RUNNING`）
+#### 9.1.3 `cancelTaskning(runId) -> CancelOutcome`（`IF-CX-RUNNING`）
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-CX-RUNNING`（`piko-cancel.md` §5.1，M005 提供）；Running Run 停止意图 + abort + 对账。
 
@@ -997,7 +988,7 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **错误与合法下一步**：无法证明停止 → `ExecutionStateUnknown` Failed；abort 前崩溃由恢复对账。
 
-- **交互与生命周期**：异步（需等待对账）；受 deadline 有界。
+- **交互与生命周期**：异步（需等待对账）；有界。
 
 - **实现与验证**：`src/worker/cancel.ts`（Planned）。`VRC-WORKER-002`；`NOT_RUN`。
 
@@ -1005,7 +996,7 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-WORKER-DISPATCH`（M004 → M005 进程内 dispatch）；开始协调一个 Run。
 
-- **输入与前提**：`Lease{run_id, owner_id, boot_id, epoch, ...}`；`runs.state=Running`；恢复门已完成。
+- **输入与前提**：`Lease{task_id, owner_id, boot_id, epoch, ...}`；`runs.state=Running`；恢复门已完成。
 
 - **成功输出与保证**：创建 `run_sessions`、accept operation、启动 drive；副作用全部经 M003/M006。
 
@@ -1021,10 +1012,10 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 | 交接/接口 ID | 提供方/消费方 | 输入/输出或事件 | 确认 / 期限 / 失败 | 引用 |
 |---|---|---|---|---|
-| `IF-RUN-SESSION` | M006 → M005 | `run_id` → `PiRunHandle` | 同步；确定性 `pi_session_id=run_id` | `piko-run.md` §5.1 |
+| `IF-RUN-SESSION` | M006 → M005 | `task_id` → `PiRunHandle` | 同步；确定性 `pi_session_id=task_id` | `piko-run.md` §5.1 |
 | `IF-RUN-ACCEPT` | M005 → M006 | `typedInstruction`（+`PikoDiscussionMessage`）→ durable op | 异步；fault → typed error | `piko-run.md` §5.1 |
 | `IF-RUN-DRIVE` | M006 → M005 | `PiOperationOutcome` stream | ordered；abort 对账 | `piko-run.md` §5.2 |
-| `IF-RUN-SNAPSHOT` | M005 → M007 | `run_id` → `UsageSnapshot` | 与 publish 同事务前置 | `piko-run.md` §5.1 |
+| `IF-RUN-SNAPSHOT` | M005 → M007 | `task_id` → `UsageSnapshot` | 与 publish 同事务前置 | `piko-run.md` §5.1 |
 | `IF-USAGE-VALIDATE` | M005 → M007 | `AgentResult`+version → `SemanticCheck` | FAIL → `InternalError` | `piko-usage.md` §5.1 |
 | `IF-RUN-PUBLISH` | M005 → M003 | `FencedPublishResult` → `ResultRecord` | 同步；单事务；fencing | `piko-run.md` §5.1 |
 | `IF-REC-SCAN` | M003 → M005 | — → 非终态 Run 列表 | 同步 | `piko-recovery.md` §5.1 |
@@ -1055,7 +1046,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **初始条件 / 并发交错 / 失败点**：第一步 `INSERT results` 已提交、第二步终态未提交时进程崩溃。失败点 = 两步之间。
 
-- **检测事实 / authority / 期限**：重启后探测到 `results(run_id, gen N)` 存在且 `runs.state` 非终态。
+- **检测事实 / authority / 期限**：重启后探测到 `results(task_id, gen N)` 存在且 `runs.state` 非终态。
 
 - **处理行为 / 副作用边界**：恢复只补第二步（`IF-REC-PATCH`），绝不重跑 Pi；Result 内容不变。
 
@@ -1067,7 +1058,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 #### 10.2 `C-WORKER-02` · 取消与终态发布竞态
 
-- **初始条件 / 并发交错 / 失败点**：`cancelRunning` 与 operation 自然结束同时发生；或 M003 `finish` 已清空 slot 后 `renewSlot` 到达。
+- **初始条件 / 并发交错 / 失败点**：`cancelTaskning` 与 operation 自然结束同时发生；或 M003 `finish` 已清空 slot 后 `renewSlot` 到达。
 
 - **检测事实 / authority / 期限**：`runs.cancel_requested`/`state` + M006 对账；slot 事实由 M003 CAS。
 
@@ -1093,19 +1084,9 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-006`；组合 PK-T12。
 
-#### 10.4 `C-WORKER-04` · deadline 与取消同时到达
+#### 10.4 截止与取消同时到达 · N/A
 
-- **初始条件 / 并发交错 / 失败点**：deadline 到期与 `cancel_requested` 同时为真。失败点 = 归因错误。
-
-- **检测事实 / authority / 期限**：`deadline_at`（UTC）+ `cancel_requested`。
-
-- **处理行为 / 副作用边界**：取消优先 → `Cancelled`（`CancelledByRequest`）；否则 `DeadlineExceeded` Failed。
-
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getRun`；无重试。
-
-- **最终状态 / 资源归属 / 后续合法入口**：单一终态；slot 释放。
-
-- **验证项 / 组合责任**：`VRC-WORKER-003`；组合 PK-T05。
+**N/A · 本版撤销**：本版无 deadline，不存在该并发用例（取消仍按 `C-WORKER-02`）。
 
 #### 10.5 `C-WORKER-05` · 语义校验失败与发布
 
@@ -1153,7 +1134,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **输入信任 / 身份 / 授权**：worker 无外部输入、无身份、无授权分支：调用方是进程内 M004/M001/M000，不携带 principal。bearer/principal/path/tool 授权由 M001/M002 承载，worker 只消费已校验的 `ValidatedTaskSubmission` 与 Run。
 
-- **敏感数据**：worker 不接触 credential、绝对路径、`task_id`/`run_id` 之外的业务内容；不记录模型 instruction 正文与完整模型 input/output。`run_id`/`pi_operation_id`/`lease_epoch` 为可选入日志的关联身份。
+- **敏感数据**：worker 不接触 credential、绝对路径、`task_id`/`task_id` 之外的业务内容；不记录模型 instruction 正文与完整模型 input/output。`task_id`/`pi_operation_id`/`lease_epoch` 为可选入日志的关联身份。
 
 - **继承上级指标与口径**：继承 `system-design` §12 与 `piko-run.md` §12.1 指标：`event.run.{created,started,terminated}`（worker 是 `started`/`terminated` 写入点）、`piko.recovery.outcomes.{resume,fenced,internal_error}`（worker R 路径写入点）。worker 不新增指标。
 
@@ -1175,7 +1156,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **共享资源扣减 / 峰值重叠 / 余量**：worker 不额外持有内存配额；`runs`/`results`/`discussion_turns` 行开销计入 M003 存储预算（不重复计账）；drive 期间驻留一个 `PiOperationOutcome` 素材。
 
-- **超限行为 / 责任出口**：预算/deadline 超限 → 固定 failure 终止（§8.3）；队列满在 M003/M001 受理处拒绝（`QueueFull`），worker 不参与。
+- **超限行为 / 责任出口**：队列满在 M003/M001 受理处拒绝（`QueueFull`），worker 不参与。
 
 - **验证项 / Evidence**：`VRC-WORKER-001/003`；`NOT_RUN`。
 
@@ -1711,23 +1692,9 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.3 `VRC-WORKER-003` · deadline/预算终止
+#### 14.2.3 截止/预算终止 · N/A
 
-- **Rule / 成员**：`F-WORKER-DEADLINE`；`R-WORKER-DEADLINE`；`CON-RUN-003`。
-
-- **V / Case / Vector**：A（deadline 已过 → `Failed`/`DeadlineExceeded`）；B（预算耗尽 → `BudgetExceeded`）；C（deadline 与取消同时 → 取消优先 `Cancelled`）。
-
-- **输入 / 故障 / 环境**：临时 DB + 受控时钟 + fake M006 预算终止事实。
-
-- **独立 Oracle / Expected**：Oracle = 终态 `runs.state` + `results.result_json.failure.code`；Expected 同 Case。
-
-- **Actual / Evidence**：`NOT_RUN`。
-
-- **Verdict**：`NOT_RUN`
-
-- **测试入口 / 清理**：Planned `tests/fault/worker-deadline.test.ts`。
-
-- **Run ID / Status**：`NOT_RUN`。
+**N/A · 本版撤销**：`PK-04` 撤销。
 
 #### 14.2.4 `VRC-WORKER-004` · Usage 快照与语义校验 fail closed
 
@@ -1851,7 +1818,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **事实缺口 / 触发条件**：第一步 `results` 提交后、第二步终态前，外部读路径若只看到 `results` 就宣称 Run 完成；或恢复失败导致终态长期缺失。
 
-- **影响 / 阻塞边界**：不阻塞；由恢复只补第二步与 `RunView.result_available` 口径收口。
+- **影响 / 阻塞边界**：不阻塞；由恢复只补第二步与 `TaskView.result_available` 口径收口。
 
 - **Owner / 最晚关闭 Gate**：Piko Implementation Owner；实现评审时确认。
 
@@ -1951,7 +1918,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`src/worker/cancel.ts`（Planned / NOT_IMPLEMENTED）；现逻辑在 `store.cancel` 与 `RunWorker`。
 
-- **允许自行决定的范围**：abort+对账实现、与 deadline 优先级；不得把 `StopRequested` 当停止、不可撤销已生效取消。
+- **允许自行决定的范围**：abort+对账实现；不得把 `StopRequested` 当停止、不可撤销已生效取消。
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-002`；组合 PK-T05。
 

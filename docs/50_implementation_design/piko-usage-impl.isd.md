@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -426,7 +426,7 @@ flowchart LR
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   interface ModelAttemptView {
-    run_id: string; operation_id: string; step_id: string; attempt: number;
+    task_id: string; operation_id: string; step_id: string; attempt: number;
     state: "Reserved" | "Started" | "UsageObserved" | "Terminal" | "Unknown";
     raw_usage: RawAttemptUsage | null; record_version: number; updated_at: string;
   }
@@ -549,7 +549,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **宿主 / public payload 或状态码**：无 HTTP；返回 `UsageSnapshot` 或抛出依赖错误。
 
-- **日志级别 / 脱敏 / 关联字段**：`debug`（聚合完成，含 `run_id`/`model_attempts`/`quality`）；`warn`（依赖错误，含 error class）。无敏感字段。
+- **日志级别 / 脱敏 / 关联字段**：`debug`（聚合完成，含 `task_id`/`model_attempts`/`quality`）；`warn`（依赖错误，含 error class）。无敏感字段。
 
 - **是否可重试及前提**：依赖错误由 M005 决定重试；`snapshot` 本身幂等（只读）。
 
@@ -603,7 +603,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **宿主 / public payload 或状态码**：返回 `SemanticCheck`；无 HTTP 码。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（`ok:true`，含 `run_id`/`quality`）；`error`（`ok:false`，含不变量名，不含业务内容）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`ok:true`，含 `task_id`/`quality`）；`error`（`ok:false`，含不变量名，不含业务内容）。
 
 - **是否可重试及前提**：`ok:false` 不自动重试（交 operator）；幂等（同输入同结果）。
 
@@ -973,7 +973,7 @@ flowchart TD
 
 - **参与线程 / 回调 / 事务**：M006 多次 `onRawUsage`。
 - **已产生或可能产生的副作用**：`model_attempts` 行更新。
-- **检测事实 / 期限**：主键 `(run_id, operation_id, step_id, attempt)` 唯一。
+- **检测事实 / 期限**：主键 `(task_id, operation_id, step_id, attempt)` 唯一。
 - **状态 / 错误 / 结果已知性**：同 attempt 幂等替换。
 - **保留 / 释放责任**：M003 持有单行；usage 无。
 - **允许的 query / replay / takeover / retry**：query=`readAttempts`；replay=`snapshot`（同结果）。
@@ -1036,11 +1036,11 @@ flowchart TD
 #### 7.3.2 `SEC-USAGE-METRIC` · 指标 `piko.usage.quality.*` 写入点
 
 - **原规则**：`system-design` §12 指标；模块设计 §11。
-- **可信输入 / 敏感字段 / 检查对象**：指标 = `UsageSnapshot.quality`（ratio / per run_id）。
+- **可信输入 / 敏感字段 / 检查对象**：指标 = `UsageSnapshot.quality`（ratio / per task_id）。
 - **检查函数 / 时点**：在 `reducer.reduce` 产 `quality`、M005 发布后由 M009 采集；usage 是生产点。
 - **拒绝 / 宿主交付出口**：无拒绝；指标经 M009 采集（脱敏）。
 - **脱敏 / 禁止输出**：指标不含身份/正文。
-- **日志 / 指标 / trace 口径及触发**：单位=ratio；窗口=per run_id；不聚合；低开销。
+- **日志 / 指标 / trace 口径及触发**：单位=ratio；窗口=per task_id；不聚合；低开销。
 - **验证项**：`VRC-USAGE-001`（quality 判定）。
 
 #### 7.3.3 `SEC-USAGE-LOCALSTORE` · 本地持久化安全
@@ -1077,7 +1077,7 @@ flowchart TD
 
 - **宿主接入 / 初始化 / 退出次序**：`main.ts`：`new TaskStore(...)` → `createUsageService(store)` → `new RunWorker(..., usage)` → `worker.start()`；退出时 `worker.close()`（usage 无定时器/资源需单独清理）。
 
-- **环境 / 数据规模 / 冷热条件**：单实例；attempt 行 ≤ `max_model_calls`（1..100000，contract `$defs.RunLimits`）；冷启动首读为一次 `readAttempts`。
+- **环境 / 数据规模 / 冷热条件**：单实例；attempt 行 ≤ 100000；冷启动首读为一次 `readAttempts`。
 
 - **峰值构成 / 上限 / 共享额度**：usage 自身无额外持久配额；峰值 = 6 字段 + 一次调用的 `RawAttemptUsage[]` 投影（≤ n 行）；`model_attempts` 存储计入 M003 预算（不重复计账）。
 

@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-pi-adapter-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -25,8 +25,8 @@
 
 - **模块 ID / 名称**：`M006` / `pi-adapter`。
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.2；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
-- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-pi-adapter` / `0.1.0-draft.1` / `docs/40_module_design/piko-pi-adapter-design.md`。摘要：把 Pi Harness session/lane/operation 封装为确定性 Piko 执行身份（`pi_session_id=run_id`、lane `main`、operation `run_id:initial`/`run_id:turn:<n>`），提供 abort 对账与崩溃 inspect，并在归一化前保存 raw usage；不替换 provider adapter。
-- **需求与 Constraint ID**：`CON-RUN-001`（PK-01）、`CON-RUN-003`（PK-03）、`PK-04`、`PK-05/06`、`CON-USAGE-001`（PK-09）、`CON-USAGE-002`（PK-10）、`CON-REC-001`（PK-12）、`CON-ST-001`（PK-12）；机制输入 `M-RUN-DI-006`（`piko-run` §14.4）、`M-USAGE-DI-001`（`piko-usage` §14.4）、`M-REC-DI-003`（`piko-recovery` §14.4）、`M-ST-DI-003`（`piko-startup` §14.4）、`IF-CX-ABORT`（`piko-cancel` §5.2）。
+- **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-pi-adapter` / `0.1.0-draft.1` / `docs/40_module_design/piko-pi-adapter-design.md`。摘要：把 Pi Harness session/lane/operation 封装为确定性 Piko 执行身份（`pi_session_id=task_id`、lane `main`、operation `task_id:initial`/`task_id:turn:<n>`），提供 abort 对账与崩溃 inspect，并在归一化前保存 raw usage；不替换 provider adapter。
+- **需求与 Constraint ID**：`CON-RUN-001`（PK-01）、`CON-RUN-003`（PK-03，**本版撤销**）、`PK-04`、`PK-05/06`、`CON-USAGE-001`（PK-09）、`CON-USAGE-002`（PK-10）、`CON-REC-001`（PK-12）、`CON-ST-001`（PK-12）；机制输入 `M-RUN-DI-006`（`piko-run` §14.4）、`M-USAGE-DI-001`（`piko-usage` §14.4）、`M-REC-DI-003`（`piko-recovery` §14.4）、`M-ST-DI-003`（`piko-startup` §14.4）、`IF-CX-ABORT`（`piko-cancel` §5.2）。
 - **实现范围 / 非目标**：范围：`src/adapters/pi/`（Planned）六个单元 + 对 `src/pi-runtime.ts`/`src/durable-fs.ts`/`src/config.ts`/`src/main.ts` 的最小改动。非目标：不实现 provider 协议、不新建 DB 表/迁移（M003）、不改 Run/Result 语义、不开新线程/进程。
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md`（STD 默认路径）；代码落位 `src/adapters/pi/`（Planned；Current 在 `src/pi-runtime.ts`）。
 
@@ -38,12 +38,12 @@
 - **固定来源 / 版本 / 锚点 / 摘要**：`piko-pi-adapter` §2.1/§8.1/§9.1.1（v0.1.0-draft.1）。
 - **ISD 细化内容 / 章节**：§5.1.1 `openOrCreateRunSession`；§3.2 `session.ts`；§4.2.1 `PiRunHandle`；§6.1 `P-PI-SESSION`。
 - **唯一权威位置**：行为/接口权威 = 模块设计 §2.1/§9.1.1；文件/symbol/私有表示权威 = 本 ISD。
-- **实现自由度**：session 打开实现、`PiRunHandle` 语言表示；不可改 `session_id=run_id` 与 lane `main`。
+- **实现自由度**：session 打开实现、`PiRunHandle` 语言表示；不可改 `session_id=task_id` 与 lane `main`。
 - **原 V/Case 及本地验证位置**：`VRC-PI-001`（§9.1.1）。
 
 ### 1.2.2 `H-PI-ACCEPT-DRIVE` · 接受与驱动操作
 
-- **上游信息项 / 规则 ID**：`F-PI-ACCEPT`、`F-PI-DRIVE`、`R-PI-STREAM`、`R-PI-ATTEMPT`、`R-PI-BUDGET`、`IF-RUN-ACCEPT`、`IF-RUN-DRIVE`、`PK-04`、`CON-RUN-003`。
+- **上游信息项 / 规则 ID**：`F-PI-ACCEPT`、`F-PI-DRIVE`、`R-PI-STREAM`、`R-PI-ATTEMPT`、`IF-RUN-ACCEPT`、`IF-RUN-DRIVE`、`PK-04`、`CON-RUN-003`。
 - **固定来源 / 版本 / 锚点 / 摘要**：`piko-pi-adapter` §2.2/§2.3/§8.2/§8.3/§8.4/§9.1.2/§9.1.3。
 - **ISD 细化内容 / 章节**：§5.1.2 `accept`、§5.1.3 `drive`、§5.1.4 `getResult`；§3.5 `lane.ts`；§6.2 `P-PI-DRIVE`。
 - **唯一权威位置**：行为 = 模块设计 §8.2–§8.4/§9.1.2/§9.1.3；驱动循环与 outcome 归一化 = 本 ISD。
@@ -116,9 +116,9 @@
 
 - **基线 commit / 版本**：当前工作树（§10.2 `SC-PI-01` 记录解析出的 commit）。
 - **文件 / symbol**：`src/pi-runtime.ts` `PiRuntime.execute` 内 `created.harness.hooks.on(...)`（既有）→ Planned `src/adapters/pi/hooks.ts` `HookBridge.install`。
-- **Current 行为**：hook 闭包捕获 `active`/`activeTurn`/`budgetExceeded`/`unsafeRetry` 等局部变量，与 drive 循环耦合。
-- **Target 改动与理由**：抽为 `HookBridge`，持有 `active` attempt 身份与状态，暴露 `install(harness, ctx)`。理由：`PK-03/05/06`、`CON-USAGE-001` 需可对预算 CAS 与 usage 存在性做表驱动单测（`VRC-PI-004/005/006`）。
-- **原规则 / 成员 ID**：`R-PI-ATTEMPT`、`R-PI-BUDGET`、`R-PI-TOOLCAS`、`R-PI-RAWUSAGE`。
+- **Current 行为**：hook 闭包捕获 `active`/`activeTurn`/`unsafeRetry` 等局部变量，与 drive 循环耦合。
+- **Target 改动与理由**：抽为 `HookBridge`，持有 `active` attempt 身份与状态，暴露 `install(harness, ctx)`。理由：`PK-05/06`、`CON-USAGE-001` 需可对 attempt/tool CAS 与 usage 存在性做表驱动单测（`VRC-PI-004/005/006`）。
+- **原规则 / 成员 ID**：`R-PI-ATTEMPT`、`R-PI-TOOLCAS`、`R-PI-RAWUSAGE`。
 - **实现状态**：`IN_PROGRESS`（Current 内联，Target 抽出）。
 
 ### 2.3 `CH-PI-02` · 抽取 lane/session/provider
@@ -144,7 +144,7 @@
 - **基线 commit / 版本**：当前工作树。
 - **文件 / symbol**：`src/pi-runtime.ts` `execute` 内 `repo.list`/`lane.getResult` 对账片段（既有）→ Planned `LaneDriver.inspect` + `R-PI-IDENTITY`。
 - **Current 行为**：恢复逻辑内嵌于 `execute`：查 `repo.list`/`lane.getResult`，按是否存在 operation 决定 accept/drive。
-- **Target 改动与理由**：抽出只读 `inspect(handle) -> PiRunObservation` 并固定 operation 派生（`run_id:initial`/`run_id:turn:<n>`）。理由：`CON-REC-001` 要求恢复只读 durable 事实、不重发，可独立验证（`VRC-PI-001/007`）。
+- **Target 改动与理由**：抽出只读 `inspect(handle) -> PiRunObservation` 并固定 operation 派生（`task_id:initial`/`task_id:turn:<n>`）。理由：`CON-REC-001` 要求恢复只读 durable 事实、不重发，可独立验证（`VRC-PI-001/007`）。
 - **原规则 / 成员 ID**：`F-PI-INSPECT`、`R-PI-IDENTITY`、`R-PI-INSPECT`。
 - **实现状态**：`IN_PROGRESS`。
 
@@ -193,7 +193,7 @@ flowchart LR
 
 ### 3.2 `src/adapters/pi/session.ts`
 
-- **职责及调用者**：按 `pi_session_id=run_id` 打开/创建/关闭 JSONL session 并绑定 lane `main`；被 `runtime.ts` 调用。
+- **职责及调用者**：按 `pi_session_id=task_id` 打开/创建/关闭 JSONL session 并绑定 lane `main`；被 `runtime.ts` 调用。
 - **类型 / 函数**：`class SessionRepository`：`openOrCreate(runId, workspace): Promise<PiRunHandle>`、`close(handle): Promise<void>`。
 - **可见性**：模块内 public。
 - **调用与类型依赖**：依赖 `types.ts` + `src/durable-fs.ts`；适配 Pi `JsonlSessionRepo`。
@@ -211,7 +211,7 @@ flowchart LR
 
 ### 3.4 `src/adapters/pi/hooks.ts`
 
-- **职责及调用者**：注册 `before_request`/`onRawUsage`/`before_tool`/`after_tool`/`tool_end` 并实现预算/usage/tool CAS；被 `runtime.ts` 装配、由 Pi 回调。
+- **职责及调用者**：注册 `before_request`/`onRawUsage`/`before_tool`/`after_tool`/`tool_end` 并实现 attempt 计数、usage 与 tool CAS；被 `runtime.ts` 装配、由 Pi 回调。
 - **类型 / 函数**：`class HookBridge`：`install(harness, ctx: HookContext): void`、私有 handler；`HookContext{config, registry, store, runId, epoch, task, profile, active}`。
 - **可见性**：模块内 public。
 - **调用与类型依赖**：依赖 `types.ts` + `lane.ts`；适配 M003 端口（`IF-PI-STORE`）。
@@ -297,10 +297,10 @@ flowchart LR
   interface PiRunHandle { session_id: string; lane: "main"; workspace: string }
   ```
 
-- **逐字段定义、条件有效性和跨字段不变量**：`session_id` 非空且恒等于 `run_id`；`lane` 恒 `"main"`；`workspace` 为规范化绝对路径。不变量 `INV-PI-1`。
+- **逐字段定义、条件有效性和跨字段不变量**：`session_id` 非空且恒等于 `task_id`；`lane` 恒 `"main"`；`workspace` 为规范化绝对路径。不变量 `INV-PI-1`。
 - **代码文件/symbol、编码或投影函数**：`src/adapters/pi/types.ts`；由 `SessionRepository.openOrCreate` 构造；无编码。
 - **创建、借用、修改、释放与失败出口**：`openOrCreateRunSession` 创建并返回；不可变；寿命 = Run 寿命；失败 = 依赖错误/`PiSessionCorrupted`。
-- **合法及拒绝实例、V/Case 与证据状态**：合法 `{session_id:"run-042",lane:"main",workspace:"/srv/piko/ws-7"}`；拒绝 `lane:"other"`。`VRC-PI-001`；`NOT_RUN`。
+- **合法及拒绝实例、V/Case 与证据状态**：合法 `{session_id:"task-042",lane:"main",workspace:"/srv/piko/ws-7"}`；拒绝 `lane:"other"`。`VRC-PI-001`；`NOT_RUN`。
 
 #### 4.2.2 `PiOperationOutcome`
 
@@ -428,7 +428,7 @@ flowchart LR
 - **逐字段定义、状态不变量与转移条件**：`active_operation_id` 非空 ⟺ `state ∈ {Accepted, Driving, Reconciling}`；单 Run 至多一个 active（`INV-PI-2`）；转移 `T-PI-01..08` 见模块设计 §6.6。
 - **创建/更新/读取 symbol、同步与提交点**：`lane.ts` 在 accept/drive/abort/inspect 后更新；提交点 = session JSONL commit / M003 `run_sessions` commit。
 - **唯一写者、借用、失效及恢复入口**：唯一写者 = `LaneDriver`（经 Harness）；恢复入口 = `inspect`。
-- **合法及拒绝转移、V/Case 与证据状态**：合法 `Driving{active:"run-042:initial"}`；拒绝两 active。`VRC-PI-001/002/005/007`；`NOT_RUN`。
+- **合法及拒绝转移、V/Case 与证据状态**：合法 `Driving{active:"task-042:initial"}`；拒绝两 active。`VRC-PI-001/002/005/007`；`NOT_RUN`。
 
 #### 4.6.2 `HookBridgeState`（hook 内存态）
 
@@ -438,15 +438,15 @@ flowchart LR
   interface HookBridgeState {
     active?: { operation_id: string; step_id: string; attempt: number };
     activeTurn?: { event_id: string; turn_seq: number };
-    budgetExceeded: boolean; unsafeRetry: boolean; toolFailure?: string;
+    unsafeRetry: boolean; toolFailure?: string;
   }
   ```
 
   owner = `HookBridge` 实例；寿命 = 一次 `drive` 期间。
-- **逐字段定义、状态不变量与转移条件**：`active` 由 `before_request` 设置；`budgetExceeded`/`unsafeRetry` 置真后 `drive` 归入对应失败出口。
+- **逐字段定义、状态不变量与转移条件**：`active` 由 `before_request` 设置；`unsafeRetry` 置真后 `drive` 归入对应失败出口。
 - **创建/更新/读取 symbol、同步与提交点**：`hooks.ts` handler 更新；无持久提交。
 - **唯一写者、借用、失效及恢复入口**：唯一写者 = `HookBridge`；随 `drive` 结束失效；无恢复（attempt 身份可从 `before_request` 重建）。
-- **合法及拒绝转移、V/Case 与证据状态**：合法 `budgetExceeded=false`；拒绝在 `budgetExceeded=true` 后仍放行。`VRC-PI-004/005`；`NOT_RUN`。
+- **合法及拒绝转移、V/Case 与证据状态**：合法 `unsafeRetry=false`；拒绝在 `unsafeRetry=true` 后仍放行。`VRC-PI-004/005`；`NOT_RUN`。
 
 ### 4.7 数据库表结构
 
@@ -492,10 +492,10 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **模块是否处理及处理函数**：`SessionRepository.openOrCreate` 把解析失败转 `PiSessionCorrupted`；I/O 错误 propagate。
 - **Typed 异常与原生异常所有权**：`PiSessionCorrupted`（本模块）→ M005（→ `InternalError`）；原生 I/O → M005。
 - **宿主 / public payload 或状态码**：返回 `PiRunHandle` 或抛 typed/原生错误；无 HTTP。
-- **日志级别 / 脱敏 / 关联字段**：`info`（session 就绪，含 `run_id`）；不含路径明文与凭据。
+- **日志级别 / 脱敏 / 关联字段**：`info`（session 就绪，含 `task_id`）；不含路径明文与凭据。
 - **是否可重试及前提**：I/O 错误可重试；`PiSessionCorrupted` 不自动重试（交 operator）。
 - **状态与副作用影响 / 验证项**：副作用 = 创建 session 目录/文件（fsync）；`VRC-PI-001`。
-- **不可改变的规则 / Constraint ID**：`R-PI-IDENTITY`/`CON-RUN-001`；`session_id=run_id`、lane `main`。
+- **不可改变的规则 / Constraint ID**：`R-PI-IDENTITY`/`CON-RUN-001`；`session_id=task_id`、lane `main`。
 - **实现自由度**：session 打开实现、`PiRunHandle` 表示。
 - **副作用 / 执行上下文 / 幂等性**：有副作用（创建目录）；宿主事件循环异步；幂等（同 `runId` 返回同一 session）。
 - **输入输出 ownership 与寿命**：输入借用；输出 handle 由 M005 持有，寿命 = Run。
@@ -521,7 +521,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **模块是否处理及处理函数**：`LaneDriver.accept` 校验形状（`operationIdFor`）、其余 propagate。
 - **Typed 异常与原生异常所有权**：Harness 错误由本层透传 → M005。
 - **宿主 / public payload 或状态码**：无返回；无 HTTP。
-- **日志级别 / 脱敏 / 关联字段**：`info`（accept，含 `run_id`/`operation_id`）；不含 prompt 正文。
+- **日志级别 / 脱敏 / 关联字段**：`info`（accept，含 `task_id`/`operation_id`）；不含 prompt 正文。
 - **是否可重试及前提**：非法身份不重试；Harness 拒绝交 operator（不自行重发）。
 - **状态与副作用影响 / 验证项**：副作用 = durable operation 写入；`VRC-PI-002`。
 - **不可改变的规则 / Constraint ID**：`R-PI-IDENTITY`/`CON-RUN-001`；确定性 operation id。
@@ -533,7 +533,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **Transaction participation**：none（M003 `run_sessions` 由 Harness/M003 事务写）。
 - **Blocking / timeout / cancellation**：异步 await；受 session I/O；无取消。
 - **实现状态 / 验证项**：Planned（Current `src/pi-runtime.ts` IMPLEMENTED）/ `VRC-PI-002`。
-- **装配、合法及拒绝实例**：合法：`run-042:initial`；拒绝：非法 operationId → `TypeError`。Oracle = session JSONL operation 记录。`NOT_RUN`。
+- **装配、合法及拒绝实例**：合法：`task-042:initial`；拒绝：非法 operationId → `TypeError`。Oracle = session JSONL operation 记录。`NOT_RUN`。
 
 #### 5.1.3 `PiRuntime.drive(handle: PiRunHandle, operationId: string): Promise<PiOperationOutcome>`
 
@@ -545,7 +545,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **输入参数 / 数据结构 authority**：`handle`；`operationId`（已 durable）。
 - **输入约束 / 校验顺序 / 失败映射**：无跨字段；顺序 = `lane.drive` 循环 `waiting` 继续。
 - **成功输出 / 数据结构 / 后置条件**：`PiOperationOutcome`（§4.2.2）；后置：attempt/tool 事实已写。
-- **错误输出 / 触发条件 / 优先级**：`failed` + `ModelUnavailable`/`ModelResponseInvalid`/`ToolFailure`/`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`BudgetExceeded`；无业务抛出。
+- **错误输出 / 触发条件 / 优先级**：`failed` + `ModelUnavailable`/`ModelResponseInvalid`/`ToolFailure`/`UnsafeRetryBlocked`/`ExecutionStateUnknown`；无业务抛出。
 - **底层异常 / 失败事实**：Harness `drive` `not ok` / `outcome.error`。
 - **模块是否处理及处理函数**：`LaneDriver.drive` 归一化；`isProviderUnavailableMessage` 分类。
 - **Typed 异常与原生异常所有权**：本层把失败折进 outcome，不向上抛业务异常。
@@ -553,7 +553,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **日志级别 / 脱敏 / 关联字段**：`info`（outcome status）；`warn`（failure code）；不含模型 output 全文。
 - **是否可重试及前提**：provider 内层重试由 Harness attempt 策略；本接口不重试同一 operation。
 - **状态与副作用影响 / 验证项**：副作用 = attempt/tool/usage 事实 + session 推进；`VRC-PI-002/003/004`。
-- **不可改变的规则 / Constraint ID**：`R-PI-STREAM`/`R-PI-ATTEMPT`/`R-PI-BUDGET`/`PK-04`/`CON-RUN-003`。
+- **不可改变的规则 / Constraint ID**：`R-PI-STREAM`/`R-PI-ATTEMPT`/`PK-04`。
 - **实现自由度**：drive 循环组织、错误分类实现。
 - **副作用 / 执行上下文 / 幂等性**：有副作用；宿主事件循环异步；非幂等。
 - **输入输出 ownership 与寿命**：输入借用；输出 outcome 由 M005 持有。
@@ -629,7 +629,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **原成员 ID 或私有来源**：`piko-recovery` §5.1 `IF-REC-INSPECT`（`M-REC-DI-003`）。
 - **完整签名与 caller**：`inspect(handle): Promise<PiRunObservation>`；caller = M005 恢复流程。
 - **固定契约与版本**：模块设计 §9.1.6；`piko-recovery` §5.1。
-- **输入参数 / 数据结构 authority**：`handle{session_id=run_id}`。
+- **输入参数 / 数据结构 authority**：`handle{session_id=task_id}`。
 - **输入约束 / 校验顺序 / 失败映射**：session 存在；顺序 = `lane.findEntries`/`getResult`/`getTipId` → 投影。
 - **成功输出 / 数据结构 / 后置条件**：`PiRunObservation`（§4.2.3）；只读；`INV-PI-3`。
 - **错误输出 / 触发条件 / 优先级**：`PiSessionCorrupted`。
@@ -682,15 +682,15 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 
 #### 5.1.8 `HookBridge.install(harness: AgentHarness, ctx: HookContext): void`
 
-- **Interface/Member ID、用途**：私有 hook 桥；实现 `R-PI-ATTEMPT`/`R-PI-BUDGET`/`R-PI-TOOLCAS`/`R-PI-RAWUSAGE`。
+- **Interface/Member ID、用途**：私有 hook 桥；实现 `R-PI-ATTEMPT`/`R-PI-TOOLCAS`/`R-PI-RAWUSAGE`。
 - **文件 / symbol / 可见性**：Planned `src/adapters/pi/hooks.ts` `HookBridge.install`；模块内 public。
 - **原成员 ID 或私有来源**：私有（实现模块设计 §8.3–§8.6）。
 - **完整签名与 caller**：`install(harness: AgentHarness, ctx: HookContext): void`；caller = `PiRuntime` 在 `AgentHarness.create` 后装配。
 - **固定契约与版本**：模块设计 §8.3/§8.4/§8.5/§8.6。
 - **输入参数 / 数据结构 authority**：`harness`；`ctx{config, registry, store, runId, epoch, task, profile, active}`。
-- **输入约束 / 校验顺序 / 失败映射**：`before_request`：写 attempt + 预算 CAS；`onRawUsage`：构造 `RawUsage` → `observeUsage`；`before_tool`：profile 检查 → 路径授权 → `reserveTool`；`after_tool`/`tool_end`：terminal。
+- **输入约束 / 校验顺序 / 失败映射**：`before_request`：写 attempt 身份（记录 attempt）；`onRawUsage`：构造 `RawUsage` → `observeUsage`；`before_tool`：profile 检查 → 路径授权 → `reserveTool`；`after_tool`/`tool_end`：terminal。
 - **成功输出 / 数据结构 / 后置条件**：无返回；`model_attempts`/`tool_calls` 事实更新。
-- **错误输出 / 触发条件 / 优先级**：block 决策：`ModelCallLimitExceeded`（预算）、`UnsafeRetryBlocked`（never）、越界路径；写入失败记录不中断。
+- **错误输出 / 触发条件 / 优先级**：block 决策：`UnsafeRetryBlocked`（never）、越界路径；写入失败记录不中断。
 - **底层异常 / 失败事实**：M003 端口抛错；`reserveTool` 判别值。
 - **模块是否处理及处理函数**：handler 内 `try/catch` 观测写入；block 经 hook 返回值。
 - **Typed 异常与原生异常所有权**：原生 M003 错误被记录、不外抛；block 决策交 Harness。
@@ -698,7 +698,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **日志级别 / 脱敏 / 关联字段**：`debug`（tick）；`warn`（依赖/写入失败）。
 - **是否可重试及前提**：同 attempt 迟到替换；不重放 `never` 工具。
 - **状态与副作用影响 / 验证项**：副作用 = `model_attempts`/`tool_calls` 写 + `HookBridgeState`；`VRC-PI-004/005/006`。
-- **不可改变的规则 / Constraint ID**：`PK-03`/`PK-05/06`/`CON-USAGE-001`/`CON-USAGE-002`。
+- **不可改变的规则 / Constraint ID**：`PK-05/06`/`CON-USAGE-001`/`CON-USAGE-002`。
 - **实现自由度**：字段提取/错误消息/内部组织。
 - **副作用 / 执行上下文 / 幂等性**：有副作用；Pi 回调上下文；部分幂等（同 attempt 替换）。
 - **输入输出 ownership 与寿命**：输入借用；`HookBridgeState` 由 `HookBridge` 持有至 `drive` 结束。
@@ -707,7 +707,7 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **Transaction participation**：none（M003 端口内部单语句/单事务）。
 - **Blocking / timeout / cancellation**：同步 hook；无阻塞网络。
 - **实现状态 / 验证项**：Planned（Current `src/pi-runtime.ts` hooks IMPLEMENTED）/ `VRC-PI-004/005/006`。
-- **装配、合法及拒绝实例**：装配：`PiRuntime` 在 harness create 后调用；合法：预算内 attempt；拒绝：越界路径 block。Oracle = `model_attempts`/`tool_calls` 行。`NOT_RUN`。
+- **装配、合法及拒绝实例**：装配：`PiRuntime` 在 harness create 后调用；合法：attempt 身份写入；拒绝：越界路径 block。Oracle = `model_attempts`/`tool_calls` 行。`NOT_RUN`。
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -716,16 +716,16 @@ pi-adapter 不跨部署边界发消息；但 raw usage 观察与 M003 端口是�
 #### 5.2.1 `IF-RUN-RAWUSAGE` · M006 → M007 raw usage 观察（Proposed）
 
 - **Interface/Member ID、处理文件/symbol 与来源**：`IF-RUN-RAWUSAGE` / `IF-USAGE-RAW`（`piko-usage` §5.1 `recordAttempt`）；`hooks.ts` `onRawUsage` handler；Proposed，`OQ-PI-002`。
-- **输入、输出和字段校验**：输入 provider 原生 usage + `(run_id, operation_id, step_id, attempt)`；构造 `RawUsage`（§4.2.4）；`present_fields` 与值一致，缺失不填 0。
+- **输入、输出和字段校验**：输入 provider 原生 usage + `(task_id, operation_id, step_id, attempt)`；构造 `RawUsage`（§4.2.4）；`present_fields` 与值一致，缺失不填 0。
 - **交互、错误传播与寿命**：同步 hook；attempt 寿命；同 attempt 迟到以 `record_version` 替换；写入失败记录不 break execution；`CON-USAGE-002`（不改 Result）。
 - **实例与验证**：合法六字段完整/缺 `reasoning_tokens`；拒绝填 0 冒充缺失。`VRC-PI-006`；`NOT_RUN`。
 
 #### 5.2.2 `IF-PI-STORE` · M006 → M003 attempt/tool/session 端口（Proposed）
 
 - **Interface/Member ID、处理文件/symbol 与来源**：`IF-PI-STORE`；`hooks.ts`/`lane.ts` 经 `ctx.store` 调用；Provider M003（Proposed，`OQ-PI-002`）。
-- **输入、输出和字段校验**：`reserveModel`/`observeUsage`/`terminalModel`/`reserveTool`/`terminalTool`/`recordProviderCall`/`setActiveOperation`（见模块设计 §9.2.2）；主键 `(run_id, operation_id, step_id, attempt)` 与 `tool_call_id`。
+- **输入、输出和字段校验**：`reserveModel`/`observeUsage`/`terminalModel`/`reserveTool`/`terminalTool`/`recordProviderCall`/`setActiveOperation`（见模块设计 §9.2.2）；主键 `(task_id, operation_id, step_id, attempt)` 与 `tool_call_id`。
 - **交互、错误传播与寿命**：同步进程内；单事务；失败经依赖错误上抛（hook 内记录不 break）；`busy_timeout` 生效。
-- **实例与验证**：合法 attempt CAS 命中；拒绝 `BudgetExceeded`/`UnsafeRetryBlocked`。`VRC-PI-004/005/006`（fake + 真 M003）；`NOT_RUN`。
+- **实例与验证**：合法 attempt 记录写入；拒绝 `UnsafeRetryBlocked`（`replay:"never"` 无 outcome）。`VRC-PI-004/005/006`（fake + 真 M003）；`NOT_RUN`。
 
 ### 5.3 硬件与固件接口（适用时）
 
@@ -750,10 +750,8 @@ flowchart TD
     F -->|否| Z1["TypeError（拒绝）"]
     F -->|是| G["lane.accept → durable operation"]
     G --> H["PiRuntime.drive(handle, operationId)"]
-    H --> I{"before_request 预算 CAS 通过?"}
-    I -->|否| Z2["block+terminate → failed BudgetExceeded"]
-    I -->|是| J["provider SSE + hooks 写 attempt/usage/tool"]
-    J --> K{"outcome.status?"}
+    H --> I["provider SSE + hooks 写 attempt/usage/tool"]
+    I --> K{"outcome.status?"}
     K -->|completed| L["PiOperationOutcome completed"]
     K -->|failed| M["PiOperationOutcome failed + typed"]
     K -->|aborted| N["PiOperationOutcome aborted（对账完成）"]
@@ -770,7 +768,7 @@ flowchart TD
 - **判断事实来源**：session 是否存在 = `JsonlSessionRepo.list` 结果（durable 文件系统）。
 - **成功可见点**：磁盘出现 `pi_session_id=runId` 的 session 目录，返回 handle。
 - **失败、取消与清理**：FS 失败上抛；session 损坏 → `PiSessionCorrupted`；无清理（无临时资源）。
-- **代表输入与中间值**：`runId="run-042"`, `workspace="/srv/piko/ws-7"` → `PiRunHandle{session_id:"run-042", lane:"main", workspace:"/srv/piko/ws-7"}`。
+- **代表输入与中间值**：`runId="task-042"`, `workspace="/srv/piko/ws-7"` → `PiRunHandle{session_id:"task-042", lane:"main", workspace:"/srv/piko/ws-7"}`。
 - **规则 / 接口 / 验证引用**：§5.1.1；`R-PI-IDENTITY`；`VRC-PI-001`。
 
 ### 6.2 `P-PI-DRIVE` · accept + 驱动至结局
@@ -778,11 +776,11 @@ flowchart TD
 - **触发与执行者**：M005 worker → `PiRuntime.accept` 后 `PiRuntime.drive`。
 - **入口函数及数据**：`accept(handle, operationId, messages)`、`drive(handle, operationId)`；数据 `{handle, operationId, messages} → PiOperationOutcome`。
 - **步骤 / 算法 / 复杂度**：1. `LaneDriver.accept` → Pi `lane.accept`（durable）；2. `LaneDriver.drive` 循环 `{waitForRetry:true, pollDeferred:true}`；`waiting` 继续；3. HookBridge 在 provider/tool 边界写事实；4. `normalizeOutcome`。复杂度 O(events)。
-- **判断事实来源**：Guard = `lane.drive` 返回的 `waiting`/`outcome`；预算 = `reserveModel` CAS；失败类型 = `outcome.error`/`isProviderUnavailableMessage`。
+- **判断事实来源**：Guard = `lane.drive` 返回的 `waiting`/`outcome`；attempt 记录 = `reserveModel` 写入；失败类型 = `outcome.error`/`isProviderUnavailableMessage`。
 - **成功可见点**：operation result commit；`PiOperationOutcome{status:"completed"}`。
-- **失败、取消与清理**：`failed`（typed）；预算 block → `BudgetExceeded`；`finally` 清 cancel 定时器 + `harness.close`。
-- **代表输入与中间值**：正常 prompt → attempt `(run-042, run-042:initial, gen-3, 2)` → `completed`；`max_model_calls=1` 第二次 → `failed/BudgetExceeded`。
-- **规则 / 接口 / 验证引用**：§5.1.2/§5.1.3/§5.1.8；`R-PI-STREAM/ATTEMPT/BUDGET`；`VRC-PI-002/003/004`。
+- **失败、取消与清理**：`failed`（typed）；`finally` 清 cancel 定时器 + `harness.close`。
+- **代表输入与中间值**：正常 prompt → attempt `(task-042, task-042:initial, gen-3, 2)` → `completed`。
+- **规则 / 接口 / 验证引用**：§5.1.2/§5.1.3/§5.1.8；`R-PI-STREAM/ATTEMPT`；`VRC-PI-002/003/004`。
 
 ### 6.3 `P-PI-USAGE` · raw usage 观察
 
@@ -814,7 +812,7 @@ flowchart TD
 - **判断事实来源**：open operation / committed result / 均无 = durable JSONL 投影。
 - **成功可见点**：返回 `PiRunObservation`；不重发。
 - **失败、取消与清理**：损坏 → `PiSessionCorrupted`；只读无清理。
-- **代表输入与中间值**：现场 open op → `open_operations:["run-042:initial"]`；现场 result → `operation_result` 非空。
+- **代表输入与中间值**：现场 open op → `open_operations:["task-042:initial"]`；现场 result → `operation_result` 非空。
 - **规则 / 接口 / 验证引用**：§5.1.6；`R-PI-INSPECT`；`VRC-PI-007`。
 
 ### 6.6 `R-PI-UPSTREAM-VERIFY` · S6 指纹校验
@@ -856,13 +854,7 @@ flowchart TD
 
 #### 7.1.2 `C-PI-02` · 预算 CAS 并发
 
-- **参与线程 / 回调 / 事务**：两个 provider attempt 相继进入 `before_request`。
-- **已产生或可能产生的副作用**：`model_attempts` 写入（M003 单 writer）。
-- **检测事实 / 期限**：`reserveModel` CAS 结果。
-- **状态 / 错误 / 结果已知性**：已知（额度内/超限）。
-- **保留 / 释放责任**：无部分 effect。
-- **允许的 query / replay / takeover / retry**：已 block 的 attempt 不重试；M005 决定终态。
-- **验证项**：`VRC-PI-004`。
+**N/A · 本版撤销**：`PK-04` 撤销。
 
 #### 7.1.3 `C-PI-03` · 迟到 usage 与 Result 发布
 
@@ -910,7 +902,7 @@ flowchart TD
 
 **not_applicable。** pi-adapter **不拥有持久状态**：`model_attempts`/`tool_calls`/`run_sessions` 的 schema authority、连接、事务与 DDL 全部属 M003 `task-repository`（当前代码事实 `src/store.ts`）。本模块只经 `IF-PI-STORE` 发起 M003 的写入；提交点、崩溃恢复入口与 schema 演进由 M003 ISD 承接，本 ISD 不生成数据库策略。
 
-- **状态由谁保存 / 本模块交付何种信息**：attempt/tool/session 事实由 M003 保存；本模块交付“目标身份 `(run_id, operation_id, step_id, attempt)`/`tool_call_id`”与字段存在性（`RawUsage`），以及 Pi session JSONL（`pi.session_root`，由 `DurableNodeExecutionEnv` fsync）。Pi session 的保留/清理按 M003 retention 政策。
+- **状态由谁保存 / 本模块交付何种信息**：attempt/tool/session 事实由 M003 保存；本模块交付“目标身份 `(task_id, operation_id, step_id, attempt)`/`tool_call_id`”与字段存在性（`RawUsage`），以及 Pi session JSONL（`pi.session_root`，由 `DurableNodeExecutionEnv` fsync）。Pi session 的保留/清理按 M003 retention 政策。
 - **宿主 / 依赖边界**：崩溃恢复编排属 M005（`MECH-RECOVERY`）；Pi session 对账由本模块 `inspect` 提供；新 lease 属 M004。
 - **Decision ref**：`piko-pi-adapter` §6.7 锚点 `m003-ddl-authority` + ISD 规范 §1（ISD 不重新制定跨模块事务政策）。
 
@@ -925,7 +917,7 @@ flowchart TD
 - **检查函数 / 时点**：`resolveSecret`（启动注入）；`discussionMessage` 投影（每轮）；`before_tool` `authorizePath`（工具调用前）。
 - **拒绝 / 宿主交付出口**：越界路径 → hook block（`{block:{terminate:true}}`）；越权边界由 M001/M002 承载。
 - **脱敏 / 禁止输出**：禁止记录 instruction 正文、完整模型 input/output、access token、绝对路径、credential。
-- **日志 / 指标 / trace 口径及触发**：`info`（session/accept/fence）、`warn`（依赖错误）、`error`（Unknown/不变量）；含 `run_id`/`operation_id`/error class，不含敏感值。
+- **日志 / 指标 / trace 口径及触发**：`info`（session/accept/fence）、`warn`（依赖错误）、`error`（Unknown/不变量）；含 `task_id`/`operation_id`/error class，不含敏感值。
 - **验证项**：`VRC-PI-001`（日志不含敏感字段由审查核对）。
 
 #### 7.3.2 `SEC-PI-METRIC` · 指标与事件写入点
@@ -935,7 +927,7 @@ flowchart TD
 - **检查函数 / 时点**：`before_request`/`after_response`（attempt）、`onRawUsage`（usage）、`before_tool`/`after_tool`（tool）。
 - **拒绝 / 宿主交付出口**：无拒绝；事件经 M009 采集（redacted）。
 - **脱敏 / 禁止输出**：指标/事件不含 instruction 正文与 credential。
-- **日志 / 指标 / trace 口径及触发**：count / 累计 / per run_id，不跨代次相加；关联键 `run_id` + operationId + stepId + attempt。
+- **日志 / 指标 / trace 口径及触发**：count / 累计 / per task_id，不跨代次相加；关联键 `task_id` + operationId + stepId + attempt。
 - **验证项**：`VRC-PI-004/005/006`。
 
 #### 7.3.3 `SEC-PI-LOCALSTORE` · 本地持久化安全
@@ -964,7 +956,7 @@ flowchart TD
 - **宿主接入 / 初始化 / 退出次序**：`main.ts`：`loadConfig`（含 S6）→ `new TaskStore(...)` → `createPiRuntime(config, registry, store, apiKey)` → `new RunWorker(..., piRuntime)` → `worker.start()`；Run 终态 `PiRuntime.close`（清 session/harness）。
 - **环境 / 数据规模 / 冷热条件**：单实例；`pi.session_root` 本地可靠 FS；冷启动读 session；热路径为 drive + hook 写入。
 - **峰值构成 / 上限 / 共享额度**：内存 = 常量级 SSE 解析 + 单个 session/harness；`model_attempts`/`tool_calls`/JSONL 计入 M003/FS 预算（不重复计账）。
-- **分段预算 / 总期限 / 计时点**：每 provider 请求受 `models_timeout_ms`；每 attempt/tool 单次 M003 写入；无 M006 总期限（Run 级 deadline 由 M005 判定）。
+- **分段预算 / 总期限 / 计时点**：每 provider 请求受 `models_timeout_ms`；每 attempt/tool 单次 M003 写入；无 M006 总期限（本版无 Run 级 deadline，`PK-04` 撤销）。
 - **超限、部分启动与清理出口**：S6 失败 → F1；provider 超时 → Harness 中断/retry；`close` 清资源。
 - **构建或运行命令及前置条件**：`npm run build`（类型检查）；`npm run test`（单测，Planned 用例）；前置 = 固定 Pi checkout + manifest（`OQ-PI-002` 对 M003 端口）。
 
@@ -977,7 +969,7 @@ flowchart TD
 - **Rule / 成员**：`F-PI-SESSION`、`R-PI-IDENTITY`、`IF-RUN-SESSION`、`CON-RUN-001`。
 - **V / Case / Vector**：A（同 `runId` 两次 → 同一 session、单目录）、B（不同 `runId` → 不同 session）、C（非法字符 → 拒绝/规范化，不产生第二 session）。
 - **输入 / 故障 / 环境**：临时 `pi.session_root`（独立目录）；每 Case 前清空；无网络。
-- **独立 Oracle / Expected**：Oracle = 直接列 `pi.session_root` 目录 + 读 session `id` 字段（不调用被测实现）；Expected：A 目录数=1 且 id=`run-042`；B 目录数=2。
+- **独立 Oracle / Expected**：Oracle = 直接列 `pi.session_root` 目录 + 读 session `id` 字段（不调用被测实现）；Expected：A 目录数=1 且 id=`task-042`；B 目录数=2。
 - **Actual / Evidence**：`NOT_RUN`。
 - **Verdict**：`NOT_RUN`
 - **测试入口 / 清理**：Planned `tests/unit/pi-session.test.ts`；每 Case 前清目录。
@@ -986,7 +978,7 @@ flowchart TD
 ### 9.1.2 `VRC-PI-002` · accept/drive 结局与身份
 
 - **Rule / 成员**：`F-PI-ACCEPT`、`F-PI-DRIVE`、`R-PI-IDENTITY`、`IF-RUN-ACCEPT`、`IF-RUN-DRIVE`。
-- **V / Case / Vector**：A（正常 prompt → `inspect` 见 open op、`drive` 得 `completed` 且 summary 非空）、B（非法 operationId → `TypeError`）、C（discussion 第二轮 → operation `run-042:turn:2`）。
+- **V / Case / Vector**：A（正常 prompt → `inspect` 见 open op、`drive` 得 `completed` 且 summary 非空）、B（非法 operationId → `TypeError`）、C（discussion 第二轮 → operation `task-042:turn:2`）。
 - **输入 / 故障 / 环境**：临时 session_root + mock provider；每 Case 独立 session；`BACKGROUND_CONTEXT`。
 - **独立 Oracle / Expected**：Oracle = session JSONL 中 operation 记录 + `PiOperationOutcome.status`；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。
@@ -1005,15 +997,15 @@ flowchart TD
 - **测试入口 / 清理**：Planned `tests/unit/pi-stream.test.ts`；复位 mock。
 - **Run ID / Status**：`NOT_RUN`。
 
-### 9.1.4 `VRC-PI-004` · attempt 身份与模型预算 CAS
+### 9.1.4 `VRC-PI-004` · attempt 身份与记录
 
-- **Rule / 成员**：`F-PI-DRIVE`、`R-PI-ATTEMPT`、`R-PI-BUDGET`、`CON-RUN-003`、`IF-PI-STORE`。
-- **V / Case / Vector**：A（`stepId=gen-3, attempt=2` → `model_attempts` 行键匹配）、B（`max_model_calls=1`、第二次 → `BudgetExceeded`）、C（重启后同 attempt 身份幂等）。
+- **Rule / 成员**：`F-PI-DRIVE`、`R-PI-ATTEMPT`、`IF-PI-STORE`。
+- **V / Case / Vector**：A（`stepId=gen-3, attempt=2` → `model_attempts` 行键匹配）、B（重启后同 attempt 身份幂等）。
 - **输入 / 故障 / 环境**：临时 SQLite + mock provider；每 Case 重置 `model_attempts`。
 - **独立 Oracle / Expected**：Oracle = 直读 `model_attempts` 行键与计数；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。
 - **Verdict**：`NOT_RUN`
-- **测试入口 / 清理**：Planned `tests/unit/pi-attempt-budget.test.ts`；重置表。
+- **测试入口 / 清理**：Planned `tests/unit/pi-attempt.test.ts`；重置表。
 - **Run ID / Status**：`NOT_RUN`。
 
 ### 9.1.5 `VRC-PI-005` · 工具 CAS、replay 与 abort 对账
@@ -1076,7 +1068,7 @@ flowchart TD
 
 - **顺序 / 前置项**：T-PI-01。
 - **文件 / symbol / 构建目标**：`src/adapters/pi/hooks.ts` + `tests/unit/pi-hooks.test.ts`。
-- **不可改变的规则**：`before_request` 身份/预算、`onRawUsage` 存在性、`before_tool` CAS。
+- **不可改变的规则**：`before_request` 身份、`onRawUsage` 存在性、`before_tool` CAS。
 - **实施动作**：实现 `HookBridge.install` 与 handler。
 - **完成检查**：`VRC-PI-004/005/006` 计划用例。
 - **实现状态**：`PLANNED`。

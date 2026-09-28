@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><style>
+body{margin:0;background:#FFFFFF;font-family:-apple-system,"PingFang SC",Inter,sans-serif;color:#1F2937}
+.wrap{padding:36px 44px}.t{font-size:21px;font-weight:600;margin:0 0 4px;letter-spacing:.2px}.s{color:#9CA3AF;font-size:12px;margin:0 0 26px}
+.row{display:flex;align-items:center}
+.host,.mid,.llm{border:1px solid #D1D5DB;border-radius:6px;padding:16px;background:#fff}
+.host{width:230px}.mid{width:290px}.llm{width:210px}
+.host h2,.mid h2,.llm h2{font-size:13px;font-weight:600;margin:0 0 12px;color:#111827;text-transform:uppercase;letter-spacing:.8px}
+.tiles{display:flex;gap:16px}
+.tile{font-size:12px;color:#374151;border-bottom:1px solid #E5E7EB;padding-bottom:4px}
+.card{font-size:12px;color:#4B5563;margin-top:10px;padding-left:10px;border-left:2px solid #D1D5DB}
+.link{height:0;border-top:1px solid #9CA3AF;position:relative;flex:0 0 130px}
+.link b{position:absolute;top:-18px;left:9px;font-size:11px;font-weight:600;color:#374151}
+.link.l b{left:auto;right:9px}
+.llm div{font-size:12px;color:#6B7280}
+</style><div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p><p class=s>风格 D · 极简线框风（纯白底 · 细线框 · 单色细线 · 无填充无阴影）</p>
+<div class=row>
+ <div class=host><h2>Slinky 主机</h2><div class=tiles><div class=tile>请求</div><div class=tile>结果</div><div class=tile>数据</div></div></div>
+ <div class=link><b>① 请求</b></div>
+ <div class=mid><h2>Piko 实例群</h2><div class=card>Piko 实例 1 · 本地可靠 FS</div><div class=card>Piko 实例 2..N · 本地可靠 FS</div></div>
+ <div class=link><b>② Responses SSE</b></div>
+ <div class=llm><h2>LLMTier 主机</h2><div>OpenAI-compatible Responses SSE</div><div>stream:true · maxRetries=0</div></div>
+</div>
+<div class=row style="margin-top:26px"><div style="width:230px"></div><div class="link l"><b>③ 结果回程</b></div><div style="width:290px"></div></div>
+</div>

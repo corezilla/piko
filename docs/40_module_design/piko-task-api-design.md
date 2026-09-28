@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-api` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -18,22 +18,23 @@
 
 ## 1. 单元摘要：为什么存在
 
-M001 `task-api` 解决一个问题：Slinky 需要用一个**可判定**的外部任务面把 AI 任务交给 Piko，并且必须能区分「请求被受理」「执行还在进行」「结果已稳定」「取消意图已落盘但执行未必停止」。`task-api` 把这件事实建模为四个 HTTP operation：`POST /runs`（submit，返回 `RunView`）、`GET /runs/:run_id`（status）、`POST /runs/:run_id:cancel`（cancel，返回 `CancelReceipt`）、`GET /runs/:run_id/result`（result，返回 `AgentResult`）。每个 operation 只做三件事：解析并校验 HTTP 报文、按固定顺序调用进程内协作方、把结果映射成稳定的 typed 响应或 typed error。
+M001 `task-api` 解决一个问题：Slinky 需要用一个**可判定**的外部任务面把 AI 任务交给 Piko，并且必须能区分「请求被受理」「执行还在进行」「结果已稳定」「取消意图已落盘但执行未必停止」。`task-api` 把这件事实建模为四个 HTTP operation：`POST /tasks`（submit，返回 `TaskView`）、`GET /tasks/:task_id`（status）、`POST /tasks/:task_id:cancel`（cancel，返回 `CancelReceipt`）、`GET /tasks/:task_id/result`（result，返回 `AgentResult`）。每个 operation 只做三件事：解析并校验 HTTP 报文、按固定顺序调用进程内协作方、把结果映射成稳定的 typed 响应或 typed error。
 
 `task-api` 只做 HTTP 入口与规范化，**不持久化业务、不直接操作 adapter**：受理事务与读视图由 M003 `task-repository` 承担，请求/路径/预算判定由 M002 `policy` 承担，取消分流与 Pi abort 由 M005 `worker` 承担，discussion 起点校验由 M008 `matrix-adapter` 承担。它不改变 Run 状态机语义（MECH-RUN / M003），不解释 Result 内容，不自证「执行已停止」。
 
-用一次调用说明：Slinky 发 `POST /runs`，body 带 `task_id`/`instruction`/`workspace_ref`/`permissions`/`limits`/`output_paths`（`discussion?` 可选）。`task-api` 读 body（上限 2 MiB）→ Ajv 按 `AgentTaskRequest` 校验 → bearer principal 校验 → 调 M002 `validateSubmission` → 调 M003 `createOrGetRun`（单事务）→ 202 返回 `RunView{state="Queued"}` 或按 typed error 返回 409 `TaskConflict` / 410 `Gone` / 422 `DeadlineExpired` / 429 `QueueFull` / 503 `DependencyUnavailable`。运行中取消只返回 202 `StopRequested`，`task-api` 不把它当停止证明。
+用一次调用说明：Slinky 发 `POST /tasks`，body 带 `task_id`/`instruction`/`workspace_ref`/`permissions`/`output_paths`（`input_refs?`/`artifact_target?`/`discussion?` 可选）。`task-api` 读 body（上限 2 MiB）→ Ajv 按 `AgentTaskRequest` 校验 → bearer principal 校验 → 调 M002 `validateSubmission` → 调 M003 `createOrGetRun`（单事务）→ 202 返回 `TaskView{state="Queued"}` 或按 typed error 返回 409 `TaskConflict` / 410 `Gone` / 429 `QueueFull` / 503 `DependencyUnavailable`。运行中取消只返回 202 `StopRequested`，`task-api` 不把它当停止证明。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M001 / `task-api` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P0 控制进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 200 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父单元） |
 | 解决的问题 | 四项 HTTP operation 的报文校验、固定处理顺序与 typed 结果/错误映射；不把意图落盘误报成执行完成 |
-| 提供的能力 | `createRun`、`getRun`、`cancelRun`、`getRunResult` 四个 HTTP 端点；JSON/Schema 校验；bearer principal 校验；X-Request-ID 关联；typed error 映射 |
+| 提供的能力 | `createTask`、`getTask`、`cancelTask`、`getTaskResult` 四个 HTTP 端点；JSON/Schema 校验；bearer principal 校验；X-Request-ID 关联；typed error 映射 |
 | 主要使用者 | Slinky 项目经理（四项操作）；Operator 只读诊断由 ops 文档另定义，不经本模块新命令 |
-| 不负责 | 业务持久化与 Run/Result 事务（M003）；request/path/tool/deadline/budget 判定（M002）；取消分流与 Pi abort（M005）；Pi/Matrix adapter 内部（M006/M008）；Run 状态机与 Result 语义（MECH-RUN/M003） |
+| 不负责 | 业务持久化与 Run/Result 事务（M003）；request/path/tool 判定（M002）；取消分流与 Pi abort（M005）；Pi/Matrix adapter 内部（M006/M008）；Run 状态机与 Result 语义（MECH-RUN/M003） |
 
 ### 1.1 继承的上级约束与落实方式
 
@@ -42,29 +43,29 @@ task-api 承接三条上级约束：`CON-RUN-002`（PK-02，任务事务稳定�
 #### 1.1.1 `CON-RUN-002` · 任务事务稳定身份
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-02 行）+ `piko-run.md` §3.1 `CON-RUN-002` · PK-02 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文：同一 `task_id` 只绑定一个不可变任务与一个 Run；tombstone 永久拒绝；同 ID 同内容不重新检查动态条件。
-- **适用条件**：任何 `POST /runs` 请求；`task_id` 由 Slinky 在提交前生成且全局唯一。
-- **继承预算或行为保证**：`task_id` 恰好一次；重复同内容返回原 Run 且不新增执行；不同内容返回 409 `TaskConflict`；清理后返回 410 `Gone`；只有不存在的 ID 才检查 deadline/queue/依赖。
+- **适用条件**：任何 `POST /tasks` 请求；`task_id` 由 Slinky 在提交前生成且全局唯一。
+- **继承预算或行为保证**：`task_id` 恰好一次；重复同内容返回原 Run 且不新增执行；不同内容返回 409 `TaskConflict`；清理后返回 410 `Gone`；只有不存在的 ID 才检查 queue/依赖。
 - **可自行选择/不可改变**：不可改变：处理顺序固定为 JSON/Schema → bearer → 按 `task_id` 查；字段比较由 M003 按集合/UTC 口径执行；不得把重复提交改成新建执行。可自行设计：路由与中间件组织、错误映射实现、body 读取实现。
-- **本地落实/内部再分配**：§2.1 `F-TAPI-SUBMIT` 定义行为；§8.2 `R-TAPI-VALIDATE`、§8.3 `R-TAPI-ERRMAP` 定义规则；§9.1.1 `createRun` 固定合同；§9.2.1 `IF-RUN-CREATE` 把比较/返回原 Run 的责任交给 M003；§10 `C-TAPI-01`/`C-TAPI-02` 推演并发与重复提交；§13 落到 `src/http/`。
+- **本地落实/内部再分配**：§2.1 `F-TAPI-SUBMIT` 定义行为；§8.2 `R-TAPI-VALIDATE`、§8.3 `R-TAPI-ERRMAP` 定义规则；§9.1.1 `createTask` 固定合同；§9.2.1 `IF-RUN-CREATE` 把比较/返回原 Run 的责任交给 M003；§10 `C-TAPI-01`/`C-TAPI-02` 推演并发与重复提交；§13 落到 `src/http/`。
 - **验证方法与结果/证据**：局部 `VRC-TAPI-001`（受理与幂等）、`VRC-TAPI-002`（错误映射）；组合 PK-T03/PK-T15（契约 + HTTP E2E）。当前全部 `NOT_RUN`。
 - **差距/变更影响/反馈责任**：none。契约 `0.3.0-simplified.6` 变化需独立评审。
 
 #### 1.1.2 `CON-CX-001` · 取消分流（PK-03）
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-03 行）+ `piko-cancel.md` §3.1 `CON-CX-001` · PK-03 · Approved。上级原文：Queued 取消单事务发布零调用 Result；Running 取消只写 stop intent 并返回 `StopRequested`；`StopRequested` ≠ 停止。
-- **适用条件**：任何 `POST /runs/:run_id:cancel` 请求，Run 处于 Queued/Running/终态之一。
+- **适用条件**：任何 `POST /tasks/:task_id:cancel` 请求，Run 处于 Queued/Running/终态之一。
 - **继承预算或行为保证**：Queued → 200 `CancelledBeforeStart`（同事务零调用 Result）；Running → 202 `StopRequested`（不证明停止）；已终态 → 200 `AlreadyTerminal`；401/404/410 与前两者互斥。
 - **可自行选择/不可改变**：不可改变：按 state 分流语义、`StopRequested` ≠ 停止、不提供撤销已生效取消。可自行设计：路由匹配、状态码选择、与 M005 的进程内调用形态。
-- **本地落实/内部再分配**：§2.3 `F-TAPI-CANCEL`；§8.3 `R-TAPI-ERRMAP`；§9.1.3 `cancelRun`；§9.2.4 `IF-CX-DISPATCH`（分流交 M005）；§10 `C-TAPI-04`（取消与结果发布竞争）；附录 A.2。
+- **本地落实/内部再分配**：§2.3 `F-TAPI-CANCEL`；§8.3 `R-TAPI-ERRMAP`；§9.1.3 `cancelTask`；§9.2.4 `IF-CX-DISPATCH`（分流交 M005）；§10 `C-TAPI-04`（取消与结果发布竞争）；附录 A.2。
 - **验证方法与结果/证据**：局部 `VRC-TAPI-004`（三种 outcome 与状态码）；组合 PK-T05（fault 注入）。当前全部 `NOT_RUN`。
 - **差距/变更影响/反馈责任**：`piko-cancel.md` §14.3 只列 `IF-CX-QUEUED`/`IF-CX-RUNNING`（M005→M003），未给 M001→M005 的入口接口命名；本模块提出 `IF-CX-DISPATCH` 并登记 `OQ-TAPI-003`（Owner：Piko Architecture）。
 
 #### 1.1.3 `CON-RUN-003` · 截止与预算（边界承接）
 
-- **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-03 行）+ `piko-run.md` §3.1 `CON-RUN-003` · PK-03 · Approved。上级把 deadline/budget 判定分配给 M002/M006；`task-api` 只在受理阶段映射 M002 判定出的 `DeadlineExpired`/`UnsupportedLimit`。
+- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。本版无 deadline/预算，`task-api` 不做任何 limit 映射。
 - **适用条件**：仅新建 ID 的受理路径；同 ID 同内容重放不重新检查（`CON-RUN-002` 优先）。
-- **继承预算或行为保证**：`deadline_at` 已过（尚未受理）→ 422 `DeadlineExpired`；Piko 无法执行某 limit → 422 `UnsupportedLimit`；两者都不创建 Run。
-- **可自行选择/不可改变**：不可改变：422 语义与「不创建 Run」；不得把 deadline 判定移到重复提交路径。可自行设计：错误映射位置、判定调用顺序（在 M002 内）。
+- **继承预算或行为保证**：**本版撤销**（PK-04）；无 limit 相关 422。
+- **可自行选择/不可改变**：不可改变：typed error 与「不创建 Run」语义。可自行设计：错误映射位置与判定调用顺序（在 M002 内）。
 - **本地落实/内部再分配**：§2.1 错误边界；§6.8.1 `ERR-TAPI-SUBMIT`；§9.2.2 `IF-TAPI-VALIDATE` 消费 M002 判定结果；§14.1.3。
 - **验证方法与结果/证据**：局部 `VRC-TAPI-002`（422 分支）；组合 PK-T05（fault 注入）。当前 `NOT_RUN`。
 - **差距/变更影响/反馈责任**：none；预算语义权威属 M002/M006，本模块不改。
@@ -76,41 +77,41 @@ task-api 的可观察功能是四个 HTTP operation。每个 operation 的调用
 ### 2.1 `F-TAPI-SUBMIT` · 提交任务
 
 - **上级需求 / Constraint ID**：`CON-RUN-002`（PK-02）；`CON-RUN-003`（PK-03 边界）；`M-RUN-DI-001`。
-- **调用方**：Slinky 项目经理，`POST /runs`，同一 bearer principal。
-- **输入与前提**：`AgentTaskRequest`（`task_id`、`instruction`、`workspace_ref`、`permissions{read_paths,write_paths,tool_profile_ref}`、`limits{deadline_at,max_model_calls,max_tool_calls}`、`output_paths`、`discussion?`）；请求体 ≤ 2 MiB 且为合法 JSON；`Authorization: Bearer` 已配置；进程 READY。
-- **行为**：固定顺序 JSON 解析 → Ajv Schema 校验 → bearer 校验 → （discussion 时）M008 校验起点 → M002 `validateSubmission` 判定 → M003 `createOrGetRun` 单事务（按 `task_id` 比较/创建）。重复同 ID 同内容直接返回原 Run；不同内容返回冲突；tombstone 返回 Gone；仅新 ID 检查 deadline/queue/依赖。
-- **输出**：202 + `RunView`（首次受理 `state="Queued"`，重复返回当前视图）；错误为 `ErrorEnvelope`（400/401/403/409/410/422/429/503）。
-- **错误与边界**：`InvalidRequest`(400) 非法 JSON/超限/字段非法；`Unauthorized`(401) 凭据缺失或无效；`ScopeDenied`(403) 无权限；`TaskConflict`(409)、`InvalidDiscussionContext`(409)；`Gone`(410)；`UnsupportedLimit`(422)、`DeadlineExpired`(422)；`QueueFull`(429)；`DependencyUnavailable`(503)。202 不证明执行开始。
-- **验收条件**：给定合法新 `task_id`，返回 202 且 `state="Queued"`、`run_id` 非空；同 body 重发返回同一 `run_id` 且 `tasks` 行数不增；同 ID 换 instruction 返回 409；非法 JSON 返回 400 且无 Run 创建。
+- **调用方**：Slinky 项目经理，`POST /tasks`，同一 bearer principal。
+- **输入与前提**：`AgentTaskRequest`（`task_id`、`instruction`、`workspace_ref`、`permissions{read_paths,write_paths,tool_profile_ref}`、`output_paths`、`input_refs?`、`artifact_target?`、`discussion?`）；请求体 ≤ 2 MiB 且为合法 JSON；`Authorization: Bearer` 已配置；进程 READY。
+- **行为**：固定顺序 JSON 解析 → Ajv Schema 校验 → bearer 校验 → （discussion 时）M008 校验起点 → M002 `validateSubmission` 判定 → M003 `createOrGetRun` 单事务（按 `task_id` 比较/创建）。重复同 ID 同内容直接返回原 Run；不同内容返回冲突；tombstone 返回 Gone；仅新 ID 检查 queue/依赖。
+- **输出**：202 + `TaskView`（首次受理 `state="Queued"`，重复返回当前视图）；错误为 `ErrorEnvelope`（400/401/403/409/410/422/429/503）。
+- **错误与边界**：`InvalidRequest`(400) 非法 JSON/超限/字段非法；`Unauthorized`(401) 凭据缺失或无效；`ScopeDenied`(403) 无权限；`TaskConflict`(409)、`InvalidDiscussionContext`(409)；`Gone`(410)；`QueueFull`(429)；`DependencyUnavailable`(503)。202 不证明执行开始。
+- **验收条件**：给定合法新 `task_id`，返回 202 且 `state="Queued"`、`task_id` 非空；同 body 重发返回同一 `task_id` 且 `tasks` 行数不增；同 ID 换 instruction 返回 409；非法 JSON 返回 400 且无 Run 创建。
 
 ### 2.2 `F-TAPI-STATUS` · 查询 Run 状态
 
 - **上级需求 / Constraint ID**：`CON-RUN-002`；`M-RUN-DI-001`。
-- **调用方**：Slinky，`GET /runs/:run_id`，同一 principal。
-- **输入与前提**：`run_id` 路径参数（`Identifier`，1–128，`^[A-Za-z0-9._:-]+$`）；bearer 有效。
-- **行为**：校验路径参数与 principal → M003 读 `RunView`（含 `progress`、`result_available`、`cancel_requested`）。无副作用、不触发执行、不重新检查动态条件。
-- **输出**：200 + `RunView`；错误 401/403/404/410。
-- **错误与边界**：`NotFound`(404) 不存在或不可见；`Gone`(410) tombstone；`Unauthorized`(401)/`ScopeDenied`(403)。空 `run_id` 由路由不匹配转为 404（实现自由度，见 §8.1）。
-- **验收条件**：已知 Queued Run 返回 200 且 `started_at=null`；未知 `run_id` 返回 404；已 tombstone 的 `run_id` 返回 410。
+- **调用方**：Slinky，`GET /tasks/:task_id`，同一 principal。
+- **输入与前提**：`task_id` 路径参数（`Identifier`，1–128，`^[A-Za-z0-9._:-]+$`）；bearer 有效。
+- **行为**：校验路径参数与 principal → M003 读 `TaskView`（含 `progress`、`result_available`、`cancel_requested`）。无副作用、不触发执行、不重新检查动态条件。
+- **输出**：200 + `TaskView`；错误 401/403/404/410。
+- **错误与边界**：`NotFound`(404) 不存在或不可见；`Gone`(410) tombstone；`Unauthorized`(401)/`ScopeDenied`(403)。空 `task_id` 由路由不匹配转为 404（实现自由度，见 §8.1）。
+- **验收条件**：已知 Queued Run 返回 200 且 `started_at=null`；未知 `task_id` 返回 404；已 tombstone 的 `task_id` 返回 410。
 
 ### 2.3 `F-TAPI-CANCEL` · 取消 Run
 
 - **上级需求 / Constraint ID**：`CON-CX-001`（PK-03）；`M-CX-DI-001`。
-- **调用方**：Slinky，`POST /runs/:run_id:cancel`，同一 principal。
-- **输入与前提**：`run_id` 路径参数；bearer 有效；Run 存在。
+- **调用方**：Slinky，`POST /tasks/:task_id:cancel`，同一 principal。
+- **输入与前提**：`task_id` 路径参数；bearer 有效；Run 存在。
 - **行为**：校验 principal 与路径 → 调 M005 取消入口按 `runs.state` 分流：Queued → 单事务写 `cancel_requested=1` + 零调用 Cancelled Result + `state=Cancelled`，返回 `CancelledBeforeStart`；Running → 写 stop intent + `state=Cancelling`，返回 `StopRequested`；终态 → 返回 `AlreadyTerminal`。
 - **输出**：Queued/终态 → 200 + `CancelReceipt`；Running → 202 + `CancelReceipt`；错误 401/403/404/410。
-- **错误与边界**：`NotFound`(404)/`Gone`(410)/`Unauthorized`(401)/`ScopeDenied`(403)。cancel **不返回** `RunNotTerminal`；非终态由 outcome 表达。`StopRequested` 只证意图。
+- **错误与边界**：`NotFound`(404)/`Gone`(410)/`Unauthorized`(401)/`ScopeDenied`(403)。cancel **不返回** `TaskNotTerminal`；非终态由 outcome 表达。`StopRequested` 只证意图。
 - **验收条件**：Queued 取消返回 200 `CancelledBeforeStart` 且 `results` 出现零调用 generation；Running 取消返回 202 `StopRequested` 且随后 `GET` 可轮询到 `Cancelled`；已终态返回 200 `AlreadyTerminal`。
 
 ### 2.4 `F-TAPI-RESULT` · 读取稳定结果
 
 - **上级需求 / Constraint ID**：`CON-RUN-002`；`M-RUN-DI-001`。
-- **调用方**：Slinky，`GET /runs/:run_id/result`，同一 principal。
-- **输入与前提**：`run_id` 路径参数；bearer 有效；Run 已终态且 durable Result 存在。
-- **行为**：校验 → M003 读 `results` generation：非终态 → `RunNotTerminal`；终态无 Result → `ResultUnavailable`；有 Result → 返回 `AgentResult`（内容已冻结）。
+- **调用方**：Slinky，`GET /tasks/:task_id/result`，同一 principal。
+- **输入与前提**：`task_id` 路径参数；bearer 有效；Run 已终态且 durable Result 存在。
+- **行为**：校验 → M003 读 `results` generation：非终态 → `TaskNotTerminal`；终态无 Result → `ResultUnavailable`；有 Result → 返回 `AgentResult`（内容已冻结）。
 - **输出**：200 + `AgentResult`；错误 401/403/404/409/410/500。
-- **错误与边界**：`RunNotTerminal`(409) 未终态；`ResultUnavailable`(500) 终态丢 durable Result（内部一致性错误，不伪装 404/空结果）；`NotFound`(404)/`Gone`(410)。迟到 usage 不改 generation。
+- **错误与边界**：`TaskNotTerminal`(409) 未终态；`ResultUnavailable`(500) 终态丢 durable Result（内部一致性错误，不伪装 404/空结果）；`NotFound`(404)/`Gone`(410)。迟到 usage 不改 generation。
 - **验收条件**：Completed Run 返回 200 且 `generation` 与 `results` 行一致；非终态返回 409；已发布 generation 在两次读取间内容不变。
 
 ## 3. UI、CLI、服务端点或设备操作面
@@ -121,9 +122,9 @@ task-api 是**服务端点型**模块：它监听本地端口，把一个 HTTP �
 
 - **类型 / 位置**：HTTP-RPC 端点集；执行位置为 Piko 单进程 `node:http` 服务，监听 `config.listen.host:config.listen.port`，路径前缀为部署路由（契约示例 `https://piko.example/agent-runtime/v1`）。
 - **调用者 / 身份 / 被操作对象**：Slinky 项目经理（唯一配置的 bearer principal）；被操作对象是 Run 提交/状态/取消/结果四项。Operator 只读诊断是另一个 Surface，由 ops 文档承载，不属本模块。
-- **操作与入口**：`POST /runs`（createRun）、`GET /runs/:run_id`（getRun）、`POST /runs/:run_id:cancel`（cancelRun）、`GET /runs/:run_id/result`（getRunResult）；对应 §9.1.1–§9.1.4。
-- **输入与校验**：`Authorization: Bearer <credential>`、可选 `X-Request-ID`、JSON body（仅 `POST /runs` 需要）。校验顺序：bearer → 路由匹配 → body 读取/JSON/Schema → 路径参数。未知路由 404 `NotFound`。
-- **正常结果 / 可见性**：createRun 202 `RunView`；getRun 200 `RunView`；cancelRun 200/202 `CancelReceipt`；getRunResult 200 `AgentResult`。可见性由 `runs`/`results` 表提交点决定，不由 HTTP 状态码单独判定。
+- **操作与入口**：`POST /tasks`（createTask）、`GET /tasks/:task_id`（getTask）、`POST /tasks/:task_id:cancel`（cancelTask）、`GET /tasks/:task_id/result`（getTaskResult）；对应 §9.1.1–§9.1.4。
+- **输入与校验**：`Authorization: Bearer <credential>`、可选 `X-Request-ID`、JSON body（仅 `POST /tasks` 需要）。校验顺序：bearer → 路由匹配 → body 读取/JSON/Schema → 路径参数。未知路由 404 `NotFound`。
+- **正常结果 / 可见性**：createTask 202 `TaskView`；getTask 200 `TaskView`；cancelTask 200/202 `CancelReceipt`；getTaskResult 200 `AgentResult`。可见性由 `runs`/`results` 表提交点决定，不由 HTTP 状态码单独判定。
 - **Empty / Error / Disabled / 取消**：空 body/非法 JSON → 400 `InvalidRequest`；缺失/无效凭据 → 401 `Unauthorized`；无路由 → 404 `NotFound`；不支持任何「运行中撤销取消」入口；请求若客户端超时，服务端事务仍可能已提交（用原 `task_id` 核对，见 §10）。
 - **§9 接口与 §11 维护引用**：§9.1 固定每个端点合同；§11 记录日志/指标与凭据处理；维护入口（operator 诊断）归 ops/`system-design` §8.1，不在本模块新增命令。
 
@@ -135,11 +136,11 @@ task-api 在进程内的位置：被 Slinky 经 HTTP 调用，调用 M002 `polic
 flowchart LR
     SL["Slinky"] -->|"HTTP 4 operation"| API["M001 task-api<br/>src/http/"]
     API -->|"validateSubmission"| POL["M002 policy"]
-    API -->|"createOrGetRun / readRunView / readResult"| REPO["M003 task-repository"]
-    API -->|"cancel(run_id)"| WK["M005 worker"]
+    API -->|"createOrGetRun / readTaskView / readResult"| REPO["M003 task-repository"]
+    API -->|"cancel(task_id)"| WK["M005 worker"]
     API -->|"verifyDiscussion"| MX["M008 matrix-adapter"]
     POL -->|"ValidatedTaskSubmission / typed error"| API
-    REPO -->|"RunView / AgentResult / CreateRunOutcome"| API
+    REPO -->|"TaskView / AgentResult / CreateRunOutcome"| API
     WK -->|"CancelOutcome"| API
     MX -->|"VerifiedEvent / InvalidDiscussionContext"| API
 ```
@@ -158,7 +159,7 @@ flowchart LR
 #### 4.2 `DEP-TAPI-POLICY` · M002 `policy`（校验判定）
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
-- **本模块调用或消费**：`validateSubmission(request, principal) -> ValidatedTaskSubmission | TypedError`（`IF-TAPI-VALIDATE`，Proposed）；由它完成 path canonicalize、deadline/limit/queue 前置判定。
+- **本模块调用或消费**：`validateSubmission(request, principal) -> ValidatedTaskSubmission | TypedError`（`IF-TAPI-VALIDATE`，Proposed）；由它完成 path canonicalize、queue 前置判定。
 - **本模块提供**：无（`task-api` 不向 M002 提供接口）。
 - **契约 authority / 版本 / selector**：`piko-run.md` §14.3（M002 → ValidatedTaskSubmission）+ M002 `piko-policy-design.md`（Planned）；`M-RUN-DI-002`。
 - **同步方式 / timeout / 生命周期**：同步进程内调用；无状态；随进程。
@@ -167,7 +168,7 @@ flowchart LR
 #### 4.3 `DEP-TAPI-REPO` · M003 `task-repository`（事务与视图权威）
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
-- **本模块调用或消费**：`createOrGetRun(input) -> CreateRunOutcome`（`IF-RUN-CREATE`）、`readRunView(run_id) -> RunView | NotFound | Gone`、`readResult(run_id) -> AgentResult | RunNotTerminal | ResultUnavailable | NotFound | Gone`（`IF-TAPI-READ`）。
+- **本模块调用或消费**：`createOrGetRun(input) -> CreateRunOutcome`（`IF-RUN-CREATE`）、`readTaskView(task_id) -> TaskView | NotFound | Gone`、`readResult(task_id) -> AgentResult | TaskNotTerminal | ResultUnavailable | NotFound | Gone`（`IF-TAPI-READ`）。
 - **本模块提供**：无。task-api 不写 SQL、不持有连接。
 - **契约 authority / 版本 / selector**：`piko-run.md` §5.1 `IF-RUN-CREATE`（Proposed）；`IF-TAPI-READ` 由本设计提出（`OQ-TAPI-002`）；DDL authority = `piko-task-repository-impl.isd.md` §4.7（Proposed，`system-design#m003-ddl-authority`）。
 - **同步方式 / timeout / 生命周期**：同步进程内；单 `BEGIN IMMEDIATE`；受 `task_store.busy_timeout_ms`；连接由 M003 持有。
@@ -176,7 +177,7 @@ flowchart LR
 #### 4.4 `DEP-TAPI-WORKER` · M005 `worker`（取消分流权威）
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
-- **本模块调用或消费**：`cancel(run_id) -> CancelOutcome`（`IF-CX-DISPATCH`，Proposed）；由 M005 按 `runs.state` 分流并驱动 abort/对账。
+- **本模块调用或消费**：`cancel(task_id) -> CancelOutcome`（`IF-CX-DISPATCH`，Proposed）；由 M005 按 `runs.state` 分流并驱动 abort/对账。
 - **本模块提供**：无。
 - **契约 authority / 版本 / selector**：`piko-cancel.md` §3/§5（M005 统筹；入口接口未命名，见 `OQ-TAPI-003`）；`M-CX-DI-001`。
 - **同步方式 / timeout / 生命周期**：同步进程内调用返回 outcome；Running 路径的 abort/对账在 M005 内异步推进，不阻塞 HTTP 返回。
@@ -215,7 +216,7 @@ flowchart TB
         S1 -->|"装配"| S6
         S2 -->|"校验前调用"| S6
     end
-    T["合同投影类型（§6.2）<br/>AgentTaskRequest / RunView / CancelReceipt / AgentResult / ErrorEnvelope"]
+    T["合同投影类型（§6.2）<br/>AgentTaskRequest / TaskView / CancelReceipt / AgentResult / ErrorEnvelope"]
     S3 -. 类型依赖 .-> T
     S4 -. 类型依赖 .-> T
     S5 -. 类型依赖 .-> T
@@ -248,14 +249,14 @@ flowchart TB
 - **输入、处理与输出**：输入 `req/res` + `principal`；输出分发到处理器或 404 `NotFound`。
 - **协作对象**：调用 S3 处理器；调用 S6 校验凭据；被 S1 调用。
 - **文件 / symbol / 实现状态**：`src/http/router.ts`（Planned），`function route(req, res, ctx)`。现基线是 `src/server.ts:19` `ApiServer.route` 的 if/match 链。
-- **拆分依据与替代方案代价**：把路径正则（`:cancel`、`/result`）集中，便于对路由歧义做表驱动测试。替代方案「散在各 handler」会使 `/runs/:id` 与 `/runs/:id/result` 匹配顺序不可控。
+- **拆分依据与替代方案代价**：把路径正则（`:cancel`、`/result`）集中，便于对路由歧义做表驱动测试。替代方案「散在各 handler」会使 `/tasks/:id` 与 `/tasks/:id/result` 匹配顺序不可控。
 
 #### 5.1.3 `S3` · HandlerSet（四操作处理器）
 
-- **职责与非职责**：实现 `createRun`/`getRun`/`cancelRun`/`getRunResult` 的编排：读 body、校验、调用端口、构造成功响应。非职责：不实现校验规则（M002）、不实现事务（M003）、不实现取消（M005）。
+- **职责与非职责**：实现 `createTask`/`getTask`/`cancelTask`/`getTaskResult` 的编排：读 body、校验、调用端口、构造成功响应。非职责：不实现校验规则（M002）、不实现事务（M003）、不实现取消（M005）。
 - **输入、处理与输出**：输入 `HttpContext{req,res,principal,requestId}`；输出已写出的 HTTP 响应或抛出的 typed/原生错误。
 - **协作对象**：调用 S5 读取/校验、S7 端口、S4 映射错误；被 S2 调用。
-- **文件 / symbol / 实现状态**：`src/http/handlers.ts`（Planned），`createRun/getRun/cancelRun/getRunResult`。现基线在 `src/server.ts:24`–`src/server.ts:32`。
+- **文件 / symbol / 实现状态**：`src/http/handlers.ts`（Planned），`createTask/getTask/cancelTask/getTaskResult`。现基线在 `src/server.ts:24`–`src/server.ts:32`。
 - **拆分依据与替代方案代价**：四操作各自可独立测试成功/拒绝分支（§14.2）。替代方案「路由内联」使错误优先级难以核对。
 
 #### 5.1.4 `S4` · ErrorMapper（typed error 映射）
@@ -285,7 +286,7 @@ flowchart TB
 #### 5.1.7 `S7` · ApiPorts（协作端口聚合）
 
 - **职责与非职责**：把 M002/M003/M005/M008 的进程内调用适配成模块内接口（`PolicyPort`/`RepoPort`/`CancelPort`/`MatrixVerifyPort`），是 task-api 唯一接触外部模块的单元。非职责：不做业务判断、不重试业务失败、不吞依赖错误。
-- **输入、处理与输出**：输入结构化参数；输出 `ValidatedTaskSubmission`/`CreateRunOutcome`/`RunView`/`AgentResult`/`CancelOutcome` 或透传依赖错误。
+- **输入、处理与输出**：输入结构化参数；输出 `ValidatedTaskSubmission`/`CreateRunOutcome`/`TaskView`/`AgentResult`/`CancelOutcome` 或透传依赖错误。
 - **协作对象**：调用 M002/M003/M005/M008；被 S3 调用。
 - **文件 / symbol / 实现状态**：`src/http/ports.ts`（Planned），`interface ApiPorts` + 生产实现 `RuntimeApiPorts`。
 - **拆分依据与替代方案代价**：端口使 handler 可在受控 fake 上测试（§14.2），并把跨模块合同集中。替代方案「handler 直接 import M003」会传播外部类型并绕过 §9.2。
@@ -294,25 +295,25 @@ flowchart TB
 
 #### 5.2.1 `C-TAPI-CREATE` · 提交任务
 
-- **入口与调用上下文**：HTTP `POST /runs` → `ApiServer` → `Router.route` → `createRun`（宿主事件循环，同步事务）。
-- **调用链（文件 / symbol → 文件 / symbol）**：`router.route` → `handlers.createRun` → `BearerAuth.authenticate`（前置）→ `request.readBody` → `request.validateTask` → （discussion）`ports.verifyDiscussion` → `ports.validateSubmission` → `ports.createOrGetRun` → `errors.mapError`（失败时）→ 写 202/错误。
-- **逐步传递的数据**：`req.headers.authorization` → `principal:string`；body → `AgentTaskRequest`；→ `ValidatedTaskSubmission`；→ `CreateRunOutcome`；→ `RunView` 或 typed error。
+- **入口与调用上下文**：HTTP `POST /tasks` → `ApiServer` → `Router.route` → `createTask`（宿主事件循环，同步事务）。
+- **调用链（文件 / symbol → 文件 / symbol）**：`router.route` → `handlers.createTask` → `BearerAuth.authenticate`（前置）→ `request.readBody` → `request.validateTask` → （discussion）`ports.verifyDiscussion` → `ports.validateSubmission` → `ports.createOrGetRun` → `errors.mapError`（失败时）→ 写 202/错误。
+- **逐步传递的数据**：`req.headers.authorization` → `principal:string`；body → `AgentTaskRequest`；→ `ValidatedTaskSubmission`；→ `CreateRunOutcome`；→ `TaskView` 或 typed error。
 - **返回、异常与清理**：成功写 202；业务失败经 ErrorMapper；依赖错误由 ErrorMapper 透传为 503/500。无临时资源（事务在 M003 内）。
 - **对应流程 / 接口 / 验证**：§7 `P-TAPI-SUBMIT`；§9.1.1、§9.2.1–§9.2.2；`VRC-TAPI-001/002/006`。
 
 #### 5.2.2 `C-TAPI-READ` · 状态/结果读取
 
-- **入口与调用上下文**：`GET /runs/:run_id` 或 `GET /runs/:run_id/result` → `getRun`/`getRunResult`。
-- **调用链**：`router.route` → `handlers.getRun|getRunResult` → `BearerAuth.authenticate` → `ports.readRunView|readResult` → 写 200/错误。
-- **逐步传递的数据**：`run_id:string` → `RunView | AgentResult` 或 `NotFound|Gone|RunNotTerminal|ResultUnavailable`。
+- **入口与调用上下文**：`GET /tasks/:task_id` 或 `GET /tasks/:task_id/result` → `getTask`/`getTaskResult`。
+- **调用链**：`router.route` → `handlers.getTask|getTaskResult` → `BearerAuth.authenticate` → `ports.readTaskView|readResult` → 写 200/错误。
+- **逐步传递的数据**：`task_id:string` → `TaskView | AgentResult` 或 `NotFound|Gone|TaskNotTerminal|ResultUnavailable`。
 - **返回、异常与清理**：只读，无副作用；404/410/409/500 经 ErrorMapper。
 - **对应流程 / 接口 / 验证**：§7 `P-TAPI-STATUS`/`P-TAPI-RESULT`；§9.1.2/§9.1.4、§9.2.3；`VRC-TAPI-003/005`。
 
 #### 5.2.3 `C-TAPI-CANCEL` · 取消
 
-- **入口与调用上下文**：`POST /runs/:run_id:cancel` → `cancelRun`。
-- **调用链**：`router.route`（`:cancel` 正则）→ `handlers.cancelRun` → `BearerAuth.authenticate` → `ports.cancel(run_id)`（M005 分流）→ 依 outcome 写 200/202 → 失败经 ErrorMapper。
-- **逐步传递的数据**：`run_id:string` → `CancelOutcome{CancelledBeforeStart|StopRequested|AlreadyTerminal}` → `CancelReceipt`。
+- **入口与调用上下文**：`POST /tasks/:task_id:cancel` → `cancelTask`。
+- **调用链**：`router.route`（`:cancel` 正则）→ `handlers.cancelTask` → `BearerAuth.authenticate` → `ports.cancel(task_id)`（M005 分流）→ 依 outcome 写 200/202 → 失败经 ErrorMapper。
+- **逐步传递的数据**：`task_id:string` → `CancelOutcome{CancelledBeforeStart|StopRequested|AlreadyTerminal}` → `CancelReceipt`。
 - **返回、异常与清理**：Queued/终态 200，Running 202；依赖错误 503；无模块级清理（abort 归 M005）。
 - **对应流程 / 接口 / 验证**：§7 `P-TAPI-CANCEL`；§9.1.3、§9.2.4；`VRC-TAPI-004`。
 
@@ -332,7 +333,7 @@ flowchart TB
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `readBody`/`validateTask`；规则权威在 §8.2 `R-TAPI-VALIDATE`、§8.4 `R-TAPI-BODY`。
 - **本文件的提供或使用责任**：`request.ts` 提供受上限保护的 body 读取与 Ajv 校验；`handlers.ts` 消费其结果或 400。
-- **交接时机 / 本地调用步骤**：`createRun` 开头；先读 body 再校验，失败即抛 `InvalidRequest`。
+- **交接时机 / 本地调用步骤**：`createTask` 开头；先读 body 再校验，失败即抛 `InvalidRequest`。
 - **§9 生命周期约束**：无状态；校验函数进程内复用（Ajv 编译一次，S1 注入）。
 - **实现与验证位置**：`src/http/request.ts`；`VRC-TAPI-002`（Case C/D）。
 
@@ -349,7 +350,7 @@ flowchart TB
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `ApiPorts`，方法契约见 §9.2；上游成员 ID 见 §9.2.1–§9.2.5。
 - **本文件的提供或使用责任**：`ports.ts` 提供抽象 + 生产实现；`handlers.ts` 只依赖抽象。
 - **交接时机 / 本地调用步骤**：见 `C-TAPI-CREATE`/`C-TAPI-READ`/`C-TAPI-CANCEL` 链。
-- **§9 生命周期约束**：端口实例与进程同域；不缓存 `RunView`/`AgentResult`（每次读权威）。
+- **§9 生命周期约束**：端口实例与进程同域；不缓存 `TaskView`/`AgentResult`（每次读权威）。
 - **实现与验证位置**：`src/http/ports.ts`；`VRC-TAPI-001/003/004/005` 以受控 fake + 真 M003/M005 两套覆盖。
 
 ### 5.4 服务提供方式（条件适用）
@@ -368,16 +369,16 @@ flowchart TB
 
 ## 6. 数据结构设计
 
-task-api 拥有的运行态数据是**每次请求的局部上下文**（`HttpContext`/`RouteMatch`），不跨请求保留；业务对象（`AgentTaskRequest`/`RunView`/`CancelReceipt`/`AgentResult`/`ErrorEnvelope`）的机器权威在契约/OpenAPI/Schema，本模块只做投影与校验，不建立第二份字段 authority。
+task-api 拥有的运行态数据是**每次请求的局部上下文**（`HttpContext`/`RouteMatch`），不跨请求保留；业务对象（`AgentTaskRequest`/`TaskView`/`CancelReceipt`/`AgentResult`/`ErrorEnvelope`）的机器权威在契约/OpenAPI/Schema，本模块只做投影与校验，不建立第二份字段 authority。
 
 **不适用类别与依据**：§6.3 配置结构 N/A（配置键由系统 schema 与 M000/M002 定义，本模块只读，见 §4.1/§8.1）；§6.4 通信报文（无跨执行边界消息，HTTP 报文本身由机器契约定义）；§6.5 设备/FPGA（纯软件，`TAIL-P-103`）；§6.6 运行状态 N/A（handler 无跨步骤状态，状态权威在 M003，见 §10）；§6.7 数据库表 N/A（DDL authority 属 M003，`system-design#m003-ddl-authority`）。
 
 ### 6.1 公共基础类型与枚举
 
-#### 6.1.1 `RunState` / `CancelOutcome` / `RequestErrorCode`
+#### 6.1.1 `TaskState` / `CancelOutcome` / `RequestErrorCode`
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：`RunState = "Queued"|"Running"|"Cancelling"|"Completed"|"Failed"|"Cancelled"`；`CancelOutcome = "CancelledBeforeStart"|"StopRequested"|"AlreadyTerminal"`；`RequestErrorCode = "InvalidRequest"|"Unauthorized"|"ScopeDenied"|"NotFound"|"TaskConflict"|"RunNotTerminal"|"InvalidDiscussionContext"|"UnsupportedLimit"|"DeadlineExpired"|"QueueFull"|"DependencyUnavailable"|"ResultUnavailable"|"Gone"`。唯一来源：`interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.RunState`/`CancelReceipt`/`RequestErrorCode` 与 `interfaces/error-codes/error-blocker-catalog-v0.3.json`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：三枚举均为字符串；未知值拒绝。`RunState` 与 `result_available`/`cancel_requested` 的跨字段约束由 `RunView` schema `allOf` 强制（见 §6.2.2）。
+- **完整定义、Data/Type/Error ID 与唯一来源**：`TaskState = "Queued"|"Running"|"Cancelling"|"Completed"|"Failed"|"Cancelled"`；`CancelOutcome = "CancelledBeforeStart"|"StopRequested"|"AlreadyTerminal"`；`RequestErrorCode = "InvalidRequest"|"Unauthorized"|"ScopeDenied"|"NotFound"|"TaskConflict"|"TaskNotTerminal"|"InvalidDiscussionContext"|"QueueFull"|"DependencyUnavailable"|"ResultUnavailable"|"Gone"`。唯一来源：`interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.TaskState`/`CancelReceipt`/`RequestErrorCode` 与 `interfaces/error-codes/error-blocker-catalog-v0.3.json`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：三枚举均为字符串；未知值拒绝。`TaskState` 与 `result_available`/`cancel_requested` 的跨字段约束由 `TaskView` schema `allOf` 强制（见 §6.2.2）。
 - **生产/修改、所有权、可见点、寿命及失败出口**：写入者 M003；本模块只读投影并序列化；可见点为 HTTP body；寿命 = Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：合法 `"Queued"`；拒绝 `"queued"`（大小写不符）。`VRC-TAPI-003`；`NOT_RUN`。
 
@@ -386,16 +387,16 @@ task-api 拥有的运行态数据是**每次请求的局部上下文**（`HttpCo
 #### 6.2.1 `AgentTaskRequest`（submit 请求体）
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`AgentTaskRequest`；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json#/$defs/AgentTaskRequest`（契约 `0.3.0-simplified.6`）。本模块持有其 TypeScript 投影 `TaskRequest`（`src/types.ts:3`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`（`Identifier`，1–128，`^[A-Za-z0-9._:-]+$`，必填）、`instruction`（1–1048576）、`workspace_ref`（`OpaqueRef`）、`permissions.read_paths/write_paths`（≤256 唯一 `RelativePath`）、`permissions.tool_profile_ref`（`OpaqueRef`）、`limits.deadline_at`（UTC `Timestamp`，`Z$`）、`limits.max_model_calls`（1–100000）、`limits.max_tool_calls`（0–100000）、`output_paths`（≤256 唯一 `RelativePath`）、`discussion?{room_id,trigger_event_id}`。`additionalProperties:false`；缺任一 required 字段即拒绝。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`（`Identifier`，1–128，`^[A-Za-z0-9._:-]+$`，必填）、`instruction`（1–1048576）、`workspace_ref`（`OpaqueRef`）、`permissions.read_paths/write_paths`（≤256 唯一 `RelativePath`）、`permissions.tool_profile_ref`（`OpaqueRef`）、`output_paths`（≤256 唯一 `RelativePath`）、`input_refs?`、`artifact_target?`、`discussion?{room_id,trigger_event_id}`。`additionalProperties:false`；缺任一 required 字段即拒绝。
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 HTTP body 解析产生，寿命 = 请求；经 M002 转为 `ValidatedTaskSubmission` 后交 M003 持久化。校验失败 → 400 `InvalidRequest`。
 - **合法与拒绝实例、V/Case 与证据状态**：合法见 `piko-run.md` §6.1.1 q1；拒绝：绝对路径/`..`/超 256 项/未知字段。`VRC-TAPI-002`；`NOT_RUN`。
 
-#### 6.2.2 `RunView` / `CancelReceipt` / `AgentResult` / `ErrorEnvelope`
+#### 6.2.2 `TaskView` / `CancelReceipt` / `AgentResult` / `ErrorEnvelope`
 
-- **完整定义、Data/Type/Data ID 与唯一来源**：机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.RunView`/`CancelReceipt`/`AgentResult`/`ErrorEnvelope`；本模块持有投影 `RunView`/`AgentResult`（`src/types.ts:11`/`:17`）。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`RunView{run_id,task_id,state,accepted_at,started_at,finished_at,result_available,cancel_requested,progress{model_calls,tool_calls,last_activity_at}}`，`allOf` 约束 state↔时间戳/flag 组合；`CancelReceipt{run_id,outcome,requested_at}`；`AgentResult{run_id,task_id,generation,state,partial,summary,outputs[],known_actions[],usage,failure,published_at}`，`Completed` 强制 `failure=null/partial=false`、`Cancelled` 强制 `CancelledByRequest/Cancellation`；`ErrorEnvelope{error{code,message,request_id}}`。
-- **生产/修改、所有权、可见点、寿命及失败出口**：`RunView`/`AgentResult` 由 M003 生产、本模块只序列化；`CancelReceipt` 由本模块与 M005 共同确定、`requested_at` 取自 `CancelOutcome` 事实；`ErrorEnvelope` 由 S4 生产。HTTP body 寿命 = 响应。
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `RunView{state:"Queued",started_at:null,result_available:false,cancel_requested:false}`；拒绝 `state:"Queued"` 且 `started_at` 非空。`VRC-TAPI-003/005`；`NOT_RUN`。
+- **完整定义、Data/Type/Data ID 与唯一来源**：机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.TaskView`/`CancelReceipt`/`AgentResult`/`ErrorEnvelope`；本模块持有投影 `TaskView`/`AgentResult`（`src/types.ts:11`/`:17`）。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`TaskView{task_id,task_id,state,accepted_at,started_at,finished_at,result_available,cancel_requested,progress{model_calls,tool_calls,last_activity_at}}`，`allOf` 约束 state↔时间戳/flag 组合；`CancelReceipt{task_id,outcome,requested_at}`；`AgentResult{task_id,task_id,generation,state,partial,summary,outputs[],known_actions[],usage,failure,published_at}`，`Completed` 强制 `failure=null/partial=false`、`Cancelled` 强制 `CancelledByRequest/Cancellation`；`ErrorEnvelope{error{code,message,request_id}}`。
+- **生产/修改、所有权、可见点、寿命及失败出口**：`TaskView`/`AgentResult` 由 M003 生产、本模块只序列化；`CancelReceipt` 由本模块与 M005 共同确定、`requested_at` 取自 `CancelOutcome` 事实；`ErrorEnvelope` 由 S4 生产。HTTP body 寿命 = 响应。
+- **合法与拒绝实例、V/Case 与证据状态**：合法 `TaskView{state:"Queued",started_at:null,result_available:false,cancel_requested:false}`；拒绝 `state:"Queued"` 且 `started_at` 非空。`VRC-TAPI-003/005`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
@@ -421,31 +422,31 @@ task-api 拥有的运行态数据是**每次请求的局部上下文**（`HttpCo
 
 四个错误记录按 operation 分组，逐码含义与 HTTP 状态继承 `interfaces/error-codes/error-blocker-catalog-v0.3.json`（`catalog_version=agent-runtime-errors/0.3.0-simplified.6`）与 OpenAPI `x-error-responses`，本模块只负责**产生/透传/映射**，不新增 code。
 
-#### 6.8.1 `ERR-TAPI-SUBMIT` · createRun 错误集
+#### 6.8.1 `ERR-TAPI-SUBMIT` · createTask 错误集
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `POST /runs`；来源 `error-blocker-catalog-v0.3.json` `operation_status_codes.createRun` + OpenAPI `paths./runs.post` responses。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`InvalidRequest`(400)、`Unauthorized`(401)、`ScopeDenied`(403)、`TaskConflict`(409)、`InvalidDiscussionContext`(409)、`Gone`(410)、`UnsupportedLimit`(422)、`DeadlineExpired`(422)、`QueueFull`(429, `Retry-After`)、`DependencyUnavailable`(503, `Retry-After`)；可重试者仅 `QueueFull`/`DependencyUnavailable`（catalog `retryable:true`）。
+- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `POST /tasks`；来源 `error-blocker-catalog-v0.3.json` `operation_status_codes.createTask` + OpenAPI `paths./runs.post` responses。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`InvalidRequest`(400)、`Unauthorized`(401)、`ScopeDenied`(403)、`TaskConflict`(409)、`InvalidDiscussionContext`(409)、`Gone`(410)、`QueueFull`(429, `Retry-After`)、`DependencyUnavailable`(503, `Retry-After`)；可重试者仅 `QueueFull`/`DependencyUnavailable`（catalog `retryable:true`）。
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 S4 从 M002/M003/M008 的 typed 失败映射；载荷 = `ErrorEnvelope`；寿命 = 响应；失败时未创建 Run。
 - **合法与拒绝实例、V/Case 与证据状态**：合法 400（未知字段）；拒绝 400 但 message 泄露 credential（不得发生）。`VRC-TAPI-002`；`NOT_RUN`。
 
-#### 6.8.2 `ERR-TAPI-STATUS` · getRun 错误集
+#### 6.8.2 `ERR-TAPI-STATUS` · getTask 错误集
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `GET /runs/:run_id`；来源 catalog `operation_status_codes.getRun`。
+- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `GET /tasks/:task_id`；来源 catalog `operation_status_codes.getTask`。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Unauthorized`(401)、`ScopeDenied`(403)、`NotFound`(404)、`Gone`(410)；无可重试码。
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 S4 映射；`NotFound` 表示不存在或对当前 principal 不可见（不区分，避免枚举）。
 - **合法与拒绝实例、V/Case 与证据状态**：合法 404（未知 ID）；拒绝 200 携带 tombstone 内容。`VRC-TAPI-003`；`NOT_RUN`。
 
-#### 6.8.3 `ERR-TAPI-CANCEL` · cancelRun 错误集
+#### 6.8.3 `ERR-TAPI-CANCEL` · cancelTask 错误集
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `POST /runs/:run_id:cancel`；来源 catalog `operation_status_codes.cancelRun`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`Unauthorized`(401)、`ScopeDenied`(403)、`NotFound`(404)、`Gone`(410)。**不返回 `RunNotTerminal`**；非终态由 `CancelReceipt.outcome` 表达。
+- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `POST /tasks/:task_id:cancel`；来源 catalog `operation_status_codes.cancelTask`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`Unauthorized`(401)、`ScopeDenied`(403)、`NotFound`(404)、`Gone`(410)。**不返回 `TaskNotTerminal`**；非终态由 `CancelReceipt.outcome` 表达。
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 S4 映射；`Gone` 表示 tombstone。
 - **合法与拒绝实例、V/Case 与证据状态**：合法 200 `CancelledBeforeStart`；拒绝 409（cancel 不应返回）。`VRC-TAPI-004`；`NOT_RUN`。
 
-#### 6.8.4 `ERR-TAPI-RESULT` · getRunResult 错误集
+#### 6.8.4 `ERR-TAPI-RESULT` · getTaskResult 错误集
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `GET /runs/:run_id/result`；来源 catalog `operation_status_codes.getRunResult`。
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`Unauthorized`(401)、`ScopeDenied`(403)、`NotFound`(404)、`RunNotTerminal`(409, `retryable:true`)、`Gone`(410)、`ResultUnavailable`(500)。
+- **完整定义、Data/Type/Error ID 与唯一来源**：applies to `GET /tasks/:task_id/result`；来源 catalog `operation_status_codes.getTaskResult`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`Unauthorized`(401)、`ScopeDenied`(403)、`NotFound`(404)、`TaskNotTerminal`(409, `retryable:true`)、`Gone`(410)、`ResultUnavailable`(500)。
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 S4 映射；`ResultUnavailable` 是终态丢 durable Result 的内部一致性错误，不得伪装 404 或空成功。
 - **合法与拒绝实例、V/Case 与证据状态**：合法 409（Running 查结果）；拒绝 200 空 body 冒充结果。`VRC-TAPI-005`；`NOT_RUN`。
 
@@ -455,7 +456,7 @@ task-api 拥有的运行态数据是**每次请求的局部上下文**（`HttpCo
 
 ```mermaid
 flowchart TD
-    A["POST /runs"] --> B["readBody ≤2MiB"]
+    A["POST /tasks"] --> B["readBody ≤2MiB"]
     B --> C{"JSON + Ajv 通过？"}
     C -->|否| E1["mapError → 400 InvalidRequest"]
     C -->|是| D{"bearer 有效？"}
@@ -469,8 +470,8 @@ flowchart TD
     I -->|否| E4["mapError → 403/422"]
     I -->|是| J["createOrGetRun 单事务"]
     J --> K{"outcome"}
-    K -->|created| L["202 + RunView(Queued)"]
-    K -->|existing| M["202 + 原 RunView"]
+    K -->|created| L["202 + TaskView(Queued)"]
+    K -->|existing| M["202 + 原 TaskView"]
     K -->|conflict| E5["409 TaskConflict"]
     K -->|tombstone| E6["410 Gone"]
     J -->|依赖错误| E7["503 DependencyUnavailable"]
@@ -483,12 +484,12 @@ sequenceDiagram
     participant SL as Slinky
     participant API as M001 task-api
     participant REPO as M003 task-repository
-    SL->>API: GET /runs/:run_id
+    SL->>API: GET /tasks/:task_id
     API->>API: bearer principal 校验
-    API->>REPO: readRunView(run_id)
+    API->>REPO: readTaskView(task_id)
     alt 存在
-        REPO-->>API: RunView
-        API-->>SL: 200 RunView
+        REPO-->>API: TaskView
+        API-->>SL: 200 TaskView
     else 不存在
         REPO-->>API: NotFound
         API-->>SL: 404 ErrorEnvelope
@@ -502,10 +503,10 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["GET /runs/:run_id/result"] --> B["bearer 校验"]
-    B --> C["readResult(run_id)"]
+    A["GET /tasks/:task_id/result"] --> B["bearer 校验"]
+    B --> C["readResult(task_id)"]
     C --> D{"Run 终态？"}
-    D -->|否| E1["409 RunNotTerminal"]
+    D -->|否| E1["409 TaskNotTerminal"]
     D -->|是| F{"durable Result 存在？"}
     F -->|否| E2["500 ResultUnavailable"]
     F -->|是| G["200 AgentResult（generation 冻结）"]
@@ -518,9 +519,9 @@ sequenceDiagram
     participant SL as Slinky
     participant API as M001 task-api
     participant WK as M005 worker
-    SL->>API: POST /runs/:run_id:cancel
+    SL->>API: POST /tasks/:task_id:cancel
     API->>API: bearer principal 校验
-    API->>WK: cancel(run_id)
+    API->>WK: cancel(task_id)
     alt Queued
         WK-->>API: CancelledBeforeStart
         API-->>SL: 200 CancelReceipt
@@ -538,10 +539,10 @@ sequenceDiagram
 
 | Process ID | 触发/适用条件 | 图与正文位置 | 正常/异常出口 | 接口/规则/验证项 |
 |---|---|---|---|---|
-| `P-TAPI-SUBMIT` | 任意 `POST /runs` | §5.2.1 / M-TAPI-P1 | 正常 202 `RunView`；异常 400/401/403/409/410/422/429/503 | `createRun`、`IF-RUN-CREATE`、`R-TAPI-VALIDATE`、`VRC-TAPI-001/002` |
-| `P-TAPI-STATUS` | 任意 `GET /runs/:run_id` | §5.2.2 / M-TAPI-P2 | 正常 200 `RunView`；异常 401/403/404/410 | `getRun`、`IF-TAPI-READ`、`VRC-TAPI-003` |
-| `P-TAPI-CANCEL` | 任意 `POST /runs/:run_id:cancel` | §5.2.3 / M-TAPI-P4 | 正常 200/202 `CancelReceipt`；异常 401/403/404/410 | `cancelRun`、`IF-CX-DISPATCH`、`VRC-TAPI-004` |
-| `P-TAPI-RESULT` | 任意 `GET /runs/:run_id/result` | §5.2.2 / M-TAPI-P3 | 正常 200 `AgentResult`；异常 401/403/404/409/410/500 | `getRunResult`、`IF-TAPI-READ`、`VRC-TAPI-005` |
+| `P-TAPI-SUBMIT` | 任意 `POST /tasks` | §5.2.1 / M-TAPI-P1 | 正常 202 `TaskView`；异常 400/401/403/409/410/422/429/503 | `createTask`、`IF-RUN-CREATE`、`R-TAPI-VALIDATE`、`VRC-TAPI-001/002` |
+| `P-TAPI-STATUS` | 任意 `GET /tasks/:task_id` | §5.2.2 / M-TAPI-P2 | 正常 200 `TaskView`；异常 401/403/404/410 | `getTask`、`IF-TAPI-READ`、`VRC-TAPI-003` |
+| `P-TAPI-CANCEL` | 任意 `POST /tasks/:task_id:cancel` | §5.2.3 / M-TAPI-P4 | 正常 200/202 `CancelReceipt`；异常 401/403/404/410 | `cancelTask`、`IF-CX-DISPATCH`、`VRC-TAPI-004` |
+| `P-TAPI-RESULT` | 任意 `GET /tasks/:task_id/result` | §5.2.2 / M-TAPI-P3 | 正常 200 `AgentResult`；异常 401/403/404/409/410/500 | `getTaskResult`、`IF-TAPI-READ`、`VRC-TAPI-005` |
 | `P-TAPI-ERRMAP` | 任一处理器/路由抛错 | §8.3 / M-TAPI-P1 拒绝边 | 正常 typed envelope；异常未分类错误 → 503 | `mapError`、`R-TAPI-ERRMAP`、`VRC-TAPI-006` |
 
 | Step | 输入 | 执行位置 | 处理/规则 | 输出/状态变化 |
@@ -549,7 +550,7 @@ sequenceDiagram
 | 1 | `req` + headers | `src/http/router.ts` | 生成/透传 `X-Request-ID`，`R-TAPI-REQID` | `HttpContext{requestId}` |
 | 2 | `Authorization` | `src/auth.ts` | 常量时间比较，`R-TAPI-ROUTE` | `principal` 或 401 |
 | 3 | body 流 | `src/http/request.ts` | ≤2 MiB 读取 + Ajv，`R-TAPI-BODY`/`R-TAPI-VALIDATE` | `AgentTaskRequest` 或 400 |
-| 4 | 校验后输入 | `src/http/handlers.ts` → `ports.ts` | 调 M002/M003/M005/M008 | `RunView`/`AgentResult`/`CancelReceipt` |
+| 4 | 校验后输入 | `src/http/handlers.ts` → `ports.ts` | 调 M002/M003/M005/M008 | `TaskView`/`AgentResult`/`CancelReceipt` |
 | 5 | 结果或错误 | `src/http/errors.ts` | catalog 映射，`R-TAPI-ERRMAP` | `ErrorEnvelope` + status + headers |
 
 ## 8. 关键算法与业务规则
@@ -557,15 +558,15 @@ sequenceDiagram
 #### 8.1 `R-TAPI-ROUTE` · 路由匹配与中间件顺序
 
 - **输入前提 / 适用条件**：每个 HTTP 请求；`req.method` + `url.pathname`。
-- **算法 / 规则 / 选择依据**：先处理 `POST /runs`（精确匹配），再用 `/^\/runs\/([^/]+):cancel$/`、`/^\/runs\/([^/]+)\/result$/`、`/^\/runs\/([^/]+)$/` 顺序匹配并 `decodeURIComponent` 参数；匹配顺序保证 `/result`/`:cancel` 不被 `/runs/:id` 吞掉。凭据校验在路由分发后、handler 前进行（顺序 401 优先于 400）。选择依据：契约固定四 operation 且无第五个；路径顺序必须确定（`piko-cancel` 与 `piko-run` 共用 `/runs` 命名空间）。
+- **算法 / 规则 / 选择依据**：先处理 `POST /tasks`（精确匹配），再用 `/^\/runs\/([^/]+):cancel$/`、`/^\/runs\/([^/]+)\/result$/`、`/^\/runs\/([^/]+)$/` 顺序匹配并 `decodeURIComponent` 参数；匹配顺序保证 `/result`/`:cancel` 不被 `/tasks/:id` 吞掉。凭据校验在路由分发后、handler 前进行（顺序 401 优先于 400）。选择依据：契约固定四 operation 且无第五个；路径顺序必须确定（`piko-cancel` 与 `piko-run` 共用 `/runs` 命名空间）。
 - **结果 / 不变量 / 边界**：结果 = 唯一 handler 或 404 `NotFound`。边界：空 segment、编码斜杠 `%2F` 作为参数不被当路由分隔符；未知 method/path → 404。
 - **复杂度 / 资源限制**：O(1) 正则匹配；无额外分配（除路径解码）。
 - **允许替换范围 / 不可改变保证**：可换路由库/表驱动；不可改变四 operation 集合、401 优先于 400 的顺序与 `:cancel`/`/result` 优先于 `/:id`。
-- **具体输入推演 / 验证项**：`GET /runs/run-042/result` → `getRunResult`（不是 `getRun`）；`POST /runs/run-042:cancel` → `cancelRun`；`GET /nope` → 404。`VRC-TAPI-006`。
+- **具体输入推演 / 验证项**：`GET /tasks/task-042/result` → `getTaskResult`（不是 `getTask`）；`POST /tasks/task-042:cancel` → `cancelTask`；`GET /nope` → 404。`VRC-TAPI-006`。
 
 #### 8.2 `R-TAPI-VALIDATE` · 报文与身份校验顺序
 
-- **输入前提 / 适用条件**：`POST /runs` 且路由已匹配；Ajv 已注册 `agent-runtime-v0.3.schema.json`。
+- **输入前提 / 适用条件**：`POST /tasks` 且路由已匹配；Ajv 已注册 `agent-runtime-v0.3.schema.json`。
 - **算法 / 规则 / 选择依据**：固定顺序：读 body（≤2 MiB）→ `JSON.parse` → Ajv `getSchema(schema.$id + "#/$defs/AgentTaskRequest")` → 失败 400 `InvalidRequest`；bearer 校验 → 401 `Unauthorized`。选择依据：契约 §2 明确「处理顺序固定为 JSON/Schema → bearer principal → 按 task_id 查记录」；把静态校验放最前，避免用未校验数据访问持久层。
 - **结果 / 不变量 / 边界**：失败返回首条可读 detail（`instancePath + message` 拼接），不返回原始 body；成功产出 `AgentTaskRequest`。边界：body 超限立即 400（不继续读）；Ajv `allErrors:true` 收集全部错误。
 - **复杂度 / 资源限制**：O(body 大小)；Ajv 编译一次进程内复用；单请求内存 ≤ 2 MiB + 解析副本。
@@ -583,7 +584,7 @@ sequenceDiagram
 
 #### 8.4 `R-TAPI-BODY` · 请求体读取与上限
 
-- **输入前提 / 适用条件**：任何需读 body 的 operation（当前仅 `POST /runs`）。
+- **输入前提 / 适用条件**：任何需读 body 的 operation（当前仅 `POST /tasks`）。
 - **算法 / 规则 / 选择依据**：流式累加，超过 `max=2*1024*1024` 立即抛 `InvalidRequest`(400)「request body too large」，不缓存剩余字节；`Buffer.concat` 后 `JSON.parse`，失败抛 400「invalid JSON body」。选择依据：避免超大 body 占用内存；契约要求 400 而非 413（当前错误集无 413）。
 - **结果 / 不变量 / 边界**：结果 = 解析对象或 400。边界：空 body → `JSON.parse("")` 失败 → 400；非 UTF-8 由 `Buffer.toString` 处理。
 - **复杂度 / 资源限制**：O(body)；峰值内存 ≤ 2 MiB + 分块。
@@ -593,7 +594,7 @@ sequenceDiagram
 #### 8.5 `R-TAPI-REQID` · 关联 ID 与日志口径
 
 - **输入前提 / 适用条件**：每个请求。
-- **算法 / 规则 / 选择依据**：若 `x-request-id` 为非空 string 则沿用，否则 `randomUUID()`；同一值写入响应错误 `error.request_id` 与所有日志字段；成功响应不含 request_id（契约响应体无该字段）。选择依据：契约 §6 要求 `ErrorEnvelope.request_id`；system §10.2 要求事件含 `run_id?`/`generation`。
+- **算法 / 规则 / 选择依据**：若 `x-request-id` 为非空 string 则沿用，否则 `randomUUID()`；同一值写入响应错误 `error.request_id` 与所有日志字段；成功响应不含 request_id（契约响应体无该字段）。选择依据：契约 §6 要求 `ErrorEnvelope.request_id`；system §10.2 要求事件含 `task_id?`/`generation`。
 - **结果 / 不变量 / 边界**：不变量 = 同请求的日志与错误载荷 request_id 一致；边界：超长 header 不截断（Node 默认 header 限制内），空字符串视为缺省。
 - **复杂度 / 资源限制**：O(1)。
 - **允许替换范围 / 不可改变保证**：可换生成器；不可改变「沿用客户端 ID」与「错误体带 request_id」。
@@ -605,41 +606,41 @@ task-api 的对外接口是 §9.1 四个 HTTP operation（机器权威 = OpenAPI
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `POST /runs`（createRun）
+#### 9.1.1 `POST /tasks`（createTask）
 
-- **Interface/Member ID、用途、提供责任与来源**：`createRun`（OpenAPI operationId）；`task-api` 提供；来源 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` `paths./runs.post` + contract §1–§2。
+- **Interface/Member ID、用途、提供责任与来源**：`createTask`（OpenAPI operationId）；`task-api` 提供；来源 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` `paths./runs.post` + contract §1–§2。
 - **输入与前提**：`AgentTaskRequest`（§6.2.1）+ 可选 `X-Request-ID` header；bearer principal 已配置；进程 READY。
-- **成功输出与保证**：202 + `RunView`（§6.2.2）；首次受理 `state="Queued"`；同 ID 同内容返回原 Run。202 仅表示已持久化任务定义并创建 Run，不表示执行开始。
+- **成功输出与保证**：202 + `TaskView`（§6.2.2）；首次受理 `state="Queued"`；同 ID 同内容返回原 Run。202 仅表示已持久化任务定义并创建 Run，不表示执行开始。
 - **错误与合法下一步**：§6.8.1 全码；`QueueFull`/`DependencyUnavailable` 可同 ID 重试，`TaskConflict` 保留原任务、新任务换新 `task_id`，`Gone` 换新 ID。
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`；无 at-most-once 承诺——重复提交由 M003 幂等返回原 Run。请求超时不等于服务端未提交（用原 `task_id` 核对）。
-- **实现与验证**：Planned `src/http/handlers.ts` `createRun`；合法/拒绝实例见 §6.2.1、§14.2。`VRC-TAPI-001/002`；`NOT_RUN`。
+- **实现与验证**：Planned `src/http/handlers.ts` `createTask`；合法/拒绝实例见 §6.2.1、§14.2。`VRC-TAPI-001/002`；`NOT_RUN`。
 
-#### 9.1.2 `GET /runs/:run_id`（getRun）
+#### 9.1.2 `GET /tasks/:task_id`（getTask）
 
-- **Interface/Member ID、用途、提供责任与来源**：`getRun`；`task-api` 提供；来源 OpenAPI `paths./runs/{run_id}.get` + contract §1。
-- **输入与前提**：`run_id`（`Identifier`）+ 可选 `X-Request-ID`；bearer 有效。
-- **成功输出与保证**：200 + `RunView`（含 `progress`/`result_available`/`cancel_requested`）；无副作用。
+- **Interface/Member ID、用途、提供责任与来源**：`getTask`；`task-api` 提供；来源 OpenAPI `paths./tasks/{task_id}.get` + contract §1。
+- **输入与前提**：`task_id`（`Identifier`）+ 可选 `X-Request-ID`；bearer 有效。
+- **成功输出与保证**：200 + `TaskView`（含 `progress`/`result_available`/`cancel_requested`）；无副作用。
 - **错误与合法下一步**：401/403/404/410（§6.8.2）；404 不区分不存在/不可见；410 表示 tombstone。
 - **交互与生命周期**：同步只读；与 result/cancel 共享同一 M003 读路径；无取消/超时语义（只读）。
-- **实现与验证**：Planned `getRun`；`VRC-TAPI-003`；`NOT_RUN`。
+- **实现与验证**：Planned `getTask`；`VRC-TAPI-003`；`NOT_RUN`。
 
-#### 9.1.3 `POST /runs/:run_id:cancel`（cancelRun）
+#### 9.1.3 `POST /tasks/:task_id:cancel`（cancelTask）
 
-- **Interface/Member ID、用途、提供责任与来源**：`cancelRun`；`task-api` 提供；来源 OpenAPI `paths./runs/{run_id}:cancel.post` + `piko-cancel.md` §5.1。
-- **输入与前提**：`run_id` + 可选 `X-Request-ID`；bearer 有效；Run 存在。
+- **Interface/Member ID、用途、提供责任与来源**：`cancelTask`；`task-api` 提供；来源 OpenAPI `paths./tasks/{task_id}:cancel.post` + `piko-cancel.md` §5.1。
+- **输入与前提**：`task_id` + 可选 `X-Request-ID`；bearer 有效；Run 存在。
 - **成功输出与保证**：200 `CancelledBeforeStart`（Queued，零调用 Result 已发）/ 200 `AlreadyTerminal` / 202 `StopRequested`（意图落盘，不证明停止）；`CancelReceipt` 含 `requested_at`。
-- **错误与合法下一步**：401/403/404/410（§6.8.3）；**不返回** `RunNotTerminal`；`StopRequested` 后轮询 `getRun` 到 `Cancelled` 才证停止。
+- **错误与合法下一步**：401/403/404/410（§6.8.3）；**不返回** `TaskNotTerminal`；`StopRequested` 后轮询 `getTask` 到 `Cancelled` 才证停止。
 - **交互与生命周期**：同步返回 outcome；Running 的 abort/对账在 M005 异步推进；不持有 lease。
-- **实现与验证**：Planned `cancelRun`；`VRC-TAPI-004`；`NOT_RUN`。
+- **实现与验证**：Planned `cancelTask`；`VRC-TAPI-004`；`NOT_RUN`。
 
-#### 9.1.4 `GET /runs/:run_id/result`（getRunResult）
+#### 9.1.4 `GET /tasks/:task_id/result`（getTaskResult）
 
-- **Interface/Member ID、用途、提供责任与来源**：`getRunResult`；`task-api` 提供；来源 OpenAPI `paths./runs/{run_id}/result.get` + contract §3。
-- **输入与前提**：`run_id` + 可选 `X-Request-ID`；bearer 有效。
+- **Interface/Member ID、用途、提供责任与来源**：`getTaskResult`；`task-api` 提供；来源 OpenAPI `paths./tasks/{task_id}/result.get` + contract §3。
+- **输入与前提**：`task_id` + 可选 `X-Request-ID`；bearer 有效。
 - **成功输出与保证**：200 + `AgentResult`（generation 内容冻结）；`Completed` 强制 `failure=null/partial=false`。
-- **错误与合法下一步**：401/403/404/409 `RunNotTerminal`（可重试等待）/410/500 `ResultUnavailable`（交 operator，不重建）。
-- **交互与生命周期**：同步只读；迟到 usage 不改 generation；与 getRun 共享读路径。
-- **实现与验证**：Planned `getRunResult`；`VRC-TAPI-005`；`NOT_RUN`。
+- **错误与合法下一步**：401/403/404/409 `TaskNotTerminal`（可重试等待）/410/500 `ResultUnavailable`（交 operator，不重建）。
+- **交互与生命周期**：同步只读；迟到 usage 不改 generation；与 getTask 共享读路径。
+- **实现与验证**：Planned `getTaskResult`；`VRC-TAPI-005`；`NOT_RUN`。
 
 ### 9.2 消息与数据流接口（适用时）
 
@@ -651,7 +652,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
   ```text
   createOrGetRun(input: ValidatedTaskSubmission)
-    -> { kind: "created" | "existing", run_id, state, view: RunView }
+    -> { kind: "created" | "existing", task_id, state, view: TaskView }
      | "conflict"   // 同 task_id 不同定义 → 409 TaskConflict
      | "tombstone"  // → 410 Gone
   ```
@@ -666,7 +667,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
   ```text
   validateSubmission(request: AgentTaskRequest, principal: string)
     -> ValidatedTaskSubmission
-     | DeadlineExpired | UnsupportedLimit | ScopeDenied
+     | ScopeDenied
   ```
 - **输入、输出及关联身份**：`request` = 已 Schema 校验的 §6.2.1；关联身份 `task_id`；`ValidatedTaskSubmission` 字段同 §6.2.1 规范化后。
 - **交互、错误及生命周期**：同步无状态；typed 失败由 S4 映射；M002 异常 → 503。
@@ -677,10 +678,10 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-TAPI-READ`；Provider：M003；Consumer：M001。权威：本设计提出（MECH-RUN §14.3 未单列读接口 → `OQ-TAPI-002`）。
 
   ```text
-  readRunView(run_id) -> RunView | NotFound | Gone
-  readResult(run_id)  -> AgentResult | RunNotTerminal | ResultUnavailable | NotFound | Gone
+  readTaskView(task_id) -> TaskView | NotFound | Gone
+  readResult(task_id)  -> AgentResult | TaskNotTerminal | ResultUnavailable | NotFound | Gone
   ```
-- **输入、输出及关联身份**：`run_id`；只读；`RunNotTerminal` 仅在 Run 非终态、`ResultUnavailable` 仅在终态无 durable Result。
+- **输入、输出及关联身份**：`task_id`；只读；`TaskNotTerminal` 仅在 Run 非终态、`ResultUnavailable` 仅在终态无 durable Result。
 - **交互、错误及生命周期**：同步只读；无事务写；无缓存（每次读权威）。
 - **实现与验证**：M003 侧（Planned）；`VRC-TAPI-003/005`；`NOT_RUN`。
 
@@ -689,10 +690,10 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-CX-DISPATCH`；Provider：M005 `worker`；Consumer：M001。权威：`piko-cancel.md` §5.1/§14.3（`IF-CX-DISPATCH`，M005 提供；`OQ-TAPI-003` 已关闭）。
 
   ```text
-  cancel(run_id) -> CancelOutcome{outcome: CancelledBeforeStart | StopRequested | AlreadyTerminal, requested_at}
+  cancel(task_id) -> CancelOutcome{outcome: CancelledBeforeStart | StopRequested | AlreadyTerminal, requested_at}
                    | NotFound | Gone
   ```
-- **输入、输出及关联身份**：`run_id`；`outcome` 由 M005 按 `runs.state` 分流；`requested_at` = 事务 UTC now。
+- **输入、输出及关联身份**：`task_id`；`outcome` 由 M005 按 `runs.state` 分流；`requested_at` = 事务 UTC now。
 - **交互、错误及生命周期**：同步返回 outcome；Running 的 abort/对账异步推进；不阻塞 HTTP。
 - **实现与验证**：M005 侧（Planned）；`VRC-TAPI-004`；`NOT_RUN`。
 
@@ -722,20 +723,20 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 10.1 `C-TAPI-01` · 两个并发提交同 task_id
 
-- **初始条件 / 并发交错 / 失败点**：两个 `POST /runs` 同时到达、body 相同、`task_id` 相同。失败点：两者都进入 M003 前都判定「不存在」。
+- **初始条件 / 并发交错 / 失败点**：两个 `POST /tasks` 同时到达、body 相同、`task_id` 相同。失败点：两者都进入 M003 前都判定「不存在」。
 - **检测事实 / authority / 期限**：`tasks.task_id` 唯一主键 + `createOrGetRun` 单 `BEGIN IMMEDIATE` 串行化；`created` vs `existing` 由事务内 SELECT 决定。
-- **处理行为 / 副作用边界**：一个事务 `created`，另一个 `existing` 返回同一 `RunView`；无第二 Run、无第二次执行。
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getRun`；同请求重放 = 再次 `POST` 同 body（返回原 Run，不新增执行）；接管 = N/A；新业务重试 = 换新 `task_id`。
-- **最终状态 / 资源归属 / 后续合法入口**：单一 Run（`Queued`）；后续合法入口 = `getRun`/`cancel`。
+- **处理行为 / 副作用边界**：一个事务 `created`，另一个 `existing` 返回同一 `TaskView`；无第二 Run、无第二次执行。
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getTask`；同请求重放 = 再次 `POST` 同 body（返回原 Run，不新增执行）；接管 = N/A；新业务重试 = 换新 `task_id`。
+- **最终状态 / 资源归属 / 后续合法入口**：单一 Run（`Queued`）；后续合法入口 = `getTask`/`cancel`。
 - **验证项 / 组合责任**：`VRC-TAPI-001`；组合 PK-T03/PK-T15。
 
 #### 10.2 `C-TAPI-02` · 响应丢失后的重复提交
 
 - **初始条件 / 并发交错 / 失败点**：Slinky 未收到 202（网络/客户端超时），但 M003 已提交；Slinky 重发同 body。失败点：把载体超时当「未受理」而改新 ID。
 - **检测事实 / authority / 期限**：`tasks.task_id` 行提交事实（持久）；重发时 M003 比较 `task_json`。
-- **处理行为 / 副作用边界**：字段相同 → 返回原 Run；不同 → 409 `TaskConflict`；不重新检查 deadline/queue（`CON-RUN-002`）。
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getRun`；重放 = 同 ID 同内容；新业务 = 换新 ID。
-- **最终状态 / 资源归属 / 后续合法入口**：Run 不变；入口 = `getRun`。
+- **处理行为 / 副作用边界**：字段相同 → 返回原 Run；不同 → 409 `TaskConflict`；不重新检查 queue（`CON-RUN-002`）。
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getTask`；重放 = 同 ID 同内容；新业务 = 换新 ID。
+- **最终状态 / 资源归属 / 后续合法入口**：Run 不变；入口 = `getTask`。
 - **验证项 / 组合责任**：`VRC-TAPI-001`；组合 PK-T15。
 
 #### 10.3 `C-TAPI-03` · 依赖在途失败（M003/M002/M008）
@@ -743,16 +744,16 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **初始条件 / 并发交错 / 失败点**：受理路径中 M003 抛 `SQLITE_BUSY`（busy_timeout 耗尽）、M002 抛内部异常或 M008 不可达。
 - **检测事实 / authority / 期限**：抛出的原生/typed 异常；`busy_timeout_ms` 为期限。
 - **处理行为 / 副作用边界**：S4 映射 `DependencyUnavailable`(503, `Retry-After`)；若发生在 M003 事务内则事务回滚、无部分 Run；M008 失败在创建前 → 未创建 Run。
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getRun`（确认是否已受理）；重放 = 同 ID 同内容（安全，因 M003 幂等）；新业务 = 换 ID。
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getTask`（确认是否已受理）；重放 = 同 ID 同内容（安全，因 M003 幂等）；新业务 = 换 ID。
 - **最终状态 / 资源归属 / 后续合法入口**：无资源遗留；入口 = 重试同 ID。
 - **验证项 / 组合责任**：`VRC-TAPI-002`；组合 PK-T05。
 
 #### 10.4 `C-TAPI-04` · 取消与 Result 发布竞争
 
-- **初始条件 / 并发交错 / 失败点**：`cancelRun`（Running）与 worker 正常完成并发。失败点：cancel 返回 `StopRequested` 后 Run 已 `Completed`。
+- **初始条件 / 并发交错 / 失败点**：`cancelTask`（Running）与 worker 正常完成并发。失败点：cancel 返回 `StopRequested` 后 Run 已 `Completed`。
 - **检测事实 / authority / 期限**：`runs.state` + `cancel_requested`（M003 writer lock 串行化，先到者生效）。
 - **处理行为 / 副作用边界**：cancel 只写 stop intent；若 worker 先提交终态，M005 分流返回 `AlreadyTerminal`；`task-api` 不改判定，只映射 outcome。
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getRun`；重复 cancel = 幂等返回当前 outcome；接管 = N/A。
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = `getTask`；重复 cancel = 幂等返回当前 outcome；接管 = N/A。
 - **最终状态 / 资源归属 / 后续合法入口**：终态唯一（`Completed` 或 `Cancelled`）；slot 释放归 M005/M003。
 - **验证项 / 组合责任**：`VRC-TAPI-004`；组合 PK-T05。
 
@@ -761,15 +762,15 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **初始条件 / 并发交错 / 失败点**：`server.listen` 端口占用（启动失败）；或 SIGTERM 到达时有请求正在 M003 事务中。
 - **检测事实 / authority / 期限**：`listen` 的 `error` 事件；`server.close()` 回调；进程退出码。
 - **处理行为 / 副作用边界**：监听失败 → 进程非零退出、不进入 READY（M000 收口）；停止时不再接受新连接，等待在途请求完成（有界）；已在 M003 事务内的请求照常提交。
-- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = 重启后 `getRun`；重放 = 同 ID 同内容；接管 = N/A。
+- **状态查询 / 同请求重放 / 接管 / 新业务重试**：查询 = 重启后 `getTask`；重放 = 同 ID 同内容；接管 = N/A。
 - **最终状态 / 资源归属 / 后续合法入口**：句柄由 `server.close()` 释放；合法入口 = 重启后 HTTP。
 - **验证项 / 组合责任**：`VRC-TAPI-006`；组合 PK-T12。
 
 ## 11. 安全、权限与可观测性
 
 - **输入信任 / 身份 / 授权**：唯一外部身份是配置的 Slinky bearer principal（`api_auth.principal_id` + secret provider 解析的 token，见 §4.1/§8.1）。`BearerAuth.authenticate` 用 `timingSafeEqual` 恒定时间比较；缺失/不匹配返回 401 且不暴露差异。不支持请求内 principal 切换；越权 scope（`ScopeDenied`）来自 M002/M003。权限服务失败不默认放行。
-- **敏感数据**：`task-api` 不接触 credential 明文（只比对 Buffer）、不记录 `instruction` 正文、绝对路径或 body；错误 message 只含 code/原因类别。`task_id`/`run_id` 为可入日志的业务标识。
-- **继承上级指标与口径**：继承 `system-design` §10.2 的 `event.run.{created,terminated}` 与 `piko.run.state.duration.{state}`（由 M001/M003/M005 生产 → M009 采集）；本模块是其 HTTP 侧触发点之一，不新增指标。日志关联键 `run_id?`+`generation`+`request_id`，脱敏规则同 system §10.2（禁 instruction/credential/token/完整模型输入输出）。
+- **敏感数据**：`task-api` 不接触 credential 明文（只比对 Buffer）、不记录 `instruction` 正文、绝对路径或 body；错误 message 只含 code/原因类别。`task_id`/`task_id` 为可入日志的业务标识。
+- **继承上级指标与口径**：继承 `system-design` §10.2 的 `event.run.{created,terminated}` 与 `piko.run.state.duration.{state}`（由 M001/M003/M005 生产 → M009 采集）；本模块是其 HTTP 侧触发点之一，不新增指标。日志关联键 `task_id?`+`generation`+`request_id`，脱敏规则同 system §10.2（禁 instruction/credential/token/完整模型输入输出）。
 - **诊断与维护**：无独立命令；错误定位经 `ErrorEnvelope.request_id` + 结构化日志 + operator 只读诊断（`system-design` §8.1）。诊断不改变业务结果。
 - **真实故障的识别与处理**：M003 不可用 → 受理 503 `DependencyUnavailable`（可重试），Slinky 用原 `task_id` 核对；M008 不可达 → 503（discussion 任务未创建）；M005 异常 → 503/500。无能力时给责任出口（M000/M005/operator），不写「由平台保障」。
 
@@ -820,7 +821,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 #### 13.1.3 `src/http/handlers.ts`
 
 - **职责 / 非职责**：四操作编排。非职责：校验规则、事务、取消。
-- **关键 symbol / 导出范围**：`createRun`/`getRun`/`cancelRun`/`getRunResult`。
+- **关键 symbol / 导出范围**：`createTask`/`getTask`/`cancelTask`/`getTaskResult`。
 - **承接 Function / Rule / Constraint / Interface ID**：`F-TAPI-SUBMIT/STATUS/CANCEL/RESULT`；§9.1。
 - **构建目标 / 依赖 / 宿主装配**：`tsc` → `dist/http/handlers.js`；依赖 `request.ts`/`errors.ts`/`ports.ts`。
 - **实现状态**：Planned（现逻辑在 `src/server.ts:24`–`:32`）。
@@ -864,8 +865,8 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 13.1.8 `src/types.ts`（保留既有）
 
-- **职责 / 非职责**：`TaskRequest`/`RunView`/`AgentResult`/`PikoError` 等契约投影类型。非职责：不新增字段 authority。
-- **关键 symbol / 导出范围**：`TaskRequest`/`RunView`/`CancelOutcome`（Planned 增补）/`AgentResult`/`PikoError`。
+- **职责 / 非职责**：`TaskRequest`/`TaskView`/`AgentResult`/`PikoError` 等契约投影类型。非职责：不新增字段 authority。
+- **关键 symbol / 导出范围**：`TaskRequest`/`TaskView`/`CancelOutcome`（Planned 增补）/`AgentResult`/`PikoError`。
 - **承接 Function / Rule / Constraint / Interface ID**：§6.1/§6.2。
 - **构建目标 / 依赖 / 宿主装配**：`tsc`；被全模块类型引用。
 - **实现状态**：Implemented（既有；`CancelOutcome` 类型 Planned 增补）。
@@ -925,7 +926,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **选定方案与正文锚点**：§2.1 错误边界、§6.8.1、§9.2.2。
 - **§13 实现文件 / 装配责任**：`http/errors.ts`（映射）+ M002（判定，Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-002`（422 分支）。
-- **父级组合验证或裁剪/阻断决定**：**非本模块决定**——deadline/budget 语义归 M002/M006，组合 PK-T05。
+- **父级组合验证或裁剪/阻断决定**：**非本模块决定**——本版无 deadline/预算（PK-04 撤销）。
 
 #### 14.1.4 `F-TAPI-SUBMIT`
 
@@ -1039,33 +1040,33 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03。
 
-#### 14.1.18 `createRun`
+#### 14.1.18 `createTask`
 
-- **来源与适用性 / 固定基线**：OpenAPI `operationId: createRun`；适用。
+- **来源与适用性 / 固定基线**：OpenAPI `operationId: createTask`；适用。
 - **选定方案与正文锚点**：§9.1.1；§2.1。
 - **§13 实现文件 / 装配责任**：`http/handlers.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-001/002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03/PK-T15。
 
-#### 14.1.19 `getRun`
+#### 14.1.19 `getTask`
 
-- **来源与适用性 / 固定基线**：OpenAPI `operationId: getRun`；适用。
+- **来源与适用性 / 固定基线**：OpenAPI `operationId: getTask`；适用。
 - **选定方案与正文锚点**：§9.1.2；§2.2。
 - **§13 实现文件 / 装配责任**：`http/handlers.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-003`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03。
 
-#### 14.1.20 `cancelRun`
+#### 14.1.20 `cancelTask`
 
-- **来源与适用性 / 固定基线**：OpenAPI `operationId: cancelRun`；适用。
+- **来源与适用性 / 固定基线**：OpenAPI `operationId: cancelTask`；适用。
 - **选定方案与正文锚点**：§9.1.3；§2.3。
 - **§13 实现文件 / 装配责任**：`http/handlers.ts` + `http/ports.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-004`。
 - **父级组合验证或裁剪/阻断决定**：PK-T05。
 
-#### 14.1.21 `getRunResult`
+#### 14.1.21 `getTaskResult`
 
-- **来源与适用性 / 固定基线**：OpenAPI `operationId: getRunResult`；适用。
+- **来源与适用性 / 固定基线**：OpenAPI `operationId: getTaskResult`；适用。
 - **选定方案与正文锚点**：§9.1.4；§2.4。
 - **§13 实现文件 / 装配责任**：`http/handlers.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-005`。
@@ -1113,7 +1114,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.1.27 `ERR-TAPI-SUBMIT`
 
-- **来源与适用性 / 固定基线**：§6.8.1 + catalog `operation_status_codes.createRun`；适用。
+- **来源与适用性 / 固定基线**：§6.8.1 + catalog `operation_status_codes.createTask`；适用。
 - **选定方案与正文锚点**：§6.8.1；§8.3；§9.1.1。
 - **§13 实现文件 / 装配责任**：`http/errors.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-002`；独立判据 = OpenAPI/catalog 双向。
@@ -1121,7 +1122,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.1.28 `ERR-TAPI-STATUS`
 
-- **来源与适用性 / 固定基线**：§6.8.2 + catalog `operation_status_codes.getRun`；适用。
+- **来源与适用性 / 固定基线**：§6.8.2 + catalog `operation_status_codes.getTask`；适用。
 - **选定方案与正文锚点**：§6.8.2；§9.1.2。
 - **§13 实现文件 / 装配责任**：`http/errors.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-003`。
@@ -1129,7 +1130,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.1.29 `ERR-TAPI-CANCEL`
 
-- **来源与适用性 / 固定基线**：§6.8.3 + catalog `operation_status_codes.cancelRun`；适用。
+- **来源与适用性 / 固定基线**：§6.8.3 + catalog `operation_status_codes.cancelTask`；适用。
 - **选定方案与正文锚点**：§6.8.3；§9.1.3。
 - **§13 实现文件 / 装配责任**：`http/errors.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-004`。
@@ -1137,7 +1138,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.1.30 `ERR-TAPI-RESULT`
 
-- **来源与适用性 / 固定基线**：§6.8.4 + catalog `operation_status_codes.getRunResult`；适用。
+- **来源与适用性 / 固定基线**：§6.8.4 + catalog `operation_status_codes.getTaskResult`；适用。
 - **选定方案与正文锚点**：§6.8.4；§9.1.4。
 - **§13 实现文件 / 装配责任**：`http/errors.ts`（Planned）。
 - **§14 VRC / Case / 独立判据**：`VRC-TAPI-005`。
@@ -1149,10 +1150,10 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.2.1 `VRC-TAPI-001` · 受理与幂等
 
-- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-SUBMIT`；`R-TAPI-VALIDATE`/`R-TAPI-ERRMAP`；`CON-RUN-002`；`createRun`、`IF-RUN-CREATE`。
-- **Case / 正常、边界与失败输入**：A 合法新 `task_id` → 202 `Queued`；B 同 body 重发 → 同一 `run_id` 且 `tasks` 行数不变；C 同 ID 换 `instruction` → 409 `TaskConflict` 且原任务保留；D tombstone ID → 410 `Gone`。
+- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-SUBMIT`；`R-TAPI-VALIDATE`/`R-TAPI-ERRMAP`；`CON-RUN-002`；`createTask`、`IF-RUN-CREATE`。
+- **Case / 正常、边界与失败输入**：A 合法新 `task_id` → 202 `Queued`；B 同 body 重发 → 同一 `task_id` 且 `tasks` 行数不变；C 同 ID 换 `instruction` → 409 `TaskConflict` 且原任务保留；D tombstone ID → 410 `Gone`。
 - **环境 / 配置 / 隔离与复位**：临时 SQLite（`:memory:` 或临时文件）+ 真 M003；每 Case 前重置 `tasks`/`runs`。
-- **独立 Oracle / Expected**：Oracle = 直查 `tasks`/`runs` 行数与 `task_json`；Expected：A 1 行且 `state=Queued`；B 行数不变、`run_id` 相同；C 原 `task_json` 不变；D 不重建。
+- **独立 Oracle / Expected**：Oracle = 直查 `tasks`/`runs` 行数与 `task_json`；Expected：A 1 行且 `state=Queued`；B 行数不变、`task_id` 相同；C 原 `task_json` 不变；D 不重建。
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T03/PK-T15。
@@ -1160,7 +1161,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 #### 14.2.2 `VRC-TAPI-002` · 报文校验与错误映射
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-SUBMIT`；`R-TAPI-VALIDATE`/`R-TAPI-BODY`/`R-TAPI-ERRMAP`；`CON-RUN-003`；`ERR-TAPI-SUBMIT`、`IF-TAPI-VALIDATE`、`IF-MX-VERIFY`。
-- **Case / 正常、边界与失败输入**：A 无 `Authorization` → 401；B 未知字段 → 400；C body 2 MiB+1 → 400 且未调 M003；D 截断 JSON → 400；E `DeadlineExpired` → 422 且无 Run；F `QueueFull` → 429 + `Retry-After`；G M008 校验失败 → 409 `InvalidDiscussionContext`；H M003 抛 `SQLITE_BUSY` → 503。
+- **Case / 正常、边界与失败输入**：A 无 `Authorization` → 401；B 未知字段 → 400；C body 2 MiB+1 → 400 且未调 M003；D 截断 JSON → 400；E `ScopeDenied` → 403 且无 Run；F `QueueFull` → 429 + `Retry-After`；G M008 校验失败 → 409 `InvalidDiscussionContext`；H M003 抛 `SQLITE_BUSY` → 503。
 - **环境 / 配置 / 隔离与复位**：受控 fake 端口注入 typed/原生错误 + 临时 DB；Ajv 真实现。
 - **独立 Oracle / Expected**：Oracle = 响应状态/code + 直查 `tasks`/`runs` 是否创建；Expected 同 Case，C/E 无新 Run。
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
@@ -1169,7 +1170,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.2.3 `VRC-TAPI-003` · 状态查询
 
-- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-STATUS`；`R-TAPI-ERRMAP`；`getRun`、`IF-TAPI-READ`、`ERR-TAPI-STATUS`。
+- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-STATUS`；`R-TAPI-ERRMAP`；`getTask`、`IF-TAPI-READ`、`ERR-TAPI-STATUS`。
 - **Case / 正常、边界与失败输入**：A Queued Run → 200 且 `started_at=null`；B Running → 200 且 `started_at` 非空；C 未知 ID → 404；D tombstone → 410；E 无凭据 → 401。
 - **环境 / 配置 / 隔离与复位**：临时 DB + 真 M003 读路径。
 - **独立 Oracle / Expected**：Oracle = `runs` 行直读；Expected 同 Case。
@@ -1179,7 +1180,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.2.4 `VRC-TAPI-004` · 取消分流
 
-- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-CANCEL`；`R-TAPI-ERRMAP`；`CON-CX-001`；`cancelRun`、`IF-CX-DISPATCH`、`ERR-TAPI-CANCEL`。
+- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-CANCEL`；`R-TAPI-ERRMAP`；`CON-CX-001`；`cancelTask`、`IF-CX-DISPATCH`、`ERR-TAPI-CANCEL`。
 - **Case / 正常、边界与失败输入**：A Queued → 200 `CancelledBeforeStart` 且零调用 Result；B Running → 202 `StopRequested`，随后轮询到 `Cancelled`；C 已终态 → 200 `AlreadyTerminal`；D 重复 cancel → 幂等；E 未知 ID → 404。
 - **环境 / 配置 / 隔离与复位**：临时 DB + `worker`/`store.cancel` 真实现；fault 用例注入 abort 未确认。
 - **独立 Oracle / Expected**：Oracle = `runs.state`/`cancel_requested`/`results`（`model_attempts=0`）；Expected 同 Case。
@@ -1189,8 +1190,8 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 #### 14.2.5 `VRC-TAPI-005` · 结果读取
 
-- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-RESULT`；`R-TAPI-ERRMAP`；`getRunResult`、`IF-TAPI-READ`、`ERR-TAPI-RESULT`。
-- **Case / 正常、边界与失败输入**：A Completed 且有 Result → 200，`generation` 与 `results` 一致；B Running → 409 `RunNotTerminal`；C 终态丢 Result → 500 `ResultUnavailable`；D tombstone → 410；E 两次读取内容不变。
+- **覆盖 Function / Rule / Constraint / Interface**：`F-TAPI-RESULT`；`R-TAPI-ERRMAP`；`getTaskResult`、`IF-TAPI-READ`、`ERR-TAPI-RESULT`。
+- **Case / 正常、边界与失败输入**：A Completed 且有 Result → 200，`generation` 与 `results` 一致；B Running → 409 `TaskNotTerminal`；C 终态丢 Result → 500 `ResultUnavailable`；D tombstone → 410；E 两次读取内容不变。
 - **环境 / 配置 / 隔离与复位**：临时 DB；C 用受控删除/构造缺失 `results` 行。
 - **独立 Oracle / Expected**：Oracle = `results` 行（`result_json` + sha256）直读；Expected 同 Case。
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
@@ -1200,7 +1201,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 #### 14.2.6 `VRC-TAPI-006` · 路由、请求 ID 与契约一致性
 
 - **覆盖 Function / Rule / Constraint / Interface**：`R-TAPI-ROUTE`/`R-TAPI-REQID`；全部四 endpoint。
-- **Case / 正常、边界与失败输入**：A `GET /runs/r/result` → `getRunResult`；B `POST /runs/r:cancel` → `cancelRun`；C 未知路由 → 404；D 带 `X-Request-ID: abc` 的 404 → `error.request_id="abc"`；E OpenAPI `x-error-codes` 与 catalog `operation_status_codes` 双向一致（契约 validator）。
+- **Case / 正常、边界与失败输入**：A `GET /tasks/r/result` → `getTaskResult`；B `POST /tasks/r:cancel` → `cancelTask`；C 未知路由 → 404；D 带 `X-Request-ID: abc` 的 404 → `error.request_id="abc"`；E OpenAPI `x-error-codes` 与 catalog `operation_status_codes` 双向一致（契约 validator）。
 - **环境 / 配置 / 隔离与复位**：静态契约测试 + 临时 DB 路由测试。
 - **独立 Oracle / Expected**：Oracle = OpenAPI/catalog/契约 validator + 响应 JSON；Expected 同 Case。
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
@@ -1221,7 +1222,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 #### 15.2 `OQ-TAPI-002` · M003 读接口与 `IF-RUN-CREATE` 未冻结
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `IF-RUN-CREATE`、`IF-TAPI-READ`、`F-TAPI-STATUS/RESULT`。
-- **事实缺口 / 触发条件**：MECH-RUN §14.3 只列 `IF-RUN-CREATE`，未给 `readRunView`/`readResult` 命名；M003 设计未编写。
+- **事实缺口 / 触发条件**：MECH-RUN §14.3 只列 `IF-RUN-CREATE`，未给 `readTaskView`/`readResult` 命名；M003 设计未编写。
 - **影响 / 阻塞边界**：阻塞 `src/http/ports.ts` 的 RepoPort 实现与 `VRC-TAPI-001/003/005` 真 M003 用例；不阻塞 `request.ts`/`errors.ts`。
 - **Owner / 最晚关闭 Gate**：Piko Implementation Owner；最晚在 M003 模块设计评审时关闭。
 - **选项 / 推荐 / 下一步取证**：选项 A M003 采纳本端口（推荐）；选项 B M003 提供组合读接口。下一步：M003 设计先冻结。
@@ -1233,7 +1234,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 - **事实缺口 / 触发条件**：`piko-cancel.md` §14.3 只列 `IF-CX-QUEUED`/`IF-CX-RUNNING`（M005→M003），未给 M001→M005 的入口命名；Current 基线经 `store.cancel` 直接落 M003。
 - **影响 / 阻塞边界**：不阻塞 `task-api`（本模块只映射 outcome）；影响机制接口闭合与两端实现对齐。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner（机制侧）；下一次机制评审。
-- **选项 / 推荐 / 下一步取证**：推荐：`piko-cancel.md` §5.1 增加 M001→M005 `cancel(run_id)` 入口。下一步：提交机制修订。
+- **选项 / 推荐 / 下一步取证**：推荐：`piko-cancel.md` §5.1 增加 M001→M005 `cancel(task_id)` 入口。下一步：提交机制修订。
 - **关闭条件 / 决定或当前状态**：已满足——`piko-cancel` §5.1/§14.3 已命名 `IF-CX-DISPATCH`（M005→M001）。**已关闭**。
 
 #### 15.4 `OQ-TAPI-004` · MECH-MATRIX §14.4 未列 M001
@@ -1270,7 +1271,7 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-001`（下游 `task-api`，固定输入 HTTP 4 operation + contract，约束 PK-02，自由度中间件顺序）；接口 `IF-RUN-CREATE`（§5.1）。
 - **本模块必须负责的行为与保证**：四 operation 的报文校验与固定顺序；task_id 恰好一次；202/409/410/422/429/503 typed 输出。
-- **本模块提供 / 消费的接口**：提供 `createRun`/`getRun`/`cancelRun`/`getRunResult`；消费 `IF-RUN-CREATE`、`IF-TAPI-READ`、`IF-TAPI-VALIDATE`。
+- **本模块提供 / 消费的接口**：提供 `createTask`/`getTask`/`cancelTask`/`getTaskResult`；消费 `IF-RUN-CREATE`、`IF-TAPI-READ`、`IF-TAPI-VALIDATE`。
 - **本文落实位置**：§1.1.1、§2.1–§2.4、§8.1–§8.3、§9.1、§9.2.1–§9.2.3、§10.1/§10.2。
 - **代码文件 / symbol 或 NOT_IMPLEMENTED**：`src/http/{server,router,handlers,request,errors,ports}.ts`（Planned / NOT_IMPLEMENTED）；现逻辑在 `src/server.ts`（部分实现）。
 - **允许自行决定的范围**：路由/中间件组织、body 读取实现、错误映射数据结构；不得改变处理顺序与 typed error 语义。
@@ -1279,10 +1280,10 @@ task-api 不跨部署边界发消息；但与 M002/M003/M005/M008 的进程内�
 #### A.2 `piko-cancel` / `M-CX-DI-001`
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CANCEL` §14.4 行 `M-CX-DI-001`（下游 `task-api`，固定输入 HTTP cancel + contract，约束 `CON-CX-001`，自由度路由实现）；`§3.5` 参与方。
-- **本模块必须负责的行为与保证**：接收 cancel 并映射 `CancelledBeforeStart`(200)/`StopRequested`(202)/`AlreadyTerminal`(200)；不把 `StopRequested` 当停止；不返回 `RunNotTerminal`。
-- **本模块提供 / 消费的接口**：提供 `cancelRun`；消费 `IF-CX-DISPATCH`（M005）。
+- **本模块必须负责的行为与保证**：接收 cancel 并映射 `CancelledBeforeStart`(200)/`StopRequested`(202)/`AlreadyTerminal`(200)；不把 `StopRequested` 当停止；不返回 `TaskNotTerminal`。
+- **本模块提供 / 消费的接口**：提供 `cancelTask`；消费 `IF-CX-DISPATCH`（M005）。
 - **本文落实位置**：§1.1.2、§2.3、§8.3、§9.1.3、§9.2.4、§10.4。
-- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`src/http/handlers.ts` `cancelRun`（Planned）；现逻辑在 `src/server.ts:30`（部分实现）。
+- **代码文件 / symbol 或 NOT_IMPLEMENTED**：`src/http/handlers.ts` `cancelTask`（Planned）；现逻辑在 `src/server.ts:30`（部分实现）。
 - **允许自行决定的范围**：路由匹配与状态码选择实现；不得改变分流语义与 outcome 集合。
 - **本地验证 / 组合验证交接**：本地 `VRC-TAPI-004`；组合 PK-T05。
 

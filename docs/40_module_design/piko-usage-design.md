@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-usage-design` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -20,14 +20,15 @@
 
 M007 `usage` 解决一个问题：Piko 必须如实告诉 Slinky"这次 Run 用了多少 token"（PK-09），而 token 事实分散在多个模型 attempt 中，且每个 attempt 可能只报告部分字段——若 `pi-adapter`（M006）与 `worker`（M005）各自聚合，就会出现两套口径，Result 无法保证完整性。usage 把 Harness `onRawUsage` 观察到的原始字段（经 M006 落成 `model_attempts` 行）汇总为唯一 `UsageSnapshot`，并在 Result 发布前做语义校验（PK-10）。核心取舍是**逐字段完整才计入**：某字段只要有一个 durable attempt 未报告，该字段即为 `null` 并进入 `missing_fields`，而不是把部分下界当满值求和。
 
-用一次调用说明：Run `run-042` 有 3 次模型 attempt，attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。Result 发布前 M005 调 `UsageAggregator.snapshot("run-042")`：usage 读全部 durable attempt，对每字段 F 判断"全部 attempt 都报告了 F"；`reasoning_tokens` 因 attempt2 缺失而置 `null` 并入 `missing_fields`，其余 5 字段求和，`quality=Partial`。随后 M005 调 `ResultValidator.validateBeforePublish(result, "0.3.0-simplified.6")` 校验算术与子集关系，`SemanticCheck{ok:true}` 后写 `results`。发布后迟到的 attempt2 usage 只推进 `model_attempts.record_version`，**不修改**已发布 Result 的 usage generation。
+用一次调用说明：Run `task-042` 有 3 次模型 attempt，attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。Result 发布前 M005 调 `UsageAggregator.snapshot("task-042")`：usage 读全部 durable attempt，对每字段 F 判断"全部 attempt 都报告了 F"；`reasoning_tokens` 因 attempt2 缺失而置 `null` 并入 `missing_fields`，其余 5 字段求和，`quality=Partial`。随后 M005 调 `ResultValidator.validateBeforePublish(result, "0.3.0-simplified.6")` 校验算术与子集关系，`SemanticCheck{ok:true}` 后写 `results`。发布后迟到的 attempt2 usage 只推进 `model_attempts.record_version`，**不修改**已发布 Result 的 usage generation。
 
 usage 只做"聚合 + 语义校验 + 冻结边界"，**不改写上游语义**：不观察原始 provider 响应（M006 拥有）、不持久化 Result（M003 拥有 `results` 与 generation）、不决定 Run 状态机与发布协议（M005/M003）。它把持久化交给 M003 `task-repository`（`model_attempts` schema authority），自身只做纯计算与端口消费。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M007 / `usage` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P0 控制进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 206 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | 多 attempt 分散 token 事实统一为一个可信快照；Result 发布前语义校验；发布后不篡改 |
@@ -113,7 +114,7 @@ usage 的可观察功能有三个：生成快照、发布前语义校验、冻�
 
 - **调用方**：M003 `task-repository` 的 Result 发布事务（写入 `results` generation）；M007 侧由 `UsageDerivedState` 从"已发布"事实派生观察。
 
-- **输入与前提**：Run 已有已提交的 `results` generation；随后到达同一 `(run_id, operation_id, step_id, attempt)` 的迟到 raw usage。
+- **输入与前提**：Run 已有已提交的 `results` generation；随后到达同一 `(task_id, operation_id, step_id, attempt)` 的迟到 raw usage。
 
 - **行为**：冻结后 M007 **不**重算、**不**回写 Result；迟到 usage 由 M006 写 `model_attempts` 并推进 `record_version`（§8.4）。M007 的 `snapshot`/`validateBeforePublish` 只在发布前被调用；发布后对同一 Run 不再调用。
 
@@ -440,7 +441,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
   ```text
   ModelAttemptView {
-    run_id: string, operation_id: string, step_id: string, attempt: number,
+    task_id: string, operation_id: string, step_id: string, attempt: number,
     state: "Reserved" | "Started" | "UsageObserved" | "Terminal" | "Unknown",
     raw_usage: RawAttemptUsage | null, record_version: number, updated_at: string
   }
@@ -514,7 +515,7 @@ stateDiagram-v2
   - `INV-USAGE-2`：任何时刻 `usage_observed_attempts <= model_attempts`。
   - `INV-USAGE-3`：`missing_fields` 与 6 字段的 null 状态一一对应；`quality` 与字段完整性、attempt 计数一致。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`Live{run-042}` 重算得 `Partial`；发布后 `Frozen`。拒绝：发布后试图以迟到 usage 改写 generation（违反 `INV-USAGE-1`）。`VRC-USAGE-003`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`Live{task-042}` 重算得 `Partial`；发布后 `Frozen`。拒绝：发布后试图以迟到 usage 改写 generation（违反 `INV-USAGE-1`）。`VRC-USAGE-003`；`NOT_RUN`。
 
 ### 6.7 数据库表结构
 
@@ -740,7 +741,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
   }
   ```
 
-- **输入、输出及关联身份**：关联身份 `(run_id, operation_id, step_id, attempt)`；M006 落 `model_attempts.raw_usage_json`，M007 经 §9.2.1 读取。**设计观察**：M007 不直接持有 `onRawUsage` 回调，事件经 DB 落点解耦；`present_fields` 必须与字段值一致，缺失不得填 0。字段名以 schema 为准（`cache_read_tokens`），登记 `OQ-USAGE-001`。
+- **输入、输出及关联身份**：关联身份 `(task_id, operation_id, step_id, attempt)`；M006 落 `model_attempts.raw_usage_json`，M007 经 §9.2.1 读取。**设计观察**：M007 不直接持有 `onRawUsage` 回调，事件经 DB 落点解耦；`present_fields` 必须与字段值一致，缺失不得填 0。字段名以 schema 为准（`cache_read_tokens`），登记 `OQ-USAGE-001`。
 
 - **交互、错误及生命周期**：异步事件、按 attempt 幂等（同 attempt 迟到以 `record_version` 替换，不追加）；无丢失语义由 M006/M003 承担。
 
@@ -774,7 +775,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 #### 10.2 `C-USAGE-02` · 同 attempt 多次回调
 
-- **初始条件 / 并发交错 / 失败点**：M006 对同一 `(run_id, operation_id, step_id, attempt)` 多次 `onRawUsage`。失败点：重复相加。
+- **初始条件 / 并发交错 / 失败点**：M006 对同一 `(task_id, operation_id, step_id, attempt)` 多次 `onRawUsage`。失败点：重复相加。
 
 - **检测事实 / authority / 期限**：`model_attempts` 主键唯一；`observeUsage` 以 `record_version` 替换（`src/store.ts:52`）。
 
@@ -846,9 +847,9 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **输入信任 / 身份 / 授权**：usage 无外部输入、无身份、无授权分支：调用方是进程内 M005，不携带 principal；输入是 `model_attempts`（M006 从固定 Pi provider 观察）。不引入任何鉴权或越权后门。权限边界（bearer、path、tool profile）由 M001/M002 承载，不在本模块。
 
-- **敏感数据**：usage 只接触 token 计数与字段存在性，不含 credential、模型正文、instruction 或绝对路径；不记录任何敏感值。`run_id`/`step_id` 为进程内标识，可入 DB 与日志。
+- **敏感数据**：usage 只接触 token 计数与字段存在性，不含 credential、模型正文、instruction 或绝对路径；不记录任何敏感值。`task_id`/`step_id` 为进程内标识，可入 DB 与日志。
 
-- **继承上级指标与口径**：继承 `system-design` §12 指标 `piko.usage.quality.{Complete,Partial,Unknown}`（ratio / per run_id / M007 生产 / M009 采集 / 脱敏 / 模型端完整性）；usage 是该指标的写入点，不新增指标。
+- **继承上级指标与口径**：继承 `system-design` §12 指标 `piko.usage.quality.{Complete,Partial,Unknown}`（ratio / per task_id / M007 生产 / M009 采集 / 脱敏 / 模型端完整性）；usage 是该指标的写入点，不新增指标。
 
 - **诊断与维护**：无独立命令；usage 完整性经 operator 只读 `model_attempts` 行摘要（脱敏）与上述指标暴露。诊断不改变业务结果（只读）。复位副作用回链 §10（无"复位"操作）。
 
@@ -860,15 +861,15 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **目标 / 限制 / 单位**：`snapshot` 读该 Run 全量 durable attempt 并在常数 6 字段上归约；`validateBeforePublish` 为固定条数不变量检查。目标：单 Run 聚合为 O(6 × attempts) 次内存操作 + 一次 DB 读。
 
-- **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：Node.js `>= 22.19.0`；SQLite（`node:sqlite`，经 M003）；无专属配置；attempt 行数上限 = `max_model_calls`（contract `$defs.RunLimits.max_model_calls`，1..100000）。
+- **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：Node.js `>= 22.19.0`；SQLite（`node:sqlite`，经 M003）；无专属配置；attempt 行数随实际调用增长（**本版无模型调用上限**）。
 
-- **负载、数据规模与并发口径**：单实例、单 Run；attempt 行 ≤ `max_model_calls`；同 Run 内 usage 无并发写者（M006 串行落库）。全局并发由 M003 单 writer 串行化。
+- **负载、数据规模与并发口径**：单实例、单 Run；attempt 行随实际调用增长（本版无上限）；同 Run 内 usage 无并发写者（M006 串行落库）。全局并发由 M003 单 writer 串行化。
 
 - **推导 / 测量方法与证据等级**：复杂度：`snapshot` O(6n)、`validate` O(1)；内存峰值 = 6 字段 + n 行投影。当前无实测，证据等级 `Modeled`；`VRC-USAGE-*` 覆盖正确性而非吞吐。
 
 - **共享资源扣减 / 峰值重叠 / 余量**：usage 不额外持有持久配额；`model_attempts` 行开销与 `raw_usage_json` 存储计入 M003 预算（不重复计账）。usage 自身只持有一次调用的行投影。
 
-- **超限行为 / 责任出口**：`max_model_calls` 超限由 M006/M005 在调用处拒绝（预算），usage 不参与；M003 读超时 → 依赖错误上抛。
+- **超限行为 / 责任出口**：本版无模型调用上限；M003 读超时 → 依赖错误上抛。
 
 - **验证项 / Evidence**：`VRC-USAGE-001`；`NOT_RUN`。
 

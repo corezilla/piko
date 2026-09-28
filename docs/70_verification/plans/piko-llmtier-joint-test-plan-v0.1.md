@@ -72,7 +72,7 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-17（JT-17 待 R-T-5） �
 |---|---|---|---|
 | S0-1 | LLMTier joint `GET /healthz` | 200 | 按「阻塞处置」B-1 恢复 |
 | S0-2 | `GET /v1/models` 含 `Worker`（data token） | 含 | B-1 |
-| S0-3 | Piko joint `GET /runs/none` | 404 | B-1 |
+| S0-3 | Piko joint `GET /tasks/none` | 404 | B-1 |
 | S0-4 | oMLX `/v1/models` | 200/401 | B-1 |
 | S0-5 | `git status` 干净、本地=远端 | 是 | 先提交/推送历史结果 |
 
@@ -124,9 +124,9 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-17（JT-17 待 R-T-5） �
 | B-3 共享资源风险 | 步骤需要 kill 共享进程（如 oMLX） | **立即停止该步骤**，修订规格改用无副作用注入（JT-07 已改为 admin API patch），再继续 |
 | B-4 计划/规格不可执行 | 步骤命令不存在、Oracle 与实测不符、文本歧义 | 暂停该 case → 修订计划/规格并提交 → 按新文档继续（本次已发生：`timeout(1)`、JT-06 401→403） |
 | B-5 凭据失效/泄露 | 全部请求 401/403；或 token 入了日志/git | 重置 LLMTier 库 → 重新 bootstrap → 换 token → 重跑受影响 case |
-| B-6 悬挂 | run 超 deadline 仍未终态 | 判 FAIL；保留两侧日志进 S2 |
+| B-6 悬挂 | run 超预期时长仍未终态（本版无任务级 deadline，按测试挂钟判定） | 判 FAIL；保留两侧日志进 S2 |
 | B-7 断言脚本自身错误 | 命令语法/路径错误 | 属执行器问题：修正脚本，case 记 INVALID 重跑 |
-| B-8 失败原因不明（不知哪层出错） | case FAIL 且层位不清 | 运行 `scripts/joint-diagnose.sh <run_id>`（规格 §7.1 决策树）定位层位 → 按层位修复（双侧可改）→ 回归；观测缺口本身记为发现（F-4/F-5） |
+| B-8 失败原因不明（不知哪层出错） | case FAIL 且层位不清 | 运行 `scripts/joint-diagnose.sh <task_id>`（规格 §7.1 决策树）定位层位 → 按层位修复（双侧可改）→ 回归；观测缺口本身记为发现（F-4/F-5） |
 
 ## 5. 中间与最终输出成果（规范性）
 
@@ -134,7 +134,7 @@ S0 启动检查 ──▶ S1 逐步执行 JT-01 → JT-17（JT-17 待 R-T-5） �
 
 | 成果 | 落点 |
 |---|---|
-| Case 判定 + 证据（run_id、账本记录、日志片段、观测值） | 规格 §3 该行「状态」「Run/证据」两列 |
+| Case 判定 + 证据（task_id、账本记录、日志片段、观测值） | 规格 §3 该行「状态」「Run/证据」两列 |
 | 两侧现场日志 | `LLMTier/state/llmtier-piko-joint.log`、`piko/var/piko-llmtier-joint.log`（保留至 Gate 关闭） |
 | 代码/文档修订（如发生 B-3/B-4） | 独立 commit，注明触发 case |
 

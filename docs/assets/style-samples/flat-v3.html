@@ -1,0 +1,105 @@
+<!doctype html><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+<style>
+:root{--blue:#2E6BE6;--ink:#111827;--mut:#64748B}
+*{box-sizing:border-box}
+body{margin:0;background:#F4F6F9;font-family:-apple-system,"PingFang SC","Inter",sans-serif;color:var(--ink)}
+.wrap{padding:30px 38px}
+.t{font-size:23px;font-weight:800;margin:0 0 5px}
+.s{color:var(--mut);font-size:13px;margin:0 0 6px}
+#cv{position:relative;width:1240px;height:690px;margin-top:8px}
+.msr{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;line-height:1;display:inline-block}
+.card{position:absolute;border-radius:20px;padding:16px 18px;z-index:2}
+.slinky{background:#EAF1FB;border:1.5px solid #C6D7EF}
+.llm{background:#EDF1FE;border:1.5px solid #C9D4FB}
+h2{font-size:16px;font-weight:800;margin:0 0 3px}
+.m{font-size:11.5px;color:var(--mut);margin:2px 0 0}
+.tiles{display:flex;gap:12px;margin-top:14px}
+.tile{width:62px;height:62px;border-radius:17px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,#5B9BFF,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.28)}
+.tile .msr{font-size:24px}.tile b{font-size:10.5px;font-weight:700}
+.tile.v{background:linear-gradient(160deg,#A78BFA,#7C3AED);box-shadow:0 6px 14px rgba(124,58,237,.28)}
+.tile.g{background:linear-gradient(160deg,#4ADE80,#16A34A);box-shadow:0 6px 14px rgba(22,163,74,.28)}
+.tile.p{background:linear-gradient(160deg,#818CF8,#4338CA);box-shadow:0 8px 16px rgba(67,56,202,.32)}
+.tile.c{background:linear-gradient(160deg,#38BDF8,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.28)}
+.tile.m{background:linear-gradient(160deg,#94A3B8,#64748B);box-shadow:0 6px 14px rgba(100,116,139,.28)}
+.footer{margin-top:14px;background:#E7F6EC;border:1.5px solid #86D6A6;border-radius:12px;padding:8px 12px;font-size:11px;color:#166534;font-weight:700}
+/* 机器外壳 */
+.machine{position:absolute;width:350px;height:212px;border-radius:24px;z-index:2;
+ background:linear-gradient(180deg,#FCFDFF,#E7ECF3 55%,#D2DAE4);border:1px solid #B6C1CF;
+ box-shadow:0 18px 38px rgba(15,23,42,.16), inset 0 1px 0 #fff}
+.machine:before{content:"";position:absolute;left:18px;right:18px;top:9px;height:13px;border-radius:10px;background:linear-gradient(180deg,#fff,rgba(255,255,255,0))}
+.machine:after{content:"";position:absolute;right:18px;bottom:16px;width:10px;height:10px;border-radius:50%;background:#22C55E;box-shadow:0 0 9px rgba(34,197,94,.85)}
+.chip{position:absolute;left:24px;top:38px;display:flex;gap:14px;align-items:center}
+.pikotile{width:70px;height:70px;border-radius:18px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,#818CF8,#4338CA);box-shadow:0 8px 16px rgba(67,56,202,.32)}
+.pikotile .msr{font-size:28px}.pikotile b{font-size:11.5px}
+.st{font-size:10.5px;font-weight:800;color:#3730A3;background:#E0E7FF;border-radius:999px;padding:3px 9px;display:inline-block;margin-top:7px}
+.fs{position:absolute;left:24px;right:24px;bottom:20px;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:10px;padding:8px 11px;font-size:10.5px;line-height:1.55;color:#854D0E}
+.mlabel{position:absolute;font-size:13.5px;font-weight:800;z-index:3;color:#111827}
+.mx{position:absolute;z-index:2;background:#EFF2F6;border:1.5px solid #D3DAE3;border-radius:18px;padding:13px 16px;display:flex;gap:12px;align-items:center}
+.mxt{width:48px;height:48px;border-radius:13px;background:linear-gradient(160deg,#94A3B8,#64748B);color:#fff;display:flex;align-items:center;justify-content:center}
+.ln{position:absolute;height:2px;background:var(--blue);z-index:1;transform-origin:50% 50%}
+.ln.ret{background:#7C3AED}.ln.mx{background:#8A93A3}.ln.dat{background:#16A34A}
+.lab{position:absolute;font-size:12.5px;font-weight:800;z-index:4;white-space:nowrap}
+</style>
+<div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p>
+<p class=s>每台 Piko 跑在一台独立机器上（小主机外壳内含 Piko）；Slinky → 多台 Piko 主机 → LLMTier；回程 Piko → Slinky；Matrix 走 discussion；工作区归 Slinky</p>
+<div id=cv>
+ <!-- Slinky -->
+ <div class="card slinky" id=slinky style="left:20px;top:250px;width:258px;height:246px">
+  <h2>Slinky 主机</h2><p class=m>业务流程方 · 持有工作区</p>
+  <div class=tiles>
+   <div class="tile"><span class=msr>send</span><b>请求</b></div>
+   <div class="tile v"><span class=msr>task_alt</span><b>结果</b></div>
+   <div class="tile g"><span class=msr>database</span><b>数据</b></div>
+  </div>
+  <div class=footer>工作区存储（持久化归 Slinky）</div>
+ </div>
+ <!-- Matrix -->
+ <div class=mx id=matrix style="left:300px;top:24px;width:262px;height:78px">
+  <div class=mxt><span class=msr style="font-size:24px">forum</span></div>
+  <div><h2 style="font-size:15px">Matrix homeserver</h2><p class=m>discussion intake / sync</p></div>
+ </div>
+ <!-- 机器 A -->
+ <div class=machine id=mA style="left:520px;top:96px">
+  <div class=chip>
+   <div class=pikotile><span class=msr>memory</span><b>Piko</b></div>
+   <div><h2>Piko 实例 1</h2><span class=st>独立主机 · 独立 Task Store</span></div>
+  </div>
+  <div class=fs>本地可靠 FS：Task Store（SQLite WAL） · Pi session（JSONL） · staging</div>
+ </div>
+ <div class=mlabel id=mAl style="left:520px;top:314px">机器 A</div>
+ <!-- 机器 B..N -->
+ <div class=machine id=mB style="left:520px;top:400px">
+  <div class=chip>
+   <div class=pikotile><span class=msr>memory</span><b>Piko</b></div>
+   <div><h2>Piko 实例 2..N</h2><span class=st>独立主机 · 独立 Task Store</span></div>
+  </div>
+  <div class=fs>本地可靠 FS：Task Store（SQLite WAL） · Pi session（JSONL） · staging</div>
+ </div>
+ <div class=mlabel id=mBl style="left:520px;top:618px">机器 B .. N</div>
+ <!-- LLMTier -->
+ <div class="card llm" id=llm style="left:962px;top:250px;width:250px;height:190px">
+  <div style="display:flex;gap:12px;align-items:center">
+   <div class="tile c"><span class=msr>cloud</span><b>LLM</b></div>
+   <h2 style="font-size:15px">LLMTier 主机</h2>
+  </div>
+  <div style="margin-top:12px;font-size:11.5px;color:#3730A3;line-height:1.6">OpenAI-compatible Responses SSE（唯一模型路径）<br><span style="color:#B91C1C">stream:true · store:false · maxRetries=0</span></div>
+ </div>
+</div>
+<script>
+const cv=document.getElementById('cv')
+const R=id=>{const e=document.getElementById(id);return {x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight}}
+const A=(r,s,f)=>({r:[r.x+r.w,r.y+r.h*f],l:[r.x,r.y+r.h*f],t:[r.x+r.w*f,r.y],b:[r.x+r.w*f,r.y+r.h]})[s]
+function line(a,b,cls,label,px,py){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI,cx=(a[0]+b[0])/2,cy=(a[1]+b[1])/2;
+ const d=document.createElement('div');d.className='ln '+(cls||'');d.style.cssText=`left:${cx}px;top:${cy}px;width:${len}px;margin-left:${-len/2}px;margin-top:-1px;transform:rotate(${ang}deg)`;cv.appendChild(d);
+ if(label){const l=document.createElement('div');l.className='lab';l.textContent=label;l.style.left=(cx-len*px)+'px';l.style.top=(cy+py)+'px';cv.appendChild(l)}}
+const sl=R('slinky'),mA=R('mA'),mB=R('mB'),ll=R('llm'),mx=R('matrix')
+line(A(sl,'r',0.26),A(mA,'l',0.5),'','① 请求（提交 / 取消）',0.34,-10)
+line(A(sl,'r',0.60),A(mB,'l',0.5),'','',0,0)
+line(A(mA,'r',0.5),A(ll,'l',0.28),'','② Responses SSE',0.40,-10)
+line(A(mB,'r',0.5),A(ll,'l',0.72),'','',0,0)
+line(A(mA,'l',0.88),A(sl,'r',0.88),'ret','③ 结果回程（状态 / Result JSON）',0.42,12)
+line(A(mB,'r',0.86),A(sl,'b',0.72),'dat','④ 数据 / WorkspaceBinding',0.46,-10)
+line(A(mx,'b',0.5),A(mA,'t',0.5),'mx','⑤ discussion',0.46,-4)
+</script></div>

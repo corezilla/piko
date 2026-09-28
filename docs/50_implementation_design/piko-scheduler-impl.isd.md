@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scheduler-impl` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 
@@ -352,11 +352,11 @@ flowchart LR
 
 #### 4.2.1 `Lease`
 
-- **完整定义、Data/Type ID 与唯一来源**：私有类型 `Lease`（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.1（并对应 MECH-RUN §5.1，其中 `run_id` 为共享合同扩展 → `OQ-SCHED-004`）。
+- **完整定义、Data/Type ID 与唯一来源**：私有类型 `Lease`（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.1（并对应 MECH-RUN §5.1，其中 `task_id` 为共享合同扩展 → `OQ-SCHED-004`）。
 
   ```ts
   interface Lease {
-    run_id: string;
+    task_id: string;
     owner_id: string;
     boot_id: string;
     epoch: number;          // = execution_slot.lease_epoch；整数 >= 1
@@ -365,7 +365,7 @@ flowchart LR
   }
   ```
 
-- **逐字段类型/范围/初值/不变量/owner**：`run_id`/`owner_id`/`boot_id`: `string` 非空；`epoch`: `number`，`Number.isSafeInteger` 且 `>=1`；`acquired_at`/`heartbeat_at`: ISO-8601 UTC，`heartbeat_at >= acquired_at`。owner = 调用方 M005；不可变值对象（`Object.freeze`）。不变量 `INV-SCHED-1/4`。
+- **逐字段类型/范围/初值/不变量/owner**：`task_id`/`owner_id`/`boot_id`: `string` 非空；`epoch`: `number`，`Number.isSafeInteger` 且 `>=1`；`acquired_at`/`heartbeat_at`: ISO-8601 UTC，`heartbeat_at >= acquired_at`。owner = 调用方 M005；不可变值对象（`Object.freeze`）。不变量 `INV-SCHED-1/4`。
 
 - **内存布局 / ABI**：N/A（纯 TypeScript 对象，非持久二进制/跨语言）；依据：ISD 规范 §3 "纯软件逻辑结构写 N/A"。
 
@@ -378,12 +378,12 @@ flowchart LR
 - **完整定义、Data/Type ID 与唯一来源**：私有类型；语义来源 = 模块设计 §6.2.2/§9.2.1。
 
   ```ts
-  interface SlotRow { run_id: string | null; owner_id: string | null; boot_id: string | null; lease_epoch: number; heartbeat_at: string | null }
+  interface SlotRow { task_id: string | null; owner_id: string | null; boot_id: string | null; lease_epoch: number; heartbeat_at: string | null }
   type SlotClaimResult = { epoch: number } | "slot_busy" | "run_not_queued";
   type FenceResult = { epoch: number } | "slot_released";
   ```
 
-- **逐字段类型/范围/初值/不变量/owner**：`SlotRow` 是 `execution_slot` 行投影：`run_id` 空 ⟺ 其余三字段空（`INV-SCHED-3`）。`SlotClaimResult`/`FenceResult` 是 M003 原子操作判别结果。owner = M003 产生、scheduler 只读。
+- **逐字段类型/范围/初值/不变量/owner**：`SlotRow` 是 `execution_slot` 行投影：`task_id` 空 ⟺ 其余三字段空（`INV-SCHED-3`）。`SlotClaimResult`/`FenceResult` 是 M003 原子操作判别结果。owner = M003 产生、scheduler 只读。
 
 - **内存布局 / ABI**：N/A（纯 TS）。
 
@@ -422,7 +422,7 @@ flowchart LR
 
   语义来源 = 模块设计 §6.6 `T-SCHED-01..06`。
 
-- **逐字段/状态/不变量/owner**：由 `SlotRow` + 当前 `bootId` 派生：`run_id===null → FREE`；`run_id!==null && slot.boot_id===currentBootId → HELD_LIVE`；否则 `HELD_STALE`。owner = scheduler（只读投影，不写回）。
+- **逐字段/状态/不变量/owner**：由 `SlotRow` + 当前 `bootId` 派生：`task_id===null → FREE`；`task_id!==null && slot.boot_id===currentBootId → HELD_LIVE`；否则 `HELD_STALE`。owner = scheduler（只读投影，不写回）。
 
 - **转换/失败**：不持久化、不单独提交；转换与 M003 事务一一对应（`T-SCHED-01..06`），本投影只用于判定分支。
 
@@ -453,10 +453,10 @@ flowchart LR
 - **完整定义 / 来源**：私有错误类；语义来源 = 模块设计 §6.8.1。
 
   ```ts
-  class LeaseLost extends Error { readonly run_id: string; readonly epoch: number; }
+  class LeaseLost extends Error { readonly task_id: string; readonly epoch: number; }
   ```
 
-- **逐字段/触发/副作用**：`run_id`/`epoch` 标识失去的租约；触发 = `renewSlot` CAS 未命中（0 行）；无 DB 副作用。
+- **逐字段/触发/副作用**：`task_id`/`epoch` 标识失去的租约；触发 = `renewSlot` CAS 未命中（0 行）；无 DB 副作用。
 
 - **所有权/出口**：由 `LeaseKeeper` 产生 → 经 `onLost` 回调交 M005；M005 停止驱动、不再写终态。
 
@@ -465,7 +465,7 @@ flowchart LR
 #### 4.8.2 `LeaseRenewalUnavailable`
 
 - **完整定义 / 来源**：```ts
-  class LeaseRenewalUnavailable extends Error { readonly run_id: string; readonly consecutive_failures: number; readonly last_error_class: string; }
+  class LeaseRenewalUnavailable extends Error { readonly task_id: string; readonly consecutive_failures: number; readonly last_error_class: string; }
   ```
 
   语义来源 = 模块设计 §6.8.1/§8.5。
@@ -522,7 +522,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **宿主 / public payload 或状态码**：无 HTTP；返回 `Lease | null` 或抛出依赖错误。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（领取成功，含 `run_id`/`epoch`/`owner_id`）；`warn`（依赖错误，含 error class）。无敏感字段（`owner_id`/`boot_id` 为进程内 UUID）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（领取成功，含 `task_id`/`epoch`/`owner_id`）；`warn`（依赖错误，含 error class）。无敏感字段（`owner_id`/`boot_id` 为进程内 UUID）。
 
 - **是否可重试及前提**：新业务重试 = 下一个 tick（非"重复执行"，因单 slot 保证）；竞争失败可立即重试；依赖错误由 M005 决定。
 
@@ -630,7 +630,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **宿主 / public payload 或状态码**：返回 `Lease | null` 或抛 `SlotInvariantViolation`。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（fence 成功，含 `epoch`/`run_id`）；`error`（不变量冲突）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（fence 成功，含 `epoch`/`task_id`）；`error`（不变量冲突）。
 
 - **是否可重试及前提**：不变量冲突 = 交 operator，不自动重试；依赖错误可重试。
 
@@ -778,7 +778,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **输入参数 / 数据结构 authority**：`runId` 非空；`epoch` 整数 `>=1`。
 
-- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE execution_slot SET heartbeat_at=? WHERE slot_id=1 AND run_id=? AND lease_epoch=?`；0 行 → `false`。
+- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE execution_slot SET heartbeat_at=? WHERE slot_id=1 AND task_id=? AND lease_epoch=?`；0 行 → `false`。
 
 - **成功输出 / 数据结构 / 后置条件**：`true` → 心跳刷新。
 
@@ -946,11 +946,11 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 flowchart TD
     A["M005 tick → acquireSlot(ownerId)"] --> B{"gate.isRecoveryComplete()？"}
     B -->|否| Z1["返回 null（门未开）"]
-    B -->|是| C{"readSlot().run_id 为空？"}
+    B -->|是| C{"readSlot().task_id 为空？"}
     C -->|否| Z2["返回 null（slot_busy）"]
     C -->|是| D{"listQueued() 非空？"}
     D -->|否| Z3["返回 null（无候选）"]
-    D -->|是| E["selectCandidate → 最旧 run_id"]
+    D -->|是| E["selectCandidate → 最旧 task_id"]
     E --> F["nextEpoch(旧) = 旧 + 1"]
     F --> G{"tryClaimSlot CAS 成功？"}
     G -->|slot_busy 或 run_not_queued| Z4["返回 null（下 tick 重试）"]
@@ -968,11 +968,11 @@ flowchart TD
 
 - **触发与执行者**：M005 `RunWorker.loop` tick → `Scheduler.acquireSlot`（宿主事件循环）。
 
-- **入口函数及数据**：`acquireSlot(ownerId)`；数据 `ownerId` → `SlotRow`/候选 `run_id` → `epoch` → `Lease | null`。
+- **入口函数及数据**：`acquireSlot(ownerId)`；数据 `ownerId` → `SlotRow`/候选 `task_id` → `epoch` → `Lease | null`。
 
 - **步骤 / 算法 / 复杂度**：1. `port.readSlot()`；2. `policy.mayAcquire(gate.isRecoveryComplete())`，否则 `null`；3. `port.listQueued(LIMIT)`；4. `policy.selectCandidate`；5. `policy.nextEpoch`；6. `port.tryClaimSlot`；7. CAS 失败重试下一个候选或 `null`。复杂度 O(候选数)。
 
-- **判断事实来源**：Guard = `SlotRow.run_id`（DB）+ `gate.isRecoveryComplete()`（M005 标志）+ `listQueued` 结果（DB）。无可来源不明的 Guard。
+- **判断事实来源**：Guard = `SlotRow.task_id`（DB）+ `gate.isRecoveryComplete()`（M005 标志）+ `listQueued` 结果（DB）。无可来源不明的 Guard。
 
 - **成功可见点**：M003 事务提交（`tryClaimSlot` 返回 `{epoch}`）；随后 `runs.state=Running`。
 
@@ -986,7 +986,7 @@ flowchart TD
 
 - **触发与执行者**：`LeaseKeeper` 定时器 → `Scheduler.renewLease`。
 
-- **入口函数及数据**：`renewLease(runId, epoch)`；`{run_id, epoch}` → `boolean`。
+- **入口函数及数据**：`renewLease(runId, epoch)`；`{task_id, epoch}` → `boolean`。
 
 - **步骤 / 算法 / 复杂度**：`onTick`：`try { r = renewLease(...) } catch(e) { fail(e) }`；`r===true` → 重置定时器；`r===false` → 发 `LeaseLost`、stop；`catch` → `consecutiveFailures++`、退避重试、达阈值发 `LeaseRenewalUnavailable`、stop。O(1)。
 
@@ -1026,9 +1026,9 @@ flowchart TD
 
 - **步骤 / 算法 / 复杂度**：```text
   nextEpoch(c) = c + 1                                  # 不回绕、不重用
-  selectCandidate(slot, q) = slot.run_id !== null ? null : (q.length ? q[0] : null)
-      # q 由 listQueued 按 (accepted_at, run_id) 升序，二级键在 M003 排序
-  isStale(slot, boot) = slot.run_id !== null && slot.boot_id !== boot
+  selectCandidate(slot, q) = slot.task_id !== null ? null : (q.length ? q[0] : null)
+      # q 由 listQueued 按 (accepted_at, task_id) 升序，二级键在 M003 排序
+  isStale(slot, boot) = slot.task_id !== null && slot.boot_id !== boot
   mayAcquire(flag) = flag === true
   ```
 
@@ -1052,15 +1052,15 @@ flowchart TD
 
 - **步骤 / 算法 / 复杂度**：```text
   onTick():
-    try: ok = renewLease(lease.run_id, lease.epoch)
+    try: ok = renewLease(lease.task_id, lease.epoch)
     catch e:
       consecutiveFailures += 1
       if consecutiveFailures >= cfg.renew_max_consecutive_failures:
-        stop(); onLost(new LeaseRenewalUnavailable(run_id, consecutiveFailures, classOf(e)))
+        stop(); onLost(new LeaseRenewalUnavailable(task_id, consecutiveFailures, classOf(e)))
       else: scheduleAfter(cfg.renew_backoff_ms)
       return
     if ok: consecutiveFailures = 0; scheduleAfter(cfg.heartbeat_interval_ms); return
-    stop(); onLost(new LeaseLost(lease.run_id, lease.epoch))   # false 不重试
+    stop(); onLost(new LeaseLost(lease.task_id, lease.epoch))   # false 不重试
   ```
 
 - **判断事实来源**：`ok`（CAS）+ 异常类型 + `consecutiveFailures`（内存）。
@@ -1147,7 +1147,7 @@ flowchart TD
 
 **not_applicable。** scheduler **不拥有持久状态**：`execution_slot`/`run_sessions` 的 schema authority、连接、事务与 DDL 全部属 M003 `task-repository`（当前代码事实 `src/store.ts:19`–`:21`）。本模块只经 `IF-SCHED-STORE` 发起 M003 的原子操作；提交点、崩溃恢复入口与 schema 演进由 M003 ISD 承接，本 ISD 不生成数据库策略。
 
-- **状态由谁保存 / 本模块交付何种信息**：slot 绑定、owner、boot、`epoch`、`heartbeat_at` 由 M003 保存；本模块交付"要领取/续租/重领的目标 `(run_id, owner_id, boot_id)`"与 guard 事实（`SlotRow`/`runs.state` 读取）。
+- **状态由谁保存 / 本模块交付何种信息**：slot 绑定、owner、boot、`epoch`、`heartbeat_at` 由 M003 保存；本模块交付"要领取/续租/重领的目标 `(task_id, owner_id, boot_id)`"与 guard 事实（`SlotRow`/`runs.state` 读取）。
 - **宿主 / 依赖边界**：崩溃恢复的编排属 M005（`MECH-RECOVERY`），新 lease epoch 的产生属本模块的 `fence`（经 M003 事务）。
 - **Decision ref**：`piko-scheduler` §6.6/§9.2.1 + ISD 规范 §1（ISD 不重新制定跨模块事务政策）；schema 政策决定见 M003 ISD §4.7（Proposed）。
 
@@ -1162,7 +1162,7 @@ flowchart TD
 - **检查函数 / 时点**：无鉴权检查点（进程内调用）；`owner_id`/`boot_id` 为进程内 UUID，可入 DB/日志。
 - **拒绝 / 宿主交付出口**：N/A（无鉴权）；越权边界由 M001/M002 承载。
 - **脱敏 / 禁止输出**：不得在日志记录任何 credential/绝对路径；本模块本就不产生。
-- **日志 / 指标 / trace 口径及触发**：`info`（领取/fence）、`warn`（依赖错误）、`error`（不变量冲突）；含 `run_id`/`epoch`/error class。
+- **日志 / 指标 / trace 口径及触发**：`info`（领取/fence）、`warn`（依赖错误）、`error`（不变量冲突）；含 `task_id`/`epoch`/error class。
 - **验证项**：`VRC-SCHED-001`（日志不含敏感字段由审查核对）。
 
 #### 7.3.2 `SEC-SCHED-METRIC` · 指标 `piko.slot.lease_epoch` 写入点
@@ -1259,9 +1259,9 @@ flowchart TD
 ### 9.1.4 `VRC-SCHED-004` · FIFO 选择与无优先级
 
 - **Rule / 成员**：`R-SCHED-FIFO`、`R-SCHED-EPOCH`、`M-RUN-DI-004` 自由度边界。
-- **V / Case / Vector**：A（递增取最旧）、B（同 `accepted_at` 用 `run_id` 二级键）、C（空队列→`null`）、D（诱因下仍不按优先级）。
+- **V / Case / Vector**：A（递增取最旧）、B（同 `accepted_at` 用 `task_id` 二级键）、C（空队列→`null`）、D（诱因下仍不按优先级）。
 - **输入 / 故障 / 环境**：纯 `policy.ts` 表驱动（无 DB）。
-- **独立 Oracle / Expected**：Oracle = 期望 `run_id` 常量；Expected 同 Case。
+- **独立 Oracle / Expected**：Oracle = 期望 `task_id` 常量；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。
 - **Verdict**：`NOT_RUN`
 - **测试入口 / 清理**：Planned `tests/unit/policy.test.ts`。
@@ -1295,7 +1295,7 @@ flowchart TD
 
 - **顺序 / 前置项**：先于所有实现；依赖 M003 设计评审（`OQ-SCHED-001`）。
 - **文件 / symbol / 构建目标**：`src/store.ts` 端口签名 + `src/scheduler/port.ts` 抽象。
-- **不可改变的规则**：Guard+写入同事务、`epoch=旧+1`、`(run_id, epoch)` CAS。
+- **不可改变的规则**：Guard+写入同事务、`epoch=旧+1`、`(task_id, epoch)` CAS。
 - **实施动作**：确认 M003 采纳或给出超集；冻结签名。
 - **完成检查**：fake 端口可实现（`VRC-SCHED-001/002/003/006`）。
 - **实现状态**：`PLANNED`（受 `OQ-SCHED-001` 阻断）。

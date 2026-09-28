@@ -54,7 +54,7 @@ Piko 与 LLMTier 双侧的代码、设计、配置、数据均可修改。目标
 
 验证 Piko 与**真实 LLMTier 服务**在 Data Plane 契约（`llmtier-piko-data-plane-control`
 v0.3.2-draft.3 + LLMTier V0.3 OpenAPI）下的端到端行为：请求/SSE wire 形状、模型解析、
-usage 采集与对账、错误映射、故障恢复，以及 Piko 任务语义（工具环/deadline/budget/cancel）
+usage 采集与对账、错误映射、故障恢复，以及 Piko 任务语义（工具环/cancel）
 在真实模型依赖下的保持。**每个 case 都必须：声明打开哪些调试选项、写明各节点中间结果预期、
 给出数据/统计/日志不符时的定位预案**（§3.1）。**不证明**：m5air 生产部署、production TLS/auth
 激活、embeddings、Slinky capacity、模型输出质量。
@@ -116,10 +116,10 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 ```text
 ━━━━━━━━━━━━━━━━━━━━━━━ 控制通道（任务与管理） ━━━━━━━━━━━━━━━━━━━━━━━
  Operator/测试执行器 ──1──▶ 【节点A：Piko joint】 127.0.0.1:8788
-     1a POST /runs            （提交任务）
-     1b GET  /runs/{id}       （状态轮询）
-     1c POST /runs/{id}:cancel（取消）
-     1d GET  /runs/{id}/result（结果）
+     1a POST /tasks            （提交任务）
+     1b GET  /tasks/{id}       （状态轮询）
+     1c POST /tasks/{id}:cancel（取消）
+     1d GET  /tasks/{id}/result（结果）
  Operator/测试执行器 ──2──▶ 【节点B：LLMTier joint】 192.168.1.8:8180
      2a /v1/providers|deployments|service-levels（CRUD，If-Match ETag）
      2b /v1/probes  （部署探活）
@@ -182,7 +182,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 
 | Case | 层 | 维度 | 输入/操作 | 独立 Oracle | 状态 | 对照 |
 |---|---|---|---|---|---|---|
-| JT-01 | L1 | normal/wire | `POST /runs`（8788）纯文本指令，`max_model_calls=2,max_tool_calls=0` | Run `Completed`；LLMTier 账本新增 `model=Worker,measurement_status=measured` 记录且 tokens>0 | PASS | `run-47311c90…`；账本 846/2/848 |
+| JT-01 | L1 | normal/wire | `POST /tasks`（8788）纯文本指令 | Run `Completed`；LLMTier 账本新增 `model=Worker,measurement_status=measured` 记录且 tokens>0 | PASS | `run-47311c90…`；账本 846/2/848 |
 | JT-02 | L1 | wire/tool-loop | 允许 `read` 的最小任务，指令要求读 `var/scenario-seeds/pts-01/inputs/requirements.md` 后作答 | `Completed`；LLMTier 收到 ≥2 次请求（第二轮含工具结果历史）且均接受 | PASS | `run-cdfe7fa5…`；attempts=2，账本 2 条 |
 | JT-03 | L1 | wire/reasoning | 触发推理输出的任务（与 JT-01 同指令即可，模型带 reasoning） | SSE/结果正常；下一轮历史含 opaque reasoning item 时仍被接受（以 JT-02 第二轮成功佐证） | PASS | `run-d6b07de8…`；reasoning_tokens=2 |
 | JT-04 | L2 | models/preflight | 启动 joint Piko（正常配置） | preflight 通过；`GET /v1/models` 的 `data[].id` 精确含 `Worker` | PASS | listening 日志；`Worker in models: True` |
@@ -198,7 +198,7 @@ export SCENARIO_MATRIX=0                                     # joint 实例 matr
 | JT-14 | L2 | negative/请求校验 | 直接调 `POST /v1/responses`：① 未知模型 ② 坏 JSON（不经 Piko；Piko 不会产生此类请求） | ① `404 model_not_found` ② `400 invalid_json`（与 ICD §6 错误面一致） | PASS | 实测 404/400（对照 ICD §6） |
 | JT-15 | L2 | usage 快照稳定性 | 同一 from/to 查询两次；第二次带 `cursor=<snap>:0` | 带 cursor 复查 `snapshot_id` 与首次一致、`has_more=False`、记录数一致 | PASS | `snap_22c246cf…` 一致，4 条（对照 PK-T53） |
 | JT-16 | L2 | embeddings 数据面 | Operator 直接调 `POST /v1/embeddings`（model=`Embedding-v1`，真实 oMLX 后端 Qwen3-Embedding-0.6B）：float 双条 + base64 单条 | float：向量数=输入数、dims=1024；base64：字符串；`readyz=ready` | PASS | float 2×1024、base64 5464 字符、readyz=ready（对照管理面控制文档） |
-| JT-17 | L4 | 白盒注入（故障/时延/限流/流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After ④ 上游流提前终止 ⑤ 畸形流事件 | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在预算/重试语义内处置 ④⑤ 流中断/畸形事件有明确错误处置，**不悬挂、不伪报**；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49/48 |
+| JT-17 | L4 | 白盒注入（故障/时延/限流/流） | 经 R-T-5 注入开关（按 deployment、运行时可切）：① 上游 502（带错误体）② 上游时延 +5s ③ 上游 429+Retry-After ④ 上游流提前终止 ⑤ 畸形流事件 | ① `Failed/ModelUnavailable/Dependency`（带体 5xx 分类与断链一致）② 时延可观测增加且不误判失败 ③ Piko 在重试语义内处置 ④⑤ 流中断/畸形事件有明确错误处置，**不悬挂、不伪报**；均无悬挂 | **BLOCKED**（待 R-T-5/LT-OBS-5 实现） | PK-T51/49/48 |
 
 **合计 17 case；执行顺序：按 JT 编号递增（JT-01 → JT-17）一步一步执行，不分必做/可选。每完成一个
 case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序执行完毕（全 PASS）；0.2.0 重构后的
@@ -207,7 +207,7 @@ case，立即回填本表「状态/对照」两列并提交。0.1.x 版已按序
 ### 3.1 每用例调试选项、中间结果预期与定位预案
 
 **通用默认（所有 case 均打开）**：节点A 会话 JSONL（prompt 环回，会话级）、节点A SQLite 快照、
-节点B `logs`、节点B `usage` 账本；失败即运行 `scripts/joint-diagnose.sh <run_id>`（§7.1）。
+节点B `logs`、节点B `usage` 账本；失败即运行 `scripts/joint-diagnose.sh <task_id>`（§7.1）。
 **R-P-1/R-P-2/R-P-3/R-T-1/R-T-2 实现后**，对应 case 复核时增开：provider HTTP 环回、per-run
 DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回填报告）。
 
@@ -226,7 +226,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 | JT-14（校验负向） | B:logs | 直接 POST 两种非法请求 | 未知模型→`404 model_not_found`；坏 JSON→`400 invalid_json` | 码不符→B 校验层问题（对照 ICD §6）；Piko 不产生此类请求 |
 | JT-15（usage 快照） | B:usage | 同查询带 `cursor=<snap>:0` 复查 | `snapshot_id` 一致、`has_more=False`、记录数一致 | 不一致→B 快照/游标缺陷（对账不可信，升级 R-T-2） |
 | JT-16（embeddings） | B:probe+logs+readyz；C 直连 | float 2×1024、base64 字符串、`readyz=ready` | `unsupported_model`→deployment 未挂/能力错（对照 admin 配置）；dims 不符→capability 与后端不一致（对照 C 直连） |
-| JT-17（注入开关） | **B:注入开关（§5.1 程序开/关/回读）**+logs+usage；A:Result/JSONL | 注入状态在 B logs/usage 可见（502/429/时延）；A 侧处置符合重试/预算语义 | 打开后 GET 回读非 enabled→B 开关缺陷；注入未生效（流量无差异）→注入点实现缺陷；A 侧表现与预期码不符→Piko 分类缺陷（对照 §7.1） |
+| JT-17（注入开关） | **B:注入开关（§5.1 程序开/关/回读）**+logs+usage；A:Result/JSONL | 注入状态在 B logs/usage 可见（502/429/时延）；A 侧处置符合重试语义 | 打开后 GET 回读非 enabled→B 开关缺陷；注入未生效（流量无差异）→注入点实现缺陷；A 侧表现与预期码不符→Piko 分类缺陷（对照 §7.1） |
 
 ## 4. 正常、边界、负向与并发场景
 
@@ -238,7 +238,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 
 ## 5. Recovery、重放、幂等与故障注入
 
-- **JT-08 注入程序**：① 提交长任务（`deadline=+5min`）；② 轮询 8788 至 `Running`（`model_calls≥1`）；
+- **JT-08 注入程序**：① 提交长任务；② 轮询 8788 至 `Running`（`model_calls≥1`）；
   ③ `kill -9 $(lsof -nP -iTCP:8180 -sTCP:LISTEN -t)`；④ **等 run 终态**；⑤ 按 §2.1 重启 LLMTier
   （同库、同 env：`OMLX_API_KEY`+两 token）；⑥ 复跑 JT-01。允许 1 次 RERUN。
 - **JT-07 注入程序**：admin API PATCH provider endpoint → 死地址（If-Match ETag）→ 提交 run →
@@ -257,7 +257,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 | 1 打开 | `PATCH $BASE/v1/deployments/$DID/diagnostics`，体=`[{"type":"fault_502","config":{"error_body":"injected backend error"},"enabled":true}]` | `200`，体含该注入项（type/config/enabled=true） |
 | 2 回读 | `GET 同路径` | `200`，数组含 `{"type":"fault_502",…,"enabled":true}` |
 | 3 触发（数据面直接） | `POST $BASE/v1/responses`，model=Worker，正常 input | `503` 不出现；**`502`** + body 含 `injected backend error` |
-| 4 触发（经 Piko） | `POST /runs`（8788，纯文本指令） | Piko run 终态 `Failed` + `failure.code=ModelUnavailable`、`cause_class=Dependency` |
+| 4 触发（经 Piko） | `POST /tasks`（8788，纯文本指令） | Piko run 终态 `Failed` + `failure.code=ModelUnavailable`、`cause_class=Dependency` |
 | 5 关闭 | `PATCH` 同路径，体=`[{"type":"fault_502","enabled":false}]` | `200`，enabled=false |
 | 6 恢复验证 | 复跑步骤 4 | `Completed`（注入影响消除） |
 
@@ -276,7 +276,7 @@ DEBUG、request_id 关联、上游捕获、数据面计数器（复核记录回�
 
 每 case：① 按 §2.6 确认/打开调试选项 → ② 按 §3 操作/注入 → ③ 采集各节点中间证据（§3.1 预期）→
 ④ 判定 Oracle → ⑤ 不符时走 §3.1 定位预案 / §7.1 决策树 → ⑥ 回填并提交。
-Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/scenario-run.sh`。
+Matrix 与重启类按 §3.1/§5 程序；`POST /tasks` 统一封装 `scripts/scenario-run.sh`。
 
 ### 7.0 接口字典（字段级——脚本编写与失败归类的唯一依据）
 
@@ -354,10 +354,10 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 
 #### 7.0.6 Piko 任务 API（脚本面重述）
 
-- `POST /runs`：202（body 含 run_id）；`GET /runs/{id}`：200 `{state∈{Queued,Running,Cancelling,
+- `POST /tasks`：202（body 含 task_id）；`GET /tasks/{id}`：200 `{state∈{Queued,Running,Cancelling,
   Completed,Failed,Cancelled}, progress:{model_calls,tool_calls}}`；
-  `GET /runs/{id}/result`：200 `{state,partial,summary,outputs,failure:{code,cause_class,message},usage}`；
-  `POST /runs/{id}:cancel`：202 StopRequested/200 CancelledBeforeStart|AlreadyTerminal。
+  `GET /tasks/{id}/result`：200 `{state,partial,summary,outputs,failure:{code,cause_class,message},usage}`；
+  `POST /tasks/{id}:cancel`：202 StopRequested/200 CancelledBeforeStart|AlreadyTerminal。
 - 鉴权：`~/piko-secrets/piko-api-bearer`。
 
 ### 7.0.7 失败定位矩阵（结果不符预期 → 归属）
@@ -371,13 +371,13 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 | Piko `Failed/ModelUnavailable` + B 窗口**无**该请求记录 | trace/logs 无此 request_id | **LLMTier**（未收到/未启动）或 Piko→B 网络 | healthz、端口探活 |
 | Piko `Failed` 且 failure.code=`ModelResponseInvalid/ModelProtocol` | 对照 A:JSONL 请求形状 | 形状违规→**Piko 装配**；形状正常而体异常→**LLMTier** | D-1/D-2 修复后不应再出现 |
 | Piko `Completed` 但期望失败（注入场景） | B 注入开关 enabled？注入点在请求前？ | 注入未命中/时序错 | 修正注入步骤（INVALID 重跑） |
-| `ToolFailure`/`Budget/Deadline` | Piko 自身语义 | **Piko** | 会话 JSONL 看工具参数 |
+| `ToolFailure` | Piko 自身语义 | **Piko** | 会话 JSONL 看工具参数 |
 | usage 账本与 Piko usage 不一致 | JT-10 对账（按 request 求和） | 计量缺陷（**LLMTier**）或窗口/时区错（**脚本**） | 固定窗口重查 |
-| 经 Piko 失败但直接调 B 成功 | 同一请求双跑对比 | **Piko**（装配/处理/预算） | 会话 JSONL + §7.1 |
+| 经 Piko 失败但直接调 B 成功 | 同一请求双跑对比 | **Piko**（装配/处理） | 会话 JSONL + §7.1 |
 
 ### 7.1 失败定位流程（诊断入口）
 
-失败时先运行 `scripts/joint-diagnose.sh <run_id>`（五层证据一次拉取）：
+失败时先运行 `scripts/joint-diagnose.sh <task_id>`（五层证据一次拉取）：
 ① Piko run/Result → ② Pi 会话 JSONL（**Piko 组装的完整 prompt 历史**）→ ③ LLMTier logs（时间窗）→
 ④ LLMTier usage → ⑤ oMLX/LLMTier 直连探活，输出层位结论：
 
@@ -386,7 +386,7 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 | `ModelUnavailable` | 依赖可用性（LLMTier 或 oMLX） | 窗口内有 5xx/provider_unavailable → 上游(oMLX)；窗口内无日志行 → LLMTier 未收到（挂/网络） |
 | `ModelResponseInvalid/ModelProtocol` | Piko prompt 或 LLMTier 协议 | 对照 ②：请求形状违规 → Piko；形状正常而响应体异常 → LLMTier |
 | `ToolFailure` | Piko 工具/权限 | — |
-| `BudgetExceeded`/`DeadlineExceeded` | Piko 任务限额 | — |
+| **N/A · 本版撤销**：`PK-04` 撤销。 | — | — |
 | `UnsafeRetryBlocked` | Piko 恢复语义 | — |
 
 已知观测缺口（需求 R-P-1..3 / R-T-1..4 承接）：Piko 与 LLMTier 之间无端到端 request_id 关联、
@@ -395,14 +395,14 @@ Matrix 与重启类按 §3.1/§5 程序；`POST /runs` 统一封装 `scripts/sce
 ## 8. Pass/Fail/Blocked/Invalid 判定
 
 - **PASS** = 该 case 全部 Oracle 满足（错误映射类以「明确失败码 + 及时终态」为 PASS，不要求 Completed）。
-- **FAIL** = 任一 Oracle 不满足，或出现悬挂（超 deadline 未终态）、错误码错乱、账本与响应不一致。
+- **FAIL** = 任一 Oracle 不满足，或出现悬挂（超预期时长未终态）、错误码错乱、账本与响应不一致。
 - **RERUN** = 模型非确定性或注入时序敏感，允许 1 次重跑并记录两次运行。
 - **BLOCKED** = 联调实例/oMLX 不可用（相关 case 记 BLOCKED，不计 Fail）。
 - **INVALID** = 步骤偏离本规格（重置后重跑，不计分母）。
 
 ## 9. Artifact、日志、测量与证据保存
 
-每 case 记录：Piko `run_id` 与 Result JSON、LLMTier 账本记录、注入与恢复时间点、wall-clock；
+每 case 记录：Piko `task_id` 与 Result JSON、LLMTier 账本记录、注入与恢复时间点、wall-clock；
 wire 类 case 保留 SSE 原文样例。汇总为 STD test-report（`tests/integration/reports/
 piko-llmtier-joint-report-v0.1.md`）。失败现场保留两侧进程日志片段（`LLMTier/state/
 llmtier-piko-joint.log`、`piko/var/piko-llmtier-joint.log`）。

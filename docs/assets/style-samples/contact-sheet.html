@@ -1,0 +1,101 @@
+<!doctype html><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#EEF1F5;font-family:-apple-system,"PingFang SC",Inter,sans-serif;color:#111827}
+.msr{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;line-height:1;display:inline-block}
+.wrap{padding:24px 28px}
+.h{font-size:20px;font-weight:800;margin:0 0 2px}.sub{color:#64748B;font-size:12.5px;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.panel{background:#fff;border-radius:16px;border:1px solid #E2E8F0;overflow:hidden}
+.ph{padding:10px 14px;font-size:13px;font-weight:800;border-bottom:1px solid #EEF2F7;background:#FAFBFC}
+.ph span{color:#64748B;font-weight:600}
+.stage{position:relative;height:320px}
+.box{position:absolute;border-radius:16px;padding:10px 12px}
+.tile{color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(160deg,#5B9BFF,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.28)}
+.tile .msr{font-size:22px}.tile b{font-size:9.5px}
+.tile.p{background:linear-gradient(160deg,#818CF8,#4338CA);box-shadow:0 6px 14px rgba(67,56,202,.3)}
+.ln{position:absolute;height:2px;background:#2E6BE6;transform-origin:50% 50%;z-index:1}
+.lab{position:absolute;font-size:11.5px;font-weight:800;z-index:3;white-space:nowrap}
+h4{font-size:12.5px;font-weight:800;margin:0 0 4px}
+/* A 金属小主机 */
+.chassis{position:absolute;border-radius:20px;background:linear-gradient(180deg,#FCFDFF,#E7ECF3 55%,#D2DAE4);border:1px solid #B6C1CF;box-shadow:0 14px 30px rgba(15,23,42,.16),inset 0 1px 0 #fff}
+.chassis:after{content:"";position:absolute;right:14px;bottom:12px;width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 7px rgba(34,197,94,.85)}
+/* B 分层工控机 */
+.layered{position:absolute;border-radius:18px;background:#EAF1FB;border:1.5px solid #C6D7EF}
+.band{position:absolute;background:#F3F7FD;border-radius:12px}
+.bandlbl{position:absolute;font-size:11px;font-weight:800;color:#334155}
+.dash{position:absolute;height:0;border-top:1.5px dashed #C6D7EF}
+/* C 立体主机 */
+.s3d{position:absolute}
+.s3d .top{position:absolute;left:8px;right:8px;height:14px;border-radius:8px;background:linear-gradient(180deg,#FFFFFF,#E9EEF5)}
+/* D 轻盈 */
+.airy{position:absolute;border-radius:14px;background:#fff;border:1px solid #E2E8F0}
+</style><div class=wrap>
+<p class=h>Piko 部署图 · 4 个方向候选（我的猜测，你挑）</p><p class=sub>同一拓扑：Slinky → 每台机器一个 Piko → LLMTier；回程 Piko → Slinky。四个方向只差“机器怎么表达 / 层级怎么表达 / 标注怎么表达”。</p>
+<div class=grid>
+ <!-- A -->
+ <div class=panel><div class=ph>方向 A · 金属小主机（每台 Piko = 一个小主机壳）</div><div class=stage id=stA></div></div>
+ <!-- B -->
+ <div class=panel><div class=ph>方向 B · 分层容器（像“工控机”那样：主机内分软件/硬件层）</div><div class=stage id=stB></div></div>
+ <!-- C -->
+ <div class=panel><div class=ph>方向 C · 立体主机 + 引线标注（器材感更强，像你那张图例）</div><div class=stage id=stC></div></div>
+ <!-- D -->
+ <div class=panel><div class=ph>方向 D · 轻盈极简（细线、大留白、弱化主机）</div><div class=stage id=stD></div></div>
+</div>
+<script>
+const MS=(n)=>`<span class="msr">${n}</span>`
+function box(p,cls,st,inner){const d=document.createElement('div');d.className=cls;d.setAttribute('style',st);d.innerHTML=inner;p.appendChild(d);return d}
+function line(p,a,b,lab,cls){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI,cx=(a[0]+b[0])/2,cy=(a[1]+b[1])/2;
+ const d=document.createElement('div');d.className='ln';d.style.cssText=`left:${cx}px;top:${cy}px;width:${len}px;margin-left:${-len/2}px;margin-top:-1px;transform:rotate(${ang}deg);${cls||''}`;p.appendChild(d);
+ if(lab){const l=document.createElement('div');l.className='lab';l.textContent=lab;l.style.left=(cx-len*0.34)+'px';l.style.top=(cy-20)+'px';p.appendChild(l)}}
+function pikoTile(p,x,y,s,label){const d=document.createElement('div');d.className='tile p';d.style.cssText=`position:absolute;border-radius:14px;left:${x}px;top:${y}px;width:${s}px;height:${s}px`;d.innerHTML=`${MS('memory')}<b>${label||'Piko'}</b>`;p.appendChild(d)}
+
+/* A */
+const A=document.getElementById('stA')
+box(A,'box','left:14px;top:112px;width:130px;height:96px;background:#EAF1FB;border:1.5px solid #C6D7EF',`<h4>Slinky 主机</h4><div style="font-size:10px;color:#64748B">业务流程方 · 持有工作区</div>`)
+box(A,'chassis','left:196px;top:78px;width:210px;height:150px',`<div style="position:absolute;left:16px;top:24px;display:flex;gap:10px;align-items:center"><div class="tile p" style="width:52px;height:52px;border-radius:14px;position:static">${MS('memory')}<b>Piko</b></div><div><h4>Piko 实例 1</h4><div style="font-size:9.5px;font-weight:800;color:#3730A3;background:#E0E7FF;border-radius:999px;padding:2px 7px;display:inline-block;margin-top:4px">独立主机</div></div></div><div style="position:absolute;left:16px;right:16px;bottom:14px;background:#FEF9C3;border:1px solid #EAB308;border-radius:8px;padding:4px 8px;font-size:9px;color:#854D0E">本地 FS：Task Store · Pi session</div>`)
+box(A,'box','left:436px;top:112px;width:104px;height:96px;background:#EDF1FE;border:1.5px solid #C9D4FB;text-align:center',`<div class="tile" style="width:38px;height:38px;border-radius:11px;position:static;margin:0 auto">${MS('cloud')}</div><h4 style="margin-top:6px">LLMTier</h4>`)
+line(A,[144,160],[196,150],'① 请求')
+line(A,[406,150],[436,160],'② SSE')
+
+/* B */
+const B=document.getElementById('stB')
+box(B,'box','left:14px;top:112px;width:120px;height:96px;background:#EAF1FB;border:1.5px solid #C6D7EF',`<h4>Slinky 主机</h4>`)
+const layer=box(B,'layered','left:186px;top:70px;width:240px;height:180px','')
+box(B,'bandlbl','left:34px;top:104px;font-size:11px;font-weight:800;color:#334155',`软件层`)
+box(B,'band','left:28px;top:88px;width:28px;height:0;background:none','')
+box(B,'band','left:96px;top:96px;width:0;height:0','')
+const band=document.createElement('div');band.className='band';band.style.cssText='left:100px;top:88px;width:120px;height:56px;position:absolute;background:#F3F7FD;border-radius:12px';layer.appendChild(band)
+pikoTile(layer,110,94,46,'Piko')
+box(layer,'bandlbl','left:104px;top:150px;font-size:10px;font-weight:800;color:#3730A3',`Piko 实例 · 本地 FS`)
+box(layer,'dash','left:16px;top:158px;width:208px;border-top:1.5px dashed #C6D7EF;background:none',``)
+box(B,'box','left:456px;top:112px;width:90px;height:96px;background:#EDF1FE;border:1.5px solid #C9D4FB',`<h4>LLMTier</h4>`)
+line(B,[134,160],[186,150],'① 请求')
+line(B,[426,150],[456,160],'② SSE')
+
+/* C */
+const C=document.getElementById('stC')
+box(C,'box','left:10px;top:120px;width:110px;height:88px;background:#EAF1FB;border:1.5px solid #C6D7EF',`<h4>Slinky 主机</h4>`)
+const s3=box(C,'chassis s3d','left:180px;top:74px;width:230px;height:170px','')
+box(s3,'top','left:8px;right:8px;top:7px;height:14px;border-radius:8px;background:linear-gradient(180deg,#fff,#E9EEF5)','')
+box(s3,'','position:absolute;left:0;right:0;bottom:0;height:52px;border-radius:0 0 20px 20px;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(15,23,42,.06))','')
+const ct=document.createElement('div');ct.className='tile p';ct.style.cssText='position:absolute;left:22px;top:40px;width:58px;height:58px;border-radius:16px';ct.innerHTML=`${MS('memory')}<b>Piko</b>`;s3.appendChild(ct)
+box(s3,'','position:absolute;left:96px;top:48px;','<h4 style="font-size:13px">Piko 实例 1</h4><div style="font-size:10px;color:#64748B">独立主机 · 独立 Task Store</div>')
+box(C,'box','left:466px;top:120px;width:86px;height:88px;background:#EDF1FE;border:1.5px solid #C9D4FB',`<h4>LLMTier</h4>`)
+line(C,[120,164],[180,150],'① 请求')
+line(C,[410,150],[466,164],'② SSE')
+/* 引线标注 */
+function callout(p,x,y,tx,ty,text){const d=document.createElement('div');d.className='ln';const dx=tx-x,dy=ty-y,len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;d.style.cssText=`left:${x}px;top:${y}px;width:${len}px;margin-top:-1px;transform-origin:0 0;transform:rotate(${ang}deg);background:#2E6BE6`;p.appendChild(d);
+ const l=document.createElement('div');l.className='lab';l.textContent=text;l.style.left=(tx+(tx>x?6:-70))+'px';l.style.top=(ty-8)+'px';l.style.color='#1D4ED8';p.appendChild(l)}
+callout(C,295,74,250,40,'独立主机')
+callout(C,320,150,360,206,'本地可靠 FS')
+
+/* D */
+const D=document.getElementById('stD')
+box(D,'airy','left:16px;top:124px;width:120px;height:84px','<h4 style="font-weight:600">Slinky 主机</h4><div style="font-size:10px;color:#94A3B8">业务流程方</div>')
+box(D,'airy','left:210px;top:96px;width:190px;height:140px','<h4 style="font-weight:600;color:#475569">Piko 主机（实例 1）</h4><div style="font-size:10px;color:#94A3B8;margin-top:2px">独立 Task Store · 本地 FS</div><div style="margin-top:10px;font-size:10px;color:#94A3B8">· Task Store（SQLite）<br>· Pi session（JSONL）</div>')
+box(D,'airy','left:440px;top:124px;width:110px;height:84px','<h4 style="font-weight:600">LLMTier 主机</h4><div style="font-size:10px;color:#94A3B8">Responses SSE</div>')
+line(D,[136,166],[210,166],'① 请求')
+line(D,[400,166],[440,166],'② SSE')
+</script></div>

@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><style>
+body{margin:0;background:#FFFFFF;font-family:-apple-system,"PingFang SC",Inter,sans-serif;color:#0F172A}
+.wrap{padding:36px 44px}.t{font-size:22px;font-weight:800;margin:0 0 4px}.s{color:#64748B;font-size:13px;margin:0 0 26px}
+.row{display:flex;align-items:center;gap:0}
+.host,.mid,.llm{background:#fff;border-radius:18px;padding:18px;box-shadow:0 10px 26px rgba(15,23,42,.10);border:1px solid #EEF2F7}
+.host{width:230px}.mid{width:290px}.llm{width:210px}
+.host h2,.mid h2,.llm h2{font-size:15px;font-weight:700;margin:0 0 12px}
+.tiles{display:flex;gap:8px}
+.tile{padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;color:#1D4ED8;background:#EAF1FF}
+.tile.v{color:#6D28D9;background:#F1EBFF}.tile.g{color:#15803D;background:#E9F9EF}
+.card{background:#F8FAFC;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:12px;color:#334155;border:1px solid #EEF2F7}
+.link{height:3px;background:linear-gradient(90deg,#6366F1,#8B5CF6);position:relative;flex:0 0 130px;border-radius:3px}
+.link:after{content:"";position:absolute;right:-1px;top:-4px;border:6px solid transparent;border-left-color:#8B5CF6}
+.link b{position:absolute;top:-24px;left:9px;font-size:12px;font-weight:800;color:#0F172A}
+.link.l{background:linear-gradient(90deg,#8B5CF6,#6366F1)}
+.link.l:after{right:auto;left:-1px;border-left-color:transparent;border-right-color:#6366F1}
+.link.l b{left:auto;right:9px}
+.llm div{font-size:12px;color:#475569}
+</style><div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p><p class=s>风格 C · 现代 SaaS 卡片风（白底 · 柔和阴影卡片 · 彩色 chip · 渐变连线 + 箭头）</p>
+<div class=row>
+ <div class=host><h2>Slinky 主机</h2><div class=tiles><div class=tile>请求</div><div class="tile v">结果</div><div class="tile g">数据</div></div></div>
+ <div class=link><b>① 请求</b></div>
+ <div class=mid><h2>Piko 实例群</h2><div class=card>Piko 实例 1 · 本地可靠 FS</div><div class=card>Piko 实例 2..N · 本地可靠 FS</div></div>
+ <div class=link><b>② Responses SSE</b></div>
+ <div class=llm><h2>LLMTier 主机</h2><div>OpenAI-compatible Responses SSE</div><div>stream:true · maxRetries=0</div></div>
+</div>
+<div class=row style="margin-top:26px"><div style="width:230px"></div><div class="link l"><b>③ 结果回程</b></div><div style="width:290px"></div></div>
+</div>

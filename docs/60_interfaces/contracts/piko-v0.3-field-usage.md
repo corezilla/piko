@@ -36,7 +36,7 @@
 | `instruction` | Slinky | Agent 工作目标；不授予权限 |
 | `workspace_ref` | Slinky/Piko 配置 | 固定授权 workspace；Piko 解析真实边界 |
 | `permissions.*` | Slinky 请求与 Piko policy 交集 | read/write/tool 的硬边界 |
-| `limits.*` | Slinky | deadline 和模型/工具调用上限；只能收紧 |
+| `limits.*` | Slinky | **本版撤销**：不实现任务级 deadline/预算 |
 | `output_paths` | Slinky | 可回收业务输出的相对路径范围 |
 | `discussion.room_id` | Slinky，Piko核验Matrix事实 | 仅讨论任务可选；选择已有授权房间，不创建房间/任务 |
 | `discussion.trigger_event_id` | Slinky，Piko核验Matrix事实 | 已可见的同room起始事件；不等同Run trigger或业务批准 |
@@ -54,4 +54,4 @@
 | `usage.missing_fields` | Piko | 未覆盖全部durable attempt的token字段；Partial至少一项但非全部，Unknown包含全部六项且observed attempts可非零 |
 | `failure.code/cause_class/message` | Piko | 技术失败事实，不给调用方虚构resume动作；业务后续由Slinky PM决定 |
 
-首次提交时，Piko 持久化完整已校验 POST body 作为不可变任务定义；再次提交同一 `task_id` 时不覆盖它。已有任务在动态deadline/queue/dependency检查之前返回；清理详细记录后永久保留`task_id/task_id/Gone` tombstone。未知字段一律拒绝。旧 model selector、binding、communication trigger、capacity、claim、message/content、release/drain 与模型 Invocation 字段不再接受。
+首次提交时，Piko 持久化完整已校验 POST body 作为不可变任务定义；再次提交同一 `task_id` 时不覆盖它。已有任务在动态 queue/dependency 检查之前返回；清理详细记录后永久保留`{task_id, Gone}` tombstone。未知字段一律拒绝。旧 model selector、binding、communication trigger、capacity、claim、message/content、release/drain 与模型 Invocation 字段不再接受。

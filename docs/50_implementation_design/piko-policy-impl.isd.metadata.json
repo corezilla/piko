@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-policy-impl",
   "document_type": "design.implementation",
-  "document_version": "0.1.1",
+  "document_version": "0.1.2",
   "title": "Piko 实现规格：policy（M002）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
@@ -28,7 +28,7 @@
   "parent_document_id": "system-design",
   "supersedes": null,
   "created_at": "2026-09-27",
-  "last_modified_at": "2026-09-27",
+  "last_modified_at": "2026-09-28",
   "design_object_id": "M002",
   "implementation_view_of_document_id": "piko-policy",
   "volume_of_document_id": null

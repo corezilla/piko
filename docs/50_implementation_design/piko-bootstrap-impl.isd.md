@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-bootstrap-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -1322,7 +1322,7 @@ flowchart TD
 - **Rule / 成员**：`F-BOOT-CONFIG/STORE/VERIFY/PREFLIGHT/READY`、`P-BOOT-START`、`IF-BOOT-RUN`、`CON-ST-001`。
 - **V / Case / Vector**：A（有效 config + 锁定 commit + 可达依赖 → READY）、B（`matrix.enabled=false` → 仍 READY）、C（空库首次启动 → `user_version=2`）。
 - **输入 / 故障 / 环境**：独立 config + 临时 SQLite + mock LLMTier（`GET /v1/models` 返回 `agent.model`）；每 Case 前清空实例目录与 lock。
-- **独立 Oracle / Expected**：Oracle = 端口 TCP 可连接 + `GET /runs/:id` 返回 404/401 + 进程退出码；Expected：A/B/C 均 READY、端口已绑定、`instance_meta.boot_id` 非空。
+- **独立 Oracle / Expected**：Oracle = 端口 TCP 可连接 + `GET /tasks/:id` 返回 404/401 + 进程退出码；Expected：A/B/C 均 READY、端口已绑定、`instance_meta.boot_id` 非空。
 - **Actual / Evidence**：`NOT_RUN`。
 - **Verdict**：`NOT_RUN`
 - **测试入口 / 清理**：Planned `tests/integration/bootstrap-startup.test.ts`；每 Case 后清理临时实例目录与 lock。
@@ -1386,7 +1386,7 @@ flowchart TD
 ### 9.1.7 `VRC-BOOT-007` · SIGTERM 停止与在途 drain
 
 - **Rule / 成员**：`F-BOOT-STOP`、`R-BOOT-GATE`、`IF-BOOT-STOP`、`CON-ST-001`。
-- **V / Case / Vector**：A（无在途 → drained 退出 0）、B（T1 后 `POST /runs` 被拒）、C（长在途 + 超时 → forced 非零）、D（未 READY 信号 → 快速退出）、E（重复信号幂等）。
+- **V / Case / Vector**：A（无在途 → drained 退出 0）、B（T1 后 `POST /tasks` 被拒）、C（长在途 + 超时 → forced 非零）、D（未 READY 信号 → 快速退出）、E（重复信号幂等）。
 - **输入 / 故障 / 环境**：可控在途 Run（注入长操作）+ 假时钟控制 drain 预算；独立进程。
 - **独立 Oracle / Expected**：Oracle = 退出码 + 停止后端口不可连接 + `StopReport.outcome`；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。

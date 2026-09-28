@@ -1,0 +1,45 @@
+direction: right
+
+title: "Piko 运行环境 / 部署拓扑" {
+  shape: text
+  style: {font-size: 30; bold: true; font-color: "#111827"}
+}
+
+slinky: "Slinky 主机\n（业务流程方 · 持有工作区）" {
+  style: {fill: "#EAF1FB"; stroke: "#C6D7EF"; border-radius: 16}
+  req: "请求"
+  res: "结果"
+  dat: "数据 / 工作区"
+}
+
+matrix: "Matrix homeserver\ndiscussion intake / sync" {
+  style: {fill: "#EFF2F6"; stroke: "#D3DAE3"; border-radius: 16}
+}
+
+pikoA: "Piko 实例 1 · 机器 A" {
+  style: {fill: "#EDF0FD"; stroke: "#CFD4F2"; border-radius: 16}
+  fs1: "本地可靠 FS\nTask Store · Pi session" {
+    shape: cylinder
+    style: {fill: "#FEF9C3"; stroke: "#EAB308"}
+  }
+}
+
+pikoB: "Piko 实例 2..N · 机器 B..N" {
+  style: {fill: "#EDF0FD"; stroke: "#CFD4F2"; border-radius: 16}
+  fs2: "本地可靠 FS\nTask Store · Pi session" {
+    shape: cylinder
+    style: {fill: "#FEF9C3"; stroke: "#EAB308"}
+  }
+}
+
+llm: "LLMTier 主机\nResponses SSE（唯一模型路径）" {
+  style: {fill: "#EDF1FE"; stroke: "#C9D4FB"; border-radius: 16}
+}
+
+slinky.req -> pikoA: "① 请求"
+slinky.req -> pikoB: "① 请求"
+pikoA -> llm: "② Responses SSE"
+pikoB -> llm: "② Responses SSE"
+pikoA -> slinky.res: "③ 结果回程" {style.stroke: "#7C3AED"; style.font-color: "#7C3AED"}
+pikoB -> slinky.dat: "④ 数据 / WorkspaceBinding" {style.stroke: "#16A34A"; style.font-color: "#16A34A"}
+matrix -> pikoA: "⑤ discussion" {style.stroke: "#8A93A3"; style.font-color: "#64748B"}

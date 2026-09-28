@@ -37,7 +37,7 @@
 | PK-T02 | AgentTaskRequest拒绝外部model selector及未知binding/trigger/capacity/model-recovery字段 |
 | PK-T03 | `task_id` 一对一绑定 Run；相同定义重复提交返回原 Run；同一 `task_id` 改变任一任务字段返回 `TaskConflict` 且不覆盖原任务；接口拒绝 `client_task_id` 且不存在额外提交 key/header/摘要 |
 | PK-T04 | cancel 202 后仍为 Cancelling，不能当已停止 |
-| PK-T05 | provider内部retry为0；Harness只在deadline/budget内建立新的durable retry attempt；已提交的orphaned assistant effect不重新dispatch |
+| PK-T05 | provider内部retry为0；Harness只在有界重试内建立新的durable retry attempt；已提交的orphaned assistant effect不重新dispatch |
 | PK-T06 | 工具副作用 Unknown 不重放并产生 UnsafeRetryBlocked/known_actions |
 | PK-T07 | 重启按RunSessionRecord/lease及确定性Harness operation恢复；不可核实动作时明确失败 |
 | PK-T08 | 失败 Result 可含 partial output、failure、known_actions、usage |
@@ -63,17 +63,17 @@
 | PK-T28 | DiscussionTurn enqueue前后崩溃通过Harness queue/transcript/operation probe只消费一次；Pi idle时只有intake原子进入Closing后才允许正常Completed，未来消息不重开 |
 | PK-T29 | migration map把旧service design与旧STD基线明确标为历史，current/residual分类无矛盾且不升级STD锁 |
 | PK-T30 | 一个已受理任务只向其独立 Pi session 写入一次 typed initial user message；Piko 不暴露 Pi session/loop 控制，也不实现平行 Agent loop；终态 Result 只由已提交Harness事实、输出和执行事实封装 |
-| PK-T31 | 相同任务在deadline过期、队列已满或依赖离线后重交仍先返回原Run；仅新task_id检查动态受理条件 |
-| PK-T32 | purge后永久保留`task_id/run_id/Gone` tombstone；该task_id永不重用且POST返回410 |
+| PK-T31 | 相同任务在队列已满或依赖离线后重交仍先返回原Run；仅新task_id检查动态受理条件 |
+| PK-T32 | purge后永久保留`{task_id, Gone}` tombstone；该task_id永不重用且POST返回410 |
 | PK-T33 | 配置只允许一个bearer principal及SecretRef；明文secret、缺principal或Matrix enabled缺凭据均拒绝 |
 | PK-T34 | tool profile中read_only可标safe；任何非read_only的safe replay必须有recovery contract，never intent无outcome不盲重放 |
-| PK-T35 | `pi_session_id=run_id`、lane=`main`及确定性operation ID在崩溃恢复时先probe再accept；不得依赖重复ID拒绝 |
+| PK-T35 | `pi_session_id=task_id`、lane=`main`及确定性operation ID在崩溃恢复时先probe再accept；不得依赖重复ID拒绝 |
 | PK-T36 | Pi patch manifest/hash在启动时校验；仅允许stable stepId与raw usage observer两个additive patch，provider adapter与调用路径不替换 |
-| PK-T37 | 同一`toolCallId`在before_tool重入或safe replay时只占一个tool预算；新logical call超限时block+terminate并映射BudgetExceeded |
+| PK-T37 | 同一`toolCallId`在before_tool重入或safe replay时只计一次 tool_calls 调用 |
 | PK-T38 | discussion首次accept同时写typed instruction和一个PikoDiscussionMessage；trigger正文不复制，accept前后崩溃均只消费一次 |
 | PK-T39 | Matrix插入turn与`Open→Closing`并发时由SQLite writer顺序决定；Failed/Cancelled把未消费turn终结为`Abandoned`，任何终态Run都不能残留Pending/QueuedInPi turn |
 | PK-T40 | tool recovery ref必须存在并绑定已注册实现；Usage semantic validator拒绝attempt/算术/子集反例；Failed必须有started_at且路径拒绝控制字符 |
-| PK-T41 | 对LLMTier请求子集固定：仅发model、完整input、`stream:true`、`store:false`与标准tools；不发送`prompt_cache_key/retention/options`、`previous_response_id`、task/session/deadline等任何跨系统字段 |
+| PK-T41 | 对LLMTier请求子集固定：仅发model、完整input、`stream:true`、`store:false`与标准tools；不发送`prompt_cache_key/retention/options`、`previous_response_id`、task/session等任何跨系统字段 |
 | PK-T42 | 工具结果以`function_call_output{call_id,output}`进入下一次完整input；`function_call_arguments.delta/done`聚合后可驱动Piko工具循环 |
 | PK-T43 | 仅凭契约必需SSE事件集（response.created→output_item.added(message)→output_text.delta→output_item.done→response.completed+usage）即可完成Run并产出正确Result |
 | PK-T44 | `response.incomplete`终态产生明确非Completed语义，不伪装成功 |

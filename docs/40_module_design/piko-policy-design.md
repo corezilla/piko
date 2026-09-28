@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-policy` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -22,12 +22,13 @@ M002 `policy` 解决一个问题：Piko 在**受理一个任务之前**必须把
 
 policy 只做判定，**不持状态、不落库、不发网络**：它不拥有任何持久表（DDL/事务 authority 属 M003），不监听端口（HTTP 面属 M001），不解析 Secret（属 M000/bootstrap 与 Secret provider），不改写 Run 状态机（属 M003/M005）。它的输出是**不可变值对象**：一份进程寿命的 `BoundToolProfile` 与每次请求一份 `ValidatedTaskSubmission`。任何需要"记住上一次判定"的需求都被显式推给持有状态的模块（M003 存 `tasks.task_json`，M001 存请求寿命的规范化结果）。
 
-用一次调用说明：Slinky `POST /runs` 到达 M001，M001 先做 JSON/Schema 与 bearer principal 校验，然后调用 `policy.validateSubmission(rawRequest, principal)`。policy 用启动注入的 `BoundToolProfile` 与 `PikoRuntimeConfig`：把 `workspace_ref` 解析到 `workspace.roots` 内的真实路径；对 `permissions.read_paths`/`write_paths` 与 `output_paths` 逐条 `realpath` 并确认仍在 workspace 与授权集合内（symlink 越界即拒绝）；把 path 集合排序、时间转 UTC instant，得到可比较的规范化任务；确认 `limits.deadline_at` 晚于当前 UTC、`max_model_calls >= 1`、`max_tool_calls >= 0`；确认 `permissions.tool_profile_ref` 在 `BoundToolProfile` 中存在。全部通过则返回 `ValidatedTaskSubmission`；任一条失败抛携带契约错误码（`InvalidRequest`/`ScopeDenied`/`UnsupportedLimit`/`DeadlineExpired`）的 typed 错误，由 M001 映射为对应的 HTTP 4xx，且**不创建任务**。
+用一次调用说明：Slinky `POST /tasks` 到达 M001，M001 先做 JSON/Schema 与 bearer principal 校验，然后调用 `policy.validateSubmission(rawRequest, principal)`。policy 用启动注入的 `BoundToolProfile` 与 `PikoRuntimeConfig`：把 `workspace_ref` 解析到 `workspace.roots` 内的真实路径；对 `permissions.read_paths`/`write_paths` 与 `output_paths` 逐条 `realpath` 并确认仍在 workspace 与授权集合内（symlink 越界即拒绝）；把 path 集合排序、时间转 UTC instant，得到可比较的规范化任务；确认 `permissions.tool_profile_ref` 在 `BoundToolProfile` 中存在。全部通过则返回 `ValidatedTaskSubmission`；任一条失败抛携带契约错误码（`InvalidRequest`/`ScopeDenied`）的 typed 错误，由 M001 映射为对应的 HTTP 4xx，且**不创建任务**。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M002 / `policy` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P0 控制进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 201 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | 启动期工具/恢复绑定一致；受理期请求/路径/工具/截止/预算判定与规范化，且不引入模块状态 |
@@ -45,7 +46,7 @@ policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份
 
 - **适用条件**：每次新 `task_id` 受理前的规范化与比较准备；重复 `task_id` 的比较由 M003 执行，policy 负责先把字段变成可比较形态。
 
-- **继承预算或行为保证**：policy 产出的 `ValidatedTaskSubmission` 必须是**规范化**的：path 集合排序且去重、`deadline_at` 归一到 UTC ISO-8601 instant、对象成员顺序不影响判等；M003 据此让"同 ID 同内容"稳定重放、不重检 deadline/queue/policy。
+- **继承预算或行为保证**：policy 产出的 `ValidatedTaskSubmission` 必须是**规范化**的：path 集合排序且去重、对象成员顺序不影响判等；M003 据此让"同 ID 同内容"稳定重放、不重检 queue/policy。
 
 - **可自行选择/不可改变**：不可改变：可比较字段集合与归一化语义（集合按集合比、时间按 instant 比）。可自行设计：归一化的内部实现、比较键的构造（`M-RUN-DI-002` 自由度"校验顺序"）。
 
@@ -57,17 +58,17 @@ policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份
 
 #### 1.1.2 `CON-RUN-003` · 截止与预算（PK-03）
 
-- **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-03 行）+ `piko-run.md` §3.1 `CON-RUN-003` · PK-03 · Approved。上级原文："request `deadline_at` + `max_model_calls` + `max_tool_calls`；worker 不修改 deadline 语义；budget CAS 在 `before_tool`。"
+- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文："本版不实现任务级截止/预算（见附录 B 修订记录）"——policy **不校验**任何 deadline/预算字段。
 
 - **适用条件**：每次新 `task_id` 受理；`limits` 字段存在且为整数/时间。
 
-- **继承预算或行为保证**：policy 只做**受理期静态判定**：`deadline_at` 必须是尚未耗尽的 UTC instant（否则 `DeadlineExpired`），`max_model_calls >= 1` 且 `max_tool_calls >= 0` 且在契约范围（否则 `UnsupportedLimit`）。运行期预算耗尽与 `before_tool`/`before_request` CAS 属 M006；policy 不记数、不修改语义。
+- **继承预算或行为保证**：**本版无任务级截止/预算**；policy 不做 deadline/预算判定（`PK-04` 已撤销）。
 
-- **可自行选择/不可改变**：不可改变：deadline 用持久 UTC 判定、预算字段不被 policy 改写、预算 CAS 不在此。可自行设计：校验顺序（在 path 之前或之后）、错误码选择。
+- **可自行选择/不可改变**：不可改变：policy 不引入任务级截止/预算。可自行设计：校验顺序、错误码选择。
 
 - **本地落实/内部再分配**：§8.5 `R-POLICY-DEADLINE`、§8.6 `R-POLICY-BUDGET`；§9.1.2 合同；§6.8.1 错误映射。
 
-- **验证方法与结果/证据**：局部 `VRC-POLICY-004`（deadline/budget 拒绝）；组合 PK-T05（fault 注入，运行期预算）。当前 `NOT_RUN`。
+- **验证方法与结果/证据**：局部 `VRC-POLICY-002/005`（path/工具判定）。当前 `NOT_RUN`。
 
 - **差距/变更影响/反馈责任**：none。若契约新增预算字段，本模块校验随之扩展，属契约变更。
 
@@ -131,13 +132,13 @@ policy 的可观察功能是三个进程内操作：启动期绑定工具注册�
 
 - **输入与前提**：`raw: AgentTaskRequest`（JSON/Schema 已由 M001 校验）；`principal: string`（M001 已认证）；构造注入 `profile: BoundToolProfile` 与 `config: PikoRuntimeConfig`（读 `workspace.roots`）。
 
-- **行为**：解析 `workspace_ref` 到 `workspace.roots` 内的真实根；对 `permissions.read_paths`/`permissions.write_paths`/`output_paths` 逐条规范化并校验不越界（`..`、绝对路径、symlink 指向 workspace 外一律拒绝）；确认 `permissions.tool_profile_ref` 在 `profile` 中存在且授权；校验 `limits.deadline_at` 为未来的 UTC instant、`max_model_calls >= 1`、`max_tool_calls >= 0`；规范化 path 集合（排序去重）与时间（UTC ISO-8601）；保留 `discussion?` 原样（其 membership 由 M008 验证）。返回 `ValidatedTaskSubmission`。
+- **行为**：解析 `workspace_ref` 到 `workspace.roots` 内的真实根；对 `permissions.read_paths`/`permissions.write_paths`/`output_paths` 逐条规范化并校验不越界（`..`、绝对路径、symlink 指向 workspace 外一律拒绝）；确认 `permissions.tool_profile_ref` 在 `profile` 中存在且授权；规范化 path 集合（排序去重）；保留 `discussion?` 原样（其 membership 由 M008 验证）。返回 `ValidatedTaskSubmission`。
 
 - **输出**：`ValidatedTaskSubmission`（不可变，字段与 `AgentTaskRequest` 同构但已规范化），交 M003 消费。
 
-- **错误与边界**：未知 `workspace_ref` 或路径越界 → `ScopeDenied`；`tool_profile_ref` 不在 `BoundToolProfile` → `ScopeDenied`；路径语法非法 → `InvalidRequest`；deadline 已过 → `DeadlineExpired`；预算越界/不可执行 → `UnsupportedLimit`。校验失败不产生任何持久化副作用（M003 事务尚未开始）。无身份权限后门：只接受 M001 传入的已认证 principal。
+- **错误与边界**：未知 `workspace_ref` 或路径越界 → `ScopeDenied`；`tool_profile_ref` 不在 `BoundToolProfile` → `ScopeDenied`；路径语法非法 → `InvalidRequest`。校验失败不产生任何持久化副作用（M003 事务尚未开始）。无身份权限后门：只接受 M001 传入的已认证 principal。
 
-- **验收条件**：给定合法请求，返回的 `ValidatedTaskSubmission` 的 path 集合已排序、`deadline_at` 为 UTC instant，且与输入语义等价；把 `workspace_ref` 改为不存在值返回 `ScopeDenied`；把 `deadline_at` 设为过去返回 `DeadlineExpired`；把 `max_model_calls` 设为 0 返回 `UnsupportedLimit`。
+- **验收条件**：给定合法请求，返回的 `ValidatedTaskSubmission` 的 path 集合已排序且与输入语义等价；把 `workspace_ref` 改为不存在值返回 `ScopeDenied`；`tool_profile_ref` 未授权返回 `ScopeDenied`。
 
 ### 2.3 `F-POLICY-PATH` · 规范化路径并拒绝越界
 
@@ -157,7 +158,7 @@ policy 的可观察功能是三个进程内操作：启动期绑定工具注册�
 
 ## 3. UI、CLI、服务端点或设备操作面
 
-**N/A。** policy 是纯进程内库，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是进程内函数调用（§9.1）：M000 在启动 S3 调用 `bindToolProfile`，M001 在受理时调用 `validateSubmission`。对外可观察的 HTTP 面（`POST /runs` 等）由 M001 `task-api` 承载；policy 只是 M001 判定链路中的一步。
+**N/A。** policy 是纯进程内库，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是进程内函数调用（§9.1）：M000 在启动 S3 调用 `bindToolProfile`，M001 在受理时调用 `validateSubmission`。对外可观察的 HTTP 面（`POST /tasks` 等）由 M001 `task-api` 承载；policy 只是 M001 判定链路中的一步。
 
 实际调用入口与归属：`M000 bootstrap S3 → policy.bindToolProfile`、`M001 task-api → policy.validateSubmission`、`policy.canonicalizePath`（被 validate 内部及输出/写路径复核消费），代码落位 `src/policy/`。维护/诊断入口不新增：绑定结果与失败原因经启动日志与 audit（§11）暴露。
 
@@ -171,7 +172,7 @@ policy 在进程内的位置：被 M000（启动）与 M001（受理）调用，
 flowchart LR
     B["M000 bootstrap<br/>S2/S3"] -->|"ToolRegistry"| P["M002 policy<br/>src/policy/"]
     B -->|"PikoRuntimeConfig"| P
-    A["M001 task-api<br/>POST /runs"] -->|"validateSubmission(raw, principal)"| P
+    A["M001 task-api<br/>POST /tasks"] -->|"validateSubmission(raw, principal)"| P
     P -->|"BoundToolProfile / typed error"| B
     P -->|"ValidatedTaskSubmission / PolicyViolation"| A
     A -->|"ValidatedTaskSubmission → IF-RUN-CREATE"| R["M003 task-repository"]
@@ -226,11 +227,11 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力，同进程；Owner：Piko Implementation Owner（M000 装配）。
 
-- **本模块调用或消费**：UTC wall clock，用于 deadline 判定（与持久 `deadline_at` 同口径）。
+- **本模块调用或消费**：UTC wall clock，用于 `accepted_at`/时间戳与保留期计算。
 
 - **本模块提供**：无。
 
-- **契约 authority / 版本 / selector**：`piko-run.md` §10 "deadline 用持久 UTC 判定"；契约 `Timestamp`（`format: date-time`、`Z$`）。
+- **契约 authority / 版本 / selector**：`piko-run.md` §10 时间基准；契约 `Timestamp`（`format: date-time`、`Z$`）。
 
 - **同步方式 / timeout / 生命周期**：同步取时；随进程。
 
@@ -294,11 +295,11 @@ flowchart TB
 
 - **文件 / symbol / 实现状态**：`src/policy/policy.ts` → `class PolicyService`（Planned / NOT_IMPLEMENTED）。现基线逻辑散在 `src/config.ts`（`validateToolRegistry`/`loadConfig`）与 `src/server.ts`（内联校验）。
 
-- **拆分依据与替代方案代价**：入口只做编排，把规则抽到 I1/I2/I3 以便对 path 边界、recovery 绑定、deadline/budget 做无 DB、无网络单测。替代方案"检查逻辑留在 config.ts/server.ts"是 Current 形态，代价是绑定与受理耦合、无法独立验证无状态与拒绝语义。
+- **拆分依据与替代方案代价**：入口只做编排，把规则抽到 I1/I2/I3 以便对 path 边界、recovery 绑定、工具授权做无 DB、无网络单测。替代方案"检查逻辑留在 config.ts/server.ts"是 Current 形态，代价是绑定与受理耦合、无法独立验证无状态与拒绝语义。
 
 #### 5.1.2 `I1` · SubmissionValidator（提交校验器）
 
-- **职责与非职责**：把 `AgentTaskRequest` 变成 `ValidatedTaskSubmission`：调用 I2 规范化路径、用 I3 的绑定结果校验 `tool_profile_ref`、校验 deadline/budget、执行归一化。非职责：无持久化、无网络、不解析 discussion membership。
+- **职责与非职责**：把 `AgentTaskRequest` 变成 `ValidatedTaskSubmission`：调用 I2 规范化路径、用 I3 的绑定结果校验 `tool_profile_ref`、执行归一化。非职责：无持久化、无网络、不解析 discussion membership。
 
 - **输入、处理与输出**：输入 `(raw, principal, profile, config)`；输出 `ValidatedTaskSubmission` 或 `PolicyViolation`。
 
@@ -360,9 +361,9 @@ flowchart TB
 
 #### 5.2.2 `P-POLICY-VALIDATE` · 受理校验
 
-- **入口与调用上下文**：M001 `POST /runs` handler（JSON/Schema + bearer 之后）→ `PolicyService.validateSubmission(raw, principal)`。
+- **入口与调用上下文**：M001 `POST /tasks` handler（JSON/Schema + bearer 之后）→ `PolicyService.validateSubmission(raw, principal)`。
 
-- **调用链（文件 / symbol → 文件 / symbol）**：`server.route` → `PolicyService.validateSubmission` → `SubmissionValidator.validateSubmission` → `PathPolicy.resolveWorkspace`/`canonicalizePath`（逐 path）→ 检查 `tool_profile_ref` ∈ `BoundToolProfile` → deadline/budget 校验 → `normalizeTask` → `ValidatedTaskSubmission`。
+- **调用链（文件 / symbol → 文件 / symbol）**：`server.route` → `PolicyService.validateSubmission` → `SubmissionValidator.validateSubmission` → `PathPolicy.resolveWorkspace`/`canonicalizePath`（逐 path）→ 检查 `tool_profile_ref` ∈ `BoundToolProfile` → `normalizeTask` → `ValidatedTaskSubmission`。
 
 - **逐步传递的数据**：`AgentTaskRequest` → 规范化 path 集合/UTC 时间 → `ValidatedTaskSubmission`；任一步失败 → `PolicyViolation`。
 
@@ -498,18 +499,16 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
     workspace_ref: string,           // 已解析到 workspace.roots 内的真实根
     permissions: { read_paths: string[]; write_paths: string[];
                    tool_profile_ref: string },  // path 已排序去重
-    limits: { deadline_at: string;   // UTC instant（Z），未来
-              max_model_calls: number; max_tool_calls: number },
     output_paths: string[],          // 已排序去重
     discussion: { room_id: string; trigger_event_id: string } | null
   }
   ```
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`read_paths`/`write_paths`/`output_paths` 为规范化 RelPath 集合（排序、去重、非绝对、无 `..`），且每条均在 workspace 内且落在授权集合内；`deadline_at` 为 UTC ISO-8601 instant 且晚于受理时刻；`max_model_calls >= 1`、`max_tool_calls >= 0`；`tool_profile_ref` 必须在 `BoundToolProfile.tools` 中存在。`discussion` 缺省为 `null`。跨字段：`output_paths` 中每条必须落在 `read_paths`/`write_paths` 的授权并集内。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`read_paths`/`write_paths`/`output_paths` 为规范化 RelPath 集合（排序、去重、非绝对、无 `..`），且每条均在 workspace 内且落在授权集合内；`tool_profile_ref` 必须在 `BoundToolProfile.tools` 中存在。`discussion` 缺省为 `null`。跨字段：`output_paths` 中每条必须落在 `read_paths`/`write_paths` 的授权并集内。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 `PolicyService.validateSubmission` 构造并冻结；所有权随返回移交 M001（M001 交给 M003 持久化 `task_json`）；寿命 = 请求寿命；失败出口为 `PolicyViolation`（不落库、不创建 Run）。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法示例见 §9.1.2。拒绝：`output_paths=["../secret"]`（`ScopeDenied`）、`deadline_at` 在过去（`DeadlineExpired`）、`max_model_calls=0`（`UnsupportedLimit`）。`VRC-POLICY-002/004/005`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法示例见 §9.1.2。拒绝：`output_paths=["../secret"]`（`ScopeDenied`）、`tool_profile_ref` 未授权（`ScopeDenied`）。`VRC-POLICY-002/004/005`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
@@ -549,17 +548,17 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
   ```text
   class PolicyViolation extends Error {
-    code: "InvalidRequest" | "ScopeDenied" | "UnsupportedLimit" | "DeadlineExpired",
+    code: "InvalidRequest" | "ScopeDenied",
     detail: string
   }
   class ToolBindFailure extends Error { code: "tool-bind-fail", detail: string }
   ```
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`code` 取值受限于上表四值（提交期）与启动期的 `tool-bind-fail`；`detail` 为脱敏的人类可读原因（不得含绝对路径明文）。四值不可互换：`InvalidRequest`=语法/未知字段/形状；`ScopeDenied`=路径/工具/workspace 越权；`UnsupportedLimit`=预算不可执行；`DeadlineExpired`=受理前已过截止。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`code` 取值受限于上表三值（提交期）与启动期的 `tool-bind-fail`；`detail` 为脱敏的人类可读原因（不得含绝对路径明文）。三值不可互换：`InvalidRequest`=语法/未知字段/形状；`ScopeDenied`=路径/工具/workspace 越权。
 
-- **生产/修改、所有权、可见点、寿命及失败出口**：由 `SubmissionValidator`/`PathPolicy` 产生，经 M001 `catch` 映射为对应 HTTP 4xx（`InvalidRequest`→400、`ScopeDenied`→403、`UnsupportedLimit`/`DeadlineExpired`→422）；`ToolBindFailure` 由 `ToolBinder` 在 S3 抛出，交 M000 走 F1 并写启动日志/audit。
+- **生产/修改、所有权、可见点、寿命及失败出口**：由 `SubmissionValidator`/`PathPolicy` 产生，经 M001 `catch` 映射为对应 HTTP 4xx（`InvalidRequest`→400、`ScopeDenied`→403）；`ToolBindFailure` 由 `ToolBinder` 在 S3 抛出，交 M000 走 F1 并写启动日志/audit。
 
-- **合法与拒绝实例、V/Case 与证据状态**：路径越界 → `ScopeDenied`（合法拒绝）；deadline 已过 → `DeadlineExpired`（合法拒绝）；用合法输入却被拒 → 不合法，需查（`VRC-POLICY-002`）。`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：路径越界 → `ScopeDenied`（合法拒绝）；工具未授权 → `ScopeDenied`（合法拒绝）；用合法输入却被拒 → 不合法，需查（`VRC-POLICY-002`）。`NOT_RUN`。
 
 - **下级承接与载荷**：M001 承接四值并映射 HTTP（不映射为 5xx）；M000 承接 `ToolBindFailure`。均不进入持久化，不创建 Run。
 
@@ -587,14 +586,10 @@ flowchart TD
     C -->|否| Z2["ScopeDenied / InvalidRequest"]
     C -->|是| D{"tool_profile_ref 在 BoundToolProfile？"}
     D -->|否| Z3["ScopeDenied"]
-    D -->|是| E{"deadline_at 晚于当前 UTC？"}
-    E -->|否| Z4["DeadlineExpired"]
-    E -->|是| F{"预算字段在范围内？"}
-    F -->|否| Z5["UnsupportedLimit"]
-    F -->|是| G["normalizeTask（集合排序/UTC）→ ValidatedTaskSubmission"]
+    D -->|是| G["normalizeTask（集合排序）→ ValidatedTaskSubmission"]
 ```
 
-图 M-POL-P2 · Target / Planned / NOT_BUILT。正常与拒绝在同一图展开：拒绝不创建状态、不消耗任何持久资源（M003 事务尚未开始）。校验顺序为 workspace → path → tool → deadline → budget（`M-RUN-DI-002` 自由度允许在固定语义内调整顺序）。
+图 M-POL-P2 · Target / Planned / NOT_BUILT。正常与拒绝在同一图展开：拒绝不创建状态、不消耗任何持久资源（M003 事务尚未开始）。校验顺序为 workspace → path → tool（`M-RUN-DI-002` 自由度允许在固定语义内调整顺序）。
 
 ```mermaid
 sequenceDiagram
@@ -631,7 +626,7 @@ sequenceDiagram
 
 - **输入前提 / 适用条件**：`validateSubmission` 末端；全部路径与预算已通过校验。
 
-- **算法 / 规则 / 选择依据**：path 集合按字典序排序并去重；`deadline_at` 转 UTC ISO-8601（`Z`）；对象成员顺序不作为判等依据；`discussion` 缺省归一为 `null`。选择依据：`CON-RUN-002` 要求同 ID 同内容稳定重放，M003 的比较必须与 policy 的归一化一致。当前实现事实：`src/task-equality.ts` `normalizedTask`（排序 + `toISOString`）。
+- **算法 / 规则 / 选择依据**：path 集合按字典序排序并去重；对象成员顺序不作为判等依据；`discussion` 缺省归一为 `null`。选择依据：`CON-RUN-002` 要求同 ID 同内容稳定重放，M003 的比较必须与 policy 的归一化一致。当前实现事实：`src/task-equality.ts` `normalizedTask`（排序 + `toISOString`）。
 
 - **结果 / 不变量 / 边界**：结果 = 确定性规范形态（同一逻辑输入恒等）。边界：集合比较对重复项去重；时间比较按 instant 而非字符串字面。
 
@@ -683,33 +678,9 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`tool_profile_ref` 不存在 → `ScopeDenied`；`write_paths` 含 workspace 外 → `ScopeDenied`。`VRC-POLICY-005`。
 
-#### 8.5 `R-POLICY-DEADLINE` · 截止判定
+#### 8.5 截止/预算判定 · N/A
 
-- **输入前提 / 适用条件**：`limits.deadline_at` 存在且为 `Timestamp`。
-
-- **算法 / 规则 / 选择依据**：解析为 UTC instant，要求 `deadline_at > now_utc`（受理前已过 → `DeadlineExpired`）。选择依据：`CON-RUN-003` "deadline 用持久 UTC 判定；worker 不修改 deadline 语义"。policy 只在受理瞬间判一次；运行期耗尽由 M006 按持久 UTC 判定。
-
-- **结果 / 不变量 / 边界**：结果 = 通过或 `DeadlineExpired`。边界：非法时间字面由 M001 schema 先拒（`InvalidRequest`）；policy 不将"等于 now"视为有效（严格大于）。
-
-- **复杂度 / 资源限制**：O(1)。
-
-- **允许替换范围 / 不可改变保证**：可换比较实现；不可改用本地时区或非 UTC 时钟。
-
-- **具体输入推演 / 验证项**：`deadline_at = now+60s` → 通过；`deadline_at = now-1s` → `DeadlineExpired`。`VRC-POLICY-004`。
-
-#### 8.6 `R-POLICY-BUDGET` · 预算字段判定
-
-- **输入前提 / 适用条件**：`limits.max_model_calls`/`max_tool_calls`。
-
-- **算法 / 规则 / 选择依据**：要求 `max_model_calls` 为整数且 `>= 1`、`max_tool_calls` 为整数且 `>= 0`，且在契约上限（`<= 100000`）内；否则 `UnsupportedLimit`。选择依据：`CON-RUN-003` "Piko cannot enforce a requested task limit → `UnsupportedLimit`"。policy 不计数、不改写字段。
-
-- **结果 / 不变量 / 边界**：结果 = 通过或 `UnsupportedLimit`。边界：`max_tool_calls = 0` 合法（禁止工具）。
-
-- **复杂度 / 资源限制**：O(1)。
-
-- **允许替换范围 / 不可改变保证**：可换比较实现；不可放宽到超出实例可执行能力的值。
-
-- **具体输入推演 / 验证项**：`{max_model_calls:1, max_tool_calls:0}` → 通过；`{max_model_calls:0}` → `UnsupportedLimit`。`VRC-POLICY-004`。
+**N/A · 本版撤销**：`PK-04` 撤销，policy 不判定任何任务级 deadline/预算字段；原 `R-POLICY-DEADLINE` / `R-POLICY-BUDGET` 已移除。
 
 ## 9. 接口设计
 
@@ -737,9 +708,9 @@ policy 的对外接口是三个进程内函数；被消费的跨模块接口是 
 
 - **输入与前提**：`raw: AgentTaskRequest`（M001 已完成 JSON/Schema）；`principal: string`（M001 已认证）；构造注入 `profile: BoundToolProfile` 与 `config: PikoRuntimeConfig`。前提：进程 READY。
 
-- **成功输出与保证**：返回冻结 `ValidatedTaskSubmission`；保证 workspace 可解析、全部 path 在界内且规范化、`tool_profile_ref` 授权、deadline 未过、预算在范围；不产生任何持久副作用。
+- **成功输出与保证**：返回冻结 `ValidatedTaskSubmission`；保证 workspace 可解析、全部 path 在界内且规范化、`tool_profile_ref` 授权；不产生任何持久副作用。
 
-- **错误与合法下一步**：未知 workspace/路径越界/工具未授权 → `ScopeDenied`（403）；路径语法非法 → `InvalidRequest`（400）；预算不可执行 → `UnsupportedLimit`（422）；deadline 已过 → `DeadlineExpired`（422）。合法下一步 = 修正请求后用同 `task_id` 重试（未创建任务时）。不使用"返回错误对象"表达拒绝。
+- **错误与合法下一步**：未知 workspace/路径越界/工具未授权 → `ScopeDenied`（403）；路径语法非法 → `InvalidRequest`（400）；**本版无 deadline/预算**。合法下一步 = 修正请求后用同 `task_id` 重试（未创建任务时）。不使用"返回错误对象"表达拒绝。
 
 - **交互与生命周期**：同步（含对 FS 的异步 `realpath`）；无共享状态；输出寿命 = 请求寿命。
 
@@ -792,7 +763,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 #### 10.1 `C-POLICY-01` · 并发受理校验独立
 
-- **初始条件 / 并发交错 / 失败点**：多个 `POST /runs` 在事件循环上交错进入 `validateSubmission`。失败点：无（纯函数式判定，无共享可变状态）。
+- **初始条件 / 并发交错 / 失败点**：多个 `POST /tasks` 在事件循环上交错进入 `validateSubmission`。失败点：无（纯函数式判定，无共享可变状态）。
 
 - **检测事实 / authority / 期限**：每个调用只依赖其输入与真实 FS；无跨调用状态可竞争。
 
@@ -1213,7 +1184,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 #### 14.2.2 `VRC-POLICY-002` · 受理校验与规范化
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-VALIDATE`；`R-POLICY-NORMALIZE`；`CON-RUN-002`；`IF-RUN-VALIDATE`。
-- **Case / 正常、边界与失败输入**：A：合法请求 → `ValidatedTaskSubmission` 且 path 排序、时间 UTC。B：`output_paths` 无序/重复 → 归一为排序去重。C：`deadline_at` 带偏移 → 归一为同 UTC instant。D：`discussion` 缺省 → `null`。
+- **Case / 正常、边界与失败输入**：A：合法请求 → `ValidatedTaskSubmission` 且 path 排序、时间 UTC。B：`output_paths` 无序/重复 → 归一为排序去重。C：path 集合顺序变化 → 归一为同集合。D：`discussion` 缺省 → `null`。
 - **环境 / 配置 / 隔离与复位**：临时 workspace 目录 + 注入 `BoundToolProfile`/`PikoRuntimeConfig`；每 Case 独立输入。
 - **独立 Oracle / Expected**：Oracle = 期望 `ValidatedTaskSubmission` 常量（独立按 `normalizedTask` 复算）；Expected 同 Case。
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
@@ -1229,16 +1200,6 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T12。
-
-#### 14.2.4 `VRC-POLICY-004` · deadline 与预算拒绝
-
-- **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-VALIDATE`；`R-POLICY-DEADLINE`/`R-POLICY-BUDGET`；`CON-RUN-003`。
-- **Case / 正常、边界与失败输入**：A：`deadline_at=now+60s`、预算合法 → 通过。B：`deadline_at=now-1s` → `DeadlineExpired`。C：`max_model_calls=0` → `UnsupportedLimit`。D：`max_tool_calls=0` → 通过（边界）。E：预算超契约上限 → `UnsupportedLimit`。
-- **环境 / 配置 / 隔离与复位**：注入假时钟 + `BoundToolProfile`；每 Case 独立输入。
-- **独立 Oracle / Expected**：Oracle = 期望错误码 / 通过事实 + "未创建持久化"；Expected 同 Case。
-- **Actual / Evidence / Run ID**：`NOT_RUN`。
-- **Verdict / 状态**：`NOT_RUN`。
-- **父级组合验证交接**：PK-T05。
 
 #### 14.2.5 `VRC-POLICY-005` · 权限交集与工具授权
 
@@ -1307,15 +1268,6 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐写路径由 M006 打开文件时再次经受 OS 层约束，policy 只保证判定时刻结论；不引入额外锁。
 - **关闭条件 / 决定或当前状态**：实现按"判定即结论、写方自查"落地。当前 Open。
 
-#### 15.6 `RISK-POLICY-002` · deadline 判定的时钟口径
-
-- **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-POLICY-DEADLINE`、`DEP-POLICY-CLOCK`。
-- **事实缺口 / 触发条件**：受理瞬间用 UTC wall clock 判定，若宿主时钟被回拨，可能接受本已过期的 deadline（或反之）。
-- **影响 / 阻塞边界**：单实例本地主机；不阻塞。
-- **Owner / 最晚关闭 Gate**：Piko Implementation Owner；实现评审时确认。
-- **选项 / 推荐 / 下一步取证**：推荐与 M006 运行期耗尽判定同用持久 UTC；部署侧保证 NTP。
-- **关闭条件 / 决定或当前状态**：实现采用 UTC 并在文档记录口径。当前 Open。
-
 #### 15.7 `15.ISD` · 实现规格采用方式
 
 - **采用模式**：`separate`（独立 ISD `piko-policy-impl` 已建立）。
@@ -1336,7 +1288,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-002`（下游 `policy`，固定输入 config + registry，约束 PK-03，自由度校验顺序）；§14.2 步骤 "请求/路径/工具判定 M002 → 原始请求 → ValidatedTaskSubmission"。
 
-- **本模块必须负责的行为与保证**：把 `AgentTaskRequest` 校验并规范化为 `ValidatedTaskSubmission`；path 集合按集合比、时间按 UTC instant；deadline/budget 受理期判定；不产生持久副作用。
+- **本模块必须负责的行为与保证**：把 `AgentTaskRequest` 校验并规范化为 `ValidatedTaskSubmission`；path 集合按集合比；不产生持久副作用。
 
 - **本模块提供 / 消费的接口**：提供 `IF-RUN-VALIDATE`；消费 `IF-POLICY-CONFIG`（M000）。
 

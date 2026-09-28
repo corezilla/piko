@@ -45,7 +45,7 @@
 
 ## 3. Test Strategy 与 Coverage Model
 
-- 以**组件 × 失败模式**为覆盖模型，而非样例数量：Auth/API、Matrix intake/membership/media、Worker usage/failure/deadline/cancellation/error-mapping、Discussion writer 顺序与收尾、Tool policy/recovery/ledger、Usage validator/persistence、Config 注册与部署边界。
+- 以**组件 × 失败模式**为覆盖模型，而非样例数量：Auth/API、Matrix intake/membership/media、Worker usage/failure/cancellation/error-mapping、Discussion writer 顺序与收尾、Tool policy/recovery/ledger、Usage validator/persistence、Config 注册与部署边界。
 - 纯函数与 Store 语义优先；异常与竞态次之；Matrix 用假 client/fetch；HTTP 负例用随机 loopback 端口。
 - 完成标准：§4 全部用例自动化并通过；`npm run check`（TypeScript + Vitest + 机器契约）通过；测试不访问公网、不依赖既有数据库、不留临时文件；发现的实现缺陷先修复再保留回归用例。
 
@@ -55,7 +55,7 @@
 |---|---|---|---|
 | UT-HTTP-01 | Auth/API | 缺失、格式错误及错误 bearer | 401；保留/生成 request ID；不访问 Store |
 | UT-HTTP-02 | API Schema | 非法 JSON、未知字段和外部 model selector | 400 `InvalidRequest` |
-| UT-HTTP-03 | API identity | 重复任务、冲突定义及不可用 Result | 原 Run；409 `TaskConflict`；409 `RunNotTerminal` |
+| UT-HTTP-03 | API identity | 重复任务、冲突定义及不可用 Result | 原 Run；409 `TaskConflict`；409 `TaskNotTerminal` |
 | UT-HTTP-04 | API admission | 队列满与依赖异常 | 429/503 且返回 `retry-after` |
 | UT-MX-01 | Matrix intake | 房间路由、自身 echo、event dedup、cursor 原子提交 | 只为 Open 且同 room 的 Run 插入一次 turn；cursor 最后提交 |
 | UT-MX-02 | Matrix membership | sync 前成员资格撤销 | batch 失败且 cursor 不推进 |
@@ -64,7 +64,7 @@
 | UT-MX-05 | Matrix media | 合法附件与文件名净化 | 字节一致、路径位于 run staging、文件名无越界片段 |
 | UT-WRK-01 | Usage aggregate | 无 usage attempt 与逐字段缺失 | Unknown/Partial 语义及 null 字段正确 |
 | UT-WRK-02 | Failure result | 异常前已有输出 | Failed、partial=true、输出 hash/size 保留 |
-| UT-WRK-03 | Deadline | 执行开始前 deadline 已过 | Failed/DeadlineExceeded，Pi 不被调用 |
+| UT-WRK-03 | Deadline | **N/A · 本版撤销**：`PK-04` 撤销。 | — |
 | UT-WRK-04 | Cancellation | cancel 与执行失败竞态 | CancelledByRequest 优先，终态只有一个 Result |
 | UT-WRK-05 | Error mapping | 非字符串 `Error.cause` | 合法 `Internal` cause_class，不泄露对象 |
 | UT-DISC-01 | Discussion | turn 插入与 Open→Closing 两种 writer 顺序 | turn-before-close 被消费；close-before-turn 被拒绝 |
@@ -73,7 +73,7 @@
 | UT-DISC-04 | Discussion | Completed 守卫 | 非 Closing 或仍有 pending 时拒绝完成 |
 | UT-TOOL-01 | Tool policy | read-only safe 与 registry binding | 只接受已注册、适用的实现 |
 | UT-TOOL-02 | Tool recovery | write/edit 未执行、已执行及漂移 | 分别重放、确认、不确定失败 |
-| UT-TOOL-03 | Tool ledger | logical call 重入与 never replay | 预算只计一次；never 重入 UnsafeRetryBlocked |
+| UT-TOOL-03 | Tool ledger | logical call 重入与 never replay | 只计一次 tool_calls；never 重入 UnsafeRetryBlocked |
 | UT-TOOL-04 | Tool recovery | 损坏或不匹配 memo | fail closed，不执行副作用 |
 | UT-USG-01 | Usage validator | attempt、总量、cache、reasoning 算术反例 | 各反例均拒绝 |
 | UT-USG-02 | Usage validator | Complete/Partial/Unknown 与 missing_fields | quality、null 和 missing 集合严格一致 |
@@ -109,7 +109,7 @@
 
 ## 9. Defect、Deviation、Rerun 与 Regression
 
-- 本轮定向执行首次出现**两项测试夹具错误**：① 重复提交夹具每次生成不同 deadline；② Matrix intake 断言未排除初始 trigger turn。均为测试构造问题，修正后定向测试 41/41、全量 59/59 通过。
+- 本轮定向执行首次出现**两项测试夹具错误**：① 重复提交夹具每次生成不同字段值；② Matrix intake 断言未排除初始 trigger turn。均为测试构造问题，修正后定向测试 41/41、全量 59/59 通过。
 - **未发现新的运行时代码缺陷**。
 - 后续发现的实现缺陷按"先修 + 保留回归用例"处理。
 

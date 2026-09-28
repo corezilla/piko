@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix-adapter` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -25,7 +25,8 @@ matrix-adapter 只做协议封装与 sync 事实，**不管理 homeserver 内部
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M008 / `matrix-adapter` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P1 执行进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表（M008 行）+ §3.4 约束分配；本模块登记见 §3.2 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | discussion 事件恰好一次进入 Pi；Matrix 发送在响应丢失时可判定；homeserver 故障/限流/权限丢失可按事实收口 |
@@ -448,7 +449,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`room_id` 必填、`!...:...` 形式；`trigger_event_id` 必填、`$...` 形式；二者必须同属一个 homeserver 且 `room_id` 必须是本身份已 join 的房间（运行期校验）。跨字段：`trigger_event_id` 事件对象的 `room_id` 必须等于 `room_id`。
 
-- **生产/修改、所有权、可见点、寿命及失败出口**：由 M001 从 `RunSubmitRequest.discussion` 构造并传入；请求寿命；不可变值对象。校验失败出口 = `InvalidDiscussionContext`。
+- **生产/修改、所有权、可见点、寿命及失败出口**：由 M001 从 `TaskSubmitRequest.discussion` 构造并传入；请求寿命；不可变值对象。校验失败出口 = `InvalidDiscussionContext`。
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法 `{room_id:"!r-7:hs", trigger_event_id:"$e-7"}`。拒绝：`trigger_event_id` 指向其它 room、起点为 `m.room.encrypted`。`VRC-MATRIX-001`；`NOT_RUN`。
 
@@ -477,7 +478,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
   ```text
   MatchEvent { room: string, event: string, sender: string, txn?: string, turns: {run:string; visible:string}[] }
-  MatrixSendRecord { txn_id: string, run_id: string, turn_seq: number, payload_sha256: string,
+  MatrixSendRecord { txn_id: string, task_id: string, turn_seq: number, payload_sha256: string,
                      event_id: string | null, state: "Pending"|"Sent"|"Unknown" }
   ```
 
@@ -485,7 +486,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：`MatchEvent` 由 I1 生产、`ingestMatrixBatch` 消费；`MatrixSendRecord` 由 `prepareMatrixSend` 写、`finishMatrixSend`/`unknownMatrixSend` 推进。均随 Run 寿命。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `MatchEvent{room:"!r-7:hs", event:"$e-8", sender:"@pm:hs", turns:[{run:"run-042", visible:"also check tests"}]}`。拒绝：`txn_id` 相同但 `payload_sha256` 不同（`TaskConflict`）。`VRC-MATRIX-002/003`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法 `MatchEvent{room:"!r-7:hs", event:"$e-8", sender:"@pm:hs", turns:[{run:"task-042", visible:"also check tests"}]}`。拒绝：`txn_id` 相同但 `payload_sha256` 不同（`TaskConflict`）。`VRC-MATRIX-002/003`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
@@ -525,7 +526,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：本模块经 `discussion_turns.visible_content` 提供 `visible_content`；M005 构造、M006 投影。寿命随 turn。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法 `{event_id:"$e-8", visible_content:"also check tests\n[Matrix attachment: .../run-042/$e-8-x (image/png, 2048 bytes)]"}`。拒绝：`visible_content` 空；`event_id` 进入 provider input。`VRC-MATRIX-005`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法 `{event_id:"$e-8", visible_content:"also check tests\n[Matrix attachment: .../task-042/$e-8-x (image/png, 2048 bytes)]"}`。拒绝：`visible_content` 空；`event_id` 进入 provider input。`VRC-MATRIX-005`；`NOT_RUN`。
 
 ### 6.6 运行状态数据结构
 
@@ -578,7 +579,7 @@ stateDiagram-v2
   - `INV-MX-1`：同一时刻至多一个 configured 身份，`whoami` 一致；token 只在内存/Bearer，不入 DB/日志/Result。
   - `INV-MX-2`：`started=false` 时任何业务操作（verify/sync/send）不可执行。
   - `INV-MX-3`：`matrix_state.sync_cursor` 只在本批（含回补）已写 turn 后事务内推进；失败批不推进。
-  - `INV-MX-4`：同一已接收 `event_id` 恰好落一个 turn（`(run_id, event_id)` 去重）；`m.room.encrypted` 不生成 turn。
+  - `INV-MX-4`：同一已接收 `event_id` 恰好落一个 turn（`(task_id, event_id)` 去重）；`m.room.encrypted` 不生成 turn。
   - `INV-MX-5`：`matrix_sends` 同 `txn_id` 只对应一个 `payload_sha256`；异 payload 复用被 `TaskConflict` 拒。
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`READY{cursor:"s100", started:true}`。拒绝：`started=false` 却调用 `syncOnce`（违反 `INV-MX-2`）；同 `txn_id` 两个 `payload_sha256`（违反 `INV-MX-5`）。`VRC-MATRIX-001/002/003`；`NOT_RUN`。
@@ -592,7 +593,7 @@ stateDiagram-v2
   ```text
   matrix_state  { singleton INTEGER PRIMARY KEY CHECK(singleton=1), sync_cursor TEXT, membership_version INTEGER NOT NULL }
   matrix_events { room_id TEXT, event_id TEXT, sender TEXT, txn_id TEXT, observed_at TEXT, PRIMARY KEY(room_id,event_id) }
-  matrix_sends  { txn_id TEXT PRIMARY KEY, run_id TEXT REFERENCES runs(run_id), turn_seq INTEGER,
+  matrix_sends  { txn_id TEXT PRIMARY KEY, task_id TEXT REFERENCES runs(task_id), turn_seq INTEGER,
                   payload_sha256 TEXT NOT NULL, event_id TEXT, state TEXT CHECK(state IN('Pending','Sent','Unknown')) }
   -- 本模块写：matrix_state.sync_cursor（经 ingestMatrixBatch）、matrix_events、discussion_turns、matrix_sends
   ```
@@ -775,7 +776,7 @@ flowchart TD
 
 - **输入前提 / 适用条件**：`sendDiscussionReply`。
 
-- **算法 / 规则 / 选择依据**：`txn_id = <instance_id>:<run_id>:turn:<turn_seq>:<action>`（action 如 `assistant`），`payload_sha256 = sha256(JSON({room,event,body}))`；先 `prepareMatrixSend`，若现存 txn：同 sha 且 `Sent` 返回原 `event_id`，同 sha 未 Sent 继续发送，异 sha 抛 `TaskConflict`。发送成功 `finishMatrixSend`、失败 `unknownMatrixSend`。选择依据：`piko-matrix.md` §4.6.1 "同 payload retry 复用同 txn；不同 payload 不得复用 txn"。
+- **算法 / 规则 / 选择依据**：`txn_id = <instance_id>:<task_id>:turn:<turn_seq>:<action>`（action 如 `assistant`），`payload_sha256 = sha256(JSON({room,event,body}))`；先 `prepareMatrixSend`，若现存 txn：同 sha 且 `Sent` 返回原 `event_id`，同 sha 未 Sent 继续发送，异 sha 抛 `TaskConflict`。发送成功 `finishMatrixSend`、失败 `unknownMatrixSend`。选择依据：`piko-matrix.md` §4.6.1 "同 payload retry 复用同 txn；不同 payload 不得复用 txn"。
 
 - **结果 / 不变量 / 边界**：`INV-MX-5`。边界：`Unknown` 状态下同 payload 重试复用同 txn（Matrix 侧去重）；不得新 txn。
 
@@ -1014,7 +1015,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 | `piko.matrix.sync.lag` | M008 sync 前后单调时钟 → M009 采集 | 秒 / 当前 / monotonic | instance + cursor | 重启重置；不跨代次相加 | 指标无保留；低开销 |
 | `event.matrix.sync` | 每批 sync | 事件 / batch | room_id + cursor | 不聚合 | 日志按 ops 留存 |
 | `event.matrix.send` | 每次 send | 事件 / request | txn_id + event_id | 不聚合 | 日志按 ops 留存 |
-| `event.matrix.turn` | 每次 turn 状态变化 | 事件 / 状态 | run_id + event_id + turn_seq | 不聚合 | 日志按 ops 留存 |
+| `event.matrix.turn` | 每次 turn 状态变化 | 事件 / 状态 | task_id + event_id + turn_seq | 不聚合 | 日志按 ops 留存 |
 
 时间口径：`origin_server_ts` 仅排序参考；Piko 权威时间为持久 UTC + monotonic（§8.3）。日志关联字段：`room_id`/`event_id`/`txn_id`/`cursor`/errcode；**不含** access token、附件字节、绝对路径之外的身份。
 

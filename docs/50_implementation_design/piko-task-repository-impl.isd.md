@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-task-repository-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 
@@ -90,7 +90,7 @@
 
 - **唯一权威位置**：签名与语义 = 模块设计 §9.1.5–9.1.10；SQL/事务 = 本 ISD。
 
-- **实现自由度**：SQL/索引；不可改 epoch 单调、FIFO 二级键、`(run_id,epoch)` CAS。
+- **实现自由度**：SQL/索引；不可改 epoch 单调、FIFO 二级键、`(task_id,epoch)` CAS。
 
 - **原 V/Case 及本地验证位置**：`VRC-REPO-003`（Case A–F）。
 
@@ -180,7 +180,7 @@
 
 - **文件 / symbol**：`src/store.ts` `finish`/`cancel` 内联 CAS（既有）→ Planned `src/store/fence.ts` `matchesGeneration`/`matchesEpoch`/`stateIn`/`nextGeneration` + `src/store/index.ts` `mutateRun`。
 
-- **Current 行为**：`finish` 仅按 `(run_id, lease_epoch)` 校验 slot，未显式按 `runs.generation` CAS；`cancel` 直接 `UPDATE runs`（无 generation guard）。
+- **Current 行为**：`finish` 仅按 `(task_id, lease_epoch)` 校验 slot，未显式按 `runs.generation` CAS；`cancel` 直接 `UPDATE runs`（无 generation guard）。
 
 - **Target 改动与理由**：所有状态写入改为 `FencedRunCommand` 形式的 `generation` + `lease_epoch` CAS，命中才 `generation+1`。理由：`CON-RUN-001` 要求过期写入被确定性拒绝；把 guard 抽为纯函数以便 `VRC-REPO-004` 表驱动。
 
@@ -239,7 +239,7 @@ flowchart LR
     subgraph SRC["src/store/ (Planned)"]
         direction TB
         T["types.ts<br/>RunRecord/TaskRecord/CreateRunOutcome/FencedRunCommand/错误"]
-        A["acceptance.ts<br/>纯函数：sameTask/classifyExisting/queueAdmitted/deadlineAdmitted"]
+        A["acceptance.ts<br/>纯函数：sameTask/classifyExisting/queueAdmitted"]
         F["fence.ts<br/>纯函数：matchesGeneration/matchesEpoch/stateIn/nextGeneration"]
         SL["slot.ts<br/>六个 IF-SCHED-STORE 原语"]
         M["schema.ts<br/>DDL + user_version 迁移"]
@@ -282,7 +282,7 @@ flowchart LR
 
 - **职责及调用者**：纯函数受理与身份比较；被 `index.ts` 调用。
 
-- **类型 / 函数**：`sameTask(a, b): boolean`、`classifyExisting(identity_state, same): CreateRunOutcome["kind"]`、`queueAdmitted(queuedCount, capacity): boolean`、`deadlineAdmitted(deadline_at, now): boolean`、`initialRun(): {state: "Queued", generation: 1}`。
+- **类型 / 函数**：`sameTask(a, b): boolean`、`classifyExisting(identity_state, same): CreateRunOutcome["kind"]`、`queueAdmitted(queuedCount, capacity): boolean`、`initialRun(): {state: "Queued", generation: 1}`。
 
 - **可见性**：模块内 public。
 
@@ -352,7 +352,7 @@ flowchart LR
 
 - **职责及调用者**：既有单文件实现；Target 收敛为 `TaskRepository` 的兼容层或删除，保留 `PRAGMA`/DDL 常量迁移到 `schema.ts`。被 `src/main.ts` 与既有测试引用。
 
-- **类型 / 函数**：`TaskStore`（现导出）；过渡期保留 `createOrGet`/`getRun`/`finish` 等入口并转发。
+- **类型 / 函数**：`TaskStore`（现导出）；过渡期保留 `createOrGet`/`getTask`/`finish` 等入口并转发。
 
 - **可见性**：public（同级模块）。
 
@@ -384,19 +384,19 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举
 
-#### 4.1.1 `RunState` / `DiscussionIntakeState` / `TurnStatus`
+#### 4.1.1 `TaskState` / `DiscussionIntakeState` / `TurnStatus`
 
 - **代码式声明、Data/Type ID 与唯一来源**：
 
   ```ts
-  type RunState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled";
+  type TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled";
   type DiscussionIntakeState = "Disabled" | "Open" | "Closing" | "Closed";
   type TurnStatus = "Pending" | "QueuedInPi" | "Consumed" | "Abandoned";
   ```
 
-  来源：`system-design` §7.1 与 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.RunState`；本模块为持久化唯一写者。
+  来源：`system-design` §7.1 与 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.TaskState`；本模块为持久化唯一写者。
 
-- **逐值定义、范围和未知值行为**：`RunState` 单调向终态；未知值由 DB CHECK 拒绝。`DiscussionIntakeState` 非 discussion 恒 `Disabled`。`TurnStatus` 仅按 §4.2.4 转换推进。
+- **逐值定义、范围和未知值行为**：`TaskState` 单调向终态；未知值由 DB CHECK 拒绝。`DiscussionIntakeState` 非 discussion 恒 `Disabled`。`TurnStatus` 仅按 §4.2.4 转换推进。
 
 - **代码类型/symbol、转换点与失败映射**：定义于 `src/store/types.ts`；非法转换由 SQL CHECK 或 guard 拒绝，映射为 `FencedWrite`。
 
@@ -412,22 +412,21 @@ flowchart LR
 
   ```ts
   interface TaskRecord {
-    task_id: string; run_id: string; owner_principal: string;
+    task_id: string; task_id: string; owner_principal: string;
     identity_state: "Active" | "Tombstone";
     task_json: string | null; accepted_at: string; purge_after: string;
   }
   interface RunRecord {
-    run_id: string; state: RunState; generation: number;
+    task_id: string; state: TaskState; generation: number;
     cancel_requested: 0 | 1; discussion_intake_state: DiscussionIntakeState;
     accepted_at: string; started_at: string | null; finished_at: string | null;
-    deadline_at: string; max_model_calls: number; max_tool_calls: number;
     model_calls: number; tool_calls: number; last_activity_at: string | null;
   }
   ```
 
   来源：模块设计 §6.2.1；DDL 见 §4.7.1。
 
-- **逐字段定义、条件有效性和跨字段不变量**：`identity_state='Tombstone' ⟺ task_json IS NULL`；`run_id` UNIQUE；`generation>=1`；终态 ⟹ `finished_at` 非空；`Completed ⟹ cancel_requested=0`；`Cancelled ⟹ cancel_requested=1`。
+- **逐字段定义、条件有效性和跨字段不变量**：`identity_state='Tombstone' ⟺ task_json IS NULL`；`task_id` UNIQUE；`generation>=1`；终态 ⟹ `finished_at` 非空；`Completed ⟹ cancel_requested=0`；`Cancelled ⟹ cancel_requested=1`。
 
 - **代码文件/symbol、编码或投影函数**：`src/store/types.ts`；行到对象的投影由 SQLite 返回列直接构造（下划线命名，无需转换）。
 
@@ -440,14 +439,14 @@ flowchart LR
 - **代码式声明、Data/Type ID 与固定来源**：
 
   ```ts
-  type CreateRunKind = "created" | "existing" | "conflict" | "tombstone" | "deadline_expired" | "queue_full";
-  interface CreateRunOutcome { kind: CreateRunKind; run_id?: string; generation?: number; state?: RunState }
+  type CreateRunKind = "created" | "existing" | "conflict" | "tombstone" | "queue_full";
+  interface CreateRunOutcome { kind: CreateRunKind; task_id?: string; generation?: number; state?: TaskState }
   type MutationSpec = "bump_generation" | "request_cancel" | "set_intake" | "terminal";
   interface FencedRunCommand {
-    run_id: string; expected_generation: number; expected_state_in: RunState[];
+    task_id: string; expected_generation: number; expected_state_in: TaskState[];
     expected_lease_epoch?: number; mutation: MutationSpec;
   }
-  interface FencedPublishResult { run_id: string; generation: number; result_json: string; result_sha256: string }
+  interface FencedPublishResult { task_id: string; generation: number; result_json: string; result_sha256: string }
   ```
 
   来源：模块设计 §6.2.2；`piko-run.md` §4.4.2。
@@ -465,38 +464,38 @@ flowchart LR
 - **代码式声明、Data/Type ID 与固定来源**：
 
   ```ts
-  interface ResultRecord { run_id: string; generation: number; result_json: string; result_sha256: string; published_at: string }
-  interface RunSessionRecord { run_id: string; pi_session_id: string; lane_name: "main";
+  interface ResultRecord { task_id: string; generation: number; result_json: string; result_sha256: string; published_at: string }
+  interface RunSessionRecord { task_id: string; pi_session_id: string; lane_name: "main";
     active_operation_id: string | null; last_operation_id: string | null;
     observed_tip_id: string | null; lease_epoch: number }
-  interface SlotRow { run_id: string | null; owner_id: string | null; boot_id: string | null;
+  interface SlotRow { task_id: string | null; owner_id: string | null; boot_id: string | null;
     lease_epoch: number; heartbeat_at: string | null }
   ```
 
   来源：模块设计 §6.2.3/§6.6.1；DDL §4.7.1。
 
-- **逐字段定义、条件有效性和跨字段不变量**：`pi_session_id = run_id`；`lease_epoch>=1`；`SlotRow.run_id` 空 ⟺ 其余三字段空；`run_sessions.lease_epoch == execution_slot.lease_epoch`（`INV-REPO-4`）。
+- **逐字段定义、条件有效性和跨字段不变量**：`pi_session_id = task_id`；`lease_epoch>=1`；`SlotRow.task_id` 空 ⟺ 其余三字段空；`run_sessions.lease_epoch == execution_slot.lease_epoch`（`INV-REPO-4`）。
 
 - **代码文件/symbol、编码或投影函数**：`src/store/types.ts`；`readSlot` 投影。
 
 - **创建、借用、修改、释放与失败出口**：`ResultRecord` 由 `publishResult` 产生、`finish` 只读；`RunSessionRecord`/`SlotRow` 由 slot 原语写/读。
 
-- **合法及拒绝实例、V/Case 与证据状态**：合法 `SlotRow{run_id:null,...}`；拒绝 `run_id` 非空而 `owner_id` 空。`VRC-REPO-002/003`；`NOT_RUN`。
+- **合法及拒绝实例、V/Case 与证据状态**：合法 `SlotRow{task_id:null,...}`；拒绝 `task_id` 非空而 `owner_id` 空。`VRC-REPO-002/003`；`NOT_RUN`。
 
 #### 4.2.4 ledger 记录类型
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
   ```ts
-  interface ModelAttemptRecord { run_id: string; operation_id: string; step_id: string; attempt: number;
+  interface ModelAttemptRecord { task_id: string; operation_id: string; step_id: string; attempt: number;
     state: "Reserved"|"Started"|"UsageObserved"|"Terminal"|"Unknown"; raw_usage_json: string | null;
     record_version: number; updated_at: string }
-  interface ToolCallRecord { run_id: string; operation_id: string; tool_call_id: string; tool_name: string;
+  interface ToolCallRecord { task_id: string; operation_id: string; tool_call_id: string; tool_name: string;
     effect: string; replay: "never"|"safe"; recovery_contract_ref: string | null;
     state: "Reserved"|"Started"|"Terminal"|"Unknown"; recovery_count: number; updated_at: string }
-  interface DiscussionTurn { run_id: string; event_id: string; turn_seq: number; status: TurnStatus;
+  interface DiscussionTurn { task_id: string; event_id: string; turn_seq: number; status: TurnStatus;
     visible_content: string; pi_entry_id: string | null; pi_operation_id: string | null }
-  interface MatrixSendRecord { txn_id: string; run_id: string; turn_seq: number | null;
+  interface MatrixSendRecord { txn_id: string; task_id: string; turn_seq: number | null;
     payload_sha256: string; event_id: string | null; state: "Pending"|"Sent"|"Unknown" }
   ```
 
@@ -508,7 +507,7 @@ flowchart LR
 
 - **创建、借用、修改、释放与失败出口**：由 M006/M005/M008 决定、本模块写；寿命 = Run + retention。
 
-- **合法及拒绝实例、V/Case 与证据状态**：合法重复 reserve 幂等；拒绝超预算。`VRC-REPO-006`；`NOT_RUN`。
+- **合法及拒绝实例、V/Case 与证据状态**：合法重复 reserve 幂等；拒绝 `replay='never'` 重放。`VRC-REPO-006`；`NOT_RUN`。
 
 ### 4.3 配置与规则数据结构
 
@@ -549,7 +548,7 @@ flowchart LR
 
 - **代码式声明、Data/Type ID 与固定来源**：`SlotRow`（§4.2.3）是 `execution_slot` 行投影；持久 authority = `execution_slot` 表；状态模型来源 = 模块设计 §6.6 `T-REPO-01..06`。
 
-- **逐字段定义、状态不变量与转移条件**：`run_id=null → FREE`；`run_id!==null && boot_id===currentBoot → HELD_LIVE`；否则 `HELD_STALE`。不变量 `INV-REPO-1..5`。
+- **逐字段定义、状态不变量与转移条件**：`task_id=null → FREE`；`task_id!==null && boot_id===currentBoot → HELD_LIVE`；否则 `HELD_STALE`。不变量 `INV-REPO-1..5`。
 
 - **创建/更新/读取 symbol、同步与提交点**：`readSlot`/`tryClaimSlot`/`renewSlot`/`fenceSlot`/`releaseSlot`（`src/store/slot.ts`）；提交点为 `BEGIN IMMEDIATE` COMMIT。
 
@@ -576,27 +575,26 @@ flowchart LR
 - **DDL/表声明、Data/Type ID 与 schema authority**：authority = 本模块（`src/store/schema.ts`）；当前版本事实 = `src/store.ts` `migrate()`，`PRAGMA user_version=2`。
 
   ```sql
-  CREATE TABLE IF NOT EXISTS tasks(task_id TEXT PRIMARY KEY, run_id TEXT NOT NULL UNIQUE,
+  CREATE TABLE IF NOT EXISTS tasks(task_id TEXT PRIMARY KEY, task_id TEXT NOT NULL UNIQUE,
     owner_principal TEXT NOT NULL, identity_state TEXT NOT NULL CHECK(identity_state IN ('Active','Tombstone')),
     task_json TEXT, accepted_at TEXT NOT NULL, purge_after TEXT NOT NULL,
     CHECK((identity_state='Active' AND task_json IS NOT NULL) OR (identity_state='Tombstone' AND task_json IS NULL))) STRICT;
-  CREATE TABLE IF NOT EXISTS runs(run_id TEXT PRIMARY KEY REFERENCES tasks(run_id),
+  CREATE TABLE IF NOT EXISTS runs(task_id TEXT PRIMARY KEY REFERENCES tasks(task_id),
     state TEXT NOT NULL CHECK(state IN ('Queued','Running','Cancelling','Completed','Failed','Cancelled')),
     generation INTEGER NOT NULL CHECK(generation>=1), cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN(0,1)),
     discussion_intake_state TEXT NOT NULL CHECK(discussion_intake_state IN('Disabled','Open','Closing','Closed')),
-    accepted_at TEXT NOT NULL, started_at TEXT, finished_at TEXT, deadline_at TEXT NOT NULL,
-    max_model_calls INTEGER NOT NULL, max_tool_calls INTEGER NOT NULL,
+    accepted_at TEXT NOT NULL, started_at TEXT, finished_at TEXT,
     model_calls INTEGER NOT NULL DEFAULT 0, tool_calls INTEGER NOT NULL DEFAULT 0, last_activity_at TEXT) STRICT;
-  CREATE TABLE IF NOT EXISTS run_sessions(run_id TEXT PRIMARY KEY REFERENCES runs(run_id),
+  CREATE TABLE IF NOT EXISTS run_sessions(task_id TEXT PRIMARY KEY REFERENCES runs(task_id),
     pi_session_id TEXT NOT NULL UNIQUE, lane_name TEXT NOT NULL CHECK(lane_name='main'),
     active_operation_id TEXT, last_operation_id TEXT, observed_tip_id TEXT,
     lease_epoch INTEGER NOT NULL CHECK(lease_epoch>=1)) STRICT;
   CREATE TABLE IF NOT EXISTS execution_slot(slot_id INTEGER PRIMARY KEY CHECK(slot_id=1),
-    run_id TEXT REFERENCES runs(run_id), owner_id TEXT, boot_id TEXT, lease_epoch INTEGER NOT NULL, heartbeat_at TEXT) STRICT;
+    task_id TEXT REFERENCES runs(task_id), owner_id TEXT, boot_id TEXT, lease_epoch INTEGER NOT NULL, heartbeat_at TEXT) STRICT;
   INSERT OR IGNORE INTO execution_slot(slot_id,lease_epoch) VALUES(1,0);
   ```
 
-- **逐列、主外键、索引及跨列约束**：见 DDL；`tasks(task_id)`/`tasks(run_id)`/`runs(run_id)` 主键；`run_sessions.pi_session_id` UNIQUE；`execution_slot` 单行 `slot_id=1`。
+- **逐列、主外键、索引及跨列约束**：见 DDL；`tasks(task_id)`/`tasks(task_id)`/`runs(task_id)` 主键；`run_sessions.pi_session_id` UNIQUE；`execution_slot` 单行 `slot_id=1`。
 
 - **读写/迁移 symbol、事务边界与提交点**：`tx()` 包裹 `BEGIN IMMEDIATE`；`tryClaimSlot` 同事务写 slot + `runs Running` + `generation+1` + `run_sessions`。
 
@@ -609,22 +607,22 @@ flowchart LR
 - **DDL/表声明、Data/Type ID 与 schema authority**：authority = 本模块。
 
   ```sql
-  CREATE TABLE IF NOT EXISTS results(run_id TEXT PRIMARY KEY REFERENCES runs(run_id), generation INTEGER NOT NULL,
-    result_json TEXT NOT NULL, result_sha256 TEXT NOT NULL, published_at TEXT NOT NULL, UNIQUE(run_id,generation)) STRICT;
-  CREATE TABLE IF NOT EXISTS model_attempts(run_id TEXT NOT NULL REFERENCES runs(run_id), operation_id TEXT NOT NULL,
+  CREATE TABLE IF NOT EXISTS results(task_id TEXT PRIMARY KEY REFERENCES runs(task_id), generation INTEGER NOT NULL,
+    result_json TEXT NOT NULL, result_sha256 TEXT NOT NULL, published_at TEXT NOT NULL, UNIQUE(task_id,generation)) STRICT;
+  CREATE TABLE IF NOT EXISTS model_attempts(task_id TEXT NOT NULL REFERENCES runs(task_id), operation_id TEXT NOT NULL,
     step_id TEXT NOT NULL, attempt INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN('Reserved','Started','UsageObserved','Terminal','Unknown')),
     raw_usage_json TEXT, record_version INTEGER NOT NULL, updated_at TEXT NOT NULL,
-    PRIMARY KEY(run_id,operation_id,step_id,attempt)) STRICT;
-  CREATE TABLE IF NOT EXISTS tool_calls(run_id TEXT NOT NULL REFERENCES runs(run_id), operation_id TEXT NOT NULL,
+    PRIMARY KEY(task_id,operation_id,step_id,attempt)) STRICT;
+  CREATE TABLE IF NOT EXISTS tool_calls(task_id TEXT NOT NULL REFERENCES runs(task_id), operation_id TEXT NOT NULL,
     tool_call_id TEXT NOT NULL, tool_name TEXT NOT NULL, effect TEXT NOT NULL, replay TEXT NOT NULL CHECK(replay IN('never','safe')),
     recovery_contract_ref TEXT, state TEXT NOT NULL CHECK(state IN('Reserved','Started','Terminal','Unknown')),
-    recovery_count INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL, PRIMARY KEY(run_id,operation_id,tool_call_id)) STRICT;
+    recovery_count INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL, PRIMARY KEY(task_id,operation_id,tool_call_id)) STRICT;
   CREATE TABLE IF NOT EXISTS audit_events(audit_id INTEGER PRIMARY KEY AUTOINCREMENT, event_name TEXT NOT NULL,
-    actor_class TEXT NOT NULL, run_id TEXT, detail_json TEXT NOT NULL, occurred_at TEXT NOT NULL) STRICT;
+    actor_class TEXT NOT NULL, task_id TEXT, detail_json TEXT NOT NULL, occurred_at TEXT NOT NULL) STRICT;
   CREATE TABLE IF NOT EXISTS instance_meta(key TEXT PRIMARY KEY, value_json TEXT NOT NULL) STRICT;
   ```
 
-- **逐列、主外键、索引及跨列约束**：见 DDL；`results UNIQUE(run_id,generation)`；`model_attempts`/`tool_calls` 复合主键。
+- **逐列、主外键、索引及跨列约束**：见 DDL；`results UNIQUE(task_id,generation)`；`model_attempts`/`tool_calls` 复合主键。
 
 - **读写/迁移 symbol、事务边界与提交点**：`publishResult` 单事务写 `results`；`ledger.ts` 写 attempt/tool；`openStore` 写 `instance_meta`。
 
@@ -641,20 +639,20 @@ flowchart LR
   INSERT OR IGNORE INTO matrix_state VALUES(1,NULL,0);
   CREATE TABLE IF NOT EXISTS matrix_events(room_id TEXT NOT NULL, event_id TEXT NOT NULL, sender TEXT NOT NULL,
     txn_id TEXT, observed_at TEXT NOT NULL, PRIMARY KEY(room_id,event_id)) STRICT;
-  CREATE TABLE IF NOT EXISTS discussion_turns(run_id TEXT NOT NULL REFERENCES runs(run_id), event_id TEXT NOT NULL,
+  CREATE TABLE IF NOT EXISTS discussion_turns(task_id TEXT NOT NULL REFERENCES runs(task_id), event_id TEXT NOT NULL,
     turn_seq INTEGER NOT NULL, status TEXT NOT NULL CHECK(status IN('Pending','QueuedInPi','Consumed','Abandoned')),
-    visible_content TEXT NOT NULL, pi_entry_id TEXT, pi_operation_id TEXT, PRIMARY KEY(run_id,event_id), UNIQUE(run_id,turn_seq)) STRICT;
-  CREATE TABLE IF NOT EXISTS matrix_sends(txn_id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(run_id),
+    visible_content TEXT NOT NULL, pi_entry_id TEXT, pi_operation_id TEXT, PRIMARY KEY(task_id,event_id), UNIQUE(task_id,turn_seq)) STRICT;
+  CREATE TABLE IF NOT EXISTS matrix_sends(txn_id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES runs(task_id),
     turn_seq INTEGER, payload_sha256 TEXT NOT NULL, event_id TEXT, state TEXT NOT NULL CHECK(state IN('Pending','Sent','Unknown'))) STRICT;
-  CREATE TABLE IF NOT EXISTS discussion_access_loss(run_id TEXT PRIMARY KEY REFERENCES runs(run_id),
+  CREATE TABLE IF NOT EXISTS discussion_access_loss(task_id TEXT PRIMARY KEY REFERENCES runs(task_id),
     room_id TEXT NOT NULL, detected_at TEXT NOT NULL) STRICT;
-  CREATE TABLE IF NOT EXISTS provider_calls(run_id TEXT NOT NULL REFERENCES runs(run_id), operation_id TEXT NOT NULL,
+  CREATE TABLE IF NOT EXISTS provider_calls(task_id TEXT NOT NULL REFERENCES runs(task_id), operation_id TEXT NOT NULL,
     ts TEXT NOT NULL, status INTEGER, request_id TEXT, note TEXT) STRICT;
   ```
 
   当前代码事实在 `src/store.ts:25`–`:32`；v2 使 `discussion_turns.status` 含 `Abandoned`、`provider_calls` 含 `latency_ms`。
 
-- **逐列、主外键、索引及跨列约束**：见 DDL；`matrix_events(room_id,event_id)` 去重键；`discussion_turns UNIQUE(run_id,turn_seq)`。
+- **逐列、主外键、索引及跨列约束**：见 DDL；`matrix_events(room_id,event_id)` 去重键；`discussion_turns UNIQUE(task_id,turn_seq)`。
 
 - **读写/迁移 symbol、事务边界与提交点**：`ledger.ts` `ingestMatrixEvent`/`ingestMatrixBatch`/`prepareMatrixSend` 单事务。
 
@@ -670,8 +668,8 @@ flowchart LR
 
   ```ts
   class PikoError extends Error { constructor(readonly code: string, readonly http_status: number, message: string) }
-  class FencedWrite extends Error { readonly run_id: string; readonly expected_generation: number; readonly actual_generation: number }
-  class LeaseLost extends Error { readonly run_id: string; readonly epoch: number }
+  class FencedWrite extends Error { readonly task_id: string; readonly expected_generation: number; readonly actual_generation: number }
+  class LeaseLost extends Error { readonly task_id: string; readonly epoch: number }
   class SlotInvariantViolation extends Error { readonly invariant_id: string }
   class StoreUnavailable extends Error { readonly stage: string; readonly cause_class: string }
   ```
@@ -702,17 +700,17 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **原成员 ID 或私有来源**：继承 `piko-run` §5.1 `IF-RUN-CREATE`。
 
-- **完整签名与 caller**：`createOrGetRun(input: ValidatedTaskSubmission): CreateRunOutcome`；caller = M001 `POST /runs` handler（事件循环）。
+- **完整签名与 caller**：`createOrGetRun(input: ValidatedTaskSubmission): CreateRunOutcome`；caller = M001 `POST /tasks` handler（事件循环）。
 
 - **固定契约与版本**：模块设计 §9.1.1（`piko-task-repository` v0.1.0-draft.1）。
 
 - **输入参数 / 数据结构 authority**：`ValidatedTaskSubmission`（`system-design` §7.2 / M002 ISD）；`TaskStoreConfig.queue_capacity`。
 
-- **输入约束 / 校验顺序 / 失败映射**：M002 已校验；本层顺序 = 查 `tasks` → `classifyExisting` → `deadlineAdmitted` → `queueAdmitted` → 插入。失败以 `kind` 表达（非异常）。
+- **输入约束 / 校验顺序 / 失败映射**：M002 已校验；本层顺序 = 查 `tasks` → `classifyExisting` → `queueAdmitted` → 插入。失败以 `kind` 表达（非异常）。
 
 - **成功输出 / 数据结构 / 后置条件**：`CreateRunOutcome`（§4.2.2）；`created` 后 `tasks`/`runs` 各 1 行、`state=Queued`、`generation=1` 已提交。
 
-- **错误输出 / 触发条件 / 优先级**：`conflict`/`tombstone`/`deadline_expired`/`queue_full`（顺序：tombstone > conflict > deadline > capacity）；依赖错误上抛。
+- **错误输出 / 触发条件 / 优先级**：`conflict`/`tombstone`/`queue_full`（顺序：tombstone > conflict > capacity）；依赖错误上抛。
 
 - **底层异常 / 失败事实**：`SQLITE_BUSY`/`SQLITE_IOERR`/`SQLITE_FULL`。
 
@@ -722,9 +720,9 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **宿主 / public payload 或状态码**：返回 `CreateRunOutcome`；无 HTTP。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（`kind`/`run_id`）；不记 `task_json` 正文。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`kind`/`task_id`）；不记 `task_json` 正文。
 
-- **是否可重试及前提**：`existing` 即同请求重放（返回原 Run，不新增执行）；`conflict`/`tombstone` 不可重试；`queue_full`/`deadline_expired` 须换新 `task_id`。
+- **是否可重试及前提**：`existing` 即同请求重放（返回原 Run，不新增执行）；`conflict`/`tombstone` 不可重试；`queue_full` 须换新 `task_id`。
 
 - **状态与副作用影响 / 验证项**：副作用 = 写 `tasks`/`runs`/可选 turn（单事务）；`VRC-REPO-001/007`。
 
@@ -776,7 +774,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **宿主 / public payload 或状态码**：`RunRecord | FencedWrite`。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（`run_id`/`generation`/mutation）；`warn`（`FencedWrite`）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`task_id`/`generation`/mutation）；`warn`（`FencedWrite`）。
 
 - **是否可重试及前提**：`FencedWrite` 不原样重试（须读最新事实重新决定）；依赖错误由调用方决定。
 
@@ -816,7 +814,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **输入参数 / 数据结构 authority**：`FencedPublishResult`（§4.2.2）。
 
-- **输入约束 / 校验顺序 / 失败映射**：`INSERT` `(run_id,generation)`；冲突检查（同内容幂等 / 不同 sha 拒绝）。
+- **输入约束 / 校验顺序 / 失败映射**：`INSERT` `(task_id,generation)`；冲突检查（同内容幂等 / 不同 sha 拒绝）。
 
 - **成功输出 / 数据结构 / 后置条件**：`ResultRecord`；内容冻结；`runs.state` 不变。
 
@@ -830,7 +828,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **宿主 / public payload 或状态码**：`ResultRecord`。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（`run_id`/`generation`）；不记 `result_json` 正文。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`task_id`/`generation`）；不记 `result_json` 正文。
 
 - **是否可重试及前提**：同内容幂等可重发；不同 sha 不可重试。
 
@@ -870,7 +868,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **输入参数 / 数据结构 authority**：`AgentResult`（contract §3）；`epoch` 来自当前 `Lease`。
 
-- **输入约束 / 校验顺序 / 失败映射**：顺序 = 校验 slot `(run_id,epoch)` → 校验同 generation Result 存在 → 写终态 + `generation+1` + `releaseSlot`；slot 不匹配 → `LeaseLost`。
+- **输入约束 / 校验顺序 / 失败映射**：顺序 = 校验 slot `(task_id,epoch)` → 校验同 generation Result 存在 → 写终态 + `generation+1` + `releaseSlot`；slot 不匹配 → `LeaseLost`。
 
 - **成功输出 / 数据结构 / 后置条件**：终态 `RunRecord`；slot 清空；discussion Run 置 intake `Closed` + turn `Abandoned`。
 
@@ -884,7 +882,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **宿主 / public payload 或状态码**：`RunRecord` 或抛 `LeaseLost`。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（`run_id`/`epoch`/终态）；不记 `result_json`。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`task_id`/`epoch`/终态）；不记 `result_json`。
 
 - **是否可重试及前提**：`LeaseLost` 不重试（停止驱动）；依赖错误由 M005 决定。
 
@@ -937,7 +935,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **Transaction participation**：none（单查询）。
 - **Blocking / timeout / cancellation**：阻塞；受 `busy_timeout_ms`。
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
-- **装配、合法及拒绝实例**：合法 `run_id=null` 空闲行。`NOT_RUN`。
+- **装配、合法及拒绝实例**：合法 `task_id=null` 空闲行。`NOT_RUN`。
 
 #### 5.1.6 `TaskRepository.listQueued(limit: number): string[]`
 
@@ -947,8 +945,8 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **完整签名与 caller**：`listQueued(limit: number): string[]`；caller = M004。
 - **固定契约与版本**：模块设计 §9.1.6。
 - **输入参数 / 数据结构 authority**：`limit: number`（正数）。
-- **输入约束 / 校验顺序 / 失败映射**：`limit<=0` 抛 `TypeError`（编程错误）；查询按 `(accepted_at, run_id)` 升序。
-- **成功输出 / 数据结构 / 后置条件**：`run_id[]`（≤ `limit`）。
+- **输入约束 / 校验顺序 / 失败映射**：`limit<=0` 抛 `TypeError`（编程错误）；查询按 `(accepted_at, task_id)` 升序。
+- **成功输出 / 数据结构 / 后置条件**：`task_id[]`（≤ `limit`）。
 - **错误输出 / 触发条件 / 优先级**：无业务错误；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`。
 - **模块是否处理及处理函数**：propagate。
@@ -983,7 +981,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **模块是否处理及处理函数**：`index.ts` 透传判别结果。
 - **Typed 异常与原生异常所有权**：原生属 SQLite。
 - **宿主 / public payload 或状态码**：判别结果。
-- **日志级别 / 脱敏 / 关联字段**：`info`（`run_id`/`epoch`）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`task_id`/`epoch`）。
 - **是否可重试及前提**：`slot_busy`/`run_not_queued` 可换候选/下 tick；依赖错误由 M004 决定。
 - **状态与副作用影响 / 验证项**：副作用 = slot/`runs`/`run_sessions` 单事务；`VRC-REPO-003`。
 - **不可改变的规则 / Constraint ID**：`R-REPO-SLOT`；Guard+写入同事务。
@@ -1005,7 +1003,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **完整签名与 caller**：`renewSlot(runId, epoch): boolean`；caller = M004。
 - **固定契约与版本**：模块设计 §9.1.8。
 - **输入参数 / 数据结构 authority**：`runId` 非空；`epoch>=1`。
-- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE ... WHERE slot_id=1 AND run_id=? AND lease_epoch=?`；0 行 → `false`。
+- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE ... WHERE slot_id=1 AND task_id=? AND lease_epoch=?`；0 行 → `false`。
 - **成功输出 / 数据结构 / 后置条件**：`true` → 心跳刷新。
 - **错误输出 / 触发条件 / 优先级**：`false`（未命中）；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`。
@@ -1063,7 +1061,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **完整签名与 caller**：`releaseSlot(runId, epoch): boolean`；caller = `finish`/`patchTerminal`。
 - **固定契约与版本**：模块设计 §9.1.10。
 - **输入参数 / 数据结构 authority**：`runId` 非空；`epoch>=1`。
-- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE execution_slot SET run_id=NULL,... WHERE slot_id=1 AND run_id=? AND lease_epoch=?`；0 行 → `false`。
+- **输入约束 / 校验顺序 / 失败映射**：单语句 `UPDATE execution_slot SET task_id=NULL,... WHERE slot_id=1 AND task_id=? AND lease_epoch=?`；0 行 → `false`。
 - **成功输出 / 数据结构 / 后置条件**：`true` → 清空四字段。
 - **错误输出 / 触发条件 / 优先级**：`false`（不匹配，幂等）；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`。
@@ -1092,8 +1090,8 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **完整签名与 caller**：`scanNonTerminalRuns(): string[]`；caller = M005 恢复流程。
 - **固定契约与版本**：模块设计 §9.1.11。
 - **输入参数 / 数据结构 authority**：无。
-- **输入约束 / 校验顺序 / 失败映射**：`SELECT run_id FROM runs WHERE state NOT IN ('Completed','Failed','Cancelled')`。
-- **成功输出 / 数据结构 / 后置条件**：`run_id[]`；只读。
+- **输入约束 / 校验顺序 / 失败映射**：`SELECT task_id FROM runs WHERE state NOT IN ('Completed','Failed','Cancelled')`。
+- **成功输出 / 数据结构 / 后置条件**：`task_id[]`；只读。
 - **错误输出 / 触发条件 / 优先级**：无；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`。
 - **模块是否处理及处理函数**：propagate。
@@ -1121,14 +1119,14 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **完整签名与 caller**：`patchTerminal(command): RunRecord`；caller = M005 恢复流程。
 - **固定契约与版本**：模块设计 §9.1.12。
 - **输入参数 / 数据结构 authority**：`FencedPublishResult`。
-- **输入约束 / 校验顺序 / 失败映射**：校验 `results(run_id,generation)` 存在 → 补 `runs.state`/`generation+1` + `releaseSlot`；缺失 → 拒绝。
+- **输入约束 / 校验顺序 / 失败映射**：校验 `results(task_id,generation)` 存在 → 补 `runs.state`/`generation+1` + `releaseSlot`；缺失 → 拒绝。
 - **成功输出 / 数据结构 / 后置条件**：终态 `RunRecord`。
 - **错误输出 / 触发条件 / 优先级**：缺 Result → 拒绝（不模拟成功）；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`。
 - **模块是否处理及处理函数**：`index.ts` 拒绝无 Result 补写。
 - **Typed 异常与原生异常所有权**：本模块 typed；原生属 SQLite。
 - **宿主 / public payload 或状态码**：`RunRecord` 或拒绝。
-- **日志级别 / 脱敏 / 关联字段**：`info`（`run_id`/generation）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（`task_id`/generation）。
 - **是否可重试及前提**：已在终态则跳过；无 Result 不可补。
 - **状态与副作用影响 / 验证项**：副作用 = `runs`/`execution_slot` 单事务；`VRC-REPO-008`。
 - **不可改变的规则 / Constraint ID**：`CON-REC-001`；不改已发布 Result。
@@ -1176,17 +1174,17 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **Interface/Member ID、用途**：`F-REPO-LEDGER`；attempt/tool/turn/send 持久化。caller = M006/M005/M008。
 - **文件 / symbol / 可见性**：Planned `src/store/ledger.ts`；public。
 - **原成员 ID 或私有来源**：模块设计 §9.1.14；`piko-matrix.md` §5.1 `IF-MX-TURN`。
-- **完整签名与 caller**：`reserveModel(run,op,step,attempt): boolean`；`observeUsage(...)`；`terminalModel(...)`；`reserveTool(...): "Admitted"|"BudgetExceeded"|"UnsafeRetryBlocked"`；`terminalTool(...)`；`markTurn(...)`；`ingestTurn(...)`；`ingestMatrixEvent(...)`；`ingestMatrixBatch(events,cursor)`；`prepareMatrixSend(txn,run,turn,sha): {state,event_id?}`。
+- **完整签名与 caller**：`reserveModel(run,op,step,attempt): boolean`；`observeUsage(...)`；`terminalModel(...)`；`reserveTool(...): "Admitted"|"UnsafeRetryBlocked"`；`terminalTool(...)`；`markTurn(...)`；`ingestTurn(...)`；`ingestMatrixEvent(...)`；`ingestMatrixBatch(events,cursor)`；`prepareMatrixSend(txn,run,turn,sha): {state,event_id?}`。
 - **固定契约与版本**：模块设计 §9.1.14。
 - **输入参数 / 数据结构 authority**：身份见 §4.2.4。
-- **输入约束 / 校验顺序 / 失败映射**：单事务去重 + 预算 CAS；超限/重放/冲突以判别结果表达。
+- **输入约束 / 校验顺序 / 失败映射**：单事务去重并推进计数；重放/冲突以判别结果表达。
 - **成功输出 / 数据结构 / 后置条件**：见签名；`record_version` 推进。
-- **错误输出 / 触发条件 / 优先级**：`BudgetExceeded`/`UnsafeRetryBlocked`/`conflict`；依赖错误上抛。
+- **错误输出 / 触发条件 / 优先级**：`UnsafeRetryBlocked`/`conflict`；依赖错误上抛。
 - **底层异常 / 失败事实**：`SQLITE_BUSY`/`SQLITE_CONSTRAINT`。
 - **模块是否处理及处理函数**：`ledger.ts` 分类判别。
 - **Typed 异常与原生异常所有权**：原生属 SQLite。
 - **宿主 / public payload 或状态码**：判别结果。
-- **日志级别 / 脱敏 / 关联字段**：`debug`/`info`（`run_id`/attempt/tool）。
+- **日志级别 / 脱敏 / 关联字段**：`debug`/`info`（`task_id`/attempt/tool）。
 - **是否可重试及前提**：重复 reserve 幂等；冲突不可重试。
 - **状态与副作用影响 / 验证项**：副作用 = 相应表写（单事务）；`VRC-REPO-006`。
 - **不可改变的规则 / Constraint ID**：`CON-MX-001`；dedup+turn+cursor 同事务。
@@ -1198,7 +1196,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **Transaction participation**：owner：各自单事务。
 - **Blocking / timeout / cancellation**：阻塞。
 - **实现状态 / 验证项**：Planned / `VRC-REPO-006`。
-- **装配、合法及拒绝实例**：合法重复 reserve；拒绝超预算。`NOT_RUN`。
+- **装配、合法及拒绝实例**：合法重复 reserve；拒绝 `replay='never'` 重放。`NOT_RUN`。
 
 ### 5.2 消息与数据流接口（适用时）
 
@@ -1220,9 +1218,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 flowchart TD
     A["createOrGetRun(input)"] --> B{"tasks.task_id 存在？"}
     B -->|Tombstone| Z1["kind=tombstone"]
-    B -->|不存在| C{"deadlineAdmitted？"}
-    C -->|否| Z2["kind=deadline_expired"]
-    C -->|是| D{"queueAdmitted？"}
+    B -->|不存在| D{"queueAdmitted？"}
     D -->|否| Z3["kind=queue_full（不建 Run）"]
     D -->|是| E["INSERT tasks + Queued runs(gen=1)；COMMIT"]
     E --> F["kind=created"]
@@ -1239,10 +1235,10 @@ flowchart TD
 
 ### 6.1 `P-REPO-ACCEPT` · 受理（createOrGetRun）
 
-- **触发与执行者**：M001 `POST /runs` → `TaskRepository.createOrGetRun`（事件循环）。
+- **触发与执行者**：M001 `POST /tasks` → `TaskRepository.createOrGetRun`（事件循环）。
 - **入口函数及数据**：`createOrGetRun(input)`；数据 `ValidatedTaskSubmission` → `TaskRecord | null` → `CreateRunOutcome`。
-- **步骤 / 算法 / 复杂度**：1. `BEGIN IMMEDIATE`；2. 查 `tasks`；3. `classifyExisting`；4. `deadlineAdmitted`/`queueAdmitted`；5. 插入 `tasks`/`runs`/可选 turn；6. COMMIT。O(1)（索引）。
-- **判断事实来源**：`tasks.identity_state`/`task_json`、`runs WHERE Queued` 计数、`deadline_at` 与 UTC now；均 DB 权威。
+- **步骤 / 算法 / 复杂度**：1. `BEGIN IMMEDIATE`；2. 查 `tasks`；3. `classifyExisting`；4. `queueAdmitted`；5. 插入 `tasks`/`runs`/可选 turn；6. COMMIT。O(1)（索引）。
+- **判断事实来源**：`tasks.identity_state`/`task_json`、`runs WHERE Queued` 计数；均 DB 权威。
 - **成功可见点**：COMMIT 后 `tasks`/`runs` 可见；返回 `CreateRunOutcome`。
 - **失败、取消与清理**：拒绝分支无副作用；事务失败 ROLLBACK。
 - **代表输入与中间值**：见 §9.1.1 Case A–E（新 ID → `created`）。
@@ -1251,9 +1247,9 @@ flowchart TD
 ### 6.2 `P-REPO-CLAIM` · 领取 slot
 
 - **触发与执行者**：M004 tick → `readSlot`/`listQueued`/`tryClaimSlot`。
-- **入口函数及数据**：`tryClaimSlot(runId,ownerId,bootId)`；数据 `SlotRow` + `run_id[]` → `{epoch}|"slot_busy"|"run_not_queued"`。
+- **入口函数及数据**：`tryClaimSlot(runId,ownerId,bootId)`；数据 `SlotRow` + `task_id[]` → `{epoch}|"slot_busy"|"run_not_queued"`。
 - **步骤 / 算法 / 复杂度**：1. `BEGIN IMMEDIATE`；2. 读 slot 判空；3. 读目标 Run 判 `Queued`；4. `epoch := 旧+1`；5. 写 slot + `runs Running` + `generation+1` + `run_sessions`；6. COMMIT。O(1)。
-- **判断事实来源**：`execution_slot.run_id IS NULL`、`runs.state`；DB 权威。
+- **判断事实来源**：`execution_slot.task_id IS NULL`、`runs.state`；DB 权威。
 - **成功可见点**：COMMIT 后 slot 绑定与新 epoch 可见。
 - **失败、取消与清理**：判别失败 0 行；无部分副作用。
 - **代表输入与中间值**：见 §9.1.7 Case A/B。`epoch 0→1`。
@@ -1264,7 +1260,7 @@ flowchart TD
 - **触发与执行者**：M005 worker → `publishResult`（步 1）、`finish`（步 2）。
 - **入口函数及数据**：`publishResult(FencedPublishResult)` → `ResultRecord`；`finish(AgentResult,epoch)` → `RunRecord`。
 - **步骤 / 算法 / 复杂度**：步 1：`BEGIN IMMEDIATE` → `INSERT results` → COMMIT。步 2：`BEGIN IMMEDIATE` → 校验 slot + 同 generation Result → `UPDATE runs state,generation+1` → `releaseSlot` → COMMIT。O(1)。
-- **判断事实来源**：`results(run_id,generation)` 存在性、`execution_slot(run_id,lease_epoch)`；DB 权威。
+- **判断事实来源**：`results(task_id,generation)` 存在性、`execution_slot(task_id,lease_epoch)`；DB 权威。
 - **成功可见点**：步 1 COMMIT → Result 冻结；步 2 COMMIT → 终态 + slot 释放。
 - **失败、取消与清理**：步 2 `LeaseLost` 不写终态；缺 Result 拒绝。
 - **代表输入与中间值**：见 §9.1.3/§9.1.4。正常 Completed gen N → N+1。
@@ -1279,14 +1275,14 @@ flowchart TD
   ```text
   mutateRun(cmd):
     BEGIN IMMEDIATE
-    row = SELECT * FROM runs WHERE run_id=cmd.run_id
+    row = SELECT * FROM runs WHERE task_id=cmd.task_id
     if row is null: ROLLBACK; return FencedWrite
     if row.generation != cmd.expected_generation: ROLLBACK; return FencedWrite
     if cmd.expected_state_in not contains row.state: ROLLBACK; return FencedWrite
     if cmd.expected_lease_epoch present:
-      if not exists(SELECT 1 FROM run_sessions WHERE run_id=? AND lease_epoch=?): ROLLBACK; return FencedWrite
+      if not exists(SELECT 1 FROM run_sessions WHERE task_id=? AND lease_epoch=?): ROLLBACK; return FencedWrite
     apply mutation (runs state/cancel/intake); SET generation = generation + 1
-    if mutation == "terminal": releaseSlot(run_id, cmd.expected_lease_epoch)
+    if mutation == "terminal": releaseSlot(task_id, cmd.expected_lease_epoch)
     COMMIT; return refreshed RunRecord
   ```
 
@@ -1306,16 +1302,16 @@ flowchart TD
   ```text
   nextEpoch(c) = c + 1
   listQueued(limit):
-    SELECT run_id FROM runs WHERE state='Queued' ORDER BY accepted_at, run_id LIMIT ?
-  renewSlot(run_id, epoch):
-    UPDATE execution_slot SET heartbeat_at=? WHERE slot_id=1 AND run_id=? AND lease_epoch=?; return changes==1
-  fenceSlot(run_id, owner, boot):
+    SELECT task_id FROM runs WHERE state='Queued' ORDER BY accepted_at, task_id LIMIT ?
+  renewSlot(task_id, epoch):
+    UPDATE execution_slot SET heartbeat_at=? WHERE slot_id=1 AND task_id=? AND lease_epoch=?; return changes==1
+  fenceSlot(task_id, owner, boot):
     BEGIN IMMEDIATE
     slot = SELECT * FROM execution_slot WHERE slot_id=1
-    if slot.run_id is null: COMMIT; return "slot_released"
-    state = SELECT state FROM runs WHERE run_id=slot.run_id
-    if state in terminal: UPDATE slot SET run_id=NULL,... ; COMMIT; return "slot_released"
-    if slot.lease_epoch != (SELECT lease_epoch FROM run_sessions WHERE run_id=slot.run_id):
+    if slot.task_id is null: COMMIT; return "slot_released"
+    state = SELECT state FROM runs WHERE task_id=slot.task_id
+    if state in terminal: UPDATE slot SET task_id=NULL,... ; COMMIT; return "slot_released"
+    if slot.lease_epoch != (SELECT lease_epoch FROM run_sessions WHERE task_id=slot.task_id):
        ROLLBACK; raise SlotInvariantViolation
     UPDATE slot SET owner_id=?, boot_id=?, lease_epoch=lease_epoch+1, heartbeat_at=?; sync run_sessions; COMMIT
     return {epoch: slot.lease_epoch + 1}
@@ -1331,8 +1327,8 @@ flowchart TD
 ### 6.6 `P-REPO-RECOVER` · 恢复扫描与补写
 
 - **触发与执行者**：M005 恢复流程 → `scanNonTerminalRuns`/`patchTerminal`。
-- **入口函数及数据**：无入参 → `run_id[]`；`FencedPublishResult` → `RunRecord`。
-- **步骤 / 算法 / 复杂度**：1. 扫描非终态；2. 对每个 Run 探测 `results(run_id,generation)`；3. 有同 generation Result → `patchTerminal`；4. 无 → 交 M005。O(n)。
+- **入口函数及数据**：无入参 → `task_id[]`；`FencedPublishResult` → `RunRecord`。
+- **步骤 / 算法 / 复杂度**：1. 扫描非终态；2. 对每个 Run 探测 `results(task_id,generation)`；3. 有同 generation Result → `patchTerminal`；4. 无 → 交 M005。O(n)。
 - **判断事实来源**：`runs.state`、`results`；DB 权威。
 - **成功可见点**：补写 COMMIT。
 - **失败、取消与清理**：缺 Result 拒绝；终态跳过；不重写 Result。
@@ -1381,7 +1377,7 @@ flowchart TD
 - **检测事实 / 期限**：`tasks.task_id PRIMARY KEY` + `BEGIN IMMEDIATE`；无期限。
 - **状态 / 错误 / 结果已知性**：一 `created` 一 `existing`；已知。
 - **保留 / 释放责任**：无部分副作用。
-- **允许的 query / replay / takeover / retry**：query=`getRun`；replay=同 ID 同内容返回原 Run；新业务须换 `task_id`。
+- **允许的 query / replay / takeover / retry**：query=`getTask`；replay=同 ID 同内容返回原 Run；新业务须换 `task_id`。
 - **验证项**：`VRC-REPO-007`（Case A）。
 
 #### 7.1.2 `C-REPO-02` · 并发领取 slot
@@ -1421,7 +1417,7 @@ flowchart TD
 - **检测事实 / 期限**：`synchronous=FULL` + WAL；`busy_timeout_ms` 到期。
 - **状态 / 错误 / 结果已知性**：无部分提交；依赖错误已知。
 - **保留 / 释放责任**：无残留。
-- **允许的 query / replay / takeover / retry**：query=只读；replay 须核对 `task_id`/`(run_id,generation)`。
+- **允许的 query / replay / takeover / retry**：query=只读；replay 须核对 `task_id`/`(task_id,generation)`。
 - **验证项**：`VRC-REPO-007`（Case D）。
 
 #### 7.1.6 `C-REPO-06` · 迁移中断
@@ -1446,7 +1442,7 @@ flowchart TD
 - **原子范围 / 事务外副作用**：事务内包含全部 SQL；事务外无副作用（日志在提交后写）。
 - **开始 / 提交 / 回滚函数**：`TaskRepository.tx`（`BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK`）。
 - **持久提交点 / 对外响应点**：COMMIT 返回后调用方才能对外响应（受理 202 / 终态可查）。
-- **响应丢失后的权威核对**：客户端用原 `task_id` 重发 → `existing`；Result 用 `(run_id,generation)` 核对。
+- **响应丢失后的权威核对**：客户端用原 `task_id` 重发 → `existing`；Result 用 `(task_id,generation)` 核对。
 - **恢复入口 / 判定记录 / 重复恢复条件**：重启后 `scanNonTerminalRuns` + `results`/`runs` 判定；`patchTerminal` 幂等。
 - **验证项**：`VRC-REPO-002/007`。
 
@@ -1466,7 +1462,7 @@ flowchart TD
 - **原子范围 / 事务外副作用**：第一步仅 `results`；第二步 `runs` + `execution_slot`（+ `discussion_turns`）；无事务外副作用。
 - **开始 / 提交 / 回滚函数**：`index.ts` `tx`。
 - **持久提交点 / 对外响应点**：步 1 COMMIT → Result 冻结；步 2 COMMIT → 终态可查。
-- **响应丢失后的权威核对**：`results(run_id,generation)` + `runs.state`。
+- **响应丢失后的权威核对**：`results(task_id,generation)` + `runs.state`。
 - **恢复入口 / 判定记录 / 重复恢复条件**：`patchTerminal`；已终态跳过。
 - **验证项**：`VRC-REPO-002`。
 
@@ -1512,8 +1508,8 @@ flowchart TD
 - **可信输入 / 敏感字段 / 检查对象**：调用方为进程内模块；敏感字段 = `task_json`（含 `instruction`/路径）、`result_json`；不含 credential。
 - **检查函数 / 时点**：无鉴权检查点；日志写入前过滤敏感字段。
 - **拒绝 / 宿主交付出口**：N/A（无鉴权）；越权边界由 M001/M002 承载。
-- **脱敏 / 禁止输出**：不得在日志记录 `task_json`/`result_json` 正文、credential、access token；只记 `run_id`/`generation`/`epoch`/`kind`/error class。
-- **日志 / 指标 / trace 口径及触发**：`info`（受理/领取/终态）、`warn`（`FencedWrite`/依赖错误）、`error`（不变量冲突/迁移失败）；关联键 `run_id` + `generation` + `lease_epoch`。
+- **脱敏 / 禁止输出**：不得在日志记录 `task_json`/`result_json` 正文、credential、access token；只记 `task_id`/`generation`/`epoch`/`kind`/error class。
+- **日志 / 指标 / trace 口径及触发**：`info`（受理/领取/终态）、`warn`（`FencedWrite`/依赖错误）、`error`（不变量冲突/迁移失败）；关联键 `task_id` + `generation` + `lease_epoch`。
 - **验证项**：`VRC-REPO-004`（日志不含敏感字段由审查核对）。
 
 #### 7.3.1.2 `SEC-REPO-METRIC` · 指标写入点
@@ -1523,7 +1519,7 @@ flowchart TD
 - **检查函数 / 时点**：写事务提交后由 M009 采集；本模块是持久事实来源。
 - **拒绝 / 宿主交付出口**：无拒绝；经 M001 查询与诊断快照（脱敏）。
 - **脱敏 / 禁止输出**：指标不含身份与正文。
-- **日志 / 指标 / trace 口径及触发**：单位=count/ms；重置=进程世代；关联 `run_id` + `generation`。
+- **日志 / 指标 / trace 口径及触发**：单位=count/ms；重置=进程世代；关联 `task_id` + `generation`。
 - **验证项**：`VRC-REPO-003/007`。
 
 #### 7.3.2.1 `SEC-REPO-LOCALSTORE` · 本地持久化安全
@@ -1636,11 +1632,11 @@ flowchart TD
 - **测试入口 / 清理**：Planned `tests/unit/task-repository-schema.test.ts`。
 - **Run ID / Status**：`NOT_RUN`。
 
-### 9.1.6 `VRC-REPO-006` · ledger / turn / send 幂等与预算
+### 9.1.6 `VRC-REPO-006` · ledger / turn / send 幂等
 
 - **Rule / 成员**：`F-REPO-LEDGER`、`IF-MX-TURN`、`CON-MX-001`。
-- **V / Case / Vector**：A（重复 reserve 幂等）、B（超预算 → `BudgetExceeded` 不插行）、C（`replay='never'` 重放 → `UnsafeRetryBlocked`）、D（重复 event → 无重复 turn 且 cursor 随事务）、E（同 txn 不同 payload → `conflict`）、F（迟到 usage → 只推 `record_version`）。
-- **输入 / 故障 / 环境**：临时 DB + 预算边界与重复批次构造。
+- **V / Case / Vector**：A（重复 reserve 幂等）、C（`replay='never'` 重放 → `UnsafeRetryBlocked`）、D（重复 event → 无重复 turn 且 cursor 随事务）、E（同 txn 不同 payload → `conflict`）、F（迟到 usage → 只推 `record_version`）。
+- **输入 / 故障 / 环境**：临时 DB + 重复批次构造。
 - **独立 Oracle / Expected**：Oracle = `model_attempts`/`tool_calls`/`discussion_turns`/`matrix_events`/`matrix_state` 直读；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。
 - **Verdict**：`NOT_RUN`
@@ -1650,7 +1646,7 @@ flowchart TD
 ### 9.1.7 `VRC-REPO-007` · 并发受理与队列容量
 
 - **Rule / 成员**：`F-REPO-CREATE`、`R-REPO-CAPACITY`/`R-REPO-IDENTITY`、`IF-RUN-CREATE`、`QueueFull`。
-- **V / Case / Vector**：A（并发同 ID 同内容 → 一 `created` 一 `existing`）、B（满队列 → `queue_full` 不建 Run）、C（deadline 已过 → `deadline_expired`）、D（事务中 SIGKILL → 无残留行）。
+- **V / Case / Vector**：A（并发同 ID 同内容 → 一 `created` 一 `existing`）、B（满队列 → `queue_full` 不建 Run）、D（事务中 SIGKILL → 无残留行）。
 - **输入 / 故障 / 环境**：临时 DB；capacity=1/2；并发用两连接/进程。
 - **独立 Oracle / Expected**：Oracle = `tasks`/`runs` 行数 + `kind`；Expected 同 Case。
 - **Actual / Evidence**：`NOT_RUN`。
@@ -1675,7 +1671,7 @@ flowchart TD
 
 - **顺序 / 前置项**：先于所有实现；依赖 M004 端口（`OQ-REPO-001`）。
 - **文件 / symbol / 构建目标**：`src/store/types.ts`/`slot.ts`/`schema.ts`。
-- **不可改变的规则**：`IF-SCHED-STORE` 签名、`(run_id,epoch)` CAS、`user_version` 单调整数。
+- **不可改变的规则**：`IF-SCHED-STORE` 签名、`(task_id,epoch)` CAS、`user_version` 单调整数。
 - **实施动作**：确认采纳 scheduler §9.2.1；冻结签名与 DDL。
 - **完成检查**：fake 端口与真 M003 两套可实现（`VRC-REPO-003`）。
 - **实现状态**：`PLANNED`。

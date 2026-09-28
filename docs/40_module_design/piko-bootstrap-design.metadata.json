@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-bootstrap",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.1",
   "title": "Piko 模块设计：bootstrap（M000）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
@@ -28,22 +28,92 @@
   "parent_document_id": "system-design",
   "supersedes": null,
   "created_at": "2026-09-27",
-  "last_modified_at": "2026-09-27",
+  "last_modified_at": "2026-09-28",
   "design_object_id": "M000",
   "implementation_specification": {
     "mode": "separate",
     "document_id": "piko-bootstrap-impl",
     "coverage_mapping": [
-      {"item": "scope", "document_id": "piko-bootstrap-impl", "anchor": "isd-scope", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "structure", "document_id": "piko-bootstrap-impl", "anchor": "isd-structure", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "data", "document_id": "piko-bootstrap-impl", "anchor": "isd-data", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "functions", "document_id": "piko-bootstrap-impl", "anchor": "isd-functions", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "algorithms", "document_id": "piko-bootstrap-impl", "anchor": "isd-algorithms", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "lifecycle", "document_id": "piko-bootstrap-impl", "anchor": "isd-lifecycle", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "resources", "document_id": "piko-bootstrap-impl", "anchor": "isd-resources", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "security", "document_id": "piko-bootstrap-impl", "anchor": "isd-security", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "verification", "document_id": "piko-bootstrap-impl", "anchor": "isd-verification", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "persistence", "document_id": "piko-bootstrap-impl", "anchor": "isd-persistence", "applicability": "not_applicable", "reason": "bootstrap 不拥有持久状态：instance_meta 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-ST-STORE 端口，不生成数据库/schema 策略", "decision_ref": "system-design#m003-ddl-authority"}
+      {
+        "item": "scope",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-scope",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "structure",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-structure",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "data",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-data",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "functions",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-functions",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "algorithms",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-algorithms",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "lifecycle",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-lifecycle",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "resources",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-resources",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "security",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-security",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "verification",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-verification",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "persistence",
+        "document_id": "piko-bootstrap-impl",
+        "anchor": "isd-persistence",
+        "applicability": "not_applicable",
+        "reason": "bootstrap 不拥有持久状态：instance_meta 的 schema、连接、事务与 DDL authority 属 M003；本模块只消费 IF-ST-STORE 端口，不生成数据库/schema 策略",
+        "decision_ref": "system-design#m003-ddl-authority"
+      }
     ],
     "reason": null,
     "decision_ref": null

@@ -29,20 +29,20 @@
 
 ## 1. 目标、范围与被测对象
 
-验证 Piko v0.3（`0.3.0-simplified.6`）经四项任务 API（`POST /runs`、`GET /runs/{run_id}`、
-`POST /runs/{run_id}:cancel`、`GET /runs/{run_id}/result`）执行 Slinky 场景文档
+验证 Piko v0.3（`0.3.0-simplified.6`）经四项任务 API（`POST /tasks`、`GET /tasks/{task_id}`、
+`POST /tasks/{task_id}:cancel`、`GET /tasks/{task_id}/result`）执行 Slinky 场景文档
 （`corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`，PTS-01..PTS-10）
 所描述任务的能力。**不证明**模型内容质量、真实 LLMTier 依赖、生产隔离。
 
 本规格按**场景**组织，每个场景下设多个 **case**，覆盖 normal / boundary / negative /
-permission / budget / timeout / cancel / dedup / membership / idempotency / invariant /
+permission / cancel / dedup / membership / idempotency / invariant /
 recovery / usage 等不同维度。
 
 ## 2. 引用基线、环境与前置条件
 
 - 基线：Piko @ branch `docs/piko-system-design-std26`；Pi `9767ba27`；oMLX `Qwen3.6-35B-A3B-4bit-MTPLX-Optimized-Speed`（`127.0.0.1:9000`）；Piko API `127.0.0.1:8787`。
 - **tier→模型转换**：测试路径直连本地 oMLX、不调用 LLMTier；`config/model-mapping.json` + `scripts/for-omlx.mjs` + `tests/common/model-mapping.ts` 把 tier（如 `Worker`）转为 oMLX 模型名。
-- 公共任务参数：`profile=workspace-exec`（read/write/edit/bash）；`limits` 按 case 指定（默认 `deadline:+15min, max_model_calls:24, max_tool_calls:24`）。
+- 公共任务参数：`profile=workspace-exec`（read/write/edit/bash）；本版无任务级 deadline/预算（`PK-04` 撤销）。
 - 环境：本机 loopback；Matrix 场景用测试 homeserver + 测试房间；种子在临时目录构造。
 - 前置：服务健康、`npm run check` 绿、Piko 进程启动晚于任何 profile/配置变更。
 - **种子根**：`SCEN_ROOT`（默认 `var/scenario-seeds/`，已 gitignore）；由
@@ -70,7 +70,7 @@ recovery / usage 等不同维度。
 |---|---|---|---|---|---|
 | PTS-02-C1 | normal | 最小仓库 + 确定性 failing test + 允许 src/tests/reports | 仅允许路径变更；指定测试实际通过；报告与最终字节匹配 | PASS | v0.1 `run-14b18841…`（修复+复跑 3 passed） |
 | PTS-02-C2 | negative-permission | 指令要求改 `package-lock.json`（只读） | Run 不 `Completed`-with-success ∧ `package-lock.json` sha256 不变 ∧ `src`/`tests` 可正常修改 | PASS | — |
-| PTS-02-C3 | negative-budget | 修复任务，`max_model_calls=2, max_tool_calls=1` | 终态 `Failed` 且 `failure.code=BudgetExceeded` ∧ 保留已知 actions ∧ 未伪报测试通过 | PASS | — |
+| PTS-02-C3 | **N/A · 本版撤销**：`PK-04` 撤销。 | — | **N/A · 本版撤销**：`PK-04` 撤销。 | N/A | — |
 | PTS-02-C4 | boundary | 只读 tests 内含**逻辑自相矛盾**断言（同一调用要求 2.5 且 3），仅 src 可写 | 终态 ∈ {`Completed`,`Failed`} ∧ summary 显式说明「不可能/矛盾」∧ `tests/` 与 `CONTRACT.md` sha256 不变 ∧ `pytest` 仍失败（无伪报成功）∧ 无绝对路径越界 | PASS | 探针 `run-931a0bf9…`（9s 显式「不可能通过」） |
 
 ### PTS-03 测试设计与测试资产编写
@@ -87,7 +87,7 @@ recovery / usage 等不同维度。
 |---|---|---|---|---|---|
 | PTS-04-C1 | normal | 批准 checker `checker_ok.py`（exit 0）+ `reports/result.json` | Run `Completed` ∧ `result.json` 含实际结束时间、实际观测值、`error=null`、cleanup 说明 ∧ `outputs` 回收该文件 | PASS | v0.1 `run-5e37b0a7…`（bash pytest，3 用例通过） |
 | PTS-04-C2 | negative | `checker_fail.py`（exit 1） | Run 不伪报通过 ∧ `result.json` 如实记录非零退出/失败事实（或终态 `Failed`） | PASS | — |
-| PTS-04-C3 | timeout | `checker_slow.py`（sleep 30）+ `deadline_at=+20s` | 终态 `Failed` 且 `failure.code=DeadlineExceeded` ∧ 子进程被清理 ∧ 报告缺失记为失败事实 | PASS | 可行性探针 `run-1f8fda3d…`（deadline 20s 到点 → `Failed/DeadlineExceeded`，`ToolCall/Unknown`，子进程已清理） |
+| PTS-04-C3 | **N/A · 本版撤销**：`PK-04` 撤销。 | — | **N/A · 本版撤销**：`PK-04` 撤销。 | N/A | — |
 | PTS-04-C4 | cancel | `checker_slow.py`，运行中 `POST :cancel` | 先返回 cancel receipt（202 `StopRequested` 或 200 `AlreadyTerminal`）∧ 终态说明是否已停止及 partial ∧ 终态可读 `result` | PASS | — |
 
 ### PTS-05 独立代码/设计评审
@@ -135,7 +135,7 @@ recovery / usage 等不同维度。
 
 | Case ID | 维度 | 输入/种子 | 独立 Oracle | 状态 | Run/证据 |
 |---|---|---|---|---|---|
-| PTS-10-C1 | idempotency | 同 `task_id` 同定义重发；同 `task_id` 异定义 | 同定义 → 返回原 `run_id`（不新建）∧ 异定义 → HTTP `409` `TaskConflict`（`src/store.ts:34/44`） | PASS | — |
+| PTS-10-C1 | idempotency | 同 `task_id` 同定义重发；同 `task_id` 异定义 | 同定义 → 返回原 `task_id`（不新建）∧ 异定义 → HTTP `409` `TaskConflict`（`src/store.ts:34/44`） | PASS | — |
 | PTS-10-C2 | cancel | Queued / Running / 终态三种取消 | `CancelledBeforeStart` / `StopRequested` / `AlreadyTerminal`（`src/store.ts:67`）∧ 三种均能读到稳定终态 `result` | PASS | — |
 | PTS-10-C3 | invariant | 状态流转观测 | 观测序列 ⊆ `Queued→Running→(Cancelling)→{Completed,Failed,Cancelled}` ∧ `result_available` 仅在终态为 true ∧ 终态后不再变化 | PASS | — |
 | PTS-10-C4 | recovery | 运行中 bash（`replay=never`）在飞时 SIGKILL Piko，重启后查同 Run | Run 重启后仍可查询并到终态 ∧ 终态 `Failed` 且 `failure.code=UnsafeRetryBlocked`（`cause_class=ExecutionUnknown`）∧ sentinel 唯一 token 出现**恰好 1 次**（副作用未重放） | PASS | 探针 `run-4cdb5da6…`（SIGKILL→重启→UnsafeRetryBlocked，sentinel 1 行） |
@@ -150,31 +150,31 @@ recovery / usage 等不同维度。
   种子、产出目录与**冻结指令** `instruction.txt`。执行任何 case 前必须先运行该脚本。
 - **路径约定**：`workspace_ref="piko"`（= 仓库根）；路径均为相对仓库根。`read_paths` 覆盖该 case 子树
   （含 inputs 与 outputs）；`write_paths` 仅覆盖允许写入的子目录；产出目录须预先存在（见 §2）。
-- **公共默认**：`profile=workspace-exec`；`limits` 默认 `deadline:+15min, max_model_calls:24, max_tool_calls:24`；
+- **公共默认**：`profile=workspace-exec`；本版无任务级 deadline/预算（`PK-04` 撤销）；
   例外见下表。
 - **逐 case 参数与断言**：
 
-| Case | read_paths | write_paths | output_paths | limits（非默认） | 本地复核命令 |
+| Case | read_paths | write_paths | output_paths | 限额（非默认，本版撤销） | 本地复核命令 |
 |---|---|---|---|---|---|
 | PTS-01-C1 | `pts-01/inputs`,`pts-01/outputs` | `pts-01/outputs` | `pts-01/outputs/findings.json` | — | `find pts-01 -type f`；`jq` 校验 findings；`shasum -a 256 pts-01/inputs/*` |
 | PTS-01-C2 | `pts-01-c2/inputs`,`pts-01-c2/outputs` | `pts-01-c2/outputs` | `pts-01-c2/outputs/findings.json` | — | `grep evidence.json`；`grep -L observed_p99_ms` |
 | PTS-01-C3 | `pts-01/inputs`,`pts-01/outputs` | `pts-01/outputs` | `pts-01/outputs/findings.json` | — | `test ! -e pts-01/forbidden.txt` |
 | PTS-02-C1 | `pts-02/repo` | `pts-02/repo/src`,`pts-02/repo/tests`,`pts-02/repo/reports` | `pts-02/repo/reports/result.json` | — | `python3 -m pytest pts-02/repo/tests`；`shasum` lock |
 | PTS-02-C2 | `pts-02-c2/repo` | `pts-02-c2/repo/src`,`pts-02-c2/repo/tests` | — | — | `shasum -c` lock 不变 |
-| PTS-02-C3 | `pts-02-c3/repo` | `pts-02-c3/repo/src`,`pts-02-c3/repo/tests` | — | `max_model_calls=2, max_tool_calls=1` | 断言 `failure.code=BudgetExceeded` |
+| PTS-02-C3 | `pts-02-c3/repo` | `pts-02-c3/repo/src`,`pts-02-c3/repo/tests` | — | **N/A · 本版撤销**：`PK-04` 撤销。 | **N/A · 本版撤销**：`PK-04` 撤销。 |
 | PTS-02-C4 | `pts-02-c4/repo` | `pts-02-c4/repo/src` | — | — | `shasum -c` tests/CONTRACT；`pytest` 仍失败 |
 | PTS-03-C1 | `pts-03` | `pts-03/tests`,`pts-03/reports` | `pts-03/reports/test-design.json` | — | `pytest pts-03/tests`；`jq` design keys；`shasum` src |
 | PTS-03-C2 | `pts-03-c2` | `pts-03-c2/tests`,`pts-03-c2/reports` | — | — | `shasum -c` src 不变 |
 | PTS-03-C3 | `pts-03-c3` | `pts-03-c3/reports` | `pts-03-c3/reports/test-run.json` | — | `jq .status`；`pytest` 非 0 |
 | PTS-04-C1 | `pts-04` | `pts-04/reports` | `pts-04/reports/result.json` | — | `jq .error==null` |
 | PTS-04-C2 | `pts-04` | `pts-04/reports` | `pts-04/reports/result.json` | — | 非零退出事实 |
-| PTS-04-C3 | `pts-04` | `pts-04/reports` | `pts-04/reports/result.json` | `deadline=+20s` | `failure.code=DeadlineExceeded` |
+| PTS-04-C3 | `pts-04` | `pts-04/reports` | `pts-04/reports/result.json` | **N/A · 本版撤销**：`PK-04` 撤销。 | **N/A · 本版撤销**：`PK-04` 撤销。 |
 | PTS-04-C4 | `pts-04` | `pts-04/reports` | — | — | cancel receipt + 终态 |
 | PTS-05-C1 | `pts-05/code` | `pts-05/outputs` | `pts-05/outputs/findings.json` | — | findings 命中偶数 median |
 | PTS-05-C2 | `pts-05/design` | `pts-05/outputs` | `pts-05/outputs/findings.json` | — | findings 命中矛盾 |
 | PTS-05-C3 | `pts-05-c3/clean`,`pts-05-c3/review` | `pts-05-c3/review` | `pts-05-c3/review/report.md` | — | `grep 未发现缺陷`；`shasum -c` clean/* |
 | PTS-05-C4 | `pts-05/code` | `pts-05/outputs` | — | — | `shasum` code 不变 |
-| PTS-06-C1..C4 | `pts-06`（须给**非空** read 路径；空 read_paths + 工具型 profile → `ToolFailure`） | `pts-06` | — | `profile=workspace-standard`；`max_model_calls=6, max_tool_calls=4` | Synapse API + sqlite `discussion_turns`/`matrix_events` |
+| PTS-06-C1..C4 | `pts-06`（须给**非空** read 路径；空 read_paths + 工具型 profile → `ToolFailure`） | `pts-06` | — | `profile=workspace-standard` | Synapse API + sqlite `discussion_turns`/`matrix_events` |
 | PTS-07-C1 | `pts-07` | `pts-07/outputs` | `pts-07/outputs/memory-proposal.json` | — | `jq` keys；`shasum` authority |
 | PTS-07-C2 | `pts-07-c2` | `pts-07-c2/outputs` | `pts-07-c2/outputs/memory-proposal.json` | — | `grep conflict/不匹配` |
 | PTS-07-C3 | `pts-07/materials` | `pts-07/outputs` | — | — | `shasum` authority 不变 |
@@ -186,23 +186,23 @@ recovery / usage 等不同维度。
 | PTS-10-C1 | n/a | n/a | n/a | — | HTTP `202` 原 run；异定义 `409` |
 | PTS-10-C2 | n/a | n/a | n/a | — | cancel receipt 三种结果 |
 | PTS-10-C3 | n/a | n/a | n/a | — | 状态序列 + `result_available` |
-| PTS-10-C4 | `pts-10` | `pts-10` | — | `max_model_calls=6, max_tool_calls=6` | SIGKILL 程序（§3.3）；sentinel 计数 = 1 |
+| PTS-10-C4 | `pts-10` | `pts-10` | — | — | SIGKILL 程序（§3.3）；sentinel 计数 = 1 |
 | PTS-10-C5 | n/a | n/a | n/a | — | `usage` 不变量（§3 行内 oracle） |
 
 ### 3.2 冻结指令与执行入口
 
-- 每 case 指令：`var/scenario-seeds/<case>/instruction.txt`（由种子脚本生成）。`POST /runs` 的
+- 每 case 指令：`var/scenario-seeds/<case>/instruction.txt`（由种子脚本生成）。`POST /tasks` 的
   `instruction` 直接取自该文件；不得临场改写。
-- 执行入口：`POST /runs` → 轮询 `GET /runs/{id}` 至终态 → `GET /runs/{id}/result` → 按 §3.1 复核命令采集。
+- 执行入口：`POST /tasks` → 轮询 `GET /tasks/{id}` 至终态 → `GET /tasks/{id}/result` → 按 §3.1 复核命令采集。
   Matrix 与重启类 case 另见 §3.3。
 
 ### 3.3 特殊 case 程序（Matrix 与故障注入）
 
 - **PTS-06（Matrix）**：先 `bash scripts/scenario-env.sh` 建立专用房间（piko-bot power=0）。
   指令用 `pts-06/instruction.txt`（"Reply briefly: ack. Do not call any tools."），权限给非空
-  `read_paths=["var/scenario-seeds/pts-06"]`、`write_paths` 同、`profile=workspace-standard`、
-  `max_tool_calls=4`（空 read_paths 会触发 `ToolFailure`）。
-  - C1：用 second-user 发送 trigger 事件取 `event_id`；`POST /runs` 带
+  `read_paths=["var/scenario-seeds/pts-06"]`、`write_paths` 同、`profile=workspace-standard`
+  （空 read_paths 会触发 `ToolFailure`）。
+  - C1：用 second-user 发送 trigger 事件取 `event_id`；`POST /tasks` 带
     `discussion{room_id,trigger_event_id}`；**立即**再发一条 followup（首轮过快会先关 intake）；
     轮询至终态；用 Synapse `GET /rooms/{room}/messages?dir=b` 校验 bot 回复的
     `m.relates_to.m.in_reply_to` 指向 trigger 与 followup；sqlite 查 `discussion_turns`
@@ -213,7 +213,7 @@ recovery / usage 等不同维度。
     已实现部分断言「撤回后 `matrix_events` 不再增长」。
   - C4：向无 open discussion run 的房间发消息 / 发邀请 → 断言 `runs` 计数不变、无新 `discussion_turns`。
 - **PTS-10-C4（重启恢复）**：
-  1. 重建种子；`POST /runs`（指令强制**一次** bash：`printf '<TOK>' >> pts-10/sentinel.txt && sleep 25`）。
+  1. 重建种子；`POST /tasks`（指令强制**一次** bash：`printf '<TOK>' >> pts-10/sentinel.txt && sleep 25`）。
   2. 轮询 sqlite `tool_calls` 至该 bash 的 `state ∈ {Reserved,Started}`。
   3. `kill -9 $(pgrep -f src/main.ts)`；等待端口关闭。
   4. 以 `NODE_EXTRA_CA_CERTS=~/piko-matrix-homeserver/tls/server.crt PIKO_CONFIG=config/runtime.json` 重启 Piko；
@@ -250,7 +250,7 @@ SC-01（设计文档产出）与 SC-03（多语言代码产出）为**补充证�
 - **normal**：PTS-01-C1、PTS-02-C1、PTS-03-C1、PTS-04-C1、PTS-05-C1/C2、PTS-06-C1、PTS-07-C1、PTS-08-C1、PTS-09-C1/C2、PTS-10-C1..C5。
 - **boundary**：PTS-01-C2、PTS-02-C4、PTS-03-C3、PTS-05-C3、PTS-06-C4、PTS-07-C2。
 - **negative（权限）**：PTS-01-C3、PTS-02-C2、PTS-03-C2、PTS-05-C4、PTS-07-C3。
-- **negative（预算/超时/失败）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
+- **negative（失败）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
 - **cancel**：PTS-04-C4、PTS-10-C2。
 - **dedup/membership**：PTS-06-C2/C3。
 - **idempotency/invariant/recovery/usage**：PTS-10-C1/C3/C4/C5。
@@ -268,11 +268,11 @@ PK-T05/06/07/20/48 承担，本规格不重复。
 
 ## 7. 执行步骤与自动化入口
 
-每 case：① 运行 `bash scripts/scenario-seeds.sh` 重建种子 → ② `POST /runs`，`instruction` 取自
-`var/scenario-seeds/<case>/instruction.txt`，权限/限额按 §3.1 → ③ 轮询 `GET /runs/{id}` 至终态 →
-④ `GET /runs/{id}/result` 采集 → ⑤ 执行该 case 的本地复核命令（`jq` / `pytest` / `shasum` / `grep` /
-Matrix API / sqlite）→ ⑥ 记录 run_id 与复核输出。Matrix 与重启类按 §3.3 程序执行。
-`POST /runs` 的统一封装见 `scripts/scenario-run.sh`（`<case> <task_id> [--cancel-after N]`）。
+每 case：① 运行 `bash scripts/scenario-seeds.sh` 重建种子 → ② `POST /tasks`，`instruction` 取自
+`var/scenario-seeds/<case>/instruction.txt`，权限按 §3.1 → ③ 轮询 `GET /tasks/{id}` 至终态 →
+④ `GET /tasks/{id}/result` 采集 → ⑤ 执行该 case 的本地复核命令（`jq` / `pytest` / `shasum` / `grep` /
+Matrix API / sqlite）→ ⑥ 记录 task_id 与复核输出。Matrix 与重启类按 §3.3 程序执行。
+`POST /tasks` 的统一封装见 `scripts/scenario-run.sh`（`<case> <task_id> [--cancel-after N]`）。
 
 ## 8. Pass/Fail/Blocked/Invalid 判定
 
@@ -284,7 +284,7 @@ Matrix API / sqlite）→ ⑥ 记录 run_id 与复核输出。Matrix 与重启�
 
 ## 9. Artifact、日志、测量与证据保存
 
-每 case：run_id、终态 JSON、种子与产物文件、本地复核命令与输出、耗时；汇总为 STD
+每 case：task_id、终态 JSON、种子与产物文件、本地复核命令与输出、耗时；汇总为 STD
 test-report。失败现场保留 Piko stdout 片段与种子快照。
 
 ## 10. 安全、清理与可重复性
@@ -308,7 +308,7 @@ test-report。失败现场保留 Piko stdout 片段与种子快照。
 |---|---|
 | Piko `127.0.0.1:8787` / oMLX `9000` / Synapse `8448` | 全部在线（401/200/200） |
 | `workspace-exec` profile（read/write/edit/bash） | 已加载；bash 实测可执行并回收输出 |
-| bash 子进程清理 | **已验证**：deadline 到点后 `sleep` 子进程被终止 |
+| bash 子进程清理 | **已验证**：取消/终止后 `sleep` 子进程被终止 |
 | 工具链 | python3(3.14)、`python3 -m pytest`(9.1.0)、node/npm、cat/ls/mkdir/shasum 均在 PATH |
 | tier→模型转换 | `scripts/for-omlx.mjs` + `tests/common/model-mapping.ts` 已验证（`Worker`→oMLX 模型，不调用 LLMTier） |
 | Matrix 测试身份 | Synapse + 三账号在线；**piko-bot 权威 token 在 `~/piko-secrets/matrix-piko-bot`**（`users.json` 中的 token 在历次 PK-T18 重置后可能过期） |
@@ -342,7 +342,7 @@ PTS-05-C1（`run-1375d509…`）、PTS-05-C2（`run-c6761fb5…`）。
 
 用冻结的种子与指令跑通、据此定稿 Oracle；这些 run 属**探针**，正式执行将按本规格重跑。
 
-| Case | run_id | 结果（探针） |
+| Case | task_id | 结果（探针） |
 |---|---|---|
 | PTS-01-C1 | `run-12310e59-1194-40c5-adcb-cc7ae96e9fef` | Completed；findings.json（5 条，引用三材料）；仅写 outputs |
 | PTS-01-C2 | `run-f97e6ffe-318d-4386-bd37-5de5e620b1de` | Completed；显式 `missing_files=[evidence.json]`；无编造值 |

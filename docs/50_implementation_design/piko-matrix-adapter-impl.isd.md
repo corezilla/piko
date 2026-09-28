@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-matrix-adapter-impl` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -376,7 +376,7 @@ flowchart LR
 
   ```ts
   interface DiscussionContext { room_id: string; trigger_event_id: string }
-  interface MatrixSendRecord { txn_id: string; run_id: string; turn_seq: number; payload_sha256: string; event_id: string | null; state: "Pending" | "Sent" | "Unknown" }
+  interface MatrixSendRecord { txn_id: string; task_id: string; turn_seq: number; payload_sha256: string; event_id: string | null; state: "Pending" | "Sent" | "Unknown" }
   ```
 
 - **逐字段类型/范围/初值/不变量/owner**：`room_id` 匹配 `!...:...`；`trigger_event_id` 匹配 `$...`；`MatrixSendRecord.state="Sent"` ⟹ `event_id` 非空；`payload_sha256` 为 64 hex。owner = 调用方/M003 产生、`send.ts` 只读消费。
@@ -745,7 +745,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **宿主 / public payload 或状态码**：返回摘要/`content_uri`；无对外码。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（下载完成，含 run_id/event_id/size/mime）；`warn`（拒绝）；不记字节内容。
+- **日志级别 / 脱敏 / 关联字段**：`info`（下载完成，含 task_id/event_id/size/mime）；`warn`（拒绝）；不记字节内容。
 
 - **是否可重试及前提**：可重下（同 turn 幂等）；不可放宽预算。
 

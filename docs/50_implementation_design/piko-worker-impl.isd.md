@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-worker-impl` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.2.0` |
 
@@ -20,7 +20,7 @@
 
 <a id="isd-scope"></a>
 
-本 ISD 实现 M005 `worker` 的**Run 生命周期协调、取消分流、deadline、Usage 发布前校验与 Result 两步发布**：向 M004 `scheduler`/M001 `task-api`/M000 `bootstrap` 提供 `onLease`/`cancelQueued`/`cancelRunning`/恢复编排入口，消费 M003 `task-repository`（fenced publish/terminal）、M006 `pi-adapter`（session/accept/drive/abort/inspect）、M007 `usage`（snapshot/validate）、M008 `matrix-adapter`（sync/send/media）。本次实现范围是 §5 的对外函数与其内部组成（Result 构造、取消、恢复、intake、端口适配）及 Brownfield 抽出（§2）；**非目标**是 Pi Agent loop、工具循环与 provider 重试（M006）、Run/Result 持久 authority 与 DDL（M003）、Usage 聚合算法（M007）、HTTP 路由与授权（M001/M002）、Matrix 协议（M008）。模块行为、接口语义、状态模型与失败语义由模块设计唯一维护，本层只细化文件/symbol、私有表示、调用/锁/清理步骤与测试入口。
+本 ISD 实现 M005 `worker` 的**Run 生命周期协调、取消分流、Usage 发布前校验与 Result 两步发布**：向 M004 `scheduler`/M001 `task-api`/M000 `bootstrap` 提供 `onLease`/`cancelQueued`/`cancelTaskning`/恢复编排入口，消费 M003 `task-repository`（fenced publish/terminal）、M006 `pi-adapter`（session/accept/drive/abort/inspect）、M007 `usage`（snapshot/validate）、M008 `matrix-adapter`（sync/send/media）。本次实现范围是 §5 的对外函数与其内部组成（Result 构造、取消、恢复、intake、端口适配）及 Brownfield 抽出（§2）；**非目标**是 Pi Agent loop、工具循环与 provider 重试（M006）、Run/Result 持久 authority 与 DDL（M003）、Usage 聚合算法（M007）、HTTP 路由与授权（M001/M002）、Matrix 协议（M008）。模块行为、接口语义、状态模型与失败语义由模块设计唯一维护，本层只细化文件/symbol、私有表示、调用/锁/清理步骤与测试入口。
 
 ### 1.1 实现对象
 
@@ -90,7 +90,7 @@
 
 - **唯一权威位置**：分流语义 = 模块设计 §8.2；abort/对账 = 本 ISD + M006。
 
-- **实现自由度**：abort+对账实现、与 deadline 优先级；不可把 `StopRequested` 当停止、不可在 Queued 取得 lease。
+- **实现自由度**：abort+对账实现；不可把 `StopRequested` 当停止、不可在 Queued 取得 lease。
 
 - **原 V/Case 及本地验证位置**：`VRC-WORKER-002`。
 
@@ -323,7 +323,7 @@ flowchart LR
 
 - **职责及调用者**：唯一跨模块适配层；被 `coordinator.ts`/`cancel.ts`/`recovery.ts`/`intake.ts` 调用。
 
-- **类型 / 函数**：`interface WorkerPorts`（`createSession`/`openOrCreateRunSession`/`accept`/`drive`/`requestAbort`/`inspect`/`snapshot`/`validate`/`publishResult`/`finishTerminal`/`releaseSlot`/`scanNonTerminalRuns`/`resultExists`/`patchTerminal`/`casIntake`/`listPendingTurns`/`markTurnConsumed`/`abandonTurns`/`getRun`/`acquireSlot`/`renewLease`/`fence`）；`class PikoWorkerPorts implements WorkerPorts`。
+- **类型 / 函数**：`interface WorkerPorts`（`createSession`/`openOrCreateRunSession`/`accept`/`drive`/`requestAbort`/`inspect`/`snapshot`/`validate`/`publishResult`/`finishTerminal`/`releaseSlot`/`scanNonTerminalRuns`/`resultExists`/`patchTerminal`/`casIntake`/`listPendingTurns`/`markTurnConsumed`/`abandonTurns`/`getTask`/`acquireSlot`/`renewLease`/`fence`）；`class PikoWorkerPorts implements WorkerPorts`。
 
 - **可见性**：接口模块内 public；`PikoWorkerPorts` 由 `main.ts` 装配。
 
@@ -425,7 +425,7 @@ flowchart LR
 
   ```ts
   interface AgentResult {
-    run_id: string; task_id: string; generation: number;
+    task_id: string; task_id: string; generation: number;
     state: "Completed" | "Failed" | "Cancelled";
     partial: boolean; summary: string;
     outputs: OutputArtifact[]; known_actions: KnownAction[];
@@ -441,9 +441,9 @@ flowchart LR
 
 #### 4.2.2 `FencedPublishResult`
 
-- **完整定义、Data/Type ID 与唯一来源**：`interface FencedPublishResult { run_id: string; generation: number; result_json: string; result_sha256: string }`；语义来源 = 模块设计 §6.2.3 + `piko-run` §4.4.2。
+- **完整定义、Data/Type ID 与唯一来源**：`interface FencedPublishResult { task_id: string; generation: number; result_json: string; result_sha256: string }`；语义来源 = 模块设计 §6.2.3 + `piko-run` §4.4.2。
 
-- **逐字段类型/范围/初值/不变量/owner**：`generation >= 1`；`result_sha256` 为 `result_json` 的 SHA-256（64 hex）；CLI/事务前提 `WHERE run_id=? AND generation=?` 影响 1 行。owner = worker 构造、M003 执行。
+- **逐字段类型/范围/初值/不变量/owner**：`generation >= 1`；`result_sha256` 为 `result_json` 的 SHA-256（64 hex）；CLI/事务前提 `WHERE task_id=? AND generation=?` 影响 1 行。owner = worker 构造、M003 执行。
 
 - **创建/借用/释放/失败路径**：`publish` 内构造；失败 → `FencedWrite`。
 
@@ -451,9 +451,9 @@ flowchart LR
 
 #### 4.2.3 `WorkerRunPlan`
 
-- **完整定义、Data/Type ID 与唯一来源**：私有类型 `interface WorkerRunPlan { run_id: string; lease_epoch: number; workspace: ResolvedWorkspace; instruction: string; discussion?: DiscussionContext; limits: RunLimits }`；来源 = 模块设计 §6.2.4，字段引自契约 `AgentTaskRequest`。
+- **完整定义、Data/Type ID 与唯一来源**：私有类型 `interface WorkerRunPlan { task_id: string; lease_epoch: number; workspace: ResolvedWorkspace; instruction: string; discussion?: DiscussionContext }`；来源 = 模块设计 §6.2.4，字段引自契约 `AgentTaskRequest`。
 
-- **逐字段类型/范围/初值/不变量/owner**：`lease_epoch >= 1`；`workspace` canonicalize 且在 root 内；`limits` 来自 M002 固定。owner = worker 组装。
+- **逐字段类型/范围/初值/不变量/owner**：`lease_epoch >= 1`；`workspace` canonicalize 且在 root 内。owner = worker 组装。
 
 - **创建/借用/释放/失败路径**：`onLease` 组装；workspace 越界 → `InvalidWorkspace` Failed。
 
@@ -461,7 +461,7 @@ flowchart LR
 
 ### 4.3 配置与规则数据结构
 
-**N/A。** worker 无自有配置结构：执行参数来自 Run 的 `task.limits`、lease 来自 M004、启动 config 由 M000/M002 经既有 `RuntimeConfig`（`src/config.ts`）注入；worker 不定义第二份配置类型。依据：STD ISD 规范 §4.3；`CON-CFG-001`（config 变更需重启）。固定常量见 §8.1。
+**N/A。** worker 无自有配置结构：执行参数来自 M002 规范化的提交、lease 来自 M004、启动 config 由 M000/M002 经既有 `RuntimeConfig`（`src/config.ts`）注入；worker 不定义第二份配置类型。依据：STD ISD 规范 §4.3；`CON-CFG-001`（config 变更需重启）。固定常量见 §8.1。
 
 ### 4.6 运行状态数据结构
 
@@ -484,7 +484,7 @@ flowchart LR
 #### 4.6.2 `RecoveryProbe`
 
 - **完整定义 / 来源**：```ts
-  interface RecoveryProbe { run_id: string; result_generation: number | null; run_state: RunState; lease_epoch: number; pi_session: { session_id: string; exists: boolean; open_operations: string[]; operation_result?: unknown }; }
+  interface RecoveryProbe { task_id: string; result_generation: number | null; run_state: TaskState; lease_epoch: number; pi_session: { session_id: string; exists: boolean; open_operations: string[]; operation_result?: unknown }; }
   ```
 
   来源 = 模块设计 §2.7 + `piko-recovery` §4.2.1。
@@ -503,9 +503,9 @@ flowchart LR
 
 #### 4.8.1 `FencedWrite`
 
-- **完整定义 / 来源**：`class FencedWrite extends Error { readonly run_id: string; readonly expected_generation?: number; readonly expected_epoch?: number; }`；语义来源 = 模块设计 §6.8.1 + M003。
+- **完整定义 / 来源**：`class FencedWrite extends Error { readonly task_id: string; readonly expected_generation?: number; readonly expected_epoch?: number; }`；语义来源 = 模块设计 §6.8.1 + M003。
 
-- **逐字段/触发/副作用**：触发 = fenced write 的 `WHERE run_id=? AND generation=?` 影响 0 行；无副作用（0 行生效）。
+- **逐字段/触发/副作用**：触发 = fenced write 的 `WHERE task_id=? AND generation=?` 影响 0 行；无副作用（0 行生效）。
 
 - **所有权/出口**：M003 抛出 → worker 停止且不制造成功；不映射 HTTP。
 
@@ -513,7 +513,7 @@ flowchart LR
 
 #### 4.8.2 `LeaseLost`
 
-- **完整定义 / 来源**：`class LeaseLost extends Error { readonly run_id: string; readonly epoch: number; }`；语义来源 = `piko-scheduler` §4.8.1 + 模块设计 §6.8.1。
+- **完整定义 / 来源**：`class LeaseLost extends Error { readonly task_id: string; readonly epoch: number; }`；语义来源 = `piko-scheduler` §4.8.1 + 模块设计 §6.8.1。
 
 - **逐字段/触发/副作用**：触发 = `renewLease` CAS 未命中（`D7/D9`）；无 DB 副作用。
 
@@ -523,7 +523,7 @@ flowchart LR
 
 #### 4.8.3 `DiscussionNotClosed`
 
-- **完整定义 / 来源**：`class DiscussionNotClosed extends Error { readonly run_id: string; readonly pending_turns: number; }`；语义来源 = 模块设计 §6.8.1（M003 `finish` guard）。
+- **完整定义 / 来源**：`class DiscussionNotClosed extends Error { readonly task_id: string; readonly pending_turns: number; }`；语义来源 = 模块设计 §6.8.1（M003 `finish` guard）。
 
 - **逐字段/触发/副作用**：触发 = `state=Completed` 但 intake 非 `Closing` 或仍有 pending；无副作用（事务未提交）。
 
@@ -533,7 +533,7 @@ flowchart LR
 
 #### 4.8.4 Result `failure.code` 映射（worker 生产）
 
-- **完整定义 / 来源**：worker 将执行/取消/截止/对账事实映射为 contract §6 `Failure.code`（`DeadlineExceeded`/`BudgetExceeded`/`ModelUnavailable`/`ModelResponseInvalid`/`ToolFailure`/`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`DiscussionAccessLost`/`CancelledByRequest`/`InternalError`）。来源 = 模块设计 §6.8.2。
+- **完整定义 / 来源**：worker 将执行/取消/对账事实映射为 contract §6 `Failure.code`（`ModelUnavailable`/`ModelResponseInvalid`/`ToolFailure`/`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`DiscussionAccessLost`/`CancelledByRequest`/`InternalError`）。来源 = 模块设计 §6.8.2。
 
 - **逐字段/触发/副作用**：`Failure{code,cause_class,message}`；`message` 非空 ≤8192；映射由 `result.ts` `mapFailure` 唯一实现。
 
@@ -561,9 +561,9 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **固定契约与版本**：模块设计 §9.1.4/§5.2.1（`piko-worker` v0.1.1）；构建目标 `dist/worker/`。
 
-- **输入参数 / 数据结构 authority**：`lease: Lease`（`piko-scheduler` §6.2.1）；`run_id`/`epoch` 非空/`epoch>=1`。
+- **输入参数 / 数据结构 authority**：`lease: Lease`（`piko-scheduler` §6.2.1）；`task_id`/`epoch` 非空/`epoch>=1`。
 
-- **输入约束 / 校验顺序 / 失败映射**：校验 `lease.run_id` 非空且 `runs.state=Running`（否则编程错误）；顺序 = 建 session → 预检 deadline/access → accept → drive。失败映射见下。
+- **输入约束 / 校验顺序 / 失败映射**：校验 `lease.task_id` 非空且 `runs.state=Running`（否则编程错误）；顺序 = 建 session → 预检 access → accept → drive。失败映射见下。
 
 - **成功输出 / 数据结构 / 后置条件**：无返回；后置 = `run_sessions` 创建、durable Pi operation 提交、进入 `DRIVING`；最终进入 `P-WORKER-PUBLISH`。
 
@@ -577,7 +577,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **宿主 / public payload 或状态码**：无 HTTP；异步长任务。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（started，含 `run_id`/`epoch`）；`warn`/`error`（失败，含 error class）。不含 instruction 正文。
+- **日志级别 / 脱敏 / 关联字段**：`info`（started，含 `task_id`/`epoch`）；`warn`/`error`（失败，含 error class）。不含 instruction 正文。
 
 - **是否可重试及前提**：`LeaseLost` 不重试；依赖错误由恢复/下个 Run 处理；同 Run 不重复 accept（`INV-WORKER-2`）。
 
@@ -597,11 +597,11 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **Transaction participation**：owner：M003 单 `BEGIN IMMEDIATE`（建 session）；不嵌套第二事务。
 
-- **Blocking / timeout / cancellation**：非阻塞（async）；drive 受 deadline/取消有界；`requestAbort` 走 M006。
+- **Blocking / timeout / cancellation**：非阻塞（async）；drive 受取消有界；`requestAbort` 走 M006。
 
 - **实现状态 / 验证项**：Planned / `VRC-WORKER-001/007`。
 
-- **装配、合法及拒绝实例**：装配：§3.10。合法：`Lease{run_id:"run-042", epoch:3}` + `Running` → 进入 `DRIVING`。拒绝：`runs.state` 非 `Running` → 断言失败。Oracle = `run_sessions`/Pi operation 事实。`NOT_RUN`。
+- **装配、合法及拒绝实例**：装配：§3.10。合法：`Lease{task_id:"task-042", epoch:3}` + `Running` → 进入 `DRIVING`。拒绝：`runs.state` 非 `Running` → 断言失败。Oracle = `run_sessions`/Pi operation 事实。`NOT_RUN`。
 
 #### 5.1.2 `ResultBuilder.build(input: ResultInput): AgentResult`
 
@@ -685,7 +685,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **宿主 / public payload 或状态码**：返回 `CancelOutcome`；HTTP 映射在 M001。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（分流结果，含 `run_id`/`outcome`）；`warn`（无法证明停止）。
+- **日志级别 / 脱敏 / 关联字段**：`info`（分流结果，含 `task_id`/`outcome`）；`warn`（无法证明停止）。
 
 - **是否可重试及前提**：重复取消幂等（终态 `AlreadyTerminal`）；`StopRequested` 后轮询状态。
 
@@ -693,7 +693,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **不可改变的规则 / Constraint ID**：`R-WORKER-CANCEL-DISPATCH`；`CON-CX-001`；`StopRequested`≠停止。
 
-- **实现自由度**：abort+对账实现、与 deadline 优先级。
+- **实现自由度**：abort+对账实现。
 
 - **副作用 / 执行上下文 / 幂等性**：有副作用；上下文 = 事件循环；Queued 路径幂等、Running 路径最终幂等。
 
@@ -701,11 +701,11 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **Thread-safe / reentrant**：conditional（单线程；M003 事务串行）。
 
-- **Nested-call policy**：allowed：调 `WorkerPorts.getRun`/`cancelQueued`/`writeStopIntent`/`requestAbort`。
+- **Nested-call policy**：allowed：调 `WorkerPorts.getTask`/`cancelQueued`/`writeStopIntent`/`requestAbort`。
 
 - **Transaction participation**：owner：M003 单 `BEGIN IMMEDIATE`（Queued/stop intent）。
 
-- **Blocking / timeout / cancellation**：Queued 阻塞单事务；Running 等待 abort 对账（受 deadline 有界）。
+- **Blocking / timeout / cancellation**：Queued 阻塞单事务；Running 等待 abort 对账。
 
 - **实现状态 / 验证项**：Planned / `VRC-WORKER-002`。
 
@@ -739,7 +739,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **宿主 / public payload 或状态码**：无 HTTP；返回恢复报告。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（outcome，含 `run_id`）；`error`（`InternalError`）。不含 instruction 正文。
+- **日志级别 / 脱敏 / 关联字段**：`info`（outcome，含 `task_id`）；`error`（`InternalError`）。不含 instruction 正文。
 
 - **是否可重试及前提**：恢复幂等（已补终态不再处理）；重启后可重跑。
 
@@ -793,7 +793,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **宿主 / public payload 或状态码**：无 HTTP。
 
-- **日志级别 / 脱敏 / 关联字段**：`info`（CAS 结果，含 `run_id`/`state`）；不含 `event_id` 之外内容。
+- **日志级别 / 脱敏 / 关联字段**：`info`（CAS 结果，含 `task_id`/`state`）；不含 `event_id` 之外内容。
 
 - **是否可重试及前提**：CAS 失败可重判；同 turn 不重复消费。
 
@@ -840,7 +840,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **Interface/Member ID、用途**：`IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`；发布前 usage 与语义校验。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M007 `usage`。
 - **完整签名与 caller**：`snapshot(runId): UsageSnapshot`；`validateBeforePublish(result, version): SemanticCheck`；caller = `RunCoordinator.publish`（第一步前）。
-- **输入参数 / 数据结构 authority**：`run_id` + 契约 `0.3.0-simplified.6`。
+- **输入参数 / 数据结构 authority**：`task_id` + 契约 `0.3.0-simplified.6`。
 - **成功输出 / 数据结构 / 后置条件**：`UsageSnapshot`；`SemanticCheck{ok, reason?}`。
 - **错误输出 / 触发条件 / 优先级**：`ok=false` → worker 抛 `InternalError`，不写 Result。
 - **不可改变的规则 / Constraint ID**：`R-WORKER-USAGE-VALIDATE`；`CON-USAGE-001/002`。
@@ -852,7 +852,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **Interface/Member ID、用途**：`IF-RUN-SESSION`/`IF-RUN-ACCEPT`/`IF-RUN-DRIVE`/`IF-CX-ABORT`/`IF-REC-INSPECT`。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M006 `pi-adapter`。
 - **完整签名与 caller**：`openOrCreateRunSession(runId): PiRunHandle`；`accept(handle, operationId, messages): void`；`drive(handle): AsyncIterable<event>`；`requestAbort(operationId): void`；`inspect(handle): PiRunObservation`；caller = `RunCoordinator`/`RecoveryPlanner`/`CancelRouter`。
-- **输入参数 / 数据结构 authority**：固定 Pi `0.85.1` @ commit `9767ba...`；`operationId=run_id:initial`/`run_id:turn:<n>`。
+- **输入参数 / 数据结构 authority**：固定 Pi `0.85.1` @ commit `9767ba...`；`operationId=task_id:initial`/`task_id:turn:<n>`。
 - **成功输出 / 数据结构 / 后置条件**：durable op；ordered events；`PiRunObservation`。
 - **错误输出 / 触发条件 / 优先级**：Harness fault → `UnsafeRetryBlocked`/`ExecutionStateUnknown`；session 损坏 → `InternalError`。
 - **不可改变的规则 / Constraint ID**：不重发旧请求、确定性身份、`CON-RUN-001`。
@@ -898,14 +898,14 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 ```mermaid
 flowchart TD
     A["M004 dispatch → onLease(lease)"] --> B["WorkerPorts.createSession（M003）"]
-    B --> C{"deadline/access 预检？"}
+    B --> C{"access 预检？"}
     C -->|否| Z["mapFailure → publish"]
     C -->|是| D["WorkerPorts.openOrCreateRunSession（M006）"]
     D --> E["WorkerPorts.accept（M006）"]
     E --> F["drive 循环（含 IntakeController）"]
     F --> G{"终止原因？"}
     G -->|operation result| H["对账 in-flight tool"]
-    G -->|cancel/deadline| I["requestAbort + 对账"]
+    G -->|cancel| I["requestAbort + 对账"]
     G -->|LeaseLost| Z2["DETACHED：停止驱动，不写终态"]
     H --> J["snapshot + validateBeforePublish（M007）"]
     I --> J
@@ -941,15 +941,15 @@ sequenceDiagram
 
 - **入口函数及数据**：`onLease(lease)`；数据 `Lease` → `WorkerRunPlan` → `PiRunHandle` → `PiOperationOutcome`。
 
-- **步骤 / 算法 / 复杂度**：1. `ports.createSession`（M003 单事务）；2. 预检 deadline/access；3. `ports.openOrCreateRunSession`；4. `ports.accept`；5. `drive` 循环（穿插 `IntakeController`）；6. 对账 in-flight tool；7. 进入发布。复杂度 O(drive events)。
+- **步骤 / 算法 / 复杂度**：1. `ports.createSession`（M003 单事务）；2. 预检 access；3. `ports.openOrCreateRunSession`；4. `ports.accept`；5. `drive` 循环（穿插 `IntakeController`）；6. 对账 in-flight tool；7. 进入发布。复杂度 O(drive events)。
 
-- **判断事实来源**：Guard = `runs.state`/`deadline_at`（DB）+ Pi durable op（M006）。无可来源不明 Guard。
+- **判断事实来源**：Guard = `runs.state`（DB）+ Pi durable op（M006）。无可来源不明 Guard。
 
 - **成功可见点**：M003 session 提交 + M006 accept durable op。
 
 - **失败、取消与清理**：`LeaseLost` → 清 drive 定时器、DETACHED；依赖错误 → 映射 failure 走发布；无临时文件残留。
 
-- **代表输入与中间值**：见 §9.1.1 Case A：`Lease{run_id:"run-042", epoch:3}` → `DRIVING` → operation result。
+- **代表输入与中间值**：见 §9.1.1 Case A：`Lease{task_id:"task-042", epoch:3}` → `DRIVING` → operation result。
 
 - **规则 / 接口 / 验证引用**：§5.1.1/§5.2.3/§5.2.4；`R-WORKER-TWOSTEP/DEADLINE`；`VRC-WORKER-001/007`。
 
@@ -961,7 +961,7 @@ sequenceDiagram
 
 - **步骤 / 算法 / 复杂度**：1. `ResultBuilder.build`；2. `ports.validate`（M007）；3. `ports.publishResult`（第一步，单事务）；4. `ports.finishTerminal` + `ports.releaseSlot`（第二步，单事务）；5. discussion → `IntakeController` 置 `Closed`/`Abandoned`。O(1) 事务。
 
-- **判断事实来源**：generation = `runs.generation + 1`（DB）；校验 = M007 `SemanticCheck`；fence = `(run_id, generation, epoch)` CAS。
+- **判断事实来源**：generation = `runs.generation + 1`（DB）；校验 = M007 `SemanticCheck`；fence = `(task_id, generation, epoch)` CAS。
 
 - **成功可见点**：`results` 提交（第一步）；`runs` 终态提交（第二步）。
 
@@ -975,7 +975,7 @@ sequenceDiagram
 
 - **触发与执行者**：M001 取消入口 → `CancelRouter.route`。
 
-- **入口函数及数据**：`route(runId)`；`run_id` → `RunState` → `CancelOutcome`。
+- **入口函数及数据**：`route(runId)`；`task_id` → `TaskState` → `CancelOutcome`。
 
 - **步骤 / 算法 / 复杂度**：读 state → 分支：Queued 单事务 `cancelQueued`；Running `writeStopIntent` + `requestAbort` + 对账 → 发布 `Cancelled`；终态 `AlreadyTerminal`。Queued O(1)；Running 受对账时延。
 
@@ -993,7 +993,7 @@ sequenceDiagram
 
 - **触发与执行者**：Pi idle/abort → `IntakeController.onIdle`/`onAbort`。
 
-- **入口函数及数据**：`onIdle(runId)`/`onAbort(runId)`；`run_id` → `DiscussionIntakeState` → `PikoDiscussionMessage`。
+- **入口函数及数据**：`onIdle(runId)`/`onAbort(runId)`；`task_id` → `DiscussionIntakeState` → `PikoDiscussionMessage`。
 
 - **步骤 / 算法 / 复杂度**：idle：CAS `Open→Closing`；无 pending 才允许 Completed；领取 `Pending` turn → accept → `Consumed`。abort：未消费 turn → `Abandoned`。O(pending turns)。
 
@@ -1011,7 +1011,7 @@ sequenceDiagram
 
 - **触发与执行者**：M000 READY → `RecoveryPlanner.plan`（恢复门内）。
 
-- **入口函数及数据**：`plan()`；非终态 `run_id[]` → `RecoveryProbe` → `RecoveryReport`。
+- **入口函数及数据**：`plan()`；非终态 `task_id[]` → `RecoveryProbe` → `RecoveryReport`。
 
 - **步骤 / 算法 / 复杂度**：R1 `scanNonTerminalRuns`；R2 探测 `results`/`runs.state`；R3 存在 → `patchTerminal`；R4 open op → `drive`/`getResult`；R5 operation result → 封装两步；R6 都无 → `inspect`（不可恢复 → `InternalError`）；R7 `fence` + ledger/Matrix 对账。O(非终态 Run 数)。
 
@@ -1036,7 +1036,7 @@ sequenceDiagram
     result = buildResult(input with generation = generation(runId) + 1)
     check = validateBeforePublish(result, "0.3.0-simplified.6")
     if not check.ok: throw InternalError("semantic-validator-fail")   # 不写 results
-    publishResult({run_id, generation: result.generation, result_json, sha256})  # 第一步 BEGIN IMMEDIATE
+    publishResult({task_id, generation: result.generation, result_json, sha256})  # 第一步 BEGIN IMMEDIATE
     finishTerminal(runId, result.state, result.generation + 1, epoch)            # 第二步 BEGIN IMMEDIATE
     releaseSlot(runId, epoch)
   ```
@@ -1065,15 +1065,15 @@ sequenceDiagram
 
 - **参与线程 / 回调 / 事务**：`publishResult` 事务已提交 vs `finishTerminal` 未提交；进程崩溃。
 - **已产生或可能产生的副作用**：`results` 已写入（不可变）。
-- **检测事实 / 期限**：重启探测 `results(run_id, gen N)` 存在且 `runs.state` 非终态。
+- **检测事实 / 期限**：重启探测 `results(task_id, gen N)` 存在且 `runs.state` 非终态。
 - **状态 / 错误 / 结果已知性**：已知（Result 已定、终态未定）。
 - **保留 / 释放责任**：恢复只补第二步；slot 由第二步或 fence 释放。
-- **允许的 query / replay / takeover / retry**：query=`result`/`getRun`；takeover=恢复；无重跑 Pi。
+- **允许的 query / replay / takeover / retry**：query=`result`/`getTask`；takeover=恢复；无重跑 Pi。
 - **验证项**：`VRC-WORKER-006`（Case A）。
 
 #### 7.1.2 `C-WORKER-02` · 取消与终态发布竞态
 
-- **参与线程 / 回调 / 事务**：`cancelRunning` 与 operation 自然结束并发；`LeaseLost` 与 slot 释放。
+- **参与线程 / 回调 / 事务**：`cancelTaskning` 与 operation 自然结束并发；`LeaseLost` 与 slot 释放。
 - **已产生或可能产生的副作用**：`cancel_requested`/`state=Cancelling` 或终态。
 - **检测事实 / 期限**：`runs.state`/`cancel_requested` + M006 对账。
 - **状态 / 错误 / 结果已知性**：已知（单终态）。
@@ -1091,15 +1091,9 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：takeover=恢复。
 - **验证项**：`VRC-WORKER-006`（Case D）。
 
-#### 7.1.4 `C-WORKER-04` · deadline 与取消同时
+#### 7.1.4 `C-WORKER-04` · 截止与取消同时 · N/A
 
-- **参与线程 / 回调 / 事务**：deadline poll 与 `cancel_requested`。
-- **已产生或可能产生的副作用**：无（判定前）。
-- **检测事实 / 期限**：`deadline_at`（UTC）+ `cancel_requested`。
-- **状态 / 错误 / 结果已知性**：取消优先。
-- **保留 / 释放责任**：单一终态。
-- **允许的 query / replay / takeover / retry**：N/A。
-- **验证项**：`VRC-WORKER-003`（Case C）。
+**N/A · 本版撤销**：`PK-04` 撤销。
 
 #### 7.1.5 `C-WORKER-05` · 语义校验失败
 
@@ -1147,7 +1141,7 @@ sequenceDiagram
 - **可信输入 / 敏感字段 / 检查对象**：无外部输入；不接触 credential/绝对路径/模型 instruction 正文。
 - **检查函数 / 时点**：无鉴权检查点（进程内调用）；授权点由 M001/M002 前置。
 - **拒绝 / 宿主交付出口**：N/A（无鉴权）；越权边界由 M001/M002 承载。
-- **脱敏 / 禁止输出**：日志不记录 instruction 正文、完整模型 input/output、credential/绝对路径；仅记录 `run_id`/`pi_operation_id`/`lease_epoch`/error class。
+- **脱敏 / 禁止输出**：日志不记录 instruction 正文、完整模型 input/output、credential/绝对路径；仅记录 `task_id`/`pi_operation_id`/`lease_epoch`/error class。
 - **日志 / 指标 / trace 口径及触发**：`info`（started/publish/cancel）、`warn`（`LeaseLost`/依赖错误）、`error`（`InternalError`）；脱敏后输出。
 - **验证项**：`VRC-WORKER-001`（日志不含敏感字段由审查核对）。
 
@@ -1158,12 +1152,12 @@ sequenceDiagram
 - **检查函数 / 时点**：在 `onLease` 切 `Running` 后与 `publish` 终态提交后由 worker 发出。
 - **拒绝 / 宿主交付出口**：无拒绝；经 M009 采集（脱敏）。
 - **脱敏 / 禁止输出**：指标不含身份/instruction。
-- **日志 / 指标 / trace 口径及触发**：单位=事件/计数；关联 `run_id`+`generation`；重置=进程世代。
+- **日志 / 指标 / trace 口径及触发**：单位=事件/计数；关联 `task_id`+`generation`；重置=进程世代。
 - **验证项**：`VRC-WORKER-001/006`。
 
 #### 7.3.3 `SEC-WORKER-LOCALSTORE` · 本地持久化安全
 
-**not_applicable（交接给 M003）。** worker 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD 承接。本层交接事实 = 经端口传递 mutation 命令与 `(run_id, generation, epoch)` 身份，不含路径/凭据。
+**not_applicable（交接给 M003）。** worker 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD 承接。本层交接事实 = 经端口传递 mutation 命令与 `(task_id, generation, epoch)` 身份，不含路径/凭据。
 
 ## 8. 资源、构建与宿主接入
 
@@ -1173,7 +1167,7 @@ sequenceDiagram
 
 - **适用性 / 固定 authority**：N/A（本模块无 config key）。固定常量 authority = 模块设计 §12.1（`tick_interval_ms=200` 由 M004 生效、drive poll 频率随宿主），由 `main.ts` 以既有 `RuntimeConfig` 注入；不新增 config key。
 
-- **配置 key / 来源 / 优先级**：无（非 config schema 项）；Run 级参数来自 `task.limits`（M002 固定）。
+- **配置 key / 来源 / 优先级**：无（非 config schema 项）；Run 级参数来自 M002 规范化的提交。
 
 - **类型 / 单位 / 默认值 / 范围 / 字段约束**：`ResultInput`/`RecoveryProbe` 为进程内结构；无外部配置类型。
 
@@ -1185,7 +1179,7 @@ sequenceDiagram
 
 - **敏感值存储 / 日志脱敏**：N/A。
 
-- **验证项**：`VRC-WORKER-003`（deadline 通用口径）；`NOT_RUN`。
+- **验证项**：`VRC-WORKER-001`；`NOT_RUN`。
 
 ### 8.2.1 `RES-WORKER-BUILD` · 构建目标与宿主接入
 
@@ -1199,7 +1193,7 @@ sequenceDiagram
 
 - **峰值构成 / 上限 / 共享额度**：worker 自身无额外内存配额（常量 + 单个 `AgentResult`/`RecoveryProbe`）；`runs`/`results`/`discussion_turns` 行开销计入 M003 预算（不重复计账）。
 
-- **分段预算 / 总期限 / 计时点**：drive 每 poll 一次事件循环；发布两步各一事务（受 `busy_timeout_ms`）；总期限受 Run `deadline_at`。
+- **分段预算 / 总期限 / 计时点**：drive 每 poll 一次事件循环；发布两步各一事务（受 `busy_timeout_ms`）。
 
 - **超限、部分启动与清理出口**：`busy_timeout` 超时 → 依赖错误映射；恢复未完成不放行正常领取；`worker.close()` 停止 drive 并 abort。
 
@@ -1231,16 +1225,9 @@ sequenceDiagram
 - **测试入口 / 清理**：Planned `tests/fault/worker-cancel.test.ts`。
 - **Run ID / Status**：`NOT_RUN`。
 
-### 9.1.3 `VRC-WORKER-003` · deadline/预算终止
+### 9.1.3 `VRC-WORKER-003` · 截止/预算终止 · N/A
 
-- **Rule / 成员**：`F-WORKER-DEADLINE`；`R-WORKER-DEADLINE`；`CON-RUN-003`。
-- **V / Case / Vector**：A（deadline 已过 → `Failed`/`DeadlineExceeded`）、B（预算耗尽 → `BudgetExceeded`）、C（deadline 与取消同时 → 取消优先）。
-- **输入 / 故障 / 环境**：临时 DB + 受控时钟 + fake M006 预算终止。
-- **独立 Oracle / Expected**：Oracle = 终态 `runs.state` + `results.result_json.failure.code`；Expected 同 Case。
-- **Actual / Evidence**：`NOT_RUN`。
-- **Verdict**：`NOT_RUN`
-- **测试入口 / 清理**：Planned `tests/fault/worker-deadline.test.ts`。
-- **Run ID / Status**：`NOT_RUN`。
+**N/A · 本版撤销**：`PK-04` 撤销。
 
 ### 9.1.4 `VRC-WORKER-004` · Usage 快照与语义校验 fail closed
 
@@ -1292,7 +1279,7 @@ sequenceDiagram
 
 - **顺序 / 前置项**：先于实现；依赖 M003 设计采纳 `IF-RUN-PUBLISH`/`IF-REC-PATCH`（`OQ-WORKER-002`）与 M004 冻结 lease 端口（`OQ-WORKER-001`）。
 - **文件 / symbol / 构建目标**：`src/worker/ports.ts` 抽象 + `src/store.ts` 原语。
-- **不可改变的规则**：两步不可合并、generation 单调、`(run_id, generation, epoch)` fencing。
+- **不可改变的规则**：两步不可合并、generation 单调、`(task_id, generation, epoch)` fencing。
 - **实施动作**：确认 M003/M004 采纳或给出超集；冻结签名。
 - **完成检查**：fake 端口可实现（`VRC-WORKER-001/004/006`）。
 - **实现状态**：`PLANNED`（受 `OQ-WORKER-001/002` 阻断）。

@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-observability",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.1",
   "title": "Piko 模块设计：observability（M009）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
@@ -28,7 +28,7 @@
   "parent_document_id": "system-design",
   "supersedes": null,
   "created_at": "2026-09-27",
-  "last_modified_at": "2026-09-27",
+  "last_modified_at": "2026-09-28",
   "design_object_id": "M009",
   "implementation_specification": {
     "mode": "separate",

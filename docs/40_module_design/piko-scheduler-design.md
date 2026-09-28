@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-scheduler` |
-| Document Version | `0.1.1` |
+| Document Version | `0.1.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -18,16 +18,17 @@
 
 ## 1. 单元摘要：为什么存在
 
-M004 `scheduler` 解决一个问题：Piko 单实例内**同时至多只有一个 Run 在真正执行**（PK-01），而"哪个 Run 占用了这个唯一执行位"必须是可持久、可跨进程重启判定、且能让旧占用者写入失效的事实。scheduler 把这件事实建模为一条唯一的 `execution_slot` 记录加一个单调递增的租约代号 `epoch`（DB 列 `execution_slot.lease_epoch`）：领取 slot 就是把某个 `Queued` Run 绑定到 slot 并推进 epoch；续租就是按 `(run_id, epoch, owner)` 原子刷新心跳；重启后旧 epoch 的全部写入被 M003 的 fenced write 拒绝，scheduler 为该仍占位的非终态 Run 推进 epoch 并把执行权交给当前进程。
+M004 `scheduler` 解决一个问题：Piko 单实例内**同时至多只有一个 Run 在真正执行**（PK-01），而"哪个 Run 占用了这个唯一执行位"必须是可持久、可跨进程重启判定、且能让旧占用者写入失效的事实。scheduler 把这件事实建模为一条唯一的 `execution_slot` 记录加一个单调递增的租约代号 `epoch`（DB 列 `execution_slot.lease_epoch`）：领取 slot 就是把某个 `Queued` Run 绑定到 slot 并推进 epoch；续租就是按 `(task_id, epoch, owner)` 原子刷新心跳；重启后旧 epoch 的全部写入被 M003 的 fenced write 拒绝，scheduler 为该仍占位的非终态 Run 推进 epoch 并把执行权交给当前进程。
 
 scheduler 只做 slot 的领取、续租、fence 和队列选择，**不决策业务**：不改变 Run 状态机语义（MECH-RUN / M003）、不选 Run 的失败与恢复语义（MECH-RECOVERY / M005）、不驱动 Pi（M006）、不裁决优先级（`M-RUN-DI-004` 自由度明确"不加优先级"）。它把持久化交给 M003 `task-repository`（唯一 SQLite writer 与 schema authority），自身只持调度策略。
 
-用一次调用说明：M005 worker 的驱动循环 tick 时调用 `Scheduler.acquireSlot(ownerId)`；scheduler 读 `execution_slot`，若空闲则按 `(accepted_at, run_id)` 取最旧 `Queued` Run，经 M003 的原子 `tryClaimSlot` 把 `execution_slot.run_id` 置为该 Run、`lease_epoch = 旧值 + 1`，并把 `runs.state` 由 `Queued` 推进到 `Running`；返回 `Lease{run_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}`。若 slot 已被占用或队列为空，返回 `null`（排队，不是错误）。M005 随后按固定间隔调用 `renewLease(runId, epoch)` 续租；任一次 CAS 失败即 `LeaseLost`，M005 停止驱动该 Run。
+用一次调用说明：M005 worker 的驱动循环 tick 时调用 `Scheduler.acquireSlot(ownerId)`；scheduler 读 `execution_slot`，若空闲则按 `(accepted_at, task_id)` 取最旧 `Queued` Run，经 M003 的原子 `tryClaimSlot` 把 `execution_slot.task_id` 置为该 Run、`lease_epoch = 旧值 + 1`，并把 `runs.state` 由 `Queued` 推进到 `Running`；返回 `Lease{task_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}`。若 slot 已被占用或队列为空，返回 `null`（排队，不是错误）。M005 随后按固定间隔调用 `renewLease(runId, epoch)` 续租；任一次 CAS 失败即 `LeaseLost`，M005 停止驱动该 Run。
 
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M004 / `scheduler` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P0 控制进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.1 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 203 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | 单实例执行位唯一且可跨重启判定；旧占用者写入可被确定性失效 |
@@ -83,9 +84,9 @@ scheduler 的可观察功能是三个进程内操作：领取 slot、续租、�
 
 - **输入与前提**：`ownerId: string`（当前 worker 实例身份）；进程已 READY；M005 恢复流程已完成（见 `R-SCHED-GATE`）；M003 可用。
 
-- **行为**：读取 `execution_slot`：若 `run_id` 非空则返回 `null`（该 slot 已被占用）。若空闲，则按 `(accepted_at, run_id)` 升序选出最旧 `Queued` Run；无候选则返回 `null`。对候选 Run 调用 M003 原子 `tryClaimSlot(runId, ownerId, bootId)`：成功则 `epoch = 旧值 + 1`、写 `owner_id`/`boot_id`/`heartbeat_at`、`runs.state` 由 `Queued` 推进 `Running`、`run_sessions.lease_epoch` 同步为新 epoch；返回 `Lease`。
+- **行为**：读取 `execution_slot`：若 `task_id` 非空则返回 `null`（该 slot 已被占用）。若空闲，则按 `(accepted_at, task_id)` 升序选出最旧 `Queued` Run；无候选则返回 `null`。对候选 Run 调用 M003 原子 `tryClaimSlot(runId, ownerId, bootId)`：成功则 `epoch = 旧值 + 1`、写 `owner_id`/`boot_id`/`heartbeat_at`、`runs.state` 由 `Queued` 推进 `Running`、`run_sessions.lease_epoch` 同步为新 epoch；返回 `Lease`。
 
-- **输出**：`Lease{run_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 或 `null`（slot 忙 / 无 Queued Run；二者都不是错误）。
+- **输出**：`Lease{task_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 或 `null`（slot 忙 / 无 Queued Run；二者都不是错误）。
 
 - **错误与边界**：无业务错误返回。`slot_busy` 与 `run_not_queued` 两种 CAS 失败由实现重试选下一个候选或返回 `null`（合法下一步：下一个 tick 再试）。M003 不可用（`SQLITE_BUSY` 超时）时向上抛依赖错误，由 M005 决定，不在此吞掉。
 
@@ -99,7 +100,7 @@ scheduler 的可观察功能是三个进程内操作：领取 slot、续租、�
 
 - **输入与前提**：`runId: string`、`epoch: number`；该 Run 仍由本进程持有 slot。
 
-- **行为**：对 `(run_id, epoch)` 做原子 CAS，刷新 `execution_slot.heartbeat_at = now`。CAS 命中返回 `true`；未命中（slot 已换 owner/epoch 或已释放）返回 `false`。
+- **行为**：对 `(task_id, epoch)` 做原子 CAS，刷新 `execution_slot.heartbeat_at = now`。CAS 命中返回 `true`；未命中（slot 已换 owner/epoch 或已释放）返回 `false`。
 
 - **输出**：`true` | `false`。
 
@@ -115,9 +116,9 @@ scheduler 的可观察功能是三个进程内操作：领取 slot、续租、�
 
 - **输入与前提**：`runId: string`（slot 当前绑定的 Run）、`ownerId`、`bootId`（当前进程 boot）。
 
-- **行为**：读权威事实：`execution_slot.run_id`、`runs.state`、`run_sessions`。若绑定 Run 非终态，原子推进 `epoch = 旧值 + 1` 并把 `owner_id`/`boot_id` 换成当前进程，`run_sessions.lease_epoch` 同步；返回新 `Lease`。若绑定 Run 已是终态（不应发生，因释放与终态同事务，见 §6.6 `T-SCHED-05`），则清空 slot 并返回 `null`。
+- **行为**：读权威事实：`execution_slot.task_id`、`runs.state`、`run_sessions`。若绑定 Run 非终态，原子推进 `epoch = 旧值 + 1` 并把 `owner_id`/`boot_id` 换成当前进程，`run_sessions.lease_epoch` 同步；返回新 `Lease`。若绑定 Run 已是终态（不应发生，因释放与终态同事务，见 §6.6 `T-SCHED-05`），则清空 slot 并返回 `null`。
 
-- **输出**：新 `Lease{run_id, owner_id, boot_id, epoch（= 旧 + 1）, acquired_at, heartbeat_at}` 或 `null`（已清空）。
+- **输出**：新 `Lease{task_id, owner_id, boot_id, epoch（= 旧 + 1）, acquired_at, heartbeat_at}` 或 `null`（已清空）。
 
 - **错误与边界**：不把"心跳过期"当作 Run 失败或成功；只推进执行权。若 `run_sessions` 与 `execution_slot` 的 epoch 不一致（不应发生），视为权威记录损坏，抛出内部错误并交 M005/operator（不自行修复）。终态判定只依据 `runs.state`。
 
@@ -125,7 +126,7 @@ scheduler 的可观察功能是三个进程内操作：领取 slot、续租、�
 
 ## 3. UI、CLI、服务端点或设备操作面
 
-**N/A。** scheduler 是纯进程内模块，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是 M005 `worker` 的进程内函数调用（§9.1）；对外可观察的 HTTP 面（`POST /runs` 等）由 M001 `task-api` 承载，其后台推进只是间接经过 scheduler。
+**N/A。** scheduler 是纯进程内模块，不拥有 UI、CLI、HTTP/RPC 端点或设备操作面：它不监听端口、不注册路由、不提供诊断命令。它的唯一调用入口是 M005 `worker` 的进程内函数调用（§9.1）；对外可观察的 HTTP 面（`POST /tasks` 等）由 M001 `task-api` 承载，其后台推进只是间接经过 scheduler。
 
 实际调用入口与归属：`M005 worker 驱动循环 → Scheduler.acquireSlot/renewLease`（进程内 `src/scheduler/`）。维护/诊断入口不新增：slot 状态经 M003 的诊断查询与系统指标 `piko.slot.lease_epoch`（§11）暴露。
 
@@ -164,15 +165,15 @@ flowchart LR
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力，同进程；Owner：Piko Implementation Owner（M000/bootstrap 装配）。
 
-- **本模块调用或消费**：两个时钟：持久判定用 UTC wall clock（写入 `acquired_at`/`heartbeat_at`，与 `deadline_at` 同口径）；间隔/超时用 monotonic clock（续租定时、stale 判定窗口）。
+- **本模块调用或消费**：两个时钟：持久判定用 UTC wall clock（写入 `acquired_at`/`heartbeat_at`）；间隔/超时用 monotonic clock（续租定时、stale 判定窗口）。
 
 - **本模块提供**：无。
 
-- **契约 authority / 版本 / selector**：`piko-run.md` §10 "deadline 用持久 UTC 判定；进程内 elapsed 用 monotonic clock"。
+- **契约 authority / 版本 / selector**：`piko-run.md` §10 时间基准（持久 UTC + 进程内 monotonic）。
 
 - **同步方式 / timeout / 生命周期**：同步取时；无网络；随进程。
 
-- **不可用或失败影响 / 责任出口**：时钟回拨会使 UTC 心跳倒退但不影响 CAS 正确性（CAS 只比 `(run_id, epoch)`）；stale 判定用 monotonic，不受回拨影响。
+- **不可用或失败影响 / 责任出口**：时钟回拨会使 UTC 心跳倒退但不影响 CAS 正确性（CAS 只比 `(task_id, epoch)`）；stale 判定用 monotonic，不受回拨影响。
 
 #### 4.3 `DEP-SCHED-CONFIG` · 固定常量（宿主提供）
 
@@ -233,13 +234,13 @@ flowchart TB
 
 - **文件 / symbol / 实现状态**：`src/scheduler/scheduler.ts` → `class Scheduler`（Planned / NOT_IMPLEMENTED）。现基线逻辑散在 `src/worker.ts`（`RunWorker.loop`/`run` 内的领取与心跳）与 `src/store.ts`（`nextQueued`/`recoverOrphaned`/`heartbeat`），见 §2。
 
-- **拆分依据与替代方案代价**：入口只做编排，把策略抽到 I1 以便对 `(accepted_at, run_id)` 顺序、epoch 规则做无 DB 单测。替代方案"全部写在 worker 里"是 Current 形态，代价是与执行逻辑耦合、无法独立验证单 slot 不变量（这正是本设计要消除的）。
+- **拆分依据与替代方案代价**：入口只做编排，把策略抽到 I1 以便对 `(accepted_at, task_id)` 顺序、epoch 规则做无 DB 单测。替代方案"全部写在 worker 里"是 Current 形态，代价是与执行逻辑耦合、无法独立验证单 slot 不变量（这正是本设计要消除的）。
 
 #### 5.1.2 `I1` · SlotPolicy（纯策略）
 
 - **职责与非职责**：纯函数：候选选择 `selectCandidate(slotFree, queued)`、epoch 推进 `nextEpoch(current)`、租约是否 stale `isStale(bootId, currentBoot)`、恢复门 `mayAcquire(recoveryComplete)`。非职责：无 I/O、无状态、不读时钟。
 
-- **输入、处理与输出**：输入原始值（`SlotRow`、`run_id[]`、`boot_id`）；输出决定（候选 `run_id | null`、`nextEpoch`、`boolean`）。
+- **输入、处理与输出**：输入原始值（`SlotRow`、`task_id[]`、`boot_id`）；输出决定（候选 `task_id | null`、`nextEpoch`、`boolean`）。
 
 - **协作对象**：仅被 S1/I2 调用；不依赖任何文件。
 
@@ -279,7 +280,7 @@ flowchart TB
 
 - **调用链（文件 / symbol → 文件 / symbol）**：`worker.loop` → `Scheduler.acquireSlot` → `SlotStorePort.readSlot`（M003）→ `SlotPolicy.mayAcquire`/`selectCandidate` → `SlotStorePort.listQueued`（M003）→ `SlotPolicy.nextEpoch` → `SlotStorePort.tryClaimSlot`（M003 原子 CAS）→ 返回 `Lease`。
 
-- **逐步传递的数据**：`ownerId:string` → `SlotRow | null`（读）→ `recoveryComplete:boolean` + `run_id[]` → 候选 `run_id | null` → `nextEpoch:number` → `SlotClaimResult{epoch} | "slot_busy" | "run_not_queued"` → `Lease`。
+- **逐步传递的数据**：`ownerId:string` → `SlotRow | null`（读）→ `recoveryComplete:boolean` + `task_id[]` → 候选 `task_id | null` → `nextEpoch:number` → `SlotClaimResult{epoch} | "slot_busy" | "run_not_queued"` → `Lease`。
 
 - **返回、异常与清理**：成功返回 `Lease`；slot 忙/无候选返回 `null`（无清理）；M003 依赖错误向上抛。无临时资源需清理（全部在 M003 事务内）。
 
@@ -291,7 +292,7 @@ flowchart TB
 
 - **调用链（文件 / symbol → 文件 / symbol）**：timer → `LeaseKeeper.onTick` → `SlotStorePort.renewSlot(runId, epoch, now)`（M003 CAS）→ 命中则重置定时器；未命中 → 触发 `LeaseLost`。
 
-- **逐步传递的数据**：`{run_id, epoch}` → `boolean`。
+- **逐步传递的数据**：`{task_id, epoch}` → `boolean`。
 
 - **返回、异常与清理**：命中：无清理；未命中：停止定时器并回调 M005。M003 依赖错误上抛。
 
@@ -367,11 +368,11 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`Lease`；本模块作用域内类型（无公共 Data ID）；权威定义在 `src/scheduler/types.ts`（Planned）。
 
-  **命名与归属**：字段 `epoch` 与 MECH-RUN §5.1 `Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 同名同义，对应 DB 列 `execution_slot.lease_epoch`。本文中 `epoch` 一律指租约代号值，`lease_epoch` 只作 DB 列名。`run_id` 是**共享合同的扩展**（非纯私有适配）：MECH-RUN §5.1 的 `Lease` 未含 `run_id`，但 `IF-RUN-SLOT` 必须让调用方知道被领取的 Run、`IF-REC-FENCE` 必须限定被重领的 Run，故本设计把 `run_id` 并入 `Lease`，并作为机制反馈登记 `OQ-SCHED-004`（请 MECH-RUN §5.1 补该字段）。
+  **命名与归属**：字段 `epoch` 与 MECH-RUN §5.1 `Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 同名同义，对应 DB 列 `execution_slot.lease_epoch`。本文中 `epoch` 一律指租约代号值，`lease_epoch` 只作 DB 列名。`task_id` 是**共享合同的扩展**（非纯私有适配）：MECH-RUN §5.1 的 `Lease` 未含 `task_id`，但 `IF-RUN-SLOT` 必须让调用方知道被领取的 Run、`IF-REC-FENCE` 必须限定被重领的 Run，故本设计把 `task_id` 并入 `Lease`，并作为机制反馈登记 `OQ-SCHED-004`（请 MECH-RUN §5.1 补该字段）。
 
   ```text
   Lease {
-    run_id: string,
+    task_id: string,
     owner_id: string,
     boot_id: string,
     epoch: number,         // 租约代号；= execution_slot.lease_epoch（DB 列）；整数，>= 1，单调
@@ -380,27 +381,27 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
   }
   ```
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`run_id` 必填、非空，来自 `tryClaimSlot` 选中的候选 Run（`acquireSlot`）或 `fenceSlot` 校验通过的绑定 Run（`fence`）；`owner_id` 必填，来自调用方传入的 `ownerId`；`boot_id` 必填，来自 M000/bootstrap 在进程启动时生成、经构造注入 scheduler 的 boot 身份（同进程恒定；写入 `execution_slot.boot_id` 供跨重启 stale 判定）；`epoch` 必填、整数 `>= 1`，由 M003 原子操作按 `旧值 + 1` 产生，等于 `execution_slot.lease_epoch`；`acquired_at`/`heartbeat_at` 必填 UTC instant，**由 M003 原子操作以自身 UTC `now` 写入并随结果返回**（不由 scheduler 造时间），签发瞬间 `heartbeat_at = acquired_at`。跨字段：`(run_id, epoch)` 必须等于签发时刻 `execution_slot` 行的 `(run_id, lease_epoch)`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id` 必填、非空，来自 `tryClaimSlot` 选中的候选 Run（`acquireSlot`）或 `fenceSlot` 校验通过的绑定 Run（`fence`）；`owner_id` 必填，来自调用方传入的 `ownerId`；`boot_id` 必填，来自 M000/bootstrap 在进程启动时生成、经构造注入 scheduler 的 boot 身份（同进程恒定；写入 `execution_slot.boot_id` 供跨重启 stale 判定）；`epoch` 必填、整数 `>= 1`，由 M003 原子操作按 `旧值 + 1` 产生，等于 `execution_slot.lease_epoch`；`acquired_at`/`heartbeat_at` 必填 UTC instant，**由 M003 原子操作以自身 UTC `now` 写入并随结果返回**（不由 scheduler 造时间），签发瞬间 `heartbeat_at = acquired_at`。跨字段：`(task_id, epoch)` 必须等于签发时刻 `execution_slot` 行的 `(task_id, lease_epoch)`。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 `Scheduler.acquireSlot`/`fence` 从 M003 原子结果构造并返回给 M005；`Lease` 是不可变值对象，续租不修改它（续租只更新 DB 心跳并经布尔返回）。寿命：从签发到 `LeaseLost`/`LeaseRenewalUnavailable` 或 Run 终态。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`{run_id:"run-042", owner_id:"worker-<uuid>", boot_id:"boot-<uuid>", epoch:3, ...}`。拒绝：`epoch:0`（违反 `>=1`）、`heartbeat_at < acquired_at`、`run_id` 为空串。`VRC-SCHED-001/002`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`{task_id:"task-042", owner_id:"worker-<uuid>", boot_id:"boot-<uuid>", epoch:3, ...}`。拒绝：`epoch:0`（违反 `>=1`）、`heartbeat_at < acquired_at`、`task_id` 为空串。`VRC-SCHED-001/002`；`NOT_RUN`。
 
 #### 6.2.2 `SlotRow` / `SlotClaimResult`
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`SlotRow` 是 `execution_slot` 的只读投影；`SlotClaimResult` 是 CAS 结果联合。权威：本设计 §9.2；映射 M003 行（§6.7）。
 
   ```text
-  SlotRow { run_id: string | null, owner_id: string | null, boot_id: string | null,
+  SlotRow { task_id: string | null, owner_id: string | null, boot_id: string | null,
             lease_epoch: number, heartbeat_at: string | null }
   type SlotClaimResult = { epoch: number } | "slot_busy" | "run_not_queued"
   ```
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`SlotRow`：`run_id` 空 ⟺ `owner_id`/`boot_id`/`heartbeat_at` 皆空（§6.6 `INV-SCHED-3` 的投影）。`SlotClaimResult`：`"slot_busy"` 表示 slot 已有 `run_id`；`"run_not_queued"` 表示候选 Run 已不在 `Queued`。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`SlotRow`：`task_id` 空 ⟺ `owner_id`/`boot_id`/`heartbeat_at` 皆空（§6.6 `INV-SCHED-3` 的投影）。`SlotClaimResult`：`"slot_busy"` 表示 slot 已有 `task_id`；`"run_not_queued"` 表示候选 Run 已不在 `Queued`。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：`SlotRow` 由 M003 读产生、scheduler 只读消费；`SlotClaimResult` 由 M003 CAS 产生。均无长期寿命。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`{run_id:null, owner_id:null, boot_id:null, lease_epoch:2, heartbeat_at:null}`。`VRC-SCHED-001`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`{task_id:null, owner_id:null, boot_id:null, lease_epoch:2, heartbeat_at:null}`。`VRC-SCHED-001`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
@@ -412,7 +413,7 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`ExecutionSlot` 是"唯一执行位"的持久运行状态，物理载体为 `execution_slot` 单行（`slot_id=1`，DDL 属 M003，§6.7）和 `run_sessions.lease_epoch`。权威事实来源：`execution_slot` 行（slot 绑定、owner、boot、epoch、heartbeat）+ `runs.state`（绑定 Run 是否终态）。scheduler 是 slot 的**唯一写者**（经 M003 原子操作）；M003 在终态事务内是 slot 的唯一释放者（`T-SCHED-05`）。
 
-- **逐字段/逐值类型、范围、含义与跨字段约束**：`run_id: string | null`——绑定 Run；`owner_id: string | null`——当前租约持有者；`boot_id: string | null`——持有者 boot；`lease_epoch: int >= 0`——单调计数器（初始 0）；`heartbeat_at: string | null`——最后续租 UTC。约束：`run_id` 空 ⟺ `owner_id`/`boot_id`/`heartbeat_at` 皆空。
+- **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id: string | null`——绑定 Run；`owner_id: string | null`——当前租约持有者；`boot_id: string | null`——持有者 boot；`lease_epoch: int >= 0`——单调计数器（初始 0）；`heartbeat_at: string | null`——最后续租 UTC。约束：`task_id` 空 ⟺ `owner_id`/`boot_id`/`heartbeat_at` 皆空。
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：修改仅经 `tryClaimSlot`/`renewSlot`/`fenceSlot`（`fenceSlot` 同时承担 `T-SCHED-04` 与 `T-SCHED-06`），以及 M003 内部的 `releaseSlot`（`T-SCHED-05`）（§9.2）；可见点=事务提交；寿命=进程世代间持久。失败出口见 §10。
 
@@ -434,22 +435,22 @@ stateDiagram-v2
 
   | Transition ID | 原状态 → 新状态 | 事件 / 执行者 | Guard 的权威事实来源 | 动作 / 提交点 | 迟到 / 失败出口 | 不变量 | VRC |
   |---|---|---|---|---|---|---|---|
-  | `T-SCHED-01` | FREE → HELD_LIVE | `acquireSlot` / 当前 boot | `readSlot().run_id IS NULL`（`execution_slot` 行）且 `listQueued()` 非空 且 `mayAcquire`（M005 恢复完成标志） | `tryClaimSlot` 原子置 run_id/owner/boot、`epoch := 旧+1`、`runs Queued→Running`、`run_sessions.lease_epoch := epoch`；同事务提交 | CAS `slot_busy`/`run_not_queued` → 返回 `null` 重选或下个 tick | `INV-SCHED-1/2/3/4` | `VRC-SCHED-001/004/005` |
-  | `T-SCHED-02` | HELD_LIVE → HELD_LIVE | `renewLease` / 当前 boot | 持有 `Lease` 且 `renewSlot` 的 CAS `(run_id, epoch)` 命中 | 刷 `heartbeat_at := now`；单语句提交 | CAS 未命中 → `false` → `LeaseLost` | `INV-SCHED-4` | `VRC-SCHED-002` |
-  | `T-SCHED-02'` | HELD_STALE → HELD_STALE | `renewLease` / 旧 boot（迟到） | 持有重启前旧 `Lease` 且 `renewSlot` 的 CAS `(run_id, 旧 epoch)` 未命中 | 无（0 行生效，不刷心跳、不改 owner/epoch） | CAS 未命中 → `false` → `LeaseLost`（旧进程必须停止驱动） | `INV-SCHED-1/4` | `VRC-SCHED-002`(Case B/C) |
+  | `T-SCHED-01` | FREE → HELD_LIVE | `acquireSlot` / 当前 boot | `readSlot().task_id IS NULL`（`execution_slot` 行）且 `listQueued()` 非空 且 `mayAcquire`（M005 恢复完成标志） | `tryClaimSlot` 原子置 task_id/owner/boot、`epoch := 旧+1`、`runs Queued→Running`、`run_sessions.lease_epoch := epoch`；同事务提交 | CAS `slot_busy`/`run_not_queued` → 返回 `null` 重选或下个 tick | `INV-SCHED-1/2/3/4` | `VRC-SCHED-001/004/005` |
+  | `T-SCHED-02` | HELD_LIVE → HELD_LIVE | `renewLease` / 当前 boot | 持有 `Lease` 且 `renewSlot` 的 CAS `(task_id, epoch)` 命中 | 刷 `heartbeat_at := now`；单语句提交 | CAS 未命中 → `false` → `LeaseLost` | `INV-SCHED-4` | `VRC-SCHED-002` |
+  | `T-SCHED-02'` | HELD_STALE → HELD_STALE | `renewLease` / 旧 boot（迟到） | 持有重启前旧 `Lease` 且 `renewSlot` 的 CAS `(task_id, 旧 epoch)` 未命中 | 无（0 行生效，不刷心跳、不改 owner/epoch） | CAS 未命中 → `false` → `LeaseLost`（旧进程必须停止驱动） | `INV-SCHED-1/4` | `VRC-SCHED-002`(Case B/C) |
   | `T-SCHED-03` | HELD_LIVE → HELD_STALE | 进程重启（boot 变化，非模块动作） | 持久 `execution_slot.boot_id != 当前 boot_id` 且 `runs.state` 非终态 | 无（状态由事实读出，非写入）；驱动后续 `fence` | — | `INV-SCHED-3` | `VRC-SCHED-003` |
-  | `T-SCHED-04` | HELD_STALE → HELD_LIVE | `fence` / 当前 boot（M005 恢复） | `readSlot().run_id` 非空 且 `runs.state` 非终态 且 `boot_id` 与当前不同 | `fenceSlot` 原子 `epoch := 旧+1`、置当前 owner/boot、`run_sessions.lease_epoch := epoch`；同事务提交 | 绑定 Run 已终态 → 走 `T-SCHED-06`；权威记录不一致 → 内部错误 | `INV-SCHED-1/2/3/4` | `VRC-SCHED-003` |
-  | `T-SCHED-05` | HELD_LIVE → FREE | Run 终态 / **M003**（非 scheduler） | `runs.state` 已提交为终态 且 CAS `(run_id, epoch)` 命中 | 在 M003 `finish` 终态事务内清空 `run_id/owner_id/boot_id/heartbeat_at`；与写终态同提交 | 若崩溃于该事务前，重启后走 `T-SCHED-03/04`（终态未提交，视为非终态） | `INV-SCHED-3` | 组合 `VRC-SCHED-003` + PK-T15 |
-  | `T-SCHED-06` | HELD_STALE → FREE | `fence` / 当前 boot | `readSlot().run_id` 非空 且 `runs.state` 已终态（`fenceSlot` 在同一事务内读 `runs.state`） | `fenceSlot` 在同事务内置空 `run_id/owner_id/boot_id/heartbeat_at`，返回 `"slot_released"`；与 guard 判定同事务提交 | slot 已空时重复调用亦返回 `"slot_released"`（幂等） | `INV-SCHED-3` | `VRC-SCHED-003`(Case D/F) |
+  | `T-SCHED-04` | HELD_STALE → HELD_LIVE | `fence` / 当前 boot（M005 恢复） | `readSlot().task_id` 非空 且 `runs.state` 非终态 且 `boot_id` 与当前不同 | `fenceSlot` 原子 `epoch := 旧+1`、置当前 owner/boot、`run_sessions.lease_epoch := epoch`；同事务提交 | 绑定 Run 已终态 → 走 `T-SCHED-06`；权威记录不一致 → 内部错误 | `INV-SCHED-1/2/3/4` | `VRC-SCHED-003` |
+  | `T-SCHED-05` | HELD_LIVE → FREE | Run 终态 / **M003**（非 scheduler） | `runs.state` 已提交为终态 且 CAS `(task_id, epoch)` 命中 | 在 M003 `finish` 终态事务内清空 `task_id/owner_id/boot_id/heartbeat_at`；与写终态同提交 | 若崩溃于该事务前，重启后走 `T-SCHED-03/04`（终态未提交，视为非终态） | `INV-SCHED-3` | 组合 `VRC-SCHED-003` + PK-T15 |
+  | `T-SCHED-06` | HELD_STALE → FREE | `fence` / 当前 boot | `readSlot().task_id` 非空 且 `runs.state` 已终态（`fenceSlot` 在同一事务内读 `runs.state`） | `fenceSlot` 在同事务内置空 `task_id/owner_id/boot_id/heartbeat_at`，返回 `"slot_released"`；与 guard 判定同事务提交 | slot 已空时重复调用亦返回 `"slot_released"`（幂等） | `INV-SCHED-3` | `VRC-SCHED-003`(Case D/F) |
 
   **不变量**：
 
   - `INV-SCHED-1`：`lease_epoch` 单调不减；每次成功的 `T-SCHED-01`/`T-SCHED-04` 严格 `+1`；携带旧 epoch 的 `renewSlot`/`finish` 生效行数恒为 0。
   - `INV-SCHED-2`：任意时刻至多一个 `HELD_LIVE`（同一 slot 行只有一份 owner/boot）。
-  - `INV-SCHED-3`：`execution_slot.run_id IS NULL` ⟺ 无 Run 处于 `Running`/`Cancelling`（释放与终态同事务）。
+  - `INV-SCHED-3`：`execution_slot.task_id IS NULL` ⟺ 无 Run 处于 `Running`/`Cancelling`（释放与终态同事务）。
   - `INV-SCHED-4`：`HELD_LIVE`/`HELD_STALE` 时 `run_sessions.lease_epoch == execution_slot.lease_epoch`。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：`HELD_LIVE{run_id:"run-042", owner_id:"worker-1", boot_id:"boot-1", lease_epoch:3}`。拒绝：`run_id` 非空但 `owner_id` 空（违反跨字段约束）；两个不同 `boot_id` 同时 `HELD_LIVE`（违反 `INV-SCHED-2`）。`VRC-SCHED-001/002/003`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：`HELD_LIVE{task_id:"task-042", owner_id:"worker-1", boot_id:"boot-1", lease_epoch:3}`。拒绝：`task_id` 非空但 `owner_id` 空（违反跨字段约束）；两个不同 `boot_id` 同时 `HELD_LIVE`（违反 `INV-SCHED-2`）。`VRC-SCHED-001/002/003`；`NOT_RUN`。
 
 ### 6.7 数据库表结构
 
@@ -460,7 +461,7 @@ stateDiagram-v2
   ```text
   execution_slot {                     -- 单行，slot_id=1
     slot_id INTEGER PRIMARY KEY CHECK(slot_id=1),
-    run_id TEXT REFERENCES runs(run_id),
+    task_id TEXT REFERENCES runs(task_id),
     owner_id TEXT, boot_id TEXT,
     lease_epoch INTEGER NOT NULL,
     heartbeat_at TEXT
@@ -494,13 +495,13 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TD
-    A["acquireSlot(ownerId)"] --> B{"readSlot().run_id 为空？"}
+    A["acquireSlot(ownerId)"] --> B{"readSlot().task_id 为空？"}
     B -->|否| Z["返回 null（slot_busy）"]
     B -->|是| C{"mayAcquire(恢复完成)？"}
     C -->|否| Z2["返回 null（恢复门未开）"]
     C -->|是| D{"listQueued() 非空？"}
     D -->|否| Z3["返回 null（无候选）"]
-    D -->|是| E["selectCandidate: 取 (accepted_at,run_id) 最旧"]
+    D -->|是| E["selectCandidate: 取 (accepted_at,task_id) 最旧"]
     E --> F["nextEpoch = 旧+1"]
     F --> G{"tryClaimSlot CAS 成功？"}
     G -->|slot_busy / run_not_queued| Z4["返回 null（下个 tick 重试）"]
@@ -567,21 +568,21 @@ flowchart TD
 
 - **输入前提 / 适用条件**：`acquireSlot` 且 slot 空闲。
 
-- **算法 / 规则 / 选择依据**：从 `listQueued()` 中取 `(accepted_at, run_id)` 字典序最小者。不实现优先级、不抢占、不按长度/截止排序（`M-RUN-DI-004` 自由度上限）。选择依据：可复现、稳定、与 MECH-RUN §10 "queue 顺序 `(accepted_at, run_id)`，不实现优先级或抢占"一致。
+- **算法 / 规则 / 选择依据**：从 `listQueued()` 中取 `(accepted_at, task_id)` 字典序最小者。不实现优先级、不抢占、不按长度/截止排序（`M-RUN-DI-004` 自由度上限）。选择依据：可复现、稳定、与 MECH-RUN §10 "queue 顺序 `(accepted_at, task_id)`，不实现优先级或抢占"一致。
 
-- **结果 / 不变量 / 边界**：结果=唯一候选或空。边界：空队列返回 `null`；`accepted_at` 相同用 `run_id` 二级排序（确定性）。
+- **结果 / 不变量 / 边界**：结果=唯一候选或空。边界：空队列返回 `null`；`accepted_at` 相同用 `task_id` 二级排序（确定性）。
 
 - **复杂度 / 资源限制**：O(n) 取最小；`listQueued` 由 M003 索引支持，limit 由调用方给定。
 
 - **允许替换范围 / 不可改变保证**：可在授权范围内换数据结构，但不可引入优先级/抢占、不可改变二级排序键。
 
-- **具体输入推演 / 验证项**：3 个 Run `accepted_at` 递增 → 取最旧；两个相同 `accepted_at`、`run_id` 分别为 `run-b`/`run-a` → 取 `run-a`。`VRC-SCHED-004`。
+- **具体输入推演 / 验证项**：3 个 Run `accepted_at` 递增 → 取最旧；两个相同 `accepted_at`、`task_id` 分别为 `run-b`/`run-a` → 取 `run-a`。`VRC-SCHED-004`。
 
 #### 8.3 `R-SCHED-HEARTBEAT` · 续租与 stale 判定
 
 - **输入前提 / 适用条件**：持有 `Lease`；`heartbeat_interval_ms`（固定常量）。
 
-- **算法 / 规则 / 选择依据**：按 `heartbeat_interval_ms` 周期调 `renewSlot(run_id, epoch)`；命中延续，未命中即 `LeaseLost`。stale 判定**不用于自动释放**（释放只在 M003 终态事务或 fence 时发生）：重启后由 `boot_id != 当前 boot` 判定 `HELD_STALE`，而非心跳时间差。选择依据：以 `boot_id`（进程身份）而非时间差判定 stale，避免时钟误差与"误判已死"。
+- **算法 / 规则 / 选择依据**：按 `heartbeat_interval_ms` 周期调 `renewSlot(task_id, epoch)`；命中延续，未命中即 `LeaseLost`。stale 判定**不用于自动释放**（释放只在 M003 终态事务或 fence 时发生）：重启后由 `boot_id != 当前 boot` 判定 `HELD_STALE`，而非心跳时间差。选择依据：以 `boot_id`（进程身份）而非时间差判定 stale，避免时钟误差与"误判已死"。
 
 - **结果 / 不变量 / 边界**：结果=`HELD_LIVE` 延续或 `LeaseLost`。不变量 `INV-SCHED-4`。边界：定时器延迟不产生错误状态（CAS 与 boot 判定与定时精度无关）。
 
@@ -639,7 +640,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 - **输入与前提**：`ownerId: string` 必填、非空。前提：进程 READY；M005 恢复完成；M003 可用。`ownerId` 不构成身份权限（进程内调用），无鉴权分支。
 
-- **成功输出与保证**：返回 `Lease{run_id, owner_id, boot_id, epoch=旧+1, acquired_at, heartbeat_at}`；保证 slot 绑定该 Run、`runs.state=Running`、`run_sessions.lease_epoch` 同步，且同事务提交；`INV-SCHED-1/2/3/4` 成立。
+- **成功输出与保证**：返回 `Lease{task_id, owner_id, boot_id, epoch=旧+1, acquired_at, heartbeat_at}`；保证 slot 绑定该 Run、`runs.state=Running`、`run_sessions.lease_epoch` 同步，且同事务提交；`INV-SCHED-1/2/3/4` 成立。
 
 - **错误与合法下一步**：slot 忙 / 无候选 / 恢复门未开 / CAS 竞争失败 → `null`（合法下一步：下个 tick 重试）。M003 依赖错误（如 `SQLITE_BUSY` 超时）向上抛，由 M005 处理。不使用"返回错误对象"表达竞争。
 
@@ -653,7 +654,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 - **输入与前提**：`runId` 非空、`epoch` 整数 `>= 1`；持有当前租约。
 
-- **成功输出与保证**：`true`：CAS `(run_id, epoch)` 命中，`heartbeat_at` 刷新。`false`：未命中，表示 `LeaseLost`，不改变任何行。
+- **成功输出与保证**：`true`：CAS `(task_id, epoch)` 命中，`heartbeat_at` 刷新。`false`：未命中，表示 `LeaseLost`，不改变任何行。
 
 - **错误与合法下一步**：`false` = 租约丢失（可判定）：合法下一步停止驱动、不再写终态，**不重试**。M003 依赖错误（`SQLITE_BUSY`/`SQLITE_IOERR`）**上抛**给 `LeaseKeeper`，由 `R-SCHED-RENEW-FAILURE` 分类：有界退避重试，连续失败升级为 `LeaseRenewalUnavailable`；依赖错误 ≠ `false`，不得据此释放 slot。
 
@@ -685,7 +686,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
   ```text
   readSlot() -> SlotRow | null
-  listQueued(limit: number) -> string[]             // (accepted_at, run_id) 升序
+  listQueued(limit: number) -> string[]             // (accepted_at, task_id) 升序
   tryClaimSlot(runId, ownerId, bootId) -> {epoch} | "slot_busy" | "run_not_queued"
   renewSlot(runId, epoch) -> boolean
   fenceSlot(runId, ownerId, bootId) -> {epoch} | "slot_released"
@@ -693,10 +694,10 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
   // 时间戳由 M003 以自身 UTC now 写入并随结果返回，不由调用方传入
   ```
 
-- **输入、输出及关联身份**：见签名；关联身份 `(run_id, epoch)`。所有操作在单 `BEGIN IMMEDIATE` 内原子执行，**Guard 判定与写入在同一事务内**：
+- **输入、输出及关联身份**：见签名；关联身份 `(task_id, epoch)`。所有操作在单 `BEGIN IMMEDIATE` 内原子执行，**Guard 判定与写入在同一事务内**：
 
-  * `tryClaimSlot`：同事务内校验 `execution_slot.run_id IS NULL` 且目标 Run 仍 `Queued`，通过才写 slot + `runs.state=Running` + `run_sessions.lease_epoch`，返回 `{epoch}`；否则返回 `"slot_busy"`/`"run_not_queued"`，不写任何行（`T-SCHED-01`）。
-  * `fenceSlot`：同事务内读 `execution_slot.run_id` + `runs.state`。绑定 Run 非终态 → `epoch := 旧+1`、置 owner/boot/heartbeat、同步 `run_sessions.lease_epoch`，返回 `{epoch}`（`T-SCHED-04`）；绑定 Run 已终态 → 清空 `run_id/owner_id/boot_id/heartbeat_at`，返回 `"slot_released"`（`T-SCHED-06`）；slot 已空 → 亦返回 `"slot_released"`（幂等）。三个分支同事务提交，无中间可见态。
+  * `tryClaimSlot`：同事务内校验 `execution_slot.task_id IS NULL` 且目标 Run 仍 `Queued`，通过才写 slot + `runs.state=Running` + `run_sessions.lease_epoch`，返回 `{epoch}`；否则返回 `"slot_busy"`/`"run_not_queued"`，不写任何行（`T-SCHED-01`）。
+  * `fenceSlot`：同事务内读 `execution_slot.task_id` + `runs.state`。绑定 Run 非终态 → `epoch := 旧+1`、置 owner/boot/heartbeat、同步 `run_sessions.lease_epoch`，返回 `{epoch}`（`T-SCHED-04`）；绑定 Run 已终态 → 清空 `task_id/owner_id/boot_id/heartbeat_at`，返回 `"slot_released"`（`T-SCHED-06`）；slot 已空 → 亦返回 `"slot_released"`（幂等）。三个分支同事务提交，无中间可见态。
   * `releaseSlot`：只由 M003 `finish` 在其终态事务内调用（`T-SCHED-05`），scheduler 不调用。
 
   时间戳（`acquired_at`/`heartbeat_at`）由 M003 在事务内以自身 UTC `now` 写入。
@@ -749,7 +750,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **初始条件 / 并发交错 / 失败点**：`renewLease` 定时器与 M003 `finish` 终态事务并发。失败点：`finish` 已清空 slot 后 `renewSlot` 到达。
 
-- **检测事实 / authority / 期限**：`renewSlot` CAS 未命中（0 行）→ `false`；`finish` 以 `(run_id, epoch)` CAS 命中。
+- **检测事实 / authority / 期限**：`renewSlot` CAS 未命中（0 行）→ `false`；`finish` 以 `(task_id, epoch)` CAS 命中。
 
 - **处理行为 / 副作用边界**：`renewLease` 返回 `false`，不刷心跳、不复活 slot；`LeaseLost` 交 M005。无残留资源。
 
@@ -821,7 +822,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **输入信任 / 身份 / 授权**：scheduler 无外部输入、无身份、无授权分支：调用方是进程内 M005，不携带 principal。不引入任何鉴权或越权后门。权限边界（bearer、path、tool profile）由 M001/M002 承载，不在本模块。
 
-- **敏感数据**：scheduler 不接触 credential、绝对路径、`task_id`/`run_id` 之外的业务内容；不记录任何敏感值。`owner_id`/`boot_id` 是进程内 UUID，可入 DB 与日志。
+- **敏感数据**：scheduler 不接触 credential、绝对路径、`task_id`/`task_id` 之外的业务内容；不记录任何敏感值。`owner_id`/`boot_id` 是进程内 UUID，可入 DB 与日志。
 
 - **继承上级指标与口径**：继承 `system-design` §12 指标 `piko.slot.lease_epoch`（count / 单实例 / scheduler 写入 `execution_slot.lease_epoch` / 诊断端点与 metric；脱敏；用于恢复顺序判定）。scheduler 是该指标的写入点，不新增指标。
 
@@ -957,7 +958,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **新增 / 修改文件与 symbol**：`src/scheduler/types.ts` 类型；M003 端口签名。
 
-- **固定语义 / 可自行决定范围**：固定：六个操作的原子性与 `(run_id, epoch)` CAS 语义。可自行：M003 内部 SQL 组织。
+- **固定语义 / 可自行决定范围**：固定：六个操作的原子性与 `(task_id, epoch)` CAS 语义。可自行：M003 内部 SQL 组织。
 
 - **交付结果**：两端一致的接口声明。
 
@@ -1090,7 +1091,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§10.1。
 - **§13 实现文件 / 装配责任**：`policy.ts`（`selectCandidate`）（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-SCHED-004`；独立判据 = 期望 `run_id` 常量。
+- **§14 VRC / Case / 独立判据**：`VRC-SCHED-004`；独立判据 = 期望 `task_id` 常量。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01；自由度上限见 `M-RUN-DI-004`（无优先级）。
 
 #### 14.1.12 `R-SCHED-HEARTBEAT`
@@ -1237,11 +1238,11 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-ACQUIRE`；`R-SCHED-FIFO`；`M-RUN-DI-004` 自由度边界。
 
-- **Case / 正常、边界与失败输入**：A：`accepted_at` 递增 → 最旧。B：相同 `accepted_at`，`run_id` `run-b`/`run-a` → 取 `run-a`。C：空队列 → `null`。D：构造"短任务优先"诱因 → 仍取最旧（无优先级）。
+- **Case / 正常、边界与失败输入**：A：`accepted_at` 递增 → 最旧。B：相同 `accepted_at`，`task_id` `run-b`/`run-a` → 取 `run-a`。C：空队列 → `null`。D：构造"短任务优先"诱因 → 仍取最旧（无优先级）。
 
 - **环境 / 配置 / 隔离与复位**：纯 `policy.ts` 表驱动（无 DB）。
 
-- **独立 Oracle / Expected**：Oracle = 期望候选 `run_id` 常量；Expected 同 Case。
+- **独立 Oracle / Expected**：Oracle = 期望候选 `task_id` 常量；Expected 同 Case。
 
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
 
@@ -1325,14 +1326,14 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **关闭条件 / 决定或当前状态**：机制已补行 `M-REC-DI-004`。**已关闭**。
 
-#### 15.3b `OQ-SCHED-004` · MECH-RUN §5.1 `Lease` 缺 `run_id`
+#### 15.3b `OQ-SCHED-004` · MECH-RUN §5.1 `Lease` 缺 `task_id`
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-RUN-SLOT`/`IF-REC-FENCE`、§6.2.1。
-- **事实缺口 / 触发条件**：`piko-run.md` §5.1 的 `Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 未含 `run_id`，但领取/重领必须向调用方标识具体 Run；本设计已将 `run_id` 并入 `Lease`（§6.2.1），需机制确认。
+- **事实缺口 / 触发条件**：`piko-run.md` §5.1 的 `Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 未含 `task_id`，但领取/重领必须向调用方标识具体 Run；本设计已将 `task_id` 并入 `Lease`（§6.2.1），需机制确认。
 - **影响 / 阻塞边界**：不阻塞本模块（已按扩展实现）；影响机制与模块合同一致性。
 - **Owner / 最晚关闭 Gate**：Piko Architecture Owner（机制侧）；下一次机制评审。
-- **选项 / 推荐 / 下一步取证**：推荐：`piko-run.md` §5.1 的 `Lease` 补 `run_id`。下一步：提交机制修订。
-- **关闭条件 / 决定或当前状态**：机制补字段或明确 `run_id` 属模块私有扩展。当前 Open。
+- **选项 / 推荐 / 下一步取证**：推荐：`piko-run.md` §5.1 的 `Lease` 补 `task_id`。下一步：提交机制修订。
+- **关闭条件 / 决定或当前状态**：机制补字段或明确 `task_id` 属模块私有扩展。当前 Open。
 
 #### 15.4 `RISK-SCHED-001` · epoch 溢出
 

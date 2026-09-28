@@ -6,11 +6,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-bootstrap` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.1` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Implementation Owner |
-| Last Modified Date | `2026-09-27` |
+| Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.4.0` |
 
@@ -27,7 +27,8 @@ bootstrap 只做启动顺序、preflight、配置绑定与进程生命周期：�
 | 项目 | 内容 |
 |---|---|
 | 模块编号 / 正式英文名称 | M000 / `bootstrap` |
-| 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
+
+| 运行进程 | P0 控制进程（含 P1 监督者）（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配 + §4.1/§6.1/§6.3；本模块登记见 §3.2 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
 | 解决的问题 | "进程活着但不能履约"；未验证就开放入口；启动阶段部分就绪；配置被多方各自解释 |
@@ -153,7 +154,7 @@ bootstrap 的可观察功能是七项：配置阶段（S1–S4）、打开 store
 
 - **错误与边界**：端口被占/绑定失败 → `FatalExit`（`listen-failed`），关闭已得句柄；`matrix.enabled=false` 时不启动 Matrix 客户端，但 `matrix_whoami_ok` 记为满足（不适用项按 true 计）。
 
-- **验收条件**：全新环境下 READY 后端口可连接且 `GET /runs/:id` 返回 404/401 而非连接拒绝；端口被占时 F1 且 `StartupState=READY` 不可达。
+- **验收条件**：全新环境下 READY 后端口可连接且 `GET /tasks/:id` 返回 404/401 而非连接拒绝；端口被占时 F1 且 `StartupState=READY` 不可达。
 
 ### 2.6 `F-BOOT-FAIL` · fatal 出口与清理（F1）
 
@@ -848,7 +849,7 @@ flowchart TD
 
 - **允许替换范围 / 不可改变保证**：可改门实现，不可在停止期间接受新 Run。
 
-- **具体输入推演 / 验证项**：T1 后 `POST /runs` 被拒、`GET` 只读可返回。`VRC-BOOT-007`。
+- **具体输入推演 / 验证项**：T1 后 `POST /tasks` 被拒、`GET` 只读可返回。`VRC-BOOT-007`。
 
 ## 9. 接口设计
 
@@ -1597,7 +1598,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **环境 / 配置 / 隔离与复位**：独立 config + 临时 SQLite（`:memory:` 或临时文件）+ mock LLMTier（`GET /v1/models` 返回配置模型）；每 Case 前重置实例目录与 lock。
 
-- **独立 Oracle / Expected**：Oracle = 端口 TCP 可连接 + `GET /runs/:id` 返回 404/401 + 退出码；Expected：A/B/C 均 READY、端口已绑定、`instance_meta.boot_id` 非空。
+- **独立 Oracle / Expected**：Oracle = 端口 TCP 可连接 + `GET /tasks/:id` 返回 404/401 + 退出码；Expected：A/B/C 均 READY、端口已绑定、`instance_meta.boot_id` 非空。
 
 - **Actual / Evidence / Run ID**：`NOT_RUN`。
 
@@ -1689,7 +1690,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-STOP`；`R-BOOT-GATE`；`CON-ST-001`；`IF-BOOT-STOP`。
 
-- **Case / 正常、边界与失败输入**：Case A：READY 且无在途 Run → SIGTERM → `drained` + 退出码 0。Case B：T1 后 `POST /runs` 被拒、`GET` 只读可返回。Case C：长在途 Run + drain 超时 → `forced` + 强制 abort + 非零退出码。Case D：未 READY 时 SIGTERM → 快速退出、无端口。Case E：重复信号幂等。
+- **Case / 正常、边界与失败输入**：Case A：READY 且无在途 Run → SIGTERM → `drained` + 退出码 0。Case B：T1 后 `POST /tasks` 被拒、`GET` 只读可返回。Case C：长在途 Run + drain 超时 → `forced` + 强制 abort + 非零退出码。Case D：未 READY 时 SIGTERM → 快速退出、无端口。Case E：重复信号幂等。
 
 - **环境 / 配置 / 隔离与复位**：可控在途 Run（注入长操作）+ 假时钟控制 drain 预算；独立进程。
 

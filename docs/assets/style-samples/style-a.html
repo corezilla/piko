@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><style>
+body{margin:0;background:#F2F5F9;font-family:-apple-system,"PingFang SC","Inter",sans-serif;color:#0F172A}
+.wrap{padding:36px 44px}.t{font-size:22px;font-weight:700;margin:0 0 4px}.s{color:#64748B;font-size:13px;margin:0 0 26px}
+.row{display:flex;align-items:center}
+.host{background:#E9F0FB;border:2px solid #C9D9F0;border-radius:20px;padding:16px 16px 18px;width:230px}
+.host h2{font-size:15px;font-weight:700;margin:0 0 4px}.host .m{font-size:11px;color:#64748B;margin:0 0 12px}
+.tiles{display:flex;gap:10px}.tile{width:60px;height:60px;border-radius:16px;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#60A5FA,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.25)}
+.tile.v{background:linear-gradient(160deg,#A78BFA,#7C3AED);box-shadow:0 6px 14px rgba(124,58,237,.25)}
+.tile.g{background:linear-gradient(160deg,#4ADE80,#16A34A);box-shadow:0 6px 14px rgba(22,163,74,.25)}
+.link{height:3px;background:#2F6BFF;position:relative;flex:0 0 130px}
+.link b{position:absolute;top:-22px;left:10px;font-size:13px;font-weight:700;color:#111827}
+.link.l b{left:auto;right:10px}
+.mid{background:#EEF0FD;border:2px solid #CFD4F2;border-radius:20px;padding:14px;width:290px}
+.mid h2{font-size:15px;margin:0 0 8px}.card{background:#fff;border:1px solid #CFD4F2;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:12px;color:#3730A3}
+.llm{background:#EEF2FF;border:2px solid #C7D2FE;border-radius:20px;padding:16px;width:210px}
+.llm h2{font-size:15px;margin:0 0 6px}.llm div{font-size:12px;color:#3730A3}
+</style><div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p><p class=s>风格 A · 扁平插画风（浅灰底 · 渐变图标块 · 细蓝直线 · 黑色粗标签）</p>
+<div class=row>
+ <div class=host><h2>Slinky 主机</h2><p class=m>业务流程方</p><div class=tiles><div class=tile>请求</div><div class="tile v">结果</div><div class="tile g">数据</div></div></div>
+ <div class=link><b>① 请求</b></div>
+ <div class=mid><h2>Piko 实例群</h2><div class=card>Piko 实例 1 · 本地可靠 FS</div><div class=card>Piko 实例 2..N · 本地可靠 FS</div></div>
+ <div class=link><b>② Responses SSE</b></div>
+ <div class=llm><h2>LLMTier 主机</h2><div>OpenAI-compatible Responses SSE</div><div style="color:#B91C1C">stream:true · maxRetries=0</div></div>
+</div>
+<div class=row style="margin-top:26px"><div style="width:230px"></div><div class="link l"><b>③ 结果回程</b></div><div style="width:290px"></div></div>
+</div>

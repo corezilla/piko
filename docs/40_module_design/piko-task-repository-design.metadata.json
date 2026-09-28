@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "piko-task-repository",
   "document_type": "design.definition",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.1",
   "title": "Piko 模块设计：task-repository（M003）",
   "document_owner": "Piko Implementation Owner",
   "authors": [
@@ -28,22 +28,92 @@
   "parent_document_id": "system-design",
   "supersedes": null,
   "created_at": "2026-09-27",
-  "last_modified_at": "2026-09-27",
+  "last_modified_at": "2026-09-28",
   "design_object_id": "M003",
   "implementation_specification": {
     "mode": "separate",
     "document_id": "piko-task-repository-impl",
     "coverage_mapping": [
-      {"item": "scope", "document_id": "piko-task-repository-impl", "anchor": "isd-scope", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "structure", "document_id": "piko-task-repository-impl", "anchor": "isd-structure", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "data", "document_id": "piko-task-repository-impl", "anchor": "isd-data", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "functions", "document_id": "piko-task-repository-impl", "anchor": "isd-functions", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "algorithms", "document_id": "piko-task-repository-impl", "anchor": "isd-algorithms", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "lifecycle", "document_id": "piko-task-repository-impl", "anchor": "isd-lifecycle", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "resources", "document_id": "piko-task-repository-impl", "anchor": "isd-resources", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "security", "document_id": "piko-task-repository-impl", "anchor": "isd-security", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "persistence", "document_id": "piko-task-repository-impl", "anchor": "isd-persistence", "applicability": "applicable", "reason": null, "decision_ref": null},
-      {"item": "verification", "document_id": "piko-task-repository-impl", "anchor": "isd-verification", "applicability": "applicable", "reason": null, "decision_ref": null}
+      {
+        "item": "scope",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-scope",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "structure",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-structure",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "data",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-data",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "functions",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-functions",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "algorithms",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-algorithms",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "lifecycle",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-lifecycle",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "resources",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-resources",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "security",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-security",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "persistence",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-persistence",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      },
+      {
+        "item": "verification",
+        "document_id": "piko-task-repository-impl",
+        "anchor": "isd-verification",
+        "applicability": "applicable",
+        "reason": null,
+        "decision_ref": null
+      }
     ],
     "reason": null,
     "decision_ref": null

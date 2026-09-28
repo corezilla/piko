@@ -31,10 +31,10 @@
 
 - **层级**：integration / end-to-end（真实进程、真实本地 oMLX、真实工具执行，经四项任务 API 驱动）。
 - **组织方式**：以 **场景（scenario）** 为顶层，每个场景下设多个 **case**，覆盖不同维度
-  （normal / boundary / negative-permission / negative-budget / timeout / cancel / dedup /
+  （normal / boundary / negative-permission / cancel / dedup /
   membership / idempotency / invariant / recovery / usage）。
 - **场景来源**：Slinky 场景文档 `corezilla/slinky` `docs/60_interfaces/contracts/piko-test-task-scenarios.md`（PTS-01..PTS-10）。
-- **目标**：验证 Piko 可承载这些场景所描述的真实任务，并验证权限/预算/取消/恢复等边界行为。
+- **目标**：验证 Piko 可承载这些场景所描述的真实任务，并验证权限/取消/恢复等边界行为。
 - **不证明**：模型内容质量（Oracle 只做客观判定）、真实 LLMTier 依赖（operator 推迟的部署 Gate）、多实例/生产规模。
 
 ## 2. 被测基线、排除项与依赖
@@ -59,12 +59,11 @@
 **可行性 review 结论（详见规格 §11）**：35 case 全部可执行，0 阻断。所有模型 Oracle 已用实机
 探针定稿（规格 §11.5）；PTS-09-C3 改为纯诊断 case（去除故障注入时序依赖）；PTS-10-C4 的重启
 注入程序已实测（`UnsafeRetryBlocked` + 副作用未重放）；PTS-06-C3 的 `DiscussionAccessLost` 契约
-已实现并回归通过。bash 子进程在 deadline/取消时经实测
+已实现并回归通过。bash 子进程在取消时经实测
 会被回收；Piko 被 SIGKILL 时子进程不保证回收，需执行后清理。
 
 **执行期已实测的陷阱与工程约束（须遵守）**：
-① 含工具的 profile 配 `max_tool_calls=0` 会导致 `BudgetExceeded`——讨论/纯文本 case 用
-`max_tool_calls≥2` 或声明「不使用工具」；
+① **N/A · 本版撤销**：`PK-04` 撤销；
 ② 讨论多轮需紧跟发送（首轮过快会先关 intake，followup 不入 turn），C1 的 Oracle 定为
 「≥1 turn Consumed」；
 ③ 权限拒绝 case 的终态是 `Failed/ToolFailure`，Oracle 不得要求 `Completed`；
@@ -78,11 +77,11 @@
 
 ## 3. Test Strategy 与 Coverage Model
 
-- 每个 case 一次真实 `POST /runs` 全链路：HTTP → Store → Worker（单执行槽）→ Pi AgentHarness →
+- 每个 case 一次真实 `POST /tasks` 全链路：HTTP → Store → Worker（单执行槽）→ Pi AgentHarness →
   oMLX Responses → 工具循环（read/write/edit/bash）→ Result 发布。
 - **客观 Oracle 原则**：只断言可机器复核的事实（文件存在与字节、`py_compile`/`pytest` 实测、
   哈希不变、内容含关键词、HTTP 状态与错误码），不评判文本主观质量。
-- **覆盖模型** = 10 场景 × 多维度 case（见规格 §3，共 35 case）：正常路径、权限拒绝、预算/超时、
+- **覆盖模型** = 10 场景 × 多维度 case（见规格 §3，共 35 case）：正常路径、权限拒绝、
   取消、去重、成员资格、幂等、状态不变量、恢复、usage 语义。
 
 ## 4. Test Item、Feature 与 Requirement Matrix（按场景）
@@ -90,7 +89,7 @@
 | 场景 | case 数 | 维度覆盖 | case 前缀 |
 |---|---:|---|---|
 | PTS-01 只读材料分析 | 3 | normal / boundary / negative-permission | PTS-01-C1..C3 |
-| PTS-02 源码实现或修复 | 4 | normal / negative-permission / negative-budget / boundary | PTS-02-C1..C4 |
+| PTS-02 源码实现或修复 | 4 | normal / negative-permission / boundary | PTS-02-C1..C4 |
 | PTS-03 测试设计与测试资产编写 | 3 | normal / negative-permission / boundary | PTS-03-C1..C3 |
 | PTS-04 受控测试执行和报告 | 4 | normal / negative / timeout / cancel | PTS-04-C1..C4 |
 | PTS-05 独立代码/设计评审 | 4 | normal(code) / normal(design) / boundary / negative-permission | PTS-05-C1..C4 |
@@ -108,7 +107,7 @@
 - 单机 loopback 拓扑；种子按场景在临时目录构造（只读材料、最小仓库、失败测试、植入缺陷材料、
   Matrix 房间等）。
 - **种子与指令**：`scripts/scenario-seeds.sh`（幂等）重建 `var/scenario-seeds/`，产出每个 case 的
-  种子、产出目录、`params.json`（read/write/output/limits）与冻结指令 `instruction.txt`。
+  种子、产出目录、`params.json`（read/write/output）与冻结指令 `instruction.txt`。
 - **执行入口**：`scripts/scenario-run.sh <case-dir> <task_id> [--cancel-after N]`（读 `params.json` +
   `instruction.txt`，POST/轮询/取结果）；Matrix 与重启类按规格 §3.3 程序。
 - **自动化用例（首选）**：`tests/integration/scenario-e2e.test.ts`（35 case）+ `tests/common/scenario-harness.ts`。
@@ -118,7 +117,7 @@
   2026-09-21 `npm run test:live` → 41/41 PASS（规格 §3.4）。
 - 复核工具：`python3 -m py_compile`、`pytest`、`node --check`、`shasum`、`grep`、`jq`、sqlite3、
   Matrix Client-Server API。
-- 公共预算：`max_model_calls`/`max_tool_calls` 按 case 指定（默认 24/24），deadline 15min；
+- 公共任务参数：本版无任务级 deadline/预算（`PK-04` 撤销）；
   逐 case 参数见规格 §3.1。
 
 ## 6. Test Types 与 Case Families（按场景）
@@ -126,7 +125,7 @@
 - **normal**：PTS-01-C1、PTS-02-C1、PTS-03-C1、PTS-04-C1、PTS-05-C1/C2、PTS-06-C1、PTS-07-C1、PTS-08-C1、PTS-09-C1/C2、PTS-10-C1..C5。
 - **boundary**：PTS-01-C2、PTS-02-C4、PTS-03-C3、PTS-05-C3、PTS-06-C4、PTS-07-C2。
 - **negative-permission**：PTS-01-C3、PTS-02-C2、PTS-03-C2、PTS-05-C4、PTS-07-C3。
-- **negative（预算/超时/失败/材料缺失）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
+- **negative（失败/材料缺失）**：PTS-02-C3、PTS-04-C2/C3、PTS-08-C2、PTS-09-C3。
 - **cancel**：PTS-04-C4、PTS-10-C2。
 - **dedup / membership**：PTS-06-C2/C3。
 - **idempotency / invariant / recovery / usage**：PTS-10-C1/C3/C4/C5。
@@ -136,7 +135,7 @@
 
 - **Entry**：§2 Entry criteria 满足。
 - **Pass**：该 case 的**独立 Oracle 全部满足**。终态要求以各 case 的 oracle 为准（normal case 通常要求
-  `Completed`；permission/negative/boundary case 允许 `Failed`/`ToolFailure`/`BudgetExceeded` 或
+  `Completed`；permission/negative/boundary case 允许 `Failed`/`ToolFailure` 或
   `Completed`+显式说明，只要「无伪报成功 + 只读/受保护文件字节不变」成立）。具体见规格 §3。
 - **Fail**：任一 Oracle 不满足（含伪报成功、受保护文件被改、副作用被重放）。
 - **Rerun**：每 case 允许 1 次重跑（模型非确定性）；两次均败判 FAIL，RERUN 记录在案。
@@ -155,7 +154,7 @@
 
 ## 10. Evidence、Traceability、Reporting 与 Gate
 
-- 每 case 记录：run_id、state、summary、outputs、known_actions、usage、本地复核命令与输出。
+- 每 case 记录：task_id、state、summary、outputs、known_actions、usage、本地复核命令与输出。
 - 自动化套件（`npm run test:live` / `npm run test:scenario`）即机器可复核证据；人工执行按 `scripts/scenario-run.sh`。
 - 证据汇总写入 `tests/integration/reports/` 的场景测试报告（STD test-report）。
 - Gate：全部 case PASS 方可作为「场景测试已验证」引用；FAIL/BLOCKED 保持 Gate 开放。

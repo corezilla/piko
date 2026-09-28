@@ -57,11 +57,11 @@
 
 ## 8. 故障诊断、维护与更换
 
-诊断先固定build/config/schema/Pi patch fingerprint/时钟、`task_id`及`run_id`，再查Task Store提交点、lease、discussion intake、Harness session/operation/transcript、tool call ledger与intent/result、Responses stream边界、Matrix cursor/txn和Result generation。只读证据不足为Unknown；不得通过更换`task_id`伪装成原任务恢复，也不得手工改ledger或盲目重放绕过。
+诊断先固定build/config/schema/Pi patch fingerprint/时钟、`task_id`及`task_id`，再查Task Store提交点、lease、discussion intake、Harness session/operation/transcript、tool call ledger与intent/result、Responses stream边界、Matrix cursor/txn和Result generation。只读证据不足为Unknown；不得通过更换`task_id`伪装成原任务恢复，也不得手工改ledger或盲目重放绕过。
 
 ## 9. 数据保留、备份、审计与安全
 
-Run、完整任务定义与Result至少保存到`max(deadline_at,accepted_at)+7d`，随后永久保留最小`task_id/run_id/Gone` tombstone；活动或unknown事实继续保留。备份必须成组覆盖SQLite与Harness session，并记录同一快照边界；Matrix token与Secret不进入普通诊断包。恢复不得复活旧lease、取消意图或已撤销权限。
+Run、完整任务定义与Result至少保存到`accepted_at + storage.retention_days`（默认 7d），随后永久保留最小`{task_id, Gone}` tombstone；活动或unknown事实继续保留。备份必须成组覆盖SQLite与Harness session，并记录同一快照边界；Matrix token与Secret不进入普通诊断包。恢复不得复活旧lease、取消意图或已撤销权限。
 
 ## 10. Acceptance、交接与退役
 

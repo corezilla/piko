@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><style>
+body{margin:0;background:#0B1B34;background-image:linear-gradient(#12305a 1px,transparent 1px),linear-gradient(90deg,#12305a 1px,transparent 1px);background-size:24px 24px;font-family:"SFMono-Regular",Menlo,Consolas,monospace;color:#DCE9FF}
+.wrap{padding:36px 44px}.t{font-size:21px;font-weight:700;margin:0 0 4px;color:#fff;letter-spacing:.5px}.s{color:#7FA8DE;font-size:12px;margin:0 0 26px}
+.row{display:flex;align-items:center}
+.host,.mid,.llm{background:rgba(12,32,60,.75);border:1.5px dashed #4C82C8;border-radius:12px;padding:14px}
+.host{width:230px}.mid{width:290px}.llm{width:210px}
+.host h2,.mid h2,.llm h2{font-size:13px;font-weight:700;margin:0 0 10px;color:#9CC4FF;letter-spacing:.5px}
+.tiles{display:flex;gap:10px}
+.tile{width:64px;height:44px;border:1.5px solid #67E8F9;border-radius:8px;color:#A5F3FC;font-size:11px;display:flex;align-items:center;justify-content:center}
+.card{border:1.5px solid #4C82C8;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:#BBD3F5}
+.link{height:0;border-top:1.5px solid #67E8F9;position:relative;flex:0 0 130px}
+.link b{position:absolute;top:-20px;left:10px;font-size:11px;font-weight:700;color:#EAF3FF}
+.link.l b{left:auto;right:10px}
+.dim{font-size:10px;color:#6E93C4;margin-top:10px}
+</style><div class=wrap>
+<p class=t>Piko 运行环境 / 部署拓扑</p><p class=s>风格 B · 蓝图技术风（深蓝网格底 · 白青细线框 · 等宽字体）</p>
+<div class=row>
+ <div class=host><h2>Slinky 主机</h2><div class=tiles><div class=tile>请求</div><div class=tile>结果</div><div class=tile>数据</div></div></div>
+ <div class=link><b>① 请求</b></div>
+ <div class=mid><h2>Piko 实例群</h2><div class=card>Piko 实例 1 · 本地可靠 FS</div><div class=card>Piko 实例 2..N · 本地可靠 FS</div></div>
+ <div class=link><b>② Responses SSE</b></div>
+ <div class=llm><h2>LLMTier 主机</h2><div>OpenAI-compatible Responses SSE</div><div class=dim>stream:true · maxRetries=0</div></div>
+</div>
+<div class=row style="margin-top:26px"><div style="width:230px"></div><div class="link l"><b>③ 结果回程</b></div><div style="width:290px"></div></div>
+</div>
