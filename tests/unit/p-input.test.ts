@@ -73,3 +73,31 @@ describe("P-ARTIFACT delivery reads where execution wrote", () => {
     expect(r.delivered[0]!.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 });
+
+describe("P0 abort command reaches P1 without a store flag", () => {
+  it("a running task aborts when P0 sends abort (no cancel flag in the store)", async () => {
+    const { store, worker } = await fixture();
+    let sawAbort = false;
+    (worker as any).pi = {
+      execute: async (_t: string, _e: number, _task: any, _ws: string, isCancelled: () => boolean) => {
+        for (let i = 0; i < 100; i++) {
+          if (isCancelled()) {
+            sawAbort = true;
+            return { status: "cancelled", summary: "aborted" };
+          }
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        return { status: "completed", summary: "never aborted" };
+      },
+    };
+    store.createOrGet({ task_id: "ab", instruction: "x", workspace_ref: "t", permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" }, output_paths: [] }, "slinky", 10);
+    worker.start();
+    // let it enter execute, then P0 sends abort
+    await new Promise((r) => setTimeout(r, 50));
+    (worker as any).requestAbort("ab");
+    for (let i = 0; i < 100 && !store.getRun("ab").result_available; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(sawAbort).toBe(true);
+    expect(store.result("ab").state).toBe("Cancelled");
+    await worker.close();
+  });
+});

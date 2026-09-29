@@ -61,6 +61,11 @@ export class ExecutionProcessSupervisor {
     }, 5000);
   }
 
+  /** Send a command to the running P1 (abort / shutdown). No-op if P1 is absent. */
+  send(cmd: Command) {
+    this.channel?.send(cmd);
+  }
+
   /** Kill P1 unconditionally (used by cancel timeouts / shutdown). */
   kill() {
     if (this.child) {
@@ -97,6 +102,3 @@ export class ExecutionProcessSupervisor {
     });
   }
 }
-
-/** Send a command to the running P1 (e.g. abort/shutdown). */
-// (kept on the instance via this.channel)

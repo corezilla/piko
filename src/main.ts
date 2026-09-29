@@ -25,7 +25,11 @@ export async function runControlProcess(configPath: string, root: string) {
   );
   supervisor.spawn();
 
-  const server = await ApiServer.create(config, store, auth);
+  // Cancel must reach the running execution: after the store records the stop intent,
+  // P0 notifies P1 over the data channel so it aborts the in-flight Pi operation.
+  const server = await ApiServer.create(config, store, auth, (taskId, outcome) => {
+    if (outcome === "StopRequested") supervisor.send({ kind: "abort", task_id: taskId });
+  });
   await server.listen();
   console.log(`[P0] Piko control process listening on http://${config.listen.host}:${config.listen.port}`);
 
@@ -34,6 +38,7 @@ export async function runControlProcess(configPath: string, root: string) {
     if (closing) return;
     closing = true;
     await server.close();
+    supervisor.send({ kind: "shutdown" });
     await supervisor.stop();
     store.close();
   };

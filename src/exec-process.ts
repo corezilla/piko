@@ -46,8 +46,12 @@ export async function runExecutionProcess(configPath: string, root: string) {
   };
   process.on("SIGTERM", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
+  // The channel routes P0 commands: `abort` prompts the worker to abort the in-flight
+  // operation (P0's store flag is authoritative); `shutdown` ends P1 cleanly.
   process.on("message", (msg: any) => {
-    if (msg?.type === "abort") void shutdown();
+    if (msg?.ipc !== "command") return;
+    if (msg.command?.kind === "shutdown") void shutdown();
+    if (msg.command?.kind === "abort" && typeof msg.command.task_id === "string") worker.requestAbort(msg.command.task_id);
   });
 }
 

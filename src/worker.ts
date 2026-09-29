@@ -39,6 +39,15 @@ export class RunWorker {
     return outcome.value;
   }
 
+  /** P0 sent `abort` for a task: honour it immediately (in addition to the store flag). */
+  private readonly aborted = new Set<string>();
+  requestAbort(taskId: string) {
+    this.aborted.add(taskId);
+  }
+  private isAborted(taskId: string) {
+    return this.aborted.has(taskId) || this.store.cancelRequested(taskId);
+  }
+
   start() {
     this.loopPromise = this.loop();
   }
@@ -78,7 +87,7 @@ export class RunWorker {
     await this.report({ kind: "staging", task_id: taskId, staging: { state: "in_progress", fetched: [], failed: [] } });
     const controller = new AbortController();
     const poll = setInterval(() => {
-      if (this.store.cancelRequested(taskId)) controller.abort();
+      if (this.isAborted(taskId)) controller.abort();
     }, 250);
     try {
       let staging: Awaited<ReturnType<Transfer["fetchInputs"]>>;
@@ -138,7 +147,7 @@ export class RunWorker {
       timer = setInterval(() => void this.report({ kind: "heartbeat", at: Date.now() }).catch(() => {}), 1000);
       if (accessLost()) throw Object.assign(new Error(accessLostFailure.message), { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
 
-      const outcome = await this.pi.execute(taskId, epoch, task, workspace, () => this.store.cancelRequested(taskId) || accessLost(), task.discussion
+      const outcome = await this.pi.execute(taskId, epoch, task, workspace, () => this.isAborted(taskId) || accessLost(), task.discussion
         ? async (event, turn, body) => {
             await sendDiscussionReplyWithRetry(this.matrix, taskId, task.discussion!.room_id, event, turn, body);
           }
@@ -179,7 +188,7 @@ export class RunWorker {
     } catch (error) {
       const e = error as any;
       const publishedAt = new Date().toISOString();
-      const cancelled = this.store.cancelRequested(taskId);
+      const cancelled = this.isAborted(taskId);
       let code: string = "InternalError";
       let cause_class: string = "Internal";
       if (cancelled) {

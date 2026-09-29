@@ -40,11 +40,12 @@ export class ApiServer {
     private config: RuntimeConfig,
     private store: TaskStore,
     private auth: BearerAuth,
+    private onCancel?: (taskId: string, outcome: string) => void,
   ) {
     this.server = createServer((req, res) => void this.route(req, res));
   }
-  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth) {
-    const x = new ApiServer(config, store, auth);
+  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth, onCancel?: (taskId: string, outcome: string) => void) {
+    const x = new ApiServer(config, store, auth, onCancel);
     const schema = JSON.parse(await readFile(new URL("../interfaces/schemas/agent-runtime-v0.3.schema.json", import.meta.url), "utf8"));
     const AjvCtor: any = (Ajv as any).default ?? Ajv;
     const formats: any = (addFormats as any).default ?? addFormats;
@@ -80,6 +81,7 @@ export class ApiServer {
       if (req.method === "POST" && cancel) {
         const taskId = decodeURIComponent(cancel[1]!);
         const receipt = this.store.cancel(taskId);
+        this.onCancel?.(taskId, receipt.outcome);
         return send(res, receipt.outcome === "StopRequested" ? 202 : 200, { task_id: taskId, ...receipt });
       }
       const result = url.pathname.match(/^\/tasks\/([^/]+)\/result$/);
