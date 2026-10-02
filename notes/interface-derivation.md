@@ -196,3 +196,21 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 
 在该口径下，本项目当前结果 = **new=24**（全部是 `.review-materials/slinky-round1-*` 旧副本缺 sidecar，
 既有、与本轮无关）。
+
+## 11. tests 族迁移状态（STD draft.72）
+
+已迁移：
+- `docs/70_verification/system/system-test-scheme.md`：系统层方案（测试方法/替身/环境类型/分类/
+  22 个 ST Case 清单/缺口裁决/联动/附录 A VRC 汇集）——**已填**。
+- 三份环境拓扑图（system/module/unit）。
+- 12 份旧 `assurance.*` 文档与报告：迁移后移出受控文档集，存 `notes/archive/assurance-v0.3/`
+  （已去 STD 封面，仅作追溯）。
+
+待填（已按新模板生成、仍是 TODO 槽）：
+- `docs/70_verification/module/module-test-scheme.md`（分母 = 11 模块设计的 68 条 `VRC-*`）
+- `docs/70_verification/unit/unit-test-scheme.md`（分母 = ISD 的 `VRC-*`）
+- 三层 `*-test-plan.md`、`assets/asset-design.md`
+- `tests/{unit,module,system}/cases/` 下的 `*-case` 文档（`ST-APP-001` 等）
+- `tests/{unit,module,system}/reports/` 下的 `*-test-report.md`
+
+注：Piko 无子系统层，`tests.subsystem-*` 不适用（层级退化为 UT→MT→ST，见 `test-standard.md` §2）。
