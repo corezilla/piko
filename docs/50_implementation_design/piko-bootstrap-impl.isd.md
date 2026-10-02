@@ -578,7 +578,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `Bootstrap.run(startupArgs: StartupArgs, projectRoot: string): Promise<ReadyHandle>`
+**5.1.1 `Bootstrap.run(startupArgs: StartupArgs, projectRoot: string): Promise<ReadyHandle>`**
 
 - **Interface/Member ID、用途**：`IF-BOOT-RUN`；推进 S1–S8 并返回 READY 句柄。
 
@@ -630,7 +630,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：装配：§3.8。合法：有效 config + 锁定 commit + 可达依赖 → READY。拒绝：S7 LLMTier 503 → `FatalExit{S7, preflight-fail}`。Oracle = 端口绑定 + 退出码（§9.1.1）。`NOT_RUN`。
 
-#### 5.1.2 `Bootstrap.stop(reason: "SIGTERM" | "SIGINT"): Promise<StopReport>`
+**5.1.2 `Bootstrap.stop(reason: "SIGTERM" | "SIGINT"): Promise<StopReport>`**
 
 - **Interface/Member ID、用途**：`IF-BOOT-STOP`；执行 T1–T4 停止与 drain。
 
@@ -682,7 +682,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：READY 无在途 → `drained`。拒绝：未 READY 调用 → 快速退出（无端口）。`NOT_RUN`。
 
-#### 5.1.3 `ConfigStage.load(startupArgs: StartupArgs, root: string): BootContext`
+**5.1.3 `ConfigStage.load(startupArgs: StartupArgs, root: string): BootContext`**
 
 - **Interface/Member ID、用途**：S1–S4 配置阶段；产出冻结快照。
 
@@ -734,7 +734,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：有效 config → `BootContext`。拒绝：未知字段 → `FatalExit{S2, config-invalid}`。`NOT_RUN`。
 
-#### 5.1.4 `PreflightProbe.probe(deps: PreflightDeps): Promise<PreflightReport>`
+**5.1.4 `PreflightProbe.probe(deps: PreflightDeps): Promise<PreflightReport>`**
 
 - **Interface/Member ID、用途**：`IF-ST-PREFLIGHT`（M000 提供）；S7 探测四项事实。
 
@@ -786,7 +786,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：全 true → 继续。拒绝：LLMTier 503 → `llmtier_models_ok=false`。`NOT_RUN`。
 
-#### 5.1.5 `HostWiring.openStore(ctx: BootContext): Promise<Store>`（消费端口）
+**5.1.5 `HostWiring.openStore(ctx: BootContext): Promise<Store>`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-ST-STORE`（Proposed）；S5 打开/迁移 store、取 lock。
 
@@ -838,7 +838,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：空库 → `Store`。拒绝：lock 被占 → `instance-lock-held`。`NOT_RUN`。
 
-#### 5.1.6 `HostWiring.verifyPi(ctx: BootContext): Promise<boolean>`（消费端口）
+**5.1.6 `HostWiring.verifyPi(ctx: BootContext): Promise<boolean>`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-ST-PI`（Proposed）；S6 校验 Pi commit + manifest。
 
@@ -890,7 +890,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：commit 匹配 → `true`。拒绝：marker 缺失 → `pi-upstream-mismatch`。`NOT_RUN`。
 
-#### 5.1.7 `matrixWhoami() -> Identity`（消费端口）
+**5.1.7 `matrixWhoami() -> Identity`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-ST-MATRIX`（Proposed）；S7 校验 Matrix 身份。
 
@@ -942,7 +942,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：身份一致 → `true`。拒绝：不一致 → false。`NOT_RUN`。
 
-#### 5.1.8 `bindToolProfile(profile, registry) -> BoundToolProfile`（消费端口）
+**5.1.8 `bindToolProfile(profile, registry) -> BoundToolProfile`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-CFG-BIND`（Proposed）；S3 绑定 tool/recovery。
 
@@ -994,7 +994,7 @@ bootstrap 的对外接口是 §5.1 的 `run`/`stop` 与 `loadConfig`/`preflight`
 
 - **装配、合法及拒绝实例**：合法：全部 ref 注册 → 绑定。拒绝：缺 ref → `tool-bind-fail`。`NOT_RUN`。
 
-#### 5.1.9 `resolveSecret(ref) -> Secret`（消费端口）
+**5.1.9 `resolveSecret(ref) -> Secret`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-CFG-SECRET`（Proposed）；S3 解析 credential。
 

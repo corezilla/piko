@@ -451,7 +451,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `InvalidDiscussionContext`
+**4.8.1 `InvalidDiscussionContext`**
 
 - **完整定义 / 来源**：私有错误类；语义来源 = 模块设计 §6.8.1。
 
@@ -465,7 +465,7 @@ flowchart LR
 
 - **验证**：`VRC-MATRIX-001/004`；`NOT_RUN`。
 
-#### 4.8.2 `DiscussionAccessLost`
+**4.8.2 `DiscussionAccessLost`**
 
 - **完整定义 / 来源**：```ts
   class DiscussionAccessLost extends Error { readonly room_id: string; readonly reason: string; }
@@ -501,7 +501,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `MatrixRuntime.start(): Promise<void>`
+**5.1.1 `MatrixRuntime.start(): Promise<void>`**
 
 - **Interface/Member ID、用途**：`IF-MX-START`；启动 SDK、whoami 身份核对、首轮 sync 就绪；对应 `IF-ST-MATRIX`。
 
@@ -555,7 +555,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **装配、合法及拒绝实例**：装配：§3.7。合法：身份一致 → READY。拒绝：token 属他人 → F1。Oracle = homeserver whoami。`NOT_RUN`。
 
-#### 5.1.2 `MatrixRuntime.verifyDiscussion(room, event): Promise<string>`
+**5.1.2 `MatrixRuntime.verifyDiscussion(room, event): Promise<string>`**
 
 - **Interface/Member ID、用途**：`IF-MX-VERIFY`；校验起点事件可见并返回正文。
 
@@ -609,7 +609,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **装配、合法及拒绝实例**：合法：`{"body":"Please analyze the repo"}`。拒绝：其它 room / encrypted。`NOT_RUN`。
 
-#### 5.1.3 `MatrixRuntime.syncOnce(cursor): Promise<MatrixBatch>`
+**5.1.3 `MatrixRuntime.syncOnce(cursor): Promise<MatrixBatch>`**
 
 - **Interface/Member ID、用途**：`IF-MX-SYNC`；拉一批事件视图（内部 pump 使用；`processBatch` 完成落盘）。
 
@@ -663,7 +663,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **装配、合法及拒绝实例**：合法：批含 `$e-8` → 写 turn + cursor。拒绝：429 → cursor 不动。`NOT_RUN`。
 
-#### 5.1.4 `MatrixRuntime.sendDiscussionReply(run, room, event, turn, body): Promise<string>`
+**5.1.4 `MatrixRuntime.sendDiscussionReply(run, room, event, turn, body): Promise<string>`**
 
 - **Interface/Member ID、用途**：`IF-MX-SEND`；稳定事务发送回复。
 
@@ -717,7 +717,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **装配、合法及拒绝实例**：合法：`$sent-1`。拒绝：异 payload `TaskConflict`。`NOT_RUN`。
 
-#### 5.1.5 `MediaResolver.downloadMedia(run, event, content): Promise<string>` / `uploadContent(bytes, contentType)`
+**5.1.5 `MediaResolver.downloadMedia(run, event, content): Promise<string>` / `uploadContent(bytes, contentType)`**
 
 - **Interface/Member ID、用途**：`IF-MX-MEDIA-DOWN`/`IF-MX-MEDIA-UP`；附件下载到 staging 与上传。
 
@@ -771,7 +771,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **装配、合法及拒绝实例**：合法：落盘一致。拒绝：超限无文件。`NOT_RUN`。
 
-#### 5.1.6 `MatrixRuntime.close(): Promise<void>`
+**5.1.6 `MatrixRuntime.close(): Promise<void>`**
 
 - **Interface/Member ID、用途**：`IF-MX-CLOSE`；停止 client 与监听。
 
@@ -827,7 +827,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 ### 5.2 消息与数据流接口（适用时）
 
-#### 5.2.1 `M003MatrixStore.ingestMatrixBatch(events, cursor)`（消费端口）
+**5.2.1 `M003MatrixStore.ingestMatrixBatch(events, cursor)`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-MX-TURN`（Proposed）；单事务去重 + turn + cursor。
 
@@ -845,7 +845,7 @@ matrix-adapter 的对外接口是 §5.1 的五类函数；被消费的 M003 端�
 
 - **实现与验证**：`port.ts`（Planned）+ `store.ts`（Implemented）；`VRC-MATRIX-002`。
 
-#### 5.2.2 `M003MatrixStore.prepareMatrixSend / finishMatrixSend / unknownMatrixSend`（消费端口）
+**5.2.2 `M003MatrixStore.prepareMatrixSend / finishMatrixSend / unknownMatrixSend`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-MX-STORE`（Proposed）；send record 生命周期。
 

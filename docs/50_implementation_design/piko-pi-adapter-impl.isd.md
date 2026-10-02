@@ -842,7 +842,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-PI-01` · 取消与 drive 竞态
+**7.1.1 `C-PI-01` · 取消与 drive 竞态**
 
 - **参与线程 / 回调 / 事务**：`requestAbort` 与 `drive` 循环在同一事件循环交错。
 - **已产生或可能产生的副作用**：provider effect 可能已发出；tool 可能已执行。
@@ -852,11 +852,11 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=`inspect`；takeover=重启 inspect；不重发 abort。
 - **验证项**：`VRC-PI-005`（Case C/D）。
 
-#### 7.1.2 `C-PI-02` · 预算 CAS 并发
+**7.1.2 `C-PI-02` · 预算 CAS 并发**
 
 **N/A · 本版撤销**：`PK-04` 撤销。
 
-#### 7.1.3 `C-PI-03` · 迟到 usage 与 Result 发布
+**7.1.3 `C-PI-03` · 迟到 usage 与 Result 发布**
 
 - **参与线程 / 回调 / 事务**：`onRawUsage` 在 Result 发布后到达。
 - **已产生或可能产生的副作用**：`model_attempts.record_version` 推进。
@@ -866,7 +866,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：无 replay；迟到替换。
 - **验证项**：`VRC-PI-006`（Case D）。
 
-#### 7.1.4 `C-PI-04` · 崩溃后 open operation 恢复
+**7.1.4 `C-PI-04` · 崩溃后 open operation 恢复**
 
 - **参与线程 / 回调 / 事务**：重启后 `inspect` → M005 编排。
 - **已产生或可能产生的副作用**：崩溃前旧进程可能留有未提交写。
@@ -876,7 +876,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：takeover=inspect+drive；不重发。
 - **验证项**：`VRC-PI-007`。
 
-#### 7.1.5 `C-PI-05` · tool_end interrupted 与 replay 对账
+**7.1.5 `C-PI-05` · tool_end interrupted 与 replay 对账**
 
 - **参与线程 / 回调 / 事务**：abort 后 in-flight tool 返回 interrupted+recovered。
 - **已产生或可能产生的副作用**：tool 可能已部分执行；`tool_calls` 标记。
@@ -886,7 +886,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：不重放；人工判定新 task。
 - **验证项**：`VRC-PI-005`（Case B）。
 
-#### 7.1.6 `C-PI-06` · S6 校验失败
+**7.1.6 `C-PI-06` · S6 校验失败**
 
 - **参与线程 / 回调 / 事务**：启动时 `verifyPiUpstream` 单线程执行。
 - **已产生或可能产生的副作用**：无（在 S5 之后、S7 之前，不修改持久状态）。
@@ -910,7 +910,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-PI-NOSECRET` · 无鉴权与不记录敏感数据
+**7.3.1 `SEC-PI-NOSECRET` · 无鉴权与不记录敏感数据**
 
 - **原规则**：模块设计 §11；pi-adapter 无外部输入、无身份/授权分支。
 - **可信输入 / 敏感字段 / 检查对象**：无外部输入；API key 经 Secret provider → env → provider，不落日志；`PikoDiscussionMessage.event_id` 不得进入模型 input。
@@ -920,7 +920,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`info`（session/accept/fence）、`warn`（依赖错误）、`error`（Unknown/不变量）；含 `task_id`/`operation_id`/error class，不含敏感值。
 - **验证项**：`VRC-PI-001`（日志不含敏感字段由审查核对）。
 
-#### 7.3.2 `SEC-PI-METRIC` · 指标与事件写入点
+**7.3.2 `SEC-PI-METRIC` · 指标与事件写入点**
 
 - **原规则**：`system-design` §12 指标/事件；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：`piko.model.attempts.{state}`、`piko.tool.attempts.{state}`、`event.model.{attempt,usage,retry}`、`event.tool.{reserved,started,terminal,unknown}`。
@@ -930,7 +930,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：count / 累计 / per task_id，不跨代次相加；关联键 `task_id` + operationId + stepId + attempt。
 - **验证项**：`VRC-PI-004/005/006`。
 
-#### 7.3.3 `SEC-PI-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-PI-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003/宿主）。** pi-adapter 不直接打开 SQLite；`model_attempts`/`tool_calls` 的本地持久化安全（文件权限/umask/symlink/磁盘耗尽）由 M003 ISD §7.3 承接。本模块直接写 Pi session JSONL 到 `pi.session_root`（经 `DurableNodeExecutionEnv`）：目录权限/保留由宿主（M000/operator）按 `system-design` §3.3.1 本地可靠 FS 政策设置，本层只保证写后 fsync、不自行放宽权限；磁盘耗尽 → 写失败上抛（session 创建失败/S6 前不影响）。验证项：`VRC-PI-001`（session 创建）。
 
@@ -1170,7 +1170,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-PI-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-PI-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-pi-adapter` §2/§6.6/§8/§9（v0.1.0-draft.1）声明八功能、状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——`src/pi-runtime.ts`/`src/durable-fs.ts`/`src/config.ts` 的 S6 为 IMPLEMENTED；`src/adapters/pi/` 为 PLANNED；无运行证据。

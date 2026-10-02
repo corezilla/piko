@@ -258,7 +258,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `HttpContext`（请求局部上下文）
+**4.2.1 `HttpContext`（请求局部上下文）**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   interface HttpContext { req: IncomingMessage; res: ServerResponse; principal: string; requestId: string; }
@@ -302,7 +302,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构（适用时）
 
-#### 4.8.1 `HttpError`（映射产物）
+**4.8.1 `HttpError`（映射产物）**
 
 - **错误声明、Error/Data ID 与唯一来源**：```ts
   interface HttpError { status: number; body: { error: { code: RequestErrorCode; message: string; request_id: string } }; headers: Record<string,string>; }

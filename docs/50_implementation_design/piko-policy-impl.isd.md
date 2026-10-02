@@ -425,7 +425,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `PolicyService.bindToolProfile(): BoundToolProfile`
+**5.1.1 `PolicyService.bindToolProfile(): BoundToolProfile`**
 
 - **Interface/Member ID、用途**：`IF-CFG-BIND`；启动 S3 把 ToolProfile+registry 绑定为不可变 allowlist。
 
@@ -479,7 +479,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **装配、合法及拒绝实例**：装配见 §3.6。合法：全 ref 注册 → `BoundToolProfile`。拒绝：`write`+`safe` 无 ref → `ToolBindFailure`。Oracle = 期望绑定矩阵常量。`NOT_RUN`。
 
-#### 5.1.2 `PolicyService.validateSubmission(raw, principal): Promise<ValidatedTaskSubmission>`
+**5.1.2 `PolicyService.validateSubmission(raw, principal): Promise<ValidatedTaskSubmission>`**
 
 - **Interface/Member ID、用途**：`IF-RUN-VALIDATE`；受理期校验并规范化任务。
 
@@ -533,7 +533,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **装配、合法及拒绝实例**：装配见 §3.6。合法：合法请求 → `ValidatedTaskSubmission`。拒绝：`../` → `InvalidRequest`；越界 → `ScopeDenied`。Oracle = 独立复算的规范化常量 + 期望拒绝码。`NOT_RUN`。
 
-#### 5.1.3 `PolicyService.canonicalizePath(workspace, rel, allowed, write): Promise<string>`
+**5.1.3 `PolicyService.canonicalizePath(workspace, rel, allowed, write): Promise<string>`**
 
 - **Interface/Member ID、用途**：`IF-POLICY-PATH`；路径语法 + realpath + 包含判定。
 
@@ -587,7 +587,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **装配、合法及拒绝实例**：装配见 §3.3。合法：`a/b.txt` → 绝对路径。拒绝：`../`→`InvalidRequest`；symlink 越界→`ScopeDenied`。Oracle = 独立构造的期望路径/错误码。`NOT_RUN`。
 
-#### 5.1.4 `SubmissionValidator.normalizeTask(raw): ValidatedTaskSubmission`（内部）
+**5.1.4 `SubmissionValidator.normalizeTask(raw): ValidatedTaskSubmission`（内部）**
 
 - **Interface/Member ID、用途**：私有；把已校验字段归一为可比较形态（`R-POLICY-NORMALIZE`）。
 
@@ -641,7 +641,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **装配、合法及拒绝实例**：装配见 §3.2。合法：`["b","a","a"]` → `["a","b"]`。Oracle = 期望规范化常量。`NOT_RUN`。
 
-#### 5.1.5 `IF-POLICY-CONFIG` · M000 → M002 config/registry 注入（消费）
+**5.1.5 `IF-POLICY-CONFIG` · M000 → M002 config/registry 注入（消费）**
 
 - **Interface/Member ID、用途**：`IF-POLICY-CONFIG`（Proposed）；把进程寿命的 config/registry 交给 policy。
 

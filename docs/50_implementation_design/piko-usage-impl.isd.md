@@ -403,7 +403,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `RawAttemptUsage`
+**4.2.1 `RawAttemptUsage`**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   interface RawAttemptUsage {
@@ -442,7 +442,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `{attempts:3, rows:[...]}`；拒绝 `rows.length > attempts`。`VRC-USAGE-001`；`NOT_RUN`。
 
-#### 4.2.3 `UsageSnapshot`
+**4.2.3 `UsageSnapshot`**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   interface UsageSnapshot {
@@ -498,7 +498,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `SemanticCheck` / `semantic-validator-fail`
+**4.8.1 `SemanticCheck` / `semantic-validator-fail`**
 
 - **错误声明、Error/Data ID 与唯一来源**：```ts
   interface SemanticCheck { ok: boolean; reason?: string }
@@ -959,7 +959,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-USAGE-01` · 迟到 usage 与发布并发
+**7.1.1 `C-USAGE-01` · 迟到 usage 与发布并发**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环；M005 发布事务 vs M006 迟到 `observeUsage`。
 - **已产生或可能产生的副作用**：可能已有 `results` generation（M003 侧）。
@@ -969,7 +969,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=`snapshot`（只读）；无 takeover/retry。
 - **验证项**：`VRC-USAGE-003`。
 
-#### 7.1.2 `C-USAGE-02` · 同 attempt 多次回调
+**7.1.2 `C-USAGE-02` · 同 attempt 多次回调**
 
 - **参与线程 / 回调 / 事务**：M006 多次 `onRawUsage`。
 - **已产生或可能产生的副作用**：`model_attempts` 行更新。
@@ -979,7 +979,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=`readAttempts`；replay=`snapshot`（同结果）。
 - **验证项**：`VRC-USAGE-001`。
 
-#### 7.1.3 `C-USAGE-03` · validator FAIL 与回滚
+**7.1.3 `C-USAGE-03` · validator FAIL 与回滚**
 
 - **参与线程 / 回调 / 事务**：M005 第一步事务内 `validateBeforePublish`。
 - **已产生或可能产生的副作用**：无（校验在 `INSERT` 前）。
@@ -989,7 +989,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：不自动重试；交 operator。
 - **验证项**：`VRC-USAGE-004`。
 
-#### 7.1.4 `C-USAGE-04` · 服务退出与结果已知性
+**7.1.4 `C-USAGE-04` · 服务退出与结果已知性**
 
 - **参与线程 / 回调 / 事务**：进程退出时 usage 无在途写（只读/纯计算）。
 - **已产生或可能产生的副作用**：无。
@@ -999,7 +999,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：重算。
 - **验证项**：`VRC-USAGE-006`。
 
-#### 7.1.5 `C-USAGE-05` · M003 读依赖故障
+**7.1.5 `C-USAGE-05` · M003 读依赖故障**
 
 - **参与线程 / 回调 / 事务**：`readAttempts` 遇 `SQLITE_BUSY`。
 - **已产生或可能产生的副作用**：无。
@@ -1023,7 +1023,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-USAGE-NOSECRET` · 无鉴权与不记录敏感数据
+**7.3.1 `SEC-USAGE-NOSECRET` · 无鉴权与不记录敏感数据**
 
 - **原规则**：模块设计 §11；usage 无外部输入、无身份/授权分支。
 - **可信输入 / 敏感字段 / 检查对象**：输入为进程内 M005 调用 + `model_attempts`（M006 从固定 Pi provider 观察）；不接触 credential/模型正文/instruction/绝对路径。
@@ -1033,7 +1033,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`debug`（聚合成功）、`info`（校验 ok）、`error`（ok:false，不含业务内容）、`warn`（依赖错误）。
 - **验证项**：`VRC-USAGE-004`（日志不含敏感字段由审查核对）。
 
-#### 7.3.2 `SEC-USAGE-METRIC` · 指标 `piko.usage.quality.*` 写入点
+**7.3.2 `SEC-USAGE-METRIC` · 指标 `piko.usage.quality.*` 写入点**
 
 - **原规则**：`system-design` §12 指标；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：指标 = `UsageSnapshot.quality`（ratio / per task_id）。
@@ -1043,7 +1043,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：单位=ratio；窗口=per task_id；不聚合；低开销。
 - **验证项**：`VRC-USAGE-001`（quality 判定）。
 
-#### 7.3.3 `SEC-USAGE-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-USAGE-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003）。** usage 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD 承接。本层交接事实 = 经 `IF-USAGE-STORE` 传递 `runId`，不含路径/凭据。
 
@@ -1255,7 +1255,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-USAGE-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-USAGE-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-usage-design` §2/§6.6/§8/§9（v0.1.0-draft.1）声明三功能、状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。

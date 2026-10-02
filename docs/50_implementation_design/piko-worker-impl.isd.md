@@ -501,7 +501,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `FencedWrite`
+**4.8.1 `FencedWrite`**
 
 - **完整定义 / 来源**：`class FencedWrite extends Error { readonly task_id: string; readonly expected_generation?: number; readonly expected_epoch?: number; }`；语义来源 = 模块设计 §6.8.1 + M003。
 
@@ -511,7 +511,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-001/007`；`NOT_RUN`。
 
-#### 4.8.2 `LeaseLost`
+**4.8.2 `LeaseLost`**
 
 - **完整定义 / 来源**：`class LeaseLost extends Error { readonly task_id: string; readonly epoch: number; }`；语义来源 = `piko-scheduler` §4.8.1 + 模块设计 §6.8.1。
 
@@ -521,7 +521,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-007`；`NOT_RUN`。
 
-#### 4.8.3 `DiscussionNotClosed`
+**4.8.3 `DiscussionNotClosed`**
 
 - **完整定义 / 来源**：`class DiscussionNotClosed extends Error { readonly task_id: string; readonly pending_turns: number; }`；语义来源 = 模块设计 §6.8.1（M003 `finish` guard）。
 
@@ -531,7 +531,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-005`；`NOT_RUN`。
 
-#### 4.8.4 Result `failure.code` 映射（worker 生产）
+**4.8.4 Result `failure.code` 映射（worker 生产）**
 
 - **完整定义 / 来源**：worker 将执行/取消/对账事实映射为 contract §6 `Failure.code`（`ModelUnavailable`/`ModelResponseInvalid`/`ToolFailure`/`UnsafeRetryBlocked`/`ExecutionStateUnknown`/`DiscussionAccessLost`/`CancelledByRequest`/`InternalError`）。来源 = 模块设计 §6.8.2。
 
@@ -549,7 +549,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `RunCoordinator.onLease(lease: Lease): Promise<void>`
+**5.1.1 `RunCoordinator.onLease(lease: Lease): Promise<void>`**
 
 - **Interface/Member ID、用途**：`IF-WORKER-DISPATCH`；开始协调一个已取得 lease 的 Run。
 
@@ -603,7 +603,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **装配、合法及拒绝实例**：装配：§3.10。合法：`Lease{task_id:"task-042", epoch:3}` + `Running` → 进入 `DRIVING`。拒绝：`runs.state` 非 `Running` → 断言失败。Oracle = `run_sessions`/Pi operation 事实。`NOT_RUN`。
 
-#### 5.1.2 `ResultBuilder.build(input: ResultInput): AgentResult`
+**5.1.2 `ResultBuilder.build(input: ResultInput): AgentResult`**
 
 - **Interface/Member ID、用途**：`IF-RUN-RESULTGEN`；由执行/取消/对账事实构造可发布 `AgentResult`。
 
@@ -657,7 +657,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **装配、合法及拒绝实例**：合法：`state=Completed, failure=null, partial=false`。拒绝：`Completed` 带 failure。Oracle = JSON Schema + semantic invariants。`NOT_RUN`。
 
-#### 5.1.3 `CancelRouter.route(runId: string): Promise<CancelOutcome>`
+**5.1.3 `CancelRouter.route(runId: string): Promise<CancelOutcome>`**
 
 - **Interface/Member ID、用途**：`IF-CX-QUEUED`/`IF-CX-RUNNING`；按 `runs.state` 分流取消。
 
@@ -711,7 +711,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **装配、合法及拒绝实例**：合法：Queued → `CancelledBeforeStart`。拒绝：已终态 → `AlreadyTerminal`。Oracle = `runs.state`+`results`。`NOT_RUN`。
 
-#### 5.1.4 `RecoveryPlanner.plan(): Promise<RecoveryReport>`
+**5.1.4 `RecoveryPlanner.plan(): Promise<RecoveryReport>`**
 
 - **Interface/Member ID、用途**：恢复编排 R1-R7（`IF-REC-SCAN`/`IF-REC-INSPECT`/`IF-REC-PATCH`/`IF-REC-FENCE` 的消费编排）。
 
@@ -765,7 +765,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **装配、合法及拒绝实例**：合法：两步间崩溃 → `PatchedTerminal`。拒绝：无事实 → `InternalError`。Oracle = `results` 不变 + 终态补齐。`NOT_RUN`。
 
-#### 5.1.5 `IntakeController.onIdle(runId: string): Promise<void>`
+**5.1.5 `IntakeController.onIdle(runId: string): Promise<void>`**
 
 - **Interface/Member ID、用途**：`IF-MX-TURN`；discussion Pi idle 时推进 intake 并领取 turn。
 
@@ -823,7 +823,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 worker 的协作接口是进程内函数（消费相邻模块端口）。以下记录被消费端口的关键契约（完整签名 authority 在各模块 ISD §5.1）。
 
-#### 5.2.1 `publishResult` / `finishTerminal` / `releaseSlot`（消费 M003）
+**5.2.1 `publishResult` / `finishTerminal` / `releaseSlot`（消费 M003）**
 
 - **Interface/Member ID、用途**：`IF-RUN-PUBLISH`（+终态发布/release）；两步提交持久化。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M003 `src/store.ts` `publishResult`/`finishTerminal`/`releaseSlot`。
@@ -835,7 +835,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **实现状态 / 验证项**：Planned（M003 侧 `IN_PROGRESS`）/ `VRC-WORKER-001/006`。
 - **装配、合法及拒绝实例**：合法：generation 匹配 → 提交。拒绝：旧 generation → `FencedWrite`。`NOT_RUN`。
 
-#### 5.2.2 `snapshot` / `validateBeforePublish`（消费 M007）
+**5.2.2 `snapshot` / `validateBeforePublish`（消费 M007）**
 
 - **Interface/Member ID、用途**：`IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`；发布前 usage 与语义校验。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M007 `usage`。
@@ -847,7 +847,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **实现状态 / 验证项**：Planned / `VRC-WORKER-004`。
 - **装配、合法及拒绝实例**：合法：3 attempt → `Partial`。拒绝：算术破坏 → FAIL。`NOT_RUN`。
 
-#### 5.2.3 `openOrCreateRunSession` / `accept` / `drive` / `requestAbort` / `inspect`（消费 M006）
+**5.2.3 `openOrCreateRunSession` / `accept` / `drive` / `requestAbort` / `inspect`（消费 M006）**
 
 - **Interface/Member ID、用途**：`IF-RUN-SESSION`/`IF-RUN-ACCEPT`/`IF-RUN-DRIVE`/`IF-CX-ABORT`/`IF-REC-INSPECT`。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M006 `pi-adapter`。
@@ -859,7 +859,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **实现状态 / 验证项**：Planned / `VRC-WORKER-001/002/006`。
 - **装配、合法及拒绝实例**：合法：accept 返回 durable op。拒绝：重复 accept 同一 op（`INV-WORKER-2`）。`NOT_RUN`。
 
-#### 5.2.4 `acquireSlot` / `renewLease` / `fence`（消费 M004）
+**5.2.4 `acquireSlot` / `renewLease` / `fence`（消费 M004）**
 
 - **Interface/Member ID、用途**：`IF-RUN-SLOT`/`IF-RUN-RENEW`/`IF-REC-FENCE`；lease 获取与丢失事实。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M004 `scheduler`。
@@ -871,7 +871,7 @@ worker 的协作接口是进程内函数（消费相邻模块端口）。以下�
 - **实现状态 / 验证项**：Planned / `VRC-WORKER-007`。
 - **装配、合法及拒绝实例**：合法：当前 epoch → `true`。拒绝：旧 epoch → `false` → `LeaseLost`。`NOT_RUN`。
 
-#### 5.2.5 `syncOnce` / `sendWithStableTxn` / `downloadContent` / `verifyDiscussionStart`（消费 M008）
+**5.2.5 `syncOnce` / `sendWithStableTxn` / `downloadContent` / `verifyDiscussionStart`（消费 M008）**
 
 - **Interface/Member ID、用途**：`IF-MX-SYNC`/`IF-MX-SEND`/`IF-MX-MEDIA`/`IF-MX-VERIFY`。
 - **文件 / symbol / 可见性**：Planned `src/worker/ports.ts` → M008 `matrix-adapter`。

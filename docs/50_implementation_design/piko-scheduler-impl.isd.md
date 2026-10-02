@@ -448,7 +448,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `LeaseLost`
+**4.8.1 `LeaseLost`**
 
 - **完整定义 / 来源**：私有错误类；语义来源 = 模块设计 §6.8.1。
 
@@ -462,7 +462,7 @@ flowchart LR
 
 - **验证**：`VRC-SCHED-002`；`NOT_RUN`。
 
-#### 4.8.2 `LeaseRenewalUnavailable`
+**4.8.2 `LeaseRenewalUnavailable`**
 
 - **完整定义 / 来源**：```ts
   class LeaseRenewalUnavailable extends Error { readonly task_id: string; readonly consecutive_failures: number; readonly last_error_class: string; }
@@ -494,7 +494,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `Scheduler.acquireSlot(ownerId: string): Lease | null`
+**5.1.1 `Scheduler.acquireSlot(ownerId: string): Lease | null`**
 
 - **Interface/Member ID、用途**：`IF-RUN-SLOT`；领取唯一执行位并绑定最旧 `Queued` Run。
 
@@ -548,7 +548,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：装配：§3.6。合法：空闲 slot + 最旧 `Queued` → 返回 `Lease(epoch=旧+1)`。拒绝：slot 已占 → `null`。Oracle = 直读 `execution_slot`/`runs`（§9.1.1）。`NOT_RUN`。
 
-#### 5.1.2 `Scheduler.renewLease(runId: string, epoch: number): boolean`
+**5.1.2 `Scheduler.renewLease(runId: string, epoch: number): boolean`**
 
 - **Interface/Member ID、用途**：`IF-RUN-RENEW`；刷新租约心跳。
 
@@ -602,7 +602,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：合法：当前 epoch → `true`。拒绝：旧 epoch → `false`。Oracle = `execution_slot.heartbeat_at`。`NOT_RUN`。
 
-#### 5.1.3 `Scheduler.fence(runId: string, ownerId: string, bootId: string): Lease | null`
+**5.1.3 `Scheduler.fence(runId: string, ownerId: string, bootId: string): Lease | null`**
 
 - **Interface/Member ID、用途**：`IF-REC-FENCE`；崩溃重启后重领并 fence 旧写入。
 
@@ -656,7 +656,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：合法：`HELD_STALE` + 非终态 → 新 `Lease`。拒绝：绑定终态 → `null`；记录冲突 → `SlotInvariantViolation`。`NOT_RUN`。
 
-#### 5.1.4 `LeaseKeeper.start / onTick / stop`（内部看护）
+**5.1.4 `LeaseKeeper.start / onTick / stop`（内部看护）**
 
 - **Interface/Member ID、用途**：私有；续租定时与故障分类（`R-SCHED-RENEW-FAILURE`）。
 
@@ -710,7 +710,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：装配：`Scheduler` 持有。合法：连续 `true`。拒绝：`false`/依赖错误 → 事件。`NOT_RUN`。
 
-#### 5.1.5 `M003SlotStore.tryClaimSlot(runId, ownerId, bootId)`（消费端口）
+**5.1.5 `M003SlotStore.tryClaimSlot(runId, ownerId, bootId)`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE`（Proposed）；原子领取 slot。
 
@@ -764,7 +764,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：合法：空闲 slot + `Queued` → `{epoch}`。拒绝：忙 → `slot_busy`。`NOT_RUN`。
 
-#### 5.1.6 `M003SlotStore.renewSlot(runId, epoch)`（消费端口）
+**5.1.6 `M003SlotStore.renewSlot(runId, epoch)`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE`（Proposed）；CAS 刷新心跳。
 
@@ -818,7 +818,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：合法：当前 epoch → `true`。拒绝：旧 epoch → `false`。`NOT_RUN`。
 
-#### 5.1.7 `M003SlotStore.fenceSlot(runId, ownerId, bootId)`（消费端口）
+**5.1.7 `M003SlotStore.fenceSlot(runId, ownerId, bootId)`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE`（Proposed）；单事务覆盖 `T-SCHED-04`（epoch+1）与 `T-SCHED-06`（清空）。
 
@@ -872,7 +872,7 @@ scheduler 的对外接口是 §5.1 的三个函数；被消费的 M003 端口与
 
 - **装配、合法及拒绝实例**：合法：非终态 → `{epoch}`；终态 → `slot_released`。`NOT_RUN`。
 
-#### 5.1.8 `RecoveryGate.isRecoveryComplete(): boolean`（消费门）
+**5.1.8 `RecoveryGate.isRecoveryComplete(): boolean`（消费门）**
 
 - **Interface/Member ID、用途**：`IF-SCHED-GATE`（Proposed）；把恢复完成事实交给 scheduler。
 
@@ -1081,7 +1081,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-SCHED-01` · 两 tick 并发领取
+**7.1.1 `C-SCHED-01` · 两 tick 并发领取**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环；`acquireSlot` → M003 单事务。
 - **已产生或可能产生的副作用**：`execution_slot`/`runs`/`run_sessions` 写（仅一个成功）。
@@ -1091,7 +1091,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=`readSlot`；retry=下个 tick；无 replay/takeover。
 - **验证项**：`VRC-SCHED-001`（Case B）。
 
-#### 7.1.2 `C-SCHED-02` · `false`（CAS 未命中）与恢复
+**7.1.2 `C-SCHED-02` · `false`（CAS 未命中）与恢复**
 
 - **参与线程 / 回调 / 事务**：`LeaseKeeper` 定时器 vs M003 `finish` 终态事务。
 - **已产生或可能产生的副作用**：可能已有终态写入（M003 侧）。
@@ -1101,7 +1101,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：`false` 不重试。
 - **验证项**：`VRC-SCHED-002`（Case B）。
 
-#### 7.1.3 `C-SCHED-03` · 崩溃后 stale slot
+**7.1.3 `C-SCHED-03` · 崩溃后 stale slot**
 
 - **参与线程 / 回调 / 事务**：重启后首次读 + `fence` → M003 单事务。
 - **已产生或可能产生的副作用**：重启前旧进程可能留有未提交写。
@@ -1111,7 +1111,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：takeover=`fence`。
 - **验证项**：`VRC-SCHED-003`（Case A–C）。
 
-#### 7.1.4 `C-SCHED-04` · 恢复门与领取顺序
+**7.1.4 `C-SCHED-04` · 恢复门与领取顺序**
 
 - **参与线程 / 回调 / 事务**：M005 恢复编排 vs worker tick。
 - **已产生或可能产生的副作用**：无（门未开时 `acquireSlot` 提前 `null`）。
@@ -1121,7 +1121,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：完成后正常领取。
 - **验证项**：`VRC-SCHED-005`。
 
-#### 7.1.5 `C-SCHED-05` · 定时器延迟/丢失
+**7.1.5 `C-SCHED-05` · 定时器延迟/丢失**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环繁忙。
 - **已产生或可能产生的副作用**：无（仅心跳更新晚）。
@@ -1131,7 +1131,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：N/A。
 - **验证项**：`VRC-SCHED-002`（Case D）。
 
-#### 7.1.6 `C-SCHED-06` · 续租依赖故障与恢复/退出
+**7.1.6 `C-SCHED-06` · 续租依赖故障与恢复/退出**
 
 - **参与线程 / 回调 / 事务**：`LeaseKeeper.onTick` 内捕获依赖错误。
 - **已产生或可能产生的副作用**：无（不释放 slot、不写终态）。
@@ -1155,7 +1155,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-SCHED-NOSECRET` · 无鉴权与不记录敏感数据
+**7.3.1 `SEC-SCHED-NOSECRET` · 无鉴权与不记录敏感数据**
 
 - **原规则**：模块设计 §11；scheduler 无外部输入、无身份/授权分支。
 - **可信输入 / 敏感字段 / 检查对象**：无外部输入；不接触 credential/绝对路径/业务内容。
@@ -1165,7 +1165,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`info`（领取/fence）、`warn`（依赖错误）、`error`（不变量冲突）；含 `task_id`/`epoch`/error class。
 - **验证项**：`VRC-SCHED-001`（日志不含敏感字段由审查核对）。
 
-#### 7.3.2 `SEC-SCHED-METRIC` · 指标 `piko.slot.lease_epoch` 写入点
+**7.3.2 `SEC-SCHED-METRIC` · 指标 `piko.slot.lease_epoch` 写入点**
 
 - **原规则**：`system-design` §12 指标；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：指标 = `execution_slot.lease_epoch`（count / 单实例）。
@@ -1175,7 +1175,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：单位=次数/单实例；重置=进程世代；用于恢复顺序判定。
 - **验证项**：`VRC-SCHED-003`（epoch 单调）。
 
-#### 7.3.3 `SEC-SCHED-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-SCHED-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003）。** scheduler 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD §7.3.2 承接。本层交接事实 = 经 `IF-SCHED-STORE` 传递目标身份，不含路径/凭据。
 
@@ -1377,7 +1377,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-SCHED-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-SCHED-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-scheduler` §2/§6.6/§8/§9（v0.1.1）声明三功能、状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。
