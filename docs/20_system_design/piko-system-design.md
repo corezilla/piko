@@ -12,7 +12,7 @@
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.software-system` |
-| Template Version | `2.1.0` |
+| Template Version | `2.1.3` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 

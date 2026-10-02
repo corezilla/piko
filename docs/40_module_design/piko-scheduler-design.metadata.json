@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "design.definition",
-  "template_version": "3.4.0",
-  "template_sha256": "bfb22c5a7881599a1d7e21b47fffa26c1fa8280f3ae4d1a2c23b5a9769274693",
+  "template_version": "3.4.3",
+  "template_sha256": "2e516f9cdcf85c479637f02fb6d3b12265a64a361180d30aac81d52ea48beb04",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

@@ -12,7 +12,7 @@
   ],
   "template_id": "review.packet",
   "template_version": "0.2.0",
-  "template_sha256": "7272a93143e7a13a923344fe5bdeaa0c1d21c64823e3fbaee7f1fcb94a3964e6",
+  "template_sha256": "6f5fb6b1b27e69aa31c9ee9dfcf909898b91726d7edd0ba9c9746426a2bdd2af",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

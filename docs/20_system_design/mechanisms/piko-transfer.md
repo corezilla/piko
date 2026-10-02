@@ -12,7 +12,7 @@
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.3.0` |
+| Template Version | `3.3.1` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 

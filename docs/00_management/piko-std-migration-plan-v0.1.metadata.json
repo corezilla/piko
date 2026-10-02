@@ -11,7 +11,7 @@
   ],
   "template_id": "management.project-plan",
   "template_version": "0.2.0",
-  "template_sha256": "6c83523f67ad03dba7077d7c82d497eabc6184bca0957c7f805360f2a7929c87",
+  "template_sha256": "0dbecc3e1fcc7deb5d9ce1b7b1bf815b81281439031667c74ec28070129fd3a7",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
