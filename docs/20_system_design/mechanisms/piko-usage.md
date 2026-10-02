@@ -35,7 +35,6 @@ flowchart LR
 
 图 M-USAGE-0 · MECH-USAGE 用途概览 / Target / NOT_BUILT。原始 usage 经聚合、校验、冻结成为 Result 的一部分。
 
-
 - **机制形态与适用性 / 业务副作用**：**只读观测 + 冻结**。raw usage 只观察不修改外部对象；生成的 `UsageSnapshot` 随 Result 冻结。无外部副作用，但有持久 `model_attempts`。
 - **交接域**：**纯软件**。M006/M007 同进程；数据源为 Pi provider（进程内）。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
@@ -96,7 +95,7 @@ flowchart LR
 | `model_attempts`(`task_id`,`operation_id`,`step_id`,`attempt`) | 进程内 SQLite | M003 DDL | 与实例同域 | record_version 单调 |
 | attempt identity | M006 从 Harness 派生 | `stepId` + attempt ordinal | 同域 | 崩溃后保守计数 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | 模型路径 | 持久层 | 用途 |
 |---|---|---|---|
@@ -115,7 +114,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `UsageQuality`
+**4.1.1 `UsageQuality`**
 
 - **定义与来源**：`UsageQuality = "Complete" | "Partial" | "Unknown"`。来源 contract §3 + M007 ISD §4.1。
 - **逐值含义**：`Complete`＝6 字段全部完整；`Partial`＝至少 1 完整且至少 1 缺失；`Unknown`＝6 字段全 null（允许 `usage_observed_attempts>0`）。未知值拒绝。
@@ -124,7 +123,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `UsageSnapshot`
+**4.2.1 `UsageSnapshot`**
 
 - **定义与来源**：机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json`；来源 contract §3。
 - **字段与约束**：`input_tokens`/`output_tokens`/`total_tokens`/`cached_tokens`/`cache_write_tokens`/`reasoning_tokens`（int|null）、`model_attempts`（int）、`usage_observed_attempts`（int）、`missing_fields[]`、`quality`。`total = input + output`；cache ⊆ input；reasoning ⊆ output。
@@ -146,7 +145,7 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-#### 4.4.1 raw usage 观察（M006 → M007）
+**4.4.1 raw usage 观察（M006 → M007）**
 
 M006 `onRawUsage` 在 OpenAI Responses normalization **之前**保存原始 usage，字段存在性与值一并保留：
 
@@ -162,7 +161,7 @@ RawUsage {
 - **约束**：`present_fields` 必须与字段值一致；缺失字段不得填 0。
 - **寿命**：attempt 寿命；同 attempt 迟到更新以 record_version 替换。
 
-#### 4.4.2 `UsageSnapshot`（M007 → M005）
+**4.4.2 `UsageSnapshot`（M007 → M005）**
 
 字段全集在 `interfaces/schemas/agent-runtime-v0.3.schema.json`；机制层视图见 §4.2.1。
 
@@ -172,7 +171,7 @@ RawUsage {
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `ModelAttempt`
+**4.6.1 `ModelAttempt`**
 
 - **定义与来源**：`(task_id, operation_id, step_id, attempt)` 主键 + `state`/`raw_usage_json`/`record_version`/`updated_at`。来源 M003 ISD §4.2.5。
 - **字段与约束**：`state ∈ {Reserved, Started, UsageObserved, Terminal, Unknown}`。
@@ -191,6 +190,7 @@ RawUsage {
 | （无独立 usage 错误码） | usage 缺失不是错误，是 `Partial`/`Unknown` 事实 | Result 照常发布（带 missing_fields） | 下游按 quality 处理 |
 
 不变量违反（`total != input+output`、cache ⊄ input、reasoning ⊄ output）由 semantic validator fail closed，不发布 Result。
+
 ### 4.9 编码、布局与共享类型映射
 
 `raw_usage_json` UTF-8 JSON；`UsageSnapshot` JSON 字段名与 contract 一致。
@@ -207,7 +207,7 @@ RawUsage {
 
 MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator` 方法是本机制 API。
 
-#### `recordAttempt(attempt: ModelAttempt) -> void`（IF-USAGE-RAW）
+**`recordAttempt(attempt: ModelAttempt) -> void`（IF-USAGE-RAW）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-USAGE-RAW`；M006 `pi-adapter` 提供（hook）；M007 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；Proposed。
@@ -216,7 +216,7 @@ MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator
 - **错误与合法下一步**：无独立错误；字段缺失是事实。
 - **代表调用与验证**：§6.1.1 q1/q2；PK-T10。
 
-#### `snapshot(runId: string) -> UsageSnapshot`（IF-USAGE-SNAPSHOT）
+**`snapshot(runId: string) -> UsageSnapshot`（IF-USAGE-SNAPSHOT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-USAGE-SNAPSHOT`；M007 提供；M005 消费。
 - **输入与前提**：全部 durable attempt 已落 `model_attempts`。
@@ -224,7 +224,7 @@ MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator
 - **交互与生命周期**：与 publish 同事务前置。
 - **代表调用与验证**：§6.1.1 q3；PK-T10/PK-T16。
 
-#### `validateBeforePublish(result, contractVersion) -> SemanticCheck`（IF-USAGE-VALIDATE）
+**`validateBeforePublish(result, contractVersion) -> SemanticCheck`（IF-USAGE-VALIDATE）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-USAGE-VALIDATE`；M007 提供；M005 消费。
 - **输入与前提**：`AgentResult` + `0.3.0-simplified.6`。
@@ -232,18 +232,19 @@ MECH-USAGE 无面向用户的 API；进程内 `UsageAggregator`/`ResultValidator
 - **错误与合法下一步**：FAIL → throw `InternalError("semantic-validator-fail")`。
 - **代表调用与验证**：§6.1.1 q4；PK-T16。
 
-#### `freeze(snapshot)`（内部）
+**`freeze(snapshot)`（内部）**
 
 - **用途**：随 Result 发布冻结；迟到只推 record_version。
 
 ### 5.2 消息与数据流接口（适用时）
 
-#### raw usage 事件流（IF-USAGE-STREAM）
+**raw usage 事件流（IF-USAGE-STREAM）**
 
 - **来源**：Pi provider 的 OpenAI Responses 响应中 usage 字段；经 M006 `onRawUsage` 在归一化前捕获。
 - **格式**：见 §4.4.1 `RawUsage`。
 - **关联/确认**：`(pi_operation_id, step_id, attempt)`；同 attempt 以 record_version 替换。
 - **代表调用与验证**：PK-T10。
+
 ### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
@@ -289,7 +290,7 @@ sequenceDiagram
 - 同一 attempt 多次回调：以 record_version 替换，不重复相加。
 - 零 attempt Run：全零 Complete。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 Run `task-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `reasoning_tokens`、attempt3 完整。
 
@@ -323,7 +324,7 @@ Run `task-042`，3 次模型 attempt：attempt1 六字段完整、attempt2 缺 `
 {"input_tokens":0,"output_tokens":0,"total_tokens":0,"cached_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"model_attempts":0,"usage_observed_attempts":0,"missing_fields":[],"quality":"Complete"}
 ```
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
@@ -366,7 +367,7 @@ stateDiagram-v2
 
 | 资源 | 预留 | 交付 | 释放 | 复位 |
 |---|---|---|---|---|
-| attempt 预算 | before_request CAS | effect intent | Terminal/Unknown | 重启保守计数 |
+| attempt 预留 | before_request CAS | effect intent | Terminal/Unknown | 重启保守计数 |
 | ledger record | onRawUsage 写 | record_version | retention | 迟到替换 |
 
 ## 9. 失败传播、重试与恢复
@@ -387,7 +388,7 @@ flowchart TD
 ```
 图 M-USAGE-5 · 异常处置图 / Target / NOT_BUILT。缺失是事实不是错误；只有 validator FAIL 才阻断。
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -484,7 +485,6 @@ flowchart TD
 | `M-USAGE-DI-002` | `usage` | contract `0.3.0-simplified.6` | CON-USAGE-001/002 | 聚合数据结构 |
 | `M-USAGE-DI-003` | `worker` | 发布前 snapshot + validate（消费） | CON-USAGE-001/002 | 消费实现 |
 
-
 ## 15. 验证、上线与回滚
 
 ### 15.1 输入构造、故障控制与独立判据
@@ -494,7 +494,7 @@ flowchart TD
 - 故障：迟到 usage；semantic 破坏；孤立 reservation。
 - 独立判据：contract validator，不拿被测实现自身输出当 oracle。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

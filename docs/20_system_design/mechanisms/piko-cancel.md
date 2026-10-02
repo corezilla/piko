@@ -69,7 +69,7 @@ flowchart LR
 
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 流程/协议/下级落实位置 | 组合验证与证据状态 | 差距/变更影响/裁决责任 |
 |---|---|---|---|---|---|---|
-| CON-CX-001 · PK-03 截止与预算（取消分流） · Approved | 每次取消 | Queued 零调用 Result；Running 经 Cancelling | M001+M003+M005；自由度：内部实现；不可变：`StopRequested`≠停止 | §6 / §8 / M003/M005 ISD | fault PK-T05（NOT_RUN） | — |
+| CON-CX-001 · PK-04 取消分流（期限/模型预算上限本版撤销） · Approved | 每次取消 | Queued 零调用 Result；Running 经 Cancelling | M001+M003+M005；自由度：内部实现；不可变：`StopRequested`≠停止 | §6 / §8 / M003/M005 ISD | fault PK-T05（NOT_RUN） | — |
 
 ### 3.2 运行时统筹与确认责任
 
@@ -87,7 +87,7 @@ flowchart LR
 | `task_id` | HTTP 路径 | M003 `runs` | 与实例同域 | 终态不可回退 |
 | Pi operation | 进程内 Harness | M006 | Pi JSONL + SQLite 同域 | abort 后对账，不重发 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | 取消注入 | 持久层 | 用途 |
 |---|---|---|---|
@@ -103,14 +103,14 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `CancelOutcome`
+**4.1.1 `CancelOutcome`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`"CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。来源 contract §1 + M005 ISD §4.1。
 - **逐值含义**：`CancelledBeforeStart`＝Queued 已取消（终态）；`StopRequested`＝Running 意图落盘（未停）；`AlreadyTerminal`＝已终态。未知值拒绝。
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `cancel_requested`
+**4.2.1 `cancel_requested`**
 
 - **定义与来源**：`runs.cancel_requested` 0/1。来源 M003 ISD §4.2.2。
 - **约束**：Queued 取消单事务置 1 + 写 Result；Running 取消置 1（stop intent）。
@@ -130,7 +130,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `Cancelling` 状态
+**4.6.1 `Cancelling` 状态**
 
 - **定义与来源**：`runs.state='Cancelling'`。来源 M003 ISD §4.2.2。
 - **约束**：只有 Running 可进；经 abort+对账后到 Cancelled/Failed。
@@ -163,7 +163,7 @@ flowchart LR
 
 ### 5.1 API（适用时）
 
-#### `POST /tasks/{task_id}:cancel`（外部 HTTP）
+**`POST /tasks/{task_id}:cancel`（外部 HTTP）**
 
 - **Interface/Member ID、用途与提供责任**：`cancelTask`；M001 提供。
 - **唯一契约、版本与状态**：OpenAPI `0.3.0-simplified.6`。
@@ -173,7 +173,7 @@ flowchart LR
 - **交互与生命周期**：同步返回；Running 取消需轮询。
 - **代表调用与验证**：§6.1.1；PK-T05。
 
-#### `cancelTask(task_id: string) -> CancelOutcome`（IF-CX-DISPATCH）
+**`cancelTask(task_id: string) -> CancelOutcome`（IF-CX-DISPATCH）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CX-DISPATCH`；M005 `worker` 提供；M001 `task-api` 消费。M001 的 HTTP `POST /tasks/{task_id}:cancel` 入口据此把请求交 M005 按 `runs.state` 分流到 `cancelQueued`/`cancelTaskning`；`CancelOutcome` = `CancelledBeforeStart`/`StopRequested`/`AlreadyTerminal`。
 - **输入与前提**：`task_id`；同一 principal。
@@ -181,7 +181,7 @@ flowchart LR
 - **错误与合法下一步**：`NotFound`/`Gone`（404/410）。
 - **代表调用与验证**：PK-T05。
 
-#### `cancelQueued(task_id) -> CancelOutcome`（IF-CX-QUEUED）
+**`cancelQueued(task_id) -> CancelOutcome`（IF-CX-QUEUED）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CX-QUEUED`；M005 提供。
 - **输入与前提**：Run 仍 Queued。
@@ -189,7 +189,7 @@ flowchart LR
 - **错误与合法下一步**：非 Queued → 转 Running 路径。
 - **代表调用与验证**：PK-T05。
 
-#### `cancelTaskning(task_id) -> CancelOutcome`（IF-CX-RUNNING）
+**`cancelTaskning(task_id) -> CancelOutcome`（IF-CX-RUNNING）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CX-RUNNING`；M005 提供。
 - **输入与前提**：Run Running。
@@ -199,7 +199,7 @@ flowchart LR
 
 ### 5.2 消息与数据流接口（适用时）
 
-#### Pi `requestAbort(operation_id)`（IF-CX-ABORT）
+**Pi `requestAbort(operation_id)`（IF-CX-ABORT）**
 
 - **来源/责任**：M006 pi-adapter。
 - **输入**：`operation_id`。
@@ -252,7 +252,7 @@ sequenceDiagram
 - `StopRequested` 后重复 cancel → 仍返回当前状态（幂等）。
 - 已终态取消 → `AlreadyTerminal`。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 **q1 Queued 取消** → 200：
 
@@ -272,7 +272,7 @@ sequenceDiagram
 {"task_id":"task-044","outcome":"AlreadyTerminal"}
 ```
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
@@ -283,7 +283,7 @@ sequenceDiagram
 
 **关键事实如何产生**：取消意图事实=`cancel_requested=1`（M003）；停止事实=`runs.state=Cancelled` + Pi operation 已停（M006 确认）。
 
-#### 6.1.3 关键保证与可中断阶段
+**6.1.3 关键保证与可中断阶段**
 
 | 保证 | 可中断阶段 | 权威可见点 | 推进条件 | 重复进入处理 |
 |---|---|---|---|---|
@@ -347,7 +347,7 @@ stateDiagram-v2
 | 取消中崩溃 | 重启 | 状态停在 Cancelling | MECH-RECOVERY 对账补终态 |
 | `never` 工具无 outcome | tool_calls 无 outcome | 副作用未知 | `UnsafeRetryBlocked` |
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|

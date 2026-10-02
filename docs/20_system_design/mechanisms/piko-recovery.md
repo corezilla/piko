@@ -36,7 +36,6 @@ flowchart LR
 
 图 M-REC-0 · MECH-RECOVERY 用途概览 / Target / NOT_BUILT。崩溃后按固定顺序从持久事实对账，不复活旧权威。
 
-
 - **机制形态与适用性 / 业务副作用**：**有副作用（恢复编排）**。补终态、drive 既有 operation、封装 Result 都改变持久状态；不重跑已完成 Pi。
 - **交接域**：**纯软件 + 跨进程**。M003/M004 在 **P0**；M005/M006 在 **P1**（受 P0 监督、可重启）；事实源为 P0 的 SQLite + Pi JSONL。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
@@ -100,7 +99,7 @@ flowchart LR
 | Pi session | `pi_session_id=task_id` | M006 | 本地 FS + SQLite | inspect 对账，不重发 |
 | results generation | results 表 | M003 | 同域 | 已存在不重写 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | 崩溃注入 | 持久层 | 用途 |
 |---|---|---|---|
@@ -119,14 +118,14 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `RecoveryOutcome`
+**4.1.1 `RecoveryOutcome`**
 
 - **定义与来源**：`"PatchedTerminal" | "ResumedOperation" | "Fenced" | "InternalError"`。来源 M005 ISD §4.1。
 - **逐值含义**：`PatchedTerminal`＝补第二步；`ResumedOperation`＝drive 既有 op；`Fenced`＝旧 lease 失效；`InternalError`＝不可恢复。
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `RecoveryProbe`
+**4.2.1 `RecoveryProbe`**
 
 - **定义与来源**：恢复探测结果 `{result_exists, run_state, lease_epoch, pi_session, open_operation, operation_result, ledger_version, matrix_cursor}`。来源 M005 ISD §4.6。
 
@@ -149,7 +148,7 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-#### 4.4.1 `RecoveryProbe`（恢复探测结果）
+**4.4.1 `RecoveryProbe`（恢复探测结果）**
 
 ```text
 RecoveryProbe {
@@ -167,7 +166,7 @@ RecoveryProbe {
 - **约束**：`result_exists=true` 时 `run_state` 非终态 → `PatchedTerminal` 路径。
 - **寿命**：单次恢复调用内。
 
-#### 4.4.2 Pi 对账报文
+**4.4.2 Pi 对账报文**
 
 `inspect(handle) -> PiRunObservation`（见 MECH-RUN §4.4.2）；恢复读取其 `open_operations`/`operation_result`/`transcript_version`。
 
@@ -177,7 +176,7 @@ RecoveryProbe {
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `Lease`（恢复视角）
+**4.6.1 `Lease`（恢复视角）**
 
 - **定义与来源**：见 MECH-RUN §4.6.2；恢复时新 epoch = 旧+1。
 
@@ -195,6 +194,7 @@ RecoveryProbe {
 | （恢复成功） | — | 补终态或 resume | 无需人工 |
 
 恢复不制造新错误码：只复用 contract §6 的既有码。
+
 ### 4.9 编码、布局与共享类型映射
 
 **N/A · 复用 MECH-RUN 编码规则**。
@@ -211,7 +211,7 @@ RecoveryProbe {
 
 MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息是本机制 API。
 
-#### `scanNonTerminalRuns() -> RunId[]`（IF-REC-SCAN）
+**`scanNonTerminalRuns() -> RunId[]`（IF-REC-SCAN）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-REC-SCAN`；M003 `task-repository` 提供；M005 消费。
 - **唯一契约、版本与状态**：M003 ISD §5.1；Proposed。
@@ -220,7 +220,7 @@ MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息�
 - **错误与合法下一步**：无。
 - **代表调用与验证**：PK-T12。
 
-#### `inspect(handle) -> PiRunObservation`（IF-REC-INSPECT）
+**`inspect(handle) -> PiRunObservation`（IF-REC-INSPECT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-REC-INSPECT`；M006 `pi-adapter` 提供；M005 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；固定 Pi `0.85.1`。
@@ -229,7 +229,7 @@ MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息�
 - **错误与合法下一步**：session 损坏 → `InternalError`。
 - **代表调用与验证**：§6.1.1 q1-q5；PK-T12。
 
-#### `patchTerminal(command: FencedPublishResult) -> RunRecord`（IF-REC-PATCH）
+**`patchTerminal(command: FencedPublishResult) -> RunRecord`（IF-REC-PATCH）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-REC-PATCH`；M003 提供；M005 消费。
 - **输入与前提**：同 generation Result 已存在；补第二步。
@@ -237,7 +237,7 @@ MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息�
 - **错误与合法下一步**：fencing 失败 → `FencedWrite`。
 - **代表调用与验证**：PK-T12。
 
-#### `fence(runId: string, ownerId: string, bootId: string) -> Lease | null`（IF-REC-FENCE）
+**`fence(runId: string, ownerId: string, bootId: string) -> Lease | null`（IF-REC-FENCE）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-REC-FENCE`；M004 `scheduler` 提供。唯一签名与终态行为由 M004 设计 [`piko-scheduler`](../../40_module_design/piko-scheduler-design.md) §9.1.3 固定，本行与之一致（原简写 `acquireSlot(ownerId) -> Lease` 已废弃，避免与 `IF-RUN-SLOT` 同名异义）。
 - **唯一契约、版本与状态**：`piko-scheduler` §9.1.3（Proposed；随 M004 设计冻结，`system-design` §3.2 已登记 M004 提供 `fence`）。
@@ -249,7 +249,7 @@ MECH-RECOVERY 无对外 API；P0 内恢复编排函数 + `P0↔P1` 恢复消息�
 
 ### 5.2 消息与数据流接口（适用时）
 
-#### Pi `inspect`/`getResult` 读取流（IF-REC-STREAM）
+**Pi `inspect`/`getResult` 读取流（IF-REC-STREAM）**
 
 - **来源**：Harness session JSONL（`pi_session_id=task_id`）。
 - **关联**：`task_id` + operation identity（`task_id:initial` / `task_id:turn:<n>`）。
@@ -310,7 +310,7 @@ flowchart TD
 - 多个非终态 Run：逐个按恢复顺序处理。
 - tombstone Run 只跳过。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 **q1 扫描后探测（task-042：results 已有 gen 3，runs 仍 Running）**
 
@@ -362,7 +362,7 @@ flowchart TD
 ```
 图 M-REC-8 · 条件依赖图 / Target / NOT_BUILT。恢复不依赖旧执行者自报；fence 后即可探测。无循环等待。
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Operator）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
@@ -433,7 +433,7 @@ flowchart TD
 ```
 图 M-REC-5 · 异常处置图 / Target / NOT_BUILT。已知/未知：results 存在=已知；`never` 无 outcome=未知 fail-closed；session 损坏=不可恢复。
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -531,7 +531,6 @@ flowchart TD
 | `M-REC-DI-003` | `pi-adapter` | Harness inspect | CON-REC-001 | 对账实现 |
 | `M-REC-DI-004` | `scheduler` | 新 lease epoch | CON-REC-001 | fence 实现 |
 
-
 ## 15. 验证、上线与回滚
 
 ### 15.1 输入构造、故障控制与独立判据
@@ -540,7 +539,7 @@ flowchart TD
 - 边界：Harness fault、session 损坏、不可核实 tool。
 - 独立判据：restore 测试 + cross-check。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

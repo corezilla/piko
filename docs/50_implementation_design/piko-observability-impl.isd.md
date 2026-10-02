@@ -373,7 +373,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举
 
-#### 4.1.1 `REDACT_DENYLIST` / 事件名与指标 ID 联合
+**4.1.1 `REDACT_DENYLIST` / 事件名与指标 ID 联合**
 
 - **代码式声明、Data/Type ID 与唯一来源**：
 
@@ -397,7 +397,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `LogEvent` / `LogEventInput`
+**4.2.1 `LogEvent` / `LogEventInput`**
 
 - **代码式声明、Data/Type ID 与固定来源**：私有类型；语义来源 = 模块设计 §6.2.1。
 
@@ -414,7 +414,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法见模块设计 §6.2.1；拒绝含 deny-list 键。`VRC-OBS-001/002`；`NOT_RUN`。
 
-#### 4.2.2 `MetricSample` / `MetricValue`
+**4.2.2 `MetricSample` / `MetricValue`**
 
 - **代码式声明、Data/Type ID 与固定来源**：私有类型；来源 = 模块设计 §6.2.2。
 
@@ -431,7 +431,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `inc piko.recovery.outcomes.fenced`；拒绝对 gauge 用 `inc`。`VRC-OBS-004`；`NOT_RUN`。
 
-#### 4.2.3 `AuditRecord` / `AuditRecordInput`
+**4.2.3 `AuditRecord` / `AuditRecordInput`**
 
 - **代码式声明、Data/Type ID 与固定来源**：私有类型；来源 = 模块设计 §6.2.3。
 
@@ -448,7 +448,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法见模块设计 §6.2.3；拒绝 `event.run.terminated`。`VRC-OBS-005`；`NOT_RUN`。
 
-#### 4.2.4 `DiagnosticSnapshot` / `SnapshotRequest`
+**4.2.4 `DiagnosticSnapshot` / `SnapshotRequest`**
 
 - **代码式声明、Data/Type ID 与固定来源**：私有类型；来源 = 模块设计 §6.2.4。
 
@@ -467,7 +467,7 @@ flowchart LR
 
 ### 4.3 配置与规则数据结构
 
-#### 4.3.1 `ObservabilityConfig`
+**4.3.1 `ObservabilityConfig`**
 
 - **代码式声明、Data/Type ID 与配置 authority**：
 
@@ -487,7 +487,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `ObservabilityState` / `LogTailRing`
+**4.6.1 `ObservabilityState` / `LogTailRing`**
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
@@ -512,7 +512,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `UnknownEventName` / `UnknownMetricId` / `ObservabilityDegraded`
+**4.8.1 `UnknownEventName` / `UnknownMetricId` / `ObservabilityDegraded`**
 
 - **错误声明、Error/Data ID 与唯一来源**：私有诊断类；语义来源 = 模块设计 §6.8.1。
 
@@ -538,7 +538,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `Observability.emit(input: LogEventInput): void`
+**5.1.1 `Observability.emit(input: LogEventInput): void`**
 
 - **Interface/Member ID、用途**：`IF-OBS-EVENT`；发送结构化日志事件（脱敏 + envelope 补齐 + 级别过滤 + sink 扇出 + 已知事件驱动 metric）。
 
@@ -592,7 +592,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 - **装配、合法及拒绝实例**：装配：§3.8/§3.10。合法：`{event_name:"event.model.attempt", level:"info", fields:{attempt_state:"Completed"}}` → sink 收行 + metric 加一。拒绝：`event_name:"event.unknown"` → 内部诊断、无行。Oracle = fake sink 收行 + registry 直读。`NOT_RUN`。
 
-#### 5.1.2 `Observability.metric(sample: MetricSample): void`
+**5.1.2 `Observability.metric(sample: MetricSample): void`**
 
 - **Interface/Member ID、用途**：`IF-OBS-METRIC-REG`；记录 counter/gauge/histogram。
 
@@ -646,7 +646,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 - **装配、合法及拒绝实例**：装配：§3.8。合法：`{metric_id:"piko.recovery.outcomes.fenced", op:"inc", value:1}` → 计数 +1。拒绝：对 `piko.slot.lease_epoch`（gauge）用 `inc`。Oracle = registry `snapshot()` 直读。`NOT_RUN`。
 
-#### 5.1.3 `Observability.audit(input: AuditRecordInput): void`
+**5.1.3 `Observability.audit(input: AuditRecordInput): void`**
 
 - **Interface/Member ID、用途**：`IF-OBS-AUDIT`；追加 audit 事件（脱敏 → M003 单事务 → 同发日志）。
 
@@ -700,7 +700,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 - **装配、合法及拒绝实例**：装配：§3.8/§3.10。合法：`{event_name:"event.audit.forced-fence", actor_class:"operator", task_id:"run-1", detail:{reason:"manual"}}` → 表 +1。拒绝：`event_name:"event.run.terminated"`。Oracle = 直读 `audit_events`。`NOT_RUN`。
 
-#### 5.1.4 `Observability.snapshot(req: SnapshotRequest): DiagnosticSnapshot`
+**5.1.4 `Observability.snapshot(req: SnapshotRequest): DiagnosticSnapshot`**
 
 - **Interface/Member ID、用途**：`IF-OBS-DIAG`；生成脱敏诊断快照（operator 端点生产端）。
 
@@ -754,7 +754,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 - **装配、合法及拒绝实例**：装配：§3.8/§3.10。合法：`{log_tail_limit:2}` → ≤2 条脱敏日志。拒绝：ring 含 credential（脱敏遗漏，视为缺陷）。Oracle = 期望 tail 常量 + 敏感键扫描。`NOT_RUN`。
 
-#### 5.1.5 `M003AuditStore.appendAudit(record: AuditRecord): void`（消费端口）
+**5.1.5 `M003AuditStore.appendAudit(record: AuditRecord): void`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-OBS-AUDITSTORE`（Proposed）；在 M003 单事务内追加一行 `audit_events`。
 
@@ -808,7 +808,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 - **装配、合法及拒绝实例**：合法：脱敏 `AuditRecord` → 表 +1。拒绝：非审计名（在 `Observability.audit` 拦截，不到此）。Oracle = `SELECT count(*) FROM audit_events`。`NOT_RUN`。
 
-#### 5.1.6 `createObservability(config: ObservabilityConfig, deps: ObservabilityDeps): Observability`（装配）
+**5.1.6 `createObservability(config: ObservabilityConfig, deps: ObservabilityDeps): Observability`（装配）**
 
 - **Interface/Member ID、用途**：私有装配入口（`IF-OBS-CONFIG` 的消费点）；构造 `Observability` 单例供宿主注入。
 
@@ -872,7 +872,7 @@ observability 的对外接口是 §5.1 的四个函数与一个装配函数；�
 
 ### 5.4 人机与维护接口（适用时）
 
-#### 5.4.1 `GET /diagnostics/snapshot` / `GET /metrics` · operator 诊断入口
+**5.4.1 `GET /diagnostics/snapshot` / `GET /metrics` · operator 诊断入口**
 
 - **Interface/Member ID、文件/symbol 与来源**：`IF-OBS-DIAG`；`src/server.ts` `ApiServer.route` 新增两条只读路由，内容由 `Observability.snapshot` 生产；来源 = `system-design` §8.1 Operator Diagnostics + ops 文档。
 

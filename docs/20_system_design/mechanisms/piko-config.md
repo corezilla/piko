@@ -36,7 +36,6 @@ flowchart LR
 
 图 M-CFG-0 · MECH-CONFIG 用途概览 / Target / NOT_BUILT。配置经加载、校验、绑定后在重启后生效。
 
-
 - **机制形态与适用性 / 业务副作用**：**只读 + 启动绑定**。读取/校验 config 不改外部对象；tool profile 绑定决定后续业务行为。
 - **交接域**：**纯软件**。M000/M002 在 **P0**；Secret provider 为受控后端。
 - **裁剪依据**：附录 A；§4.5/§5.3 纯软件 N/A。
@@ -96,7 +95,7 @@ flowchart LR
 | Secret provider | 进程内 reference | 外部 provider | 独立域 | 解析失败 → 不 READY |
 | tool registry | 进程内绑定 | M000 | 同域 | 启动后不可热注册 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | config 来源 | Secret 来源 | 用途 |
 |---|---|---|---|
@@ -115,14 +114,14 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `EffectiveConfigState`
+**4.1.1 `EffectiveConfigState`**
 
 - **定义与来源**：`"Loaded" | "Bound" | "Active"`。来源 M000 ISD §4.1。
 - **逐值含义**：`Loaded`＝schema 通过；`Bound`＝tool registry 绑定；`Active`＝READY。不允许跳级。
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `BoundToolProfile`
+**4.2.1 `BoundToolProfile`**
 
 - **定义与来源**：M002 输出的已绑定 tool allowlist；来源 M002 ISD §4.3.2。
 - **字段与约束**：`tools[]` + `recovery_contracts{}`；每个 `recovery_contract_ref` 必须解析到已注册实现并匹配 tool name/effect/replay。
@@ -141,20 +140,20 @@ flowchart LR
 
 ### 4.3 配置与规则数据结构（适用时）
 
-#### 4.3.1 `PikoRuntimeConfig`
+**4.3.1 `PikoRuntimeConfig`**
 
 - **定义与来源**：机器权威 `interfaces/schemas/piko-runtime-config-v0.3.schema.json`；来源 system-design §9.1。
 - **字段**：`api_auth` / `workspace_root` / `storage` / `pi` / `llmtier` / `matrix`。
 - **跨字段**：`llmtier.cacheRetention=none`、`supportsExplicitPromptCacheMode=false`、`streamOptions.maxRetries=0` 不接受外部覆盖。
 
-#### 4.3.2 `ToolProfile`
+**4.3.2 `ToolProfile`**
 
 - **定义与来源**：机器权威 `interfaces/schemas/piko-tool-profile-v0.3.schema.json`。
 - **顶层段**：`profile_version`（const `"0.3"`）、`recovery_contracts{<ref>}`、`profiles{<name>}`（≥1）；不复制 `Profile`/`RecoveryContract` 字段。
 
 ### 4.4 通信报文结构（适用时）
 
-#### 4.4.1 config 文件格式
+**4.4.1 config 文件格式**
 
 由 `interfaces/schemas/piko-runtime-config-v0.3.schema.json` 约束（JSON/YAML）。关键段：
 
@@ -172,7 +171,7 @@ PikoRuntimeConfig {
 }
 ```
 
-#### 4.4.2 tool profile 格式
+**4.4.2 tool profile 格式**
 
 由 `interfaces/schemas/piko-tool-profile-v0.3.schema.json` 约束：
 
@@ -180,7 +179,7 @@ PikoRuntimeConfig {
 ToolProfile { profile_version:"0.3", recovery_contracts{<ref>}, profiles{<name>: Profile} }
 ```
 
-#### 4.4.3 Secret 引用
+**4.4.3 Secret 引用**
 
 `SecretRef` 只存名称/路径，不存明文；解析在启动时由 Secret provider 完成。
 
@@ -206,6 +205,7 @@ ToolProfile { profile_version:"0.3", recovery_contracts{<ref>}, profiles{<name>:
 | `InternalError("preflight-fail")` | LLMTier/Matrix/store 不可达 | 启动 F1 | 修依赖后重启 |
 
 对外不暴露配置细节；错误只进启动日志（脱敏）与 audit。
+
 ### 4.9 编码、布局与共享类型映射
 
 config JSON/YAML（由 schema 决定）；Secret 只存 reference。
@@ -222,7 +222,7 @@ config JSON/YAML（由 schema 决定）；Secret 只存 reference。
 
 MECH-CONFIG 无对外 API；进程内启动函数与 policy 绑定函数是本机制 API。
 
-#### `loadConfig(path) -> PikoRuntimeConfig`（IF-CFG-LOAD）
+**`loadConfig(path) -> PikoRuntimeConfig`（IF-CFG-LOAD）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CFG-LOAD`；M000 `bootstrap` 提供。
 - **唯一契约、版本与状态**：`piko-runtime-config-v0.3.schema.json`；Proposed。
@@ -231,7 +231,7 @@ MECH-CONFIG 无对外 API；进程内启动函数与 policy 绑定函数是本�
 - **错误与合法下一步**：FAIL → F1，不 READY。
 - **代表调用与验证**：§6.1.1 q1/q3；PK-T12。
 
-#### `bindToolProfile(profile, registry) -> BoundToolProfile`（IF-CFG-BIND）
+**`bindToolProfile(profile, registry) -> BoundToolProfile`（IF-CFG-BIND）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CFG-BIND`；M002 `policy` 提供。
 - **唯一契约、版本与状态**：`piko-tool-profile-v0.3.schema.json`；Proposed。
@@ -240,7 +240,7 @@ MECH-CONFIG 无对外 API；进程内启动函数与 policy 绑定函数是本�
 - **错误与合法下一步**：不一致 → F1（`tool-bind-fail`）。
 - **代表调用与验证**：§6.1.1 q4；PK-T12。
 
-#### `resolveSecret(ref) -> Secret`（IF-CFG-SECRET）
+**`resolveSecret(ref) -> Secret`（IF-CFG-SECRET）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-CFG-SECRET`；Secret provider 提供；M000 消费。
 - **输入与前提**：`credential_ref`；reference-only。
@@ -251,6 +251,7 @@ MECH-CONFIG 无对外 API；进程内启动函数与 policy 绑定函数是本�
 ### 5.2 消息与数据流接口（适用时）
 
 **N/A**：配置为本地文件 + Secret reference，无跨边界消息流；文件格式见 §4.4。
+
 ### 5.3 硬件与固件接口（适用时）
 
 **N/A · 纯软件范围**。
@@ -287,7 +288,7 @@ flowchart TD
 - 在途 Run 不受配置切换影响（进程已重启则 Run 由 recovery 处理）。
 - 参数无效时保留旧服务，不进入停止。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 **q1 config 文件（片段）**
 
@@ -317,7 +318,7 @@ flowchart TD
 
 → 启动 F1：`InternalError("tool-bind-fail")`。
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Operator）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
@@ -381,7 +382,7 @@ flowchart TD
 ```
 图 M-CFG-5 · 异常处置图 / Target / NOT_BUILT。任一启动阶段失败 → F1；不部分就绪。
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -472,7 +473,6 @@ flowchart TD
 | `M-CFG-DI-001` | `bootstrap` | config schema | CON-CFG-001 | 启动顺序 |
 | `M-CFG-DI-002` | `policy` | BoundToolProfile | CON-CFG-001 | 校验顺序 |
 
-
 ## 15. 验证、上线与回滚
 
 ### 15.1 输入构造、故障控制与独立判据
@@ -481,7 +481,7 @@ flowchart TD
 - 边界：无效 config、未注册 tool ref、Secret 失败、旧进程退出未确认。
 - 独立判据：启动日志 + READY + Run 行为。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

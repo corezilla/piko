@@ -26,7 +26,7 @@
 - **模块 ID / 名称**：`M001` / `task-api`。
 - **直属父对象 / 父设计**：`SW-P`（Piko Agent Runtime V0.3，`design_level=system`）/ `system-design` v0.11.2；`parent_document_id=system-design`（ISD 与模块设计同为 `system-design` 的子视图，不互为父子）。
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-task-api` / `0.1.1` / `docs/40_module_design/piko-task-api-design.md`。摘要：一个 HTTP 端点族承载 submit/status/cancel/result；固定处理顺序 JSON/Schema → bearer → 按 `task_id` 查；typed error 与 catalog 双向一致；不持久化业务、不直接操作 adapter。
-- **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-CX-001`（PK-03 取消）、`CON-RUN-003`（PK-03 边界）、`CON-CFG-001`（配置重启生效）；机制输入 `M-RUN-DI-001`（`piko-run` §14.4）、`M-CX-DI-001`（`piko-cancel` §14.4）、`IF-MX-VERIFY`（`piko-matrix` §5.1）。
+- **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-CX-001`（PK-03 取消）、`CON-RUN-003`（PK-04 边界 · **本版撤销**）、`CON-CFG-001`（配置重启生效）；机制输入 `M-RUN-DI-001`（`piko-run` §14.4）、`M-CX-DI-001`（`piko-cancel` §14.4）、`IF-MX-VERIFY`（`piko-matrix` §5.1）。
 - **实现范围 / 非目标**：范围：`src/http/` 六个文件 + 对 `src/server.ts`/`src/types.ts`/`src/main.ts` 的最小改动。非目标：不写 SQL/DDL（M003）、不实现校验规则（M002）、不实现取消执行（M005）、不新增第五端点、不新增 config key。
 - **ISD 默认落位或项目批准路径**：`docs/50_implementation_design/piko-task-api-impl.isd.md`（STD 默认路径）；代码落位 `src/http/`（Planned）。
 
@@ -243,7 +243,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `TaskState` / `CancelOutcome` / `RequestErrorCode`（投影）
+**4.1.1 `TaskState` / `CancelOutcome` / `RequestErrorCode`（投影）**
 
 - **代码式声明、Data/Type ID 与唯一来源**：```ts
   type TaskState = "Queued"|"Running"|"Cancelling"|"Completed"|"Failed"|"Cancelled";   // schema $defs.TaskState
@@ -269,7 +269,7 @@ flowchart LR
 - **创建、借用、修改、释放与失败出口**：入口构造一次、借用给单 handler；请求结束释放；无失败构造（校验在 handler 内）。
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `{principal:"slinky",requestId:"abc"}`；拒绝 `requestId=""`（视为缺省并重新生成）。`VRC-TAPI-006`；`NOT_RUN`。
 
-#### 4.2.2 `RouteMatch`（路由结果）
+**4.2.2 `RouteMatch`（路由结果）**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   type RouteMatch = { kind: "create" } | { kind: "get"; runId: string } | { kind: "cancel"; runId: string } | { kind: "result"; runId: string };
@@ -321,7 +321,7 @@ flowchart LR
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `createTask(ctx: HttpContext): Promise<void>`
+**5.1.1 `createTask(ctx: HttpContext): Promise<void>`**
 
 - **Interface/Member ID、用途**：`createTask`（OpenAPI operationId）；受理任务并返回 202 `TaskView` 或 typed error。
 - **文件 / symbol / 可见性**：Planned `src/http/handlers.ts` `createTask`；模块内 public（经 Router 间接对外）。
@@ -339,7 +339,7 @@ flowchart LR
 - **日志级别 / 脱敏 / 关联字段**：`info`（受理成功，含 `task_id`/`request_id`）；`warn`（依赖错误）；不记录 `instruction`/body/credential。
 - **是否可重试及前提**：`QueueFull`/`DependencyUnavailable` 可同 `task_id` 重发；`TaskConflict` 换新 ID；重放由 M003 幂等。
 - **状态与副作用影响 / 验证项**：副作用 = 经 M003 写 `tasks`/`runs`（单事务）；`VRC-TAPI-001/002`。
-- **不可改变的规则 / Constraint ID**：处理顺序、2 MiB 上限、typed error 集合、`CON-RUN-002`/`CON-RUN-003`。
+- **不可改变的规则 / Constraint ID**：处理顺序、2 MiB 上限、typed error 集合、`CON-RUN-002`。
 - **实现自由度**：分块策略、Ajv detail 拼接、端口适配；不可改顺序与错误语义。
 - **副作用 / 执行上下文 / 幂等性**：有副作用；上下文 = 宿主事件循环同步 handler；业务上幂等（同 ID 同内容不新增执行），HTTP 层非幂等。
 - **输入输出 ownership 与寿命**：`ctx` 借用；body 解析对象请求内持有；响应写出后释放。
@@ -350,7 +350,7 @@ flowchart LR
 - **实现状态 / 验证项**：Planned / `VRC-TAPI-001/002`。
 - **装配、合法及拒绝实例**：装配 = `ApiServer.create` 注入 `ApiPorts`。合法：q1 body → 202 `Queued`。拒绝：未知字段 → 400。Oracle = `tasks`/`runs` 直读 + `validate_v03_contract.py`。`NOT_RUN`。
 
-#### 5.1.2 `getTask(ctx: HttpContext): Promise<void>`
+**5.1.2 `getTask(ctx: HttpContext): Promise<void>`**
 
 - **Interface/Member ID、用途**：`getTask`；按 `task_id` 返回 `TaskView`。
 - **文件 / symbol / 可见性**：Planned `src/http/handlers.ts` `getTask`；模块内 public。
@@ -379,7 +379,7 @@ flowchart LR
 - **实现状态 / 验证项**：Planned / `VRC-TAPI-003`。
 - **装配、合法及拒绝实例**：合法 Queued → 200 `started_at=null`；拒绝未知 ID → 404。Oracle = `runs` 直读。`NOT_RUN`。
 
-#### 5.1.3 `cancelTask(ctx: HttpContext): Promise<void>`
+**5.1.3 `cancelTask(ctx: HttpContext): Promise<void>`**
 
 - **Interface/Member ID、用途**：`cancelTask`；按 Run state 返回 `CancelReceipt`。
 - **文件 / symbol / 可见性**：Planned `src/http/handlers.ts` `cancelTask`；模块内 public。
@@ -408,7 +408,7 @@ flowchart LR
 - **实现状态 / 验证项**：Planned / `VRC-TAPI-004`。
 - **装配、合法及拒绝实例**：合法 Queued → 200 `CancelledBeforeStart`；Running → 202；拒绝未知 ID → 404。Oracle = `runs.state`/`results`。`NOT_RUN`。
 
-#### 5.1.4 `getTaskResult(ctx: HttpContext): Promise<void>`
+**5.1.4 `getTaskResult(ctx: HttpContext): Promise<void>`**
 
 - **Interface/Member ID、用途**：`getTaskResult`；返回冻结的 `AgentResult`。
 - **文件 / symbol / 可见性**：Planned `src/http/handlers.ts` `getTaskResult`；模块内 public。
@@ -441,21 +441,21 @@ flowchart LR
 
 本层不实现跨边界消息；被消费的四个进程内端口记录如下（字段 authority 见模块设计 §9.2，本层只落实调用点）。
 
-#### 5.2.1 `ApiPorts.createOrGetRun / readTaskView / readResult`（消费）
+**5.2.1 `ApiPorts.createOrGetRun / readTaskView / readResult`（消费）**
 
 - **Interface/Member ID、处理文件/symbol 与来源**：`IF-RUN-CREATE`/`IF-TAPI-READ`；`src/http/ports.ts` `RuntimeApiPorts`；来源 `piko-run` §5.1（Proposed，`OQ-TAPI-002`）。
 - **输入、输出和字段校验**：`ValidatedTaskSubmission`/`task_id` → `CreateRunOutcome`/`TaskView`/`AgentResult`；字段校验由 M002/M003 负责，本层不重复。
 - **交互、错误传播与寿命**：同步；判别结果与依赖错误透传；无缓存。
 - **实例与验证**：合法 `created`/`existing`；拒绝 `NotFound`/`Gone`。`VRC-TAPI-001/003/005`；`NOT_RUN`。
 
-#### 5.2.2 `ApiPorts.cancel`（消费）
+**5.2.2 `ApiPorts.cancel`（消费）**
 
 - **Interface/Member ID、处理文件/symbol 与来源**：`IF-TAPI-CANCEL`；`src/http/ports.ts`；来源 `piko-cancel` §3/§5（入口未命名，`OQ-TAPI-003`）。
 - **输入、输出和字段校验**：`task_id` → `CancelOutcome{outcome,requested_at}`；`requested_at` 为 UTC。
 - **交互、错误传播与寿命**：同步返回；错误透传。
 - **实例与验证**：合法三分支；拒绝 `NotFound`。`VRC-TAPI-004`；`NOT_RUN`。
 
-#### 5.2.3 `ApiPorts.verifyDiscussion`（消费）
+**5.2.3 `ApiPorts.verifyDiscussion`（消费）**
 
 - **Interface/Member ID、处理文件/symbol 与来源**：`IF-MX-VERIFY`；`src/http/ports.ts`；来源 `piko-matrix` §5.1（`OQ-TAPI-004`）。
 - **输入、输出和字段校验**：`{room_id,trigger_event_id}` → `VerifiedEvent | InvalidDiscussionContext`。
@@ -596,7 +596,7 @@ sequenceDiagram
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-TAPI-01` · 两并发提交同 task_id
+**7.1.1 `C-TAPI-01` · 两并发提交同 task_id**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环；两请求各自调用 `createOrGetRun` → M003 单事务。
 - **已产生或可能产生的副作用**：仅一个事务写 `tasks`/`runs`。
@@ -606,7 +606,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：query=`getTask`；replay=同 ID 同内容；无 takeover。
 - **验证项**：`VRC-TAPI-001`（Case B）。
 
-#### 7.1.2 `C-TAPI-02` · 响应丢失后的重复提交
+**7.1.2 `C-TAPI-02` · 响应丢失后的重复提交**
 
 - **参与线程 / 回调 / 事务**：客户端重发 vs 已提交事务。
 - **已产生或可能产生的副作用**：首个事务已提交。
@@ -616,7 +616,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：query=`getTask`；replay=同 ID 同内容；新业务=换新 ID。
 - **验证项**：`VRC-TAPI-001`（Case B/C）。
 
-#### 7.1.3 `C-TAPI-03` · 依赖在途失败
+**7.1.3 `C-TAPI-03` · 依赖在途失败**
 
 - **参与线程 / 回调 / 事务**：handler 内同步调用 M002/M003/M008。
 - **已产生或可能产生的副作用**：M003 事务回滚；M008 失败在创建前。
@@ -626,7 +626,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：query=`getTask`；retry=同 ID；无 takeover。
 - **验证项**：`VRC-TAPI-002`（Case H）。
 
-#### 7.1.4 `C-TAPI-04` · 取消与完成竞争
+**7.1.4 `C-TAPI-04` · 取消与完成竞争**
 
 - **参与线程 / 回调 / 事务**：`cancel` vs worker 正常终态；M003 writer lock。
 - **已产生或可能产生的副作用**：可能已有终态写入。
@@ -636,7 +636,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：query=`getTask`；重复 cancel 幂等。
 - **验证项**：`VRC-TAPI-004`（Case C/D）。
 
-#### 7.1.5 `C-TAPI-05` · 停止时在途请求
+**7.1.5 `C-TAPI-05` · 停止时在途请求**
 
 - **参与线程 / 回调 / 事务**：SIGTERM vs 在途 handler。
 - **已产生或可能产生的副作用**：已完成或提交中的事务照常生效。
@@ -660,7 +660,7 @@ sequenceDiagram
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-TAPI-AUTH` · bearer 校验与越权边界
+**7.3.1 `SEC-TAPI-AUTH` · bearer 校验与越权边界**
 
 - **原规则**：模块设计 §11；system `design` §13.1 身份传播（HTTP bearer → M001 校验 → M002 判定）。
 - **可信输入 / 敏感字段 / 检查对象**：`Authorization: Bearer <token>` header；credential 只与配置 secret 的 Buffer 比较；不信任 `X-Request-ID`（仅关联用）。
@@ -670,7 +670,7 @@ sequenceDiagram
 - **日志 / 指标 / trace 口径及触发**：`warn`（401，含 error class，不含 token）；`event.run.created`/`terminated` 继承 system §10.2，含 `task_id?`+`generation`+`request_id`。
 - **验证项**：`VRC-TAPI-002`（Case A）；组合 PK-T12。
 
-#### 7.3.2 `SEC-TAPI-OBS` · 请求关联与脱敏日志
+**7.3.2 `SEC-TAPI-OBS` · 请求关联与脱敏日志**
 
 - **原规则**：模块设计 §8.5/§11；system §10.2 结构化日志事件。
 - **可信输入 / 敏感字段 / 检查对象**：`x-request-id` header（沿用或生成 UUID）；敏感字段同 7.3.1。
@@ -680,7 +680,7 @@ sequenceDiagram
 - **日志 / 指标 / trace 口径及触发**：`info`（受理/fence 成功）、`warn`（依赖错误）、`error`（不变量冲突）；本模块不新增指标。
 - **验证项**：`VRC-TAPI-006`（Case D）。
 
-#### 7.3.3 `SEC-TAPI-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-TAPI-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003）。** task-api 不直接打开文件/DB，不写本地日志文件；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD §7.3.2 承接。本层交接事实 = 经 `ApiPorts` 传递的 `ValidatedTaskSubmission`/`task_id`，不含路径或凭据。
 
@@ -727,7 +727,7 @@ sequenceDiagram
 
 ### 9.1.2 `VRC-TAPI-002` · 报文校验与错误映射
 
-- **Rule / 成员**：`R-TAPI-VALIDATE`/`R-TAPI-BODY`/`R-TAPI-ERRMAP`、`ERR-TAPI-SUBMIT`、`IF-TAPI-VALIDATE`、`IF-MX-VERIFY`、`CON-RUN-003`。
+- **Rule / 成员**：`R-TAPI-VALIDATE`/`R-TAPI-BODY`/`R-TAPI-ERRMAP`、`ERR-TAPI-SUBMIT`、`IF-TAPI-VALIDATE`、`IF-MX-VERIFY`。
 - **V / Case / Vector**：A 无凭据 → 401；B 未知字段 → 400；C body 2 MiB+1 → 400 未调 M003；D 截断 JSON → 400；F `QueueFull` → 429 + `Retry-After`；G discussion 非法 → 409；H `SQLITE_BUSY` → 503。
 - **输入 / 故障 / 环境**：受控 fake `ApiPorts` 注入 typed/原生错误 + 临时 DB；真 Ajv。
 - **独立 Oracle / Expected**：Oracle = 响应状态/code + 直查 `tasks`/`runs` 是否创建；Expected 同 Case；C/E/G/H 无新 Run。
@@ -848,7 +848,7 @@ sequenceDiagram
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-TAPI-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-TAPI-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-task-api` §2/§6.8/§8/§9（v0.1.1）声明四操作、错误集、处理顺序与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——`src/http/` 全为 `PLANNED`，既有 `src/server.ts`/`src/auth.ts`/`src/types.ts` 为 `IN_PROGRESS`/已实现，无运行证据。

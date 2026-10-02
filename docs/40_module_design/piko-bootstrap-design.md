@@ -40,7 +40,7 @@ bootstrap 只做启动顺序、preflight、配置绑定与进程生命周期：�
 
 bootstrap 承接两条上级约束：`CON-ST-001`（PK-12，启动顺序 S1–S8 且不部分就绪）与 `CON-CFG-001`（PK-12，配置加载/绑定/生效与 credential 明文拒绝）。两条均为 Approved。约束来源：`system-design` §3.4（PK-12 行）；机制侧权威定义在 `piko-startup.md` §3.1 与 `piko-config.md` §3.1。
 
-#### 1.1.1 `CON-ST-001` · 启动顺序 S1–S8 且不部分就绪
+**1.1.1 `CON-ST-001` · 启动顺序 S1–S8 且不部分就绪**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-startup.md` §3.1 `CON-ST-001` · PK-12 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文：启动顺序 S1-S8；未 READY 不接受 Run；自由度：内部检查实现；不可变：不部分就绪。
 
@@ -56,7 +56,7 @@ bootstrap 承接两条上级约束：`CON-ST-001`（PK-12，启动顺序 S1–S8
 
 - **差距/变更影响/反馈责任**：none。启动顺序变化或依赖变化需复审（`piko-startup.md` §A.1）。
 
-#### 1.1.2 `CON-CFG-001` · 配置加载/绑定/生效与 credential 明文拒绝
+**1.1.2 `CON-CFG-001` · 配置加载/绑定/生效与 credential 明文拒绝**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-config.md` §3.1 `CON-CFG-001` · PK-12 · Approved。上级原文：启动顺序 S1-S8；restart/fence/migration 需 operator；不可变：不回退语义；credential 明文拒绝。
 
@@ -194,7 +194,7 @@ bootstrap 不拥有业务 HTTP 端点族（由 M001 `task-api` 承载，§3.6 CA
 
 Tailoring 依据：STD `design.definition` §3 "模块没有任何直接操作面时写 N/A + 实际调用入口/归属 + tailoring 依据"；此处保留一个进程入口操作面（真实入口），其余类别 N/A。"没有页面"不等于"没有入口"——bootstrap 的入口在 §9.1 唯一维护。
 
-#### 3.1 `SURF-BOOT-ENTRY` · 进程启动与停止入口
+**3.1 `SURF-BOOT-ENTRY` · 进程启动与停止入口**
 
 - **类型 / 位置**：CLI/进程入口（启动命令 + POSIX 信号）；执行位置 = 宿主进程 `src/main.ts`（Planned 委托给 `src/bootstrap/`）。
 
@@ -229,7 +229,7 @@ flowchart LR
 
 图 M-BOOT-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用、信号与一次外部 HTTPS preflight；不表示新部署边界。bootstrap 不创建线程/进程；preflight 的网络等待见 §10.4。
 
-#### 4.1 `DEP-BOOT-CONFIG` · config 文件与两个 schema（Operator 持有）
+**4.1 `DEP-BOOT-CONFIG` · config 文件与两个 schema（Operator 持有）**
 
 - **角色 / 运行位置 / Owner**：启动输入，本地 FS；Owner：Operator（文件权属）；schema authority 在 `interfaces/schemas/`。
 
@@ -243,7 +243,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：文件缺失/非法 → S1/S2 `config-invalid` → F1；由 Operator 修 config 后重启（`piko-config.md` §9）。
 
-#### 4.2 `DEP-BOOT-SECRET` · Secret provider（外部受控后端）
+**4.2 `DEP-BOOT-SECRET` · Secret provider（外部受控后端）**
 
 - **角色 / 运行位置 / Owner**：credential 解析来源；Owner：Secret provider（reference-only）。
 
@@ -257,7 +257,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：解析失败 → S3 `secret-unresolved` → F1；明文永不写入 config dump/DB/log（`CON-CFG-001`）。
 
-#### 4.3 `DEP-BOOT-POLICY` · M002 `policy`（tool/recovery 绑定）
+**4.3 `DEP-BOOT-POLICY` · M002 `policy`（tool/recovery 绑定）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -271,7 +271,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：不一致 → S3 `tool-bind-fail` → F1；启动后不可热注册（`piko-config.md` §11）。
 
-#### 4.4 `DEP-BOOT-STORE` · M003 `task-repository`（store 打开/迁移/instance lock）
+**4.4 `DEP-BOOT-STORE` · M003 `task-repository`（store 打开/迁移/instance lock）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。schema/事务/DDL authority 属 M003。
 
@@ -285,7 +285,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：不可写/migration 失败/lock 被占 → S5 `store-unwritable`/`instance-lock-held` → F1；bootstrap 不自行打开 SQLite 连接。
 
-#### 4.5 `DEP-BOOT-PI` · M006 `pi-adapter`（Pi 上游校验）
+**4.5 `DEP-BOOT-PI` · M006 `pi-adapter`（Pi 上游校验）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -299,7 +299,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：不匹配 → S6 `pi-upstream-mismatch` → F1；`ISSUE-RUNTIME-001`（Pi upstream commit 锁定）跟踪。
 
-#### 4.6 `DEP-BOOT-MATRIX` · M008 `matrix-adapter`（whoami 与启动）
+**4.6 `DEP-BOOT-MATRIX` · M008 `matrix-adapter`（whoami 与启动）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -313,7 +313,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：whoami 不一致/不可达 → S7 `preflight-fail` → F1；`matrix.enabled=false` 时不调用、该项记满足。
 
-#### 4.7 `DEP-BOOT-HTTP` · M001 `task-api`（handler 挂载与监听）
+**4.7 `DEP-BOOT-HTTP` · M001 `task-api`（handler 挂载与监听）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -327,7 +327,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：端口被占/绑定失败 → S8 `listen-failed` → F1；端点错误语义归 M001。
 
-#### 4.8 `DEP-BOOT-OBS` · M009 `observability`（阶段与依赖指标）
+**4.8 `DEP-BOOT-OBS` · M009 `observability`（阶段与依赖指标）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -385,7 +385,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `B1` · Bootstrap（入口）
+**5.1.1 `B1` · Bootstrap（入口）**
 
 - **职责与非职责**：实现 §9.1 的 `run`/`stop`，按 §6.6 顺序推进 S1–S8、在任一步失败时统一走 F1；持有启动快照与句柄集合。非职责：不做 schema 校验细节（I1）、不发网络探测（I2）、不拼 handler/DB（I4）、不注册信号（I5）。
 
@@ -397,7 +397,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做顺序编排与失败收口，把各阶段抽到内部单元以便独立验证 F1 清理与 preflight 打桩。替代方案"全部写在 main.ts"是 Current 形态，代价是失败清理不可独立验证、无法对 S1–S8 顺序做表驱动测试（这正是本设计要消除的）。
 
-#### 5.1.2 `I1` · ConfigStage（配置阶段 S1–S4）
+**5.1.2 `I1` · ConfigStage（配置阶段 S1–S4）**
 
 - **职责与非职责**：parse 启动参数、schema 校验 config + tool profile、委托 M002 绑定 tool/recovery、解析 Secret、canonicalize 路径并产出不可变快照。非职责：不做启动顺序决策（B1）、不打开 store、不 preflight。
 
@@ -409,7 +409,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把 schema/绑定/secret 集中，使 §8 `R-BOOT-SNAPSHOT` 与 `EffectiveConfigState` 可单测。替代方案"沿用 config.ts 全内联"使 S1–S4 无法单独记录阶段与失败阶段。
 
-#### 5.1.3 `I2` · PreflightProbe（依赖 preflight S7）
+**5.1.3 `I2` · PreflightProbe（依赖 preflight S7）**
 
 - **职责与非职责**：并行探测 LLMTier models、Matrix whoami、store writable，组装 `PreflightReport`；受各探测超时约束。非职责：不做绑定/装配、不决定是否 READY（B1 依据全 true）。
 
@@ -421,7 +421,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把三项探测与超时集中、可注入 fake 探测，使 `VRC-BOOT-006` 可对"部分失败不 READY"表驱动。替代方案"preflight 内联在 main"不可独立复现故障向量。
 
-#### 5.1.4 `I3` · StageLedger（阶段台账与清理登记）
+**5.1.4 `I3` · StageLedger（阶段台账与清理登记）**
 
 - **职责与非职责**：记录当前阶段与失败阶段、维护"已获得句柄"清单供 F1 逆序关闭、发阶段指标/事件。非职责：不做阶段业务、不持有 store/pi 对象语义。
 
@@ -433,7 +433,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把"阶段事实 + 资源登记"集中，使 F1（§8 `R-BOOT-F1`）与停止（I5）共享同一资源清单，避免句柄泄漏。替代方案"各单元各自 close"易漏句柄。
 
-#### 5.1.5 `I4` · HostWiring（运行期装配 S5/S6/S8）
+**5.1.5 `I4` · HostWiring（运行期装配 S5/S6/S8）**
 
 - **职责与非职责**：打开 store（委 M003）、verify Pi（委 M006）、构造 `PiRuntime`/`RunWorker`/`MatrixRuntime`/`ApiServer` 并 bind。非职责：不做校验规则、不注册信号、不决定顺序。
 
@@ -445,7 +445,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把运行期对象装配集中到一处，使 S5/S6/S8 的句柄归属与释放可核查（§10）。替代方案"装配散在 main"使 F1 清理顺序不确定。
 
-#### 5.1.6 `I5` · Lifecycle（进程生命周期与信号）
+**5.1.6 `I5` · Lifecycle（进程生命周期与信号）**
 
 - **职责与非职责**：注册 `SIGTERM`/`SIGINT`、执行 T1–T4 停止（停止受理→fence→有界 drain→强制 abort）、关闭 store/journal。非职责：不做启动阶段、不决定 Run 取消语义（M005）。
 
@@ -457,7 +457,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把停止语义从启动路径分离，使 `VRC-BOOT-007` 可对 drain 超时注入。替代方案"内联 close"不支持有界 drain 与强制 abort 的可判定出口。
 
-#### 5.1.7 `I6` · types
+**5.1.7 `I6` · types**
 
 - **职责与非职责**：定义 `StartupStage`、`EffectiveConfigState`、`PreflightReport`、`BootContext`、`ReadyHandle`、`FatalExit`、`StopReport`。非职责：逻辑。
 
@@ -471,7 +471,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-BOOT-START` · 冷启动（S1–S8 或 F1）
+**5.2.1 `P-BOOT-START` · 冷启动（S1–S8 或 F1）**
 
 - **入口与调用上下文**：`main()`（进程入口，宿主事件循环）→ `Bootstrap.run(startupArgs, projectRoot)`。
 
@@ -483,7 +483,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-BOOT-P1`；§9.1 `IF-BOOT-RUN`、§9.2 各消费接口；`VRC-BOOT-001..006`。
 
-#### 5.2.2 `P-BOOT-STOP` · 停止与 drain（P-STOP）
+**5.2.2 `P-BOOT-STOP` · 停止与 drain（P-STOP）**
 
 - **入口与调用上下文**：`Lifecycle.onSignal`（宿主事件循环）→ `Bootstrap.stop(reason)`。
 
@@ -495,7 +495,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-BOOT-P2`；§9.1 `IF-BOOT-STOP`；`VRC-BOOT-007`。
 
-#### 5.2.3 `P-BOOT-FAIL` · fatal 清理（F1）
+**5.2.3 `P-BOOT-FAIL` · fatal 清理（F1）**
 
 - **入口与调用上下文**：由 `Bootstrap.run` 内部在任一阶段失败时调用（非新线程）。
 
@@ -511,7 +511,7 @@ flowchart TB
 
 本节只固定 bootstrap 内部文件之间的交接；跨模块接口在 §9.2，字段类型在 §6。
 
-#### 5.3.1 `IF-BOOT-STAGE` · `bootstrap.ts` → `stage.ts`
+**5.3.1 `IF-BOOT-STAGE` · `bootstrap.ts` → `stage.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8 `R-BOOT-STAGE-ORDER`/`R-BOOT-F1`。
 
@@ -523,7 +523,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/bootstrap/stage.ts`；`VRC-BOOT-001/002` 覆盖阶段记录与 F1。
 
-#### 5.3.2 `IF-BOOT-WIRING` · `bootstrap.ts` → `wiring.ts`
+**5.3.2 `IF-BOOT-WIRING` · `bootstrap.ts` → `wiring.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `HostWiring`，方法契约见 §9.1/§9.2（`openStore`/`verifyPi`/`assembleAndListen` 分别适配 M003/M006/M001+M008）。
 
@@ -565,7 +565,7 @@ bootstrap 拥有的数据是启动阶段状态 `StartupState`（§6.6）与启�
 
 ### 6.1 公共基础类型与枚举
 
-#### 6.1.1 `StartupStage` / `EffectiveConfigState`
+**6.1.1 `StartupStage` / `EffectiveConfigState`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`StartupStage`；本模块作用域枚举，来源 = `piko-startup.md` §4.1.1 + 本设计 §6.6；权威定义在 `src/bootstrap/types.ts`（Planned）。`EffectiveConfigState`；来源 = `piko-config.md` §4.1.1。
 
@@ -582,7 +582,7 @@ bootstrap 拥有的数据是启动阶段状态 `StartupState`（§6.6）与启�
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `PreflightReport`
+**6.2.1 `PreflightReport`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`PreflightReport`；来源 = `piko-startup.md` §4.2.1；权威定义在 `src/bootstrap/types.ts`（Planned）。
 
@@ -601,7 +601,7 @@ bootstrap 拥有的数据是启动阶段状态 `StartupState`（§6.6）与启�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{true,true,true,true}` → READY。拒绝：`{true,true,false,true}`（LLMTier 不可达）→ F1、端口未绑定。`VRC-BOOT-006`；`NOT_RUN`。
 
-#### 6.2.2 `BootContext` / `ReadyHandle`
+**6.2.2 `BootContext` / `ReadyHandle`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`BootContext` 是阶段间传递的不可变快照；`ReadyHandle` 是 READY 后交运行期的句柄集。权威：本设计 §5.2/§9.1。
 
@@ -624,7 +624,7 @@ bootstrap 拥有的数据是启动阶段状态 `StartupState`（§6.6）与启�
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `StartupState`（跨步骤运行状态，必填）
+**6.6.1 `StartupState`（跨步骤运行状态，必填）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`StartupState` 是"进程从冷启动到 READY/F1/停止"的运行状态，物理载体为内存中的 `StageLedger`（非持久；`instance_meta` 只记 `schema_generation`/`boot_id`，属 M003）。权威事实来源：各阶段调用的返回值 + `StageLedger` 记录（阶段、失败原因、句柄清单）。
 
@@ -680,7 +680,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `FatalExit`（内部错误结构）
+**6.8.1 `FatalExit`（内部错误结构）**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：内部类型，无对外错误码（不进入 HTTP 契约）：`FatalExit{stage: StartupStage, code: FatalCode, cause?: unknown}`。`FatalCode = "config-invalid" | "tool-bind-fail" | "secret-unresolved" | "path-invalid" | "store-unwritable" | "instance-lock-held" | "schema-migration-failed" | "pi-upstream-mismatch" | "preflight-fail" | "listen-failed"`。定义在 `src/bootstrap/types.ts`（Planned）。
 
@@ -781,7 +781,7 @@ flowchart TD
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-BOOT-STAGE-ORDER` · 阶段顺序与不跳级
+**8.1 `R-BOOT-STAGE-ORDER` · 阶段顺序与不跳级**
 
 - **输入前提 / 适用条件**：每次 `run()`；约束 `CON-ST-001`。
 
@@ -795,7 +795,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：S2 失败 → 不得出现 S3；S5 lock 被占 → 不得出现 S6。`VRC-BOOT-002/004`。
 
-#### 8.2 `R-BOOT-F1` · 失败清理与退出
+**8.2 `R-BOOT-F1` · 失败清理与退出**
 
 - **输入前提 / 适用条件**：任一阶段返回失败事实或抛错。
 
@@ -809,7 +809,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：S7 注入失败 → store 句柄已关（lock 可立即重取）、端口未绑定、退出码非零。`VRC-BOOT-006`。
 
-#### 8.3 `R-BOOT-PREFLIGHT-ALL` · 全量 preflight 才 READY
+**8.3 `R-BOOT-PREFLIGHT-ALL` · 全量 preflight 才 READY**
 
 - **输入前提 / 适用条件**：S7 收集四项事实。
 
@@ -823,7 +823,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：`{true,true,false,true}` → F1、端口未绑定。`VRC-BOOT-006`。
 
-#### 8.4 `R-BOOT-SNAPSHOT` · 启动快照不可变
+**8.4 `R-BOOT-SNAPSHOT` · 启动快照不可变**
 
 - **输入前提 / 适用条件**：S2/S3 产出快照后。
 
@@ -837,7 +837,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：重启后旧快照被丢弃、重读 config。`VRC-BOOT-008`。
 
-#### 8.5 `R-BOOT-GATE` · 停止期间的受理门
+**8.5 `R-BOOT-GATE` · 停止期间的受理门**
 
 - **输入前提 / 适用条件**：READY 后收到 `SIGTERM`/`SIGINT`（T1）。
 
@@ -857,7 +857,7 @@ bootstrap 提供的对外接口是两个进程内函数（`run`/`stop`）与两�
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `run(startupArgs: StartupArgs, projectRoot: string) -> ReadyHandle | fatal`
+**9.1.1 `run(startupArgs: StartupArgs, projectRoot: string) -> ReadyHandle | fatal`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-BOOT-RUN`；推进 S1–S8 并返回 READY 句柄（或 fatal）。来源：本模块拥有。
 
@@ -871,7 +871,7 @@ bootstrap 提供的对外接口是两个进程内函数（`run`/`stop`）与两�
 
 - **实现与验证**：`src/bootstrap/bootstrap.ts` `Bootstrap.run`（Planned）。`VRC-BOOT-001..006`；`NOT_RUN`。
 
-#### 9.1.2 `stop(reason: "SIGTERM" | "SIGINT") -> StopReport`
+**9.1.2 `stop(reason: "SIGTERM" | "SIGINT") -> StopReport`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-BOOT-STOP`；执行 T1–T4 停止与 drain。来源：本模块拥有。
 
@@ -885,7 +885,7 @@ bootstrap 提供的对外接口是两个进程内函数（`run`/`stop`）与两�
 
 - **实现与验证**：`src/bootstrap/lifecycle.ts`（Planned）。`VRC-BOOT-007`；`NOT_RUN`。
 
-#### 9.1.3 `loadConfig(path: string, root: string) -> {config, tools}`（IF-CFG-LOAD）
+**9.1.3 `loadConfig(path: string, root: string) -> {config, tools}`（IF-CFG-LOAD）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-CFG-LOAD`（`piko-config.md` §5.1，M000 提供）；加载 + schema 校验 config 与 tool profile。
 
@@ -899,7 +899,7 @@ bootstrap 提供的对外接口是两个进程内函数（`run`/`stop`）与两�
 
 - **实现与验证**：`src/config.ts` `loadConfig`（既有，部分实现；Target 由 `config-stage.ts` 承接）。`VRC-BOOT-002`；`NOT_RUN`。
 
-#### 9.1.4 `preflight() -> PreflightReport`（IF-ST-PREFLIGHT）
+**9.1.4 `preflight() -> PreflightReport`（IF-ST-PREFLIGHT）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-ST-PREFLIGHT`（`piko-startup.md` §5.1，M000 提供）；探测 store/Pi/LLMTier/Matrix 四项事实。
 
@@ -917,7 +917,7 @@ bootstrap 提供的对外接口是两个进程内函数（`run`/`stop`）与两�
 
 bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程内协作接口是跨模块合同，按 STD 在此唯一维护（不使用 §6.4 报文节）。
 
-#### 9.2.1 `IF-CFG-BIND` · `bindToolProfile(profile, registry) -> BoundToolProfile`（Proposed）
+**9.2.1 `IF-CFG-BIND` · `bindToolProfile(profile, registry) -> BoundToolProfile`（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-CFG-BIND`（`piko-config.md` §5.1，Provider：M002 `policy`；Consumer：M000 bootstrap）。用途：S3 绑定 tool/recovery registry。
 
@@ -927,7 +927,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **实现与验证**：M002 侧（Planned）；bootstrap 消费于 `config-stage.ts`。`VRC-BOOT-003`；`NOT_RUN`。
 
-#### 9.2.2 `IF-CFG-SECRET` · `resolveSecret(ref) -> Secret`（Proposed）
+**9.2.2 `IF-CFG-SECRET` · `resolveSecret(ref) -> Secret`（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-CFG-SECRET`（`piko-config.md` §5.1，Provider：Secret provider；Consumer：M000 bootstrap）。
 
@@ -937,7 +937,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **实现与验证**：当前 `src/config.ts` `resolveSecret`（部分实现，env/file）；bootstrap 消费于 `config-stage.ts`。`VRC-BOOT-003`；`NOT_RUN`。
 
-#### 9.2.3 `IF-ST-STORE` · `openStore(path, busyTimeout) -> Store`（Proposed）
+**9.2.3 `IF-ST-STORE` · `openStore(path, busyTimeout) -> Store`（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-ST-STORE`（`piko-startup.md` §5.1，Provider：M003；Consumer：M000 bootstrap）。用途：S5 打开/迁移 store、取 instance lock、写 `instance_meta`。
 
@@ -947,7 +947,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **实现与验证**：M003 侧（Planned / `IN_PROGRESS`，当前 `src/store.ts`）；bootstrap 消费于 `wiring.ts`。`VRC-BOOT-004/008`；`NOT_RUN`。
 
-#### 9.2.4 `IF-ST-PI` · `verifyPiUpstream() -> bool`（Proposed）
+**9.2.4 `IF-ST-PI` · `verifyPiUpstream() -> bool`（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-ST-PI`（`piko-startup.md` §5.1，Provider：M006；Consumer：M000 bootstrap）。用途：S6 校验 Pi commit + adapter patch manifest。
 
@@ -957,7 +957,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **实现与验证**：M006 侧（Planned；当前 `src/config.ts` 内联校验）；bootstrap 消费于 `wiring.ts`。`VRC-BOOT-005`；`NOT_RUN`。
 
-#### 9.2.5 `IF-ST-MATRIX` · `matrixWhoami() -> Identity`（Proposed）
+**9.2.5 `IF-ST-MATRIX` · `matrixWhoami() -> Identity`（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-ST-MATRIX`（`piko-startup.md` §5.1，Provider：M008；Consumer：M000 bootstrap）。用途：S7 校验 Matrix 身份一致。
 
@@ -979,7 +979,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 按 §1 的事实联动：§3 判无业务操作面但有进程入口（故 §5.4/§10 给启动/就绪/停止与在途请求）；§6.6 登记了跨步骤状态 `StartupState`（故本节给状态变换并发出口）；§6.7 判无自有持久表（故持久提交点属 M003，bootstrap 只给句柄释放与恢复入口）。执行上下文：全部操作在 Node 单线程事件循环上；preflight 出站并发等待。
 
-#### 10.1 `C-BOOT-01` · 两个进程同时启动（instance lock 竞争）
+**10.1 `C-BOOT-01` · 两个进程同时启动（instance lock 竞争）**
 
 - **初始条件 / 并发交错 / 失败点**：两个 supervisor 进程用同一 `sqlite_path` 同时启动。失败点：两进程都在 S5 尝试取 instance lock。
 
@@ -993,7 +993,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / 组合责任**：`VRC-BOOT-008`；组合 PK-T12。
 
-#### 10.2 `C-BOOT-02` · F1 于 S5 后（`instance_meta` 已写）
+**10.2 `C-BOOT-02` · F1 于 S5 后（`instance_meta` 已写）**
 
 - **初始条件 / 并发交错 / 失败点**：S5 成功写 `instance_meta`，S6/S7 失败。失败点：失败发生在 store 已打开之后。
 
@@ -1007,7 +1007,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / 组合责任**：`VRC-BOOT-004/006`；组合 PK-T12。
 
-#### 10.3 `C-BOOT-03` · READY 前收到 SIGTERM
+**10.3 `C-BOOT-03` · READY 前收到 SIGTERM**
 
 - **初始条件 / 并发交错 / 失败点**：S1–S7 推进途中收到 `SIGTERM`（W1 启动监督超时）。失败点：未进入 S8。
 
@@ -1021,7 +1021,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / 组合责任**：`VRC-BOOT-007`（未 READY 分支）；组合 PK-T12。
 
-#### 10.4 `C-BOOT-04` · preflight 依赖超时
+**10.4 `C-BOOT-04` · preflight 依赖超时**
 
 - **初始条件 / 并发交错 / 失败点**：S7 的 LLMTier `GET /v1/models` 或 Matrix whoami 超时。失败点：全量 preflight 被单项拖住。
 
@@ -1035,7 +1035,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / 组合责任**：`VRC-BOOT-006`；组合 PK-T12。
 
-#### 10.5 `C-BOOT-05` · 停止期间在途 Run drain 超时
+**10.5 `C-BOOT-05` · 停止期间在途 Run drain 超时**
 
 - **初始条件 / 并发交错 / 失败点**：READY 且持有一个长在途 Run；SIGTERM 后 T3 等待超时。失败点：Run 未在预算内收口。
 
@@ -1049,7 +1049,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / 组合责任**：`VRC-BOOT-007`；组合 PK-T12。
 
-#### 10.6 `C-BOOT-06` · 重启后旧 boot_id 弃用
+**10.6 `C-BOOT-06` · 重启后旧 boot_id 弃用**
 
 - **初始条件 / 并发交错 / 失败点**：崩溃后重启，产生新 `boot_id`；M004 `scheduler` 需据 `boot_id` 判定 stale。失败点：旧 boot 的写入未被失效。
 
@@ -1080,7 +1080,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-BOOT-STARTUP` · 启动延迟与 preflight 预算
+**12.1 `CAP-BOOT-STARTUP` · 启动延迟与 preflight 预算**
 
 - **目标 / 限制 / 单位**：冷启动总时长 = S1–S6 本地操作 + S7 preflight 出站等待；preflight 每项受 `models_timeout_ms`（LLMTier）/`sync_timeout_ms`（Matrix）约束，超时即 F1。无吞吐指标（启动一次性）。
 
@@ -1096,7 +1096,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证项 / Evidence**：`VRC-BOOT-001/006`；`NOT_RUN`。
 
-#### 12.2 `CAP-BOOT-LISTEN` · 监听套接字与单实例
+**12.2 `CAP-BOOT-LISTEN` · 监听套接字与单实例**
 
 - **目标 / 限制 / 单位**：监听套接字恒为 1（`listen.host:listen.port`）；instance lock 恒为 1（单实例，PK-01）。
 
@@ -1116,7 +1116,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/bootstrap/bootstrap.ts`
+**13.1.1 `src/bootstrap/bootstrap.ts`**
 
 - **职责 / 非职责**：入口：实现 `Bootstrap.run/stop`、保证 §6.6 不变量、编排 I1–I5。非职责：校验细节、网络探测、直接 SQL。
 
@@ -1130,7 +1130,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-001..008`。
 
-#### 13.1.2 `src/bootstrap/config-stage.ts`
+**13.1.2 `src/bootstrap/config-stage.ts`**
 
 - **职责 / 非职责**：S1–S4：parse、schema、bind、Secret、canonicalize。非职责：打开 store、preflight。
 
@@ -1144,7 +1144,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-002/003`。
 
-#### 13.1.3 `src/bootstrap/preflight.ts`
+**13.1.3 `src/bootstrap/preflight.ts`**
 
 - **职责 / 非职责**：S7：LLMTier models + Matrix whoami + store writable → `PreflightReport`。非职责：决定 READY、装配。
 
@@ -1158,7 +1158,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-006`。
 
-#### 13.1.4 `src/bootstrap/stage.ts`
+**13.1.4 `src/bootstrap/stage.ts`**
 
 - **职责 / 非职责**：`StageLedger`：阶段推进/失败、句柄登记/释放、指标事件。非职责：无业务 I/O。
 
@@ -1172,7 +1172,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-001/002/006`。
 
-#### 13.1.5 `src/bootstrap/wiring.ts`
+**13.1.5 `src/bootstrap/wiring.ts`**
 
 - **职责 / 非职责**：S5/S6/S8：openStore、verifyPi、构造 `PiRuntime`/`RunWorker`/`MatrixRuntime`/`ApiServer` 并 bind。非职责：策略与校验规则。
 
@@ -1186,7 +1186,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-004/005/001`。
 
-#### 13.1.6 `src/bootstrap/lifecycle.ts`
+**13.1.6 `src/bootstrap/lifecycle.ts`**
 
 - **职责 / 非职责**：信号注册与 T1–T4 停止/drain。非职责：启动阶段、Run 取消语义。
 
@@ -1200,7 +1200,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-007`。
 
-#### 13.1.7 `src/bootstrap/types.ts`
+**13.1.7 `src/bootstrap/types.ts`**
 
 - **职责 / 非职责**：`StartupStage`/`EffectiveConfigState`/`PreflightReport`/`BootContext`/`ReadyHandle`/`FatalExit`/`StopReport`。非职责：逻辑。
 
@@ -1214,7 +1214,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：编译期。
 
-#### 13.1.8 `src/bootstrap/index.ts`
+**13.1.8 `src/bootstrap/index.ts`**
 
 - **职责 / 非职责**：唯一装配入口：`createBootstrap(deps)`。非职责：逻辑。
 
@@ -1228,7 +1228,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-001`。
 
-#### 13.1.9 `src/main.ts`（修改既有）
+**13.1.9 `src/main.ts`（修改既有）**
 
 - **职责 / 非职责**：改为薄入口：构造 deps → `createBootstrap(...).run()`；注册信号交 `Lifecycle`；`catch(FatalExit)` 非零退出。非职责：不再是启动逻辑本体。
 
@@ -1242,7 +1242,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-001..008`（经入口）。
 
-#### 13.1.10 `src/config.ts`（修改既有）
+**13.1.10 `src/config.ts`（修改既有）**
 
 - **职责 / 非职责**：提供 `loadConfig`/`resolveSecret`/`validateToolRegistry` 与 schema/Pi fingerprint 工具；被 `config-stage.ts` 复用。非职责：启动顺序。
 
@@ -1256,7 +1256,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **验证入口**：`VRC-BOOT-002/003/005`。
 
-#### 13.1.11 `src/server.ts`（修改既有）
+**13.1.11 `src/server.ts`（修改既有）**
 
 - **职责 / 非职责**：`ApiServer.create`/`listen`/`close` 作为 S8 监听载体；端点语义归 M001。非职责：启动顺序。
 
@@ -1272,7 +1272,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 ### 13.2 实现步骤
 
-#### 13.2.1 冻结 bootstrap 内部类型与阶段台账
+**13.2.1 冻结 bootstrap 内部类型与阶段台账**
 
 - **前置输入 / 依赖**：§6.1/§6.6/§6.8、§8 规则。
 
@@ -1284,7 +1284,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **完成检查**：`VRC-BOOT-002`（表驱动阶段失败）计划用例。
 
-#### 13.2.2 实现 `config-stage.ts`（S1–S4）
+**13.2.2 实现 `config-stage.ts`（S1–S4）**
 
 - **前置输入 / 依赖**：`src/config.ts`；M002 `IF-CFG-BIND`（`OQ-BOOT-001`）。
 
@@ -1296,7 +1296,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **完成检查**：`VRC-BOOT-002/003`。
 
-#### 13.2.3 实现 `preflight.ts`（S7）
+**13.2.3 实现 `preflight.ts`（S7）**
 
 - **前置输入 / 依赖**：`src/provider-preflight.ts`；M008 whoami；M003 store 可写探测。
 
@@ -1308,7 +1308,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **完成检查**：`VRC-BOOT-006`。
 
-#### 13.2.4 实现 `wiring.ts`（S5/S6/S8）并改 `main.ts`
+**13.2.4 实现 `wiring.ts`（S5/S6/S8）并改 `main.ts`**
 
 - **前置输入 / 依赖**：上两步；M003/M006/M001 实现（`OQ-BOOT-001`/`OQ-BOOT-002`）。
 
@@ -1320,7 +1320,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **完成检查**：`VRC-BOOT-001/004/005/008`；PK-T12 组合可用。
 
-#### 13.2.5 实现 `lifecycle.ts` 停止与回归
+**13.2.5 实现 `lifecycle.ts` 停止与回归**
 
 - **前置输入 / 依赖**：`wiring.ts`；M005/M006 停止接口。
 
@@ -1338,7 +1338,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-ST-001`
+**14.1.1 `CON-ST-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-startup.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.6（状态与不变量）、§8.1–8.3、§9.1.1。
@@ -1346,7 +1346,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-001/002/006`；独立判据 = 端口绑定 + 退出码 + lock 可重取。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.2 `CON-CFG-001`
+**14.1.2 `CON-CFG-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-config.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.1 `EffectiveConfigState`、§6.3（引用）、§8.4、§9.1.3/§9.2.1/§9.2.2。
@@ -1354,7 +1354,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002/003/008`；独立判据 = schema 退出码 + lock + 日志无明文。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12；config 字段 authority 归 MECH-CONFIG。
 
-#### 14.1.3 `F-BOOT-CONFIG`
+**14.1.3 `F-BOOT-CONFIG`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P1`；§9.1.3。
@@ -1362,7 +1362,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002`（schema）、`VRC-BOOT-003`（绑定/Secret）。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.4 `F-BOOT-STORE`
+**14.1.4 `F-BOOT-STORE`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P1`；§9.2.3。
@@ -1370,7 +1370,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-004/008`；独立判据 = lock + `instance_meta`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T01。
 
-#### 14.1.5 `F-BOOT-VERIFY`
+**14.1.5 `F-BOOT-VERIFY`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P1`；§9.2.4。
@@ -1378,7 +1378,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12；`ISSUE-RUNTIME-001`。
 
-#### 14.1.6 `F-BOOT-PREFLIGHT`
+**14.1.6 `F-BOOT-PREFLIGHT`**
 
 - **来源与适用性 / 固定基线**：§2.4；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P1`；§9.1.4/§9.2.5。
@@ -1386,7 +1386,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-006`；独立判据 = `PreflightReport` + 端口未绑定。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T08。
 
-#### 14.1.7 `F-BOOT-READY`
+**14.1.7 `F-BOOT-READY`**
 
 - **来源与适用性 / 固定基线**：§2.5；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P1`；§9.1.1。
@@ -1394,7 +1394,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-001`；独立判据 = 端口可连接。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.8 `F-BOOT-FAIL`
+**14.1.8 `F-BOOT-FAIL`**
 
 - **来源与适用性 / 固定基线**：§2.6；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P3`；§8.2。
@@ -1402,7 +1402,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002/004/005/006`；独立判据 = 非零退出 + 无残留。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.9 `F-BOOT-STOP`
+**14.1.9 `F-BOOT-STOP`**
 
 - **来源与适用性 / 固定基线**：§2.7；适用。
 - **选定方案与正文锚点**：§7 `M-BOOT-P2`；§8.5；§9.1.2。
@@ -1410,7 +1410,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-007`；独立判据 = 退出码 + 受理门。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T05。
 
-#### 14.1.10 `P-BOOT-START`
+**14.1.10 `P-BOOT-START`**
 
 - **来源与适用性 / 固定基线**：§5.2.1/§7 `M-BOOT-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1（调用链）、§7 M-BOOT-P1。
@@ -1418,7 +1418,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-001..006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.11 `P-BOOT-STOP`
+**14.1.11 `P-BOOT-STOP`**
 
 - **来源与适用性 / 固定基线**：§5.2.2/§7 `M-BOOT-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2（调用链）、§7 M-BOOT-P2。
@@ -1426,7 +1426,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.12 `P-BOOT-FAIL`
+**14.1.12 `P-BOOT-FAIL`**
 
 - **来源与适用性 / 固定基线**：§5.2.3/§7 `M-BOOT-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3（调用链）、§7 M-BOOT-P3、§6.6 `T-BOOT-09`。
@@ -1434,7 +1434,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002/004/005/006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.13 `R-BOOT-STAGE-ORDER`
+**14.1.13 `R-BOOT-STAGE-ORDER`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.6 `INV-BOOT-1`、`T-BOOT-01..08`。
@@ -1442,7 +1442,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002`（不跳级）。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.14 `R-BOOT-F1`
+**14.1.14 `R-BOOT-F1`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§6.6 `T-BOOT-09`、`INV-BOOT-4`。
@@ -1450,7 +1450,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002/004/005/006`；独立判据 = lock 可重取 + 端口未绑定。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.15 `R-BOOT-PREFLIGHT-ALL`
+**14.1.15 `R-BOOT-PREFLIGHT-ALL`**
 
 - **来源与适用性 / 固定基线**：§8.3；适用。
 - **选定方案与正文锚点**：§8.3；§6.2.1；§10.4。
@@ -1458,7 +1458,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-006`；独立判据 = 端口未绑定。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T08。
 
-#### 14.1.16 `R-BOOT-SNAPSHOT`
+**14.1.16 `R-BOOT-SNAPSHOT`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§6.2.2 `BootContext`；§6.3。
@@ -1466,7 +1466,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-008`；独立判据 = 重启后快照重读。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12；config 变更需重启（`CON-CFG-001`）。
 
-#### 14.1.17 `R-BOOT-GATE`
+**14.1.17 `R-BOOT-GATE`**
 
 - **来源与适用性 / 固定基线**：§8.5；适用。
 - **选定方案与正文锚点**：§8.5；§10.5；§9.1.2。
@@ -1474,7 +1474,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T05。
 
-#### 14.1.18 `IF-BOOT-RUN`
+**14.1.18 `IF-BOOT-RUN`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.1（MECH-STARTUP §5.1 启动函数）；适用。
 - **选定方案与正文锚点**：§9.1.1；§6.6。
@@ -1482,7 +1482,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-001..006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.19 `IF-BOOT-STOP`
+**14.1.19 `IF-BOOT-STOP`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.2；适用。
 - **选定方案与正文锚点**：§9.1.2；§8.5。
@@ -1490,7 +1490,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12/PK-T05。
 
-#### 14.1.20 `IF-CFG-LOAD`
+**14.1.20 `IF-CFG-LOAD`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.3；§4.1。
@@ -1498,7 +1498,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12；schema authority 归 MECH-CONFIG。
 
-#### 14.1.21 `IF-ST-PREFLIGHT`
+**14.1.21 `IF-ST-PREFLIGHT`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §5.1（Proposed）；适用。
 - **选定方案与正文锚点**：§9.1.4；§6.2.1；§8.3。
@@ -1506,7 +1506,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-006`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.22 `IF-CFG-BIND`
+**14.1.22 `IF-CFG-BIND`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §5.1（Proposed）；适用且依赖 `OQ-BOOT-001`。
 - **选定方案与正文锚点**：§9.2.1；§4.3。
@@ -1514,7 +1514,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-003`。
 - **父级组合验证或裁剪/阻断决定**：阻断点：`OQ-BOOT-001` 未关闭前与 M002 的绑定合同未冻结。
 
-#### 14.1.23 `IF-CFG-SECRET`
+**14.1.23 `IF-CFG-SECRET`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §5.1（Proposed）；适用。
 - **选定方案与正文锚点**：§9.2.2；§4.2。
@@ -1522,7 +1522,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-003`；独立判据 = 退出码 + 日志无明文。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.24 `IF-ST-STORE`
+**14.1.24 `IF-ST-STORE`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §5.1（Proposed）；适用且依赖 `OQ-BOOT-002`。
 - **选定方案与正文锚点**：§9.2.3；§4.4；§6.7（M003 authority）。
@@ -1530,7 +1530,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-004/008`。
 - **父级组合验证或裁剪/阻断决定**：阻断点：`OQ-BOOT-002` 未关闭前 store 打开/迁移合同未冻结。
 
-#### 14.1.25 `IF-ST-PI`
+**14.1.25 `IF-ST-PI`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §5.1（Proposed）；适用。
 - **选定方案与正文锚点**：§9.2.4；§4.5。
@@ -1538,7 +1538,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12；`ISSUE-RUNTIME-001`。
 
-#### 14.1.26 `IF-ST-MATRIX`
+**14.1.26 `IF-ST-MATRIX`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §5.1（Proposed）；适用（`matrix.enabled=false` 时为边界不适用）。
 - **选定方案与正文锚点**：§9.2.5；§4.6；§8.3。
@@ -1546,7 +1546,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-006`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12/PK-T08。
 
-#### 14.1.27 `ERR-BOOT-CONFIG-INVALID`
+**14.1.27 `ERR-BOOT-CONFIG-INVALID`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（`config-invalid`）；适用。
 - **选定方案与正文锚点**：§6.8.1；§8.2；§9.1.3。
@@ -1554,7 +1554,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.28 `ERR-BOOT-BIND-FAIL`
+**14.1.28 `ERR-BOOT-BIND-FAIL`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（`tool-bind-fail`/`secret-unresolved`）；适用。
 - **选定方案与正文锚点**：§6.8.1；§9.2.1/§9.2.2。
@@ -1562,7 +1562,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-003`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.29 `ERR-BOOT-STORE`
+**14.1.29 `ERR-BOOT-STORE`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（`store-unwritable`/`instance-lock-held`/`schema-migration-failed`）；适用。
 - **选定方案与正文锚点**：§6.8.1；§10.1/§10.2；§9.2.3。
@@ -1570,7 +1570,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-004/008`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.30 `ERR-BOOT-PI`
+**14.1.30 `ERR-BOOT-PI`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（`pi-upstream-mismatch`）；适用。
 - **选定方案与正文锚点**：§6.8.1；§9.2.4。
@@ -1578,7 +1578,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 - **§14 VRC / Case / 独立判据**：`VRC-BOOT-005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.31 `ERR-BOOT-PREFLIGHT`
+**14.1.31 `ERR-BOOT-PREFLIGHT`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（`preflight-fail`/`listen-failed`）；适用。
 - **选定方案与正文锚点**：§6.8.1；§8.3；§10.4；§9.1.4。
@@ -1590,7 +1590,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-BOOT-001` · 冷启动 READY（S1–S8）
+**14.2.1 `VRC-BOOT-001` · 冷启动 READY（S1–S8）**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-CONFIG/STORE/VERIFY/PREFLIGHT/READY`；`R-BOOT-STAGE-ORDER/PREFLIGHT-ALL`；`CON-ST-001`；`IF-BOOT-RUN`/`IF-ST-STORE`/`IF-ST-PI`。
 
@@ -1606,7 +1606,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.2 `VRC-BOOT-002` · 无效 config → F1（不 Listen）
+**14.2.2 `VRC-BOOT-002` · 无效 config → F1（不 Listen）**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-CONFIG`/`F-BOOT-FAIL`；`R-BOOT-F1`/`R-BOOT-STAGE-ORDER`；`CON-CFG-001`/`CON-ST-001`；`IF-CFG-LOAD`；`config-invalid`。
 
@@ -1622,7 +1622,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.3 `VRC-BOOT-003` · tool/Secret 绑定失败 → F1
+**14.2.3 `VRC-BOOT-003` · tool/Secret 绑定失败 → F1**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-CONFIG`/`F-BOOT-FAIL`；`CON-CFG-001`；`IF-CFG-BIND`/`IF-CFG-SECRET`；`tool-bind-fail`/`secret-unresolved`。
 
@@ -1638,7 +1638,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.4 `VRC-BOOT-004` · store 不可写/迁移失败 → F1
+**14.2.4 `VRC-BOOT-004` · store 不可写/迁移失败 → F1**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-STORE`/`F-BOOT-FAIL`；`CON-ST-001`；`IF-ST-STORE`；`store-unwritable`/`schema-migration-failed`。
 
@@ -1654,7 +1654,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.5 `VRC-BOOT-005` · Pi upstream 不匹配 → F1
+**14.2.5 `VRC-BOOT-005` · Pi upstream 不匹配 → F1**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-VERIFY`/`F-BOOT-FAIL`；`CON-ST-001`；`IF-ST-PI`；`pi-upstream-mismatch`。
 
@@ -1670,7 +1670,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12；`ISSUE-RUNTIME-001`。
 
-#### 14.2.6 `VRC-BOOT-006` · 依赖 preflight 失败 → F1（端口未绑定）
+**14.2.6 `VRC-BOOT-006` · 依赖 preflight 失败 → F1（端口未绑定）**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-PREFLIGHT`/`F-BOOT-FAIL`；`R-BOOT-PREFLIGHT-ALL`/`R-BOOT-F1`；`CON-ST-001`；`IF-ST-PREFLIGHT`/`IF-ST-MATRIX`；`preflight-fail`。
 
@@ -1686,7 +1686,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12/PK-T08。
 
-#### 14.2.7 `VRC-BOOT-007` · SIGTERM 停止与在途 drain
+**14.2.7 `VRC-BOOT-007` · SIGTERM 停止与在途 drain**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-STOP`；`R-BOOT-GATE`；`CON-ST-001`；`IF-BOOT-STOP`。
 
@@ -1702,7 +1702,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **父级组合验证交接**：PK-T12/PK-T05。
 
-#### 14.2.8 `VRC-BOOT-008` · 单实例 lock 与重启 boot_id
+**14.2.8 `VRC-BOOT-008` · 单实例 lock 与重启 boot_id**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-BOOT-STORE`；`CON-ST-001`/`CON-CFG-001`；`IF-ST-STORE`；`instance-lock-held`。
 
@@ -1720,7 +1720,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-BOOT-001` · 启动/配置接口未冻结
+**15.1 `OQ-BOOT-001` · 启动/配置接口未冻结**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `IF-CFG-BIND`/`IF-ST-PREFLIGHT`（Proposed）、`F-BOOT-CONFIG`、`CON-CFG-001`。
 
@@ -1734,7 +1734,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **关闭条件 / 决定或当前状态**：各模块设计与本文 §9.2 一致（或给出超集并回写本文）。当前 Open。
 
-#### 15.2 `OQ-BOOT-002` · M003 `openStore` 原子边界未定
+**15.2 `OQ-BOOT-002` · M003 `openStore` 原子边界未定**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `IF-ST-STORE`、`F-BOOT-STORE`、§10.1/§10.2。
 
@@ -1748,7 +1748,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **关闭条件 / 决定或当前状态**：M003 设计与 §9.2.3 一致。当前 Open。
 
-#### 15.3 `RISK-BOOT-001` · 启动停机窗口未实测
+**15.3 `RISK-BOOT-001` · 启动停机窗口未实测**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `CAP-BOOT-STARTUP`、P-CONFIG/P-STOP。
 
@@ -1762,7 +1762,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **关闭条件 / 决定或当前状态**：有实测停机窗口数据。当前 Open。
 
-#### 15.4 `RISK-BOOT-002` · 预设计接口被误当已冻结
+**15.4 `RISK-BOOT-002` · 预设计接口被误当已冻结**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 §9.2 全部 Proposed 接口。
 
@@ -1776,7 +1776,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **关闭条件 / 决定或当前状态**：对应接口被采纳。当前 Open。
 
-#### 15.5 `15.ISD` · 实现规格采用方式
+**15.5 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-bootstrap-impl` 已建立）。
 
@@ -1792,7 +1792,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-CONFIG`（`piko-config.md`）、`MECH-STARTUP`（`piko-startup.md`）。其余机制（RUN/USAGE/MATRIX/RECOVERY/CANCEL）不由 bootstrap 承接（RUN/RECOVERY 的运行期事实由 M004/M005 承担，bootstrap 只在启动时提供 `boot_id`）。
 
-#### A.1 `piko-config` / `M-CFG-DI-001`
+**A.1 `piko-config` / `M-CFG-DI-001`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CONFIG` §14.4 行 `M-CFG-DI-001`（下游 `bootstrap`，固定输入 config schema，约束 CON-CFG-001，自由度启动顺序）；接口 `IF-CFG-LOAD`（M000 提供）、`IF-CFG-BIND`（M002 提供，M000 消费）、`IF-CFG-SECRET`（provider 提供，M000 消费）。
 
@@ -1808,7 +1808,7 @@ bootstrap 不跨部署边界发消息；但它与 M002/M003/M006/M008 的进程�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-BOOT-002/003`；组合 PK-T12。
 
-#### A.2 `piko-startup` / `M-ST-DI-001`
+**A.2 `piko-startup` / `M-ST-DI-001`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-STARTUP` §14.4 行 `M-ST-DI-001`（下游 `bootstrap`，固定输入 config + 启动顺序，约束 CON-ST-001，自由度阶段实现）；接口 `IF-ST-PREFLIGHT`（M000 提供）、`IF-ST-STORE`/`IF-ST-PI`/`IF-ST-MATRIX`（M003/M006/M008 提供，M000 消费）。
 

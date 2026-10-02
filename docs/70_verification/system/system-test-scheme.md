@@ -53,9 +53,7 @@
 
 <span style="color:#1f6feb"><em>**完成条件**：任一 Case 在本方案中只报设计状态；实现与执行状态可沿 Case ID 追到 case-design 文档与 Run 报告。</em></span>
 
-
 ## 1. 目标、范围与被测对象
-
 
 <span style="color:#1f6feb"><em>**本节目的**：固定整软件系统组装层的对象与边界。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：被测系统与设计基线；真实子系统；外部依赖真实或边界替身及证明边界；不证明的真实环境与验收目标。</em></span>
@@ -66,9 +64,7 @@
 - 本阶段测试边界（真实组成 / 边界替身）：真实组成 = P0 控制进程、P1 执行进程、SQLite Task Store、Pi AgentHarness、数据面 `scp`；边界替身 = LLMTier（`tests/common/mock-llmtier.ts`，真协议实例由 live Case 使用真 LLMTier）、Matrix homeserver（live Case 用本地 Synapse）。
 - 不证明的组合保证及承接入口：不证明模块内部单点逻辑（归 `tests.module-test-scheme`）与函数级算法（归 `tests.unit-test-scheme`）；不证明多实例/跨部署的数据面可用性（`system-design` §5.3 `TOP-3` 未实现）。
 
-
 ## 1.5 测试方法与测试设计技术
-
 
 <span style="color:#1f6feb"><em>**本节目相**：固定系统层"怎么测"的方法论——单元层测试设计技术比较单一（mock 为主），上游测试常**多方法共存**，需逐一描述与边界。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：测试设计技术（按 Case 家族用哪些——等价类划分/边界值/状态转换/决策表/错误猜测/属性测试/变异测试等，写明对哪些 family 用哪种及不用哪种）；入场标准（设计文档到位、方案清单冻结、Case 实现就绪、替身 Verified、环境齐）；离场标准（分母每条来源有 Case 或缺口、Verdict 齐全、缺口有主、设计变更触发重跑）；自动化策略（哪些进 CI、单 Case 选择入口、断点/重跑规则、flaky 不掩盖根因）。</em></span>
@@ -86,8 +82,6 @@
 | security | 鉴权冒烟 + 凭据/host key 强制 | `ENV-LOOPBACK` | `tests/unit/server.test.ts`；`known_hosts` 缺失即 fail closed |
 | integration-llm | 协议契约 + 事件子集覆盖（mock 与真 LLMTier 各一轮） | `ENV-LOOPBACK` / `ENV-LIVE-LLM` | `tests/integration/llmtier-contract.test.ts`；真端点为 opt-in live |
 
-
-
 ### 测试设计技术选型表（按 Case 家族）
 <span style="color:#1f6feb"><em>**本节目的**：固定本层"怎么测"——按 Case 家族显式选用的设计技术与反模式；技术选择归本表不在灰例中重复。</em></span>
 
@@ -101,9 +95,7 @@
 | <!-- performance --> | <!-- 单 Case 基线采样 + 多次回归比对 --> | <!-- 上游已验证语义，非性能预算基线 --> | <!-- 不用负载/容量测试（本层不负责系统预算） --> |
 | <!-- security --> | <!-- 鉴权/注入/脱敏冒烟 + 资产级契约 --> | <!-- 上游/集成层已覆盖，本层仅冒烟 --> | <!-- 不用模糊安全测试（不可复现 + 上游责任） --> |
 
-
 ## 1.6 替身使用策略与边界
-
 
 <span style="color:#1f6feb"><em>**本节目相**：固定系统层替身的使用，让 §3 清单的替身选择可解释可复核。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：替身决策准则（按所有权/可控性/真实性分类——内部真实/边界 fake/真协议测试实例/容器等）；替身形态（mock/fake/stub/spy 的取舍与代价）；替身保真度——契约与自检归 `tests.asset-design`（一资产一文档），方案与 Case 只引用其 ID 不复制行为；交互断言 vs 返回值断言（优先返回值，必要时断言关键调用序，但不耦合内部实现）；反模式（不 mock 你不拥有的接口、不 mock 值对象/纯数据、不为凑覆盖率而 mock、不过度断言内部细节）；与 §1 边界、§3 Case 清单、`tests.system-case` §2 替身选择一致。</em></span>
@@ -118,11 +110,7 @@
 | 时钟 | 真实时钟 + 单调计时 | — | 本版无任务级 deadline，无需受控时钟 |
 | 任务存储 | 真实 SQLite（内存库或文件库） | — | 事务与 fencing 语义是本层被测对象，不替换 |
 
-
-
-
 ## 1.7 测试环境类型（方案定义）
-
 
 <span style="color:#1f6feb"><em>**本节目相**：固定本层"在哪类环境上跑"——列出环境**类型**（抽象类别）及其行为/真伪与契约文档（tests.asset-design 或产品规范）；同一类型可多套实例（多 docker 用于并行），具体**实例编号与分配**由 `tests.system-test-plan` §4 编排，Case 在 §2 通过「环境类型 + ENV 实例编号」引用，不在本文档重复描述环境本身。</em></span>
 <span style="color:#1f6feb"><em>**抽象示例**：见下方灰字——系统层测试环境类型（含契约与用法具体细节）+ 环境拓扑（ENV 类型 → ENV 实例 → 被测对象）。</em></span>
@@ -135,12 +123,9 @@
 | `ENV-REMOTE-SCP` | 真 sshd 或指定远端主机（`PIKO_SCP_REMOTE`） | `asset-design` §3.3 | 数据面真实传输；不可用时 Case 记 `BLOCKED` |
 | `ENV-LIVE-LLM` | 真 LLMTier（`127.0.0.1:8180`，模型 `Worker`） | `asset-design` §3.1 | 真实模型端到端；不可用时记 `BLOCKED` |
 
-
 ![system层测试环境拓扑](../diagrams/tests/system-env-topology.svg)
 
-
 ## 2. 测试分类体系
-
 
 <span style="color:#1f6feb"><em>**本节目的**：固定本阶段的测试分类体系与适用裁剪。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：采用 STD 统一家族词表（normal/boundary/negative/concurrency/recovery/security/performance/endurance），逐类声明本阶段适用性与裁剪依据；不适用不等于没写 Case，须在 §4 给事实。</em></span>
@@ -158,11 +143,7 @@
 | performance | 不适用 | 本层不声明系统预算；性能采样归运维与后续专项 |
 | endurance | 不适用 | 无长稳运行要求（`system-design` 未声明 endurance 目标） |
 
-
-
-
 ## 3. 覆盖分母与 Case 清单
-
 
 <span style="color:#1f6feb"><em>**本节目的**：把 design.software-system 的适用来源 ID 转成 Case 清单——测试分母的唯一登记。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：一个来源 ID 至少一条记录（可多 Case 分担，分别写责任摘要）；以设计文档（design §12/§14）的验证项 VRC 清单为分母逐项对账：每个 VRC 至少一个 Case——验证项是设计声明的必测点，本清单只引用其 ID 不复制定义、不做附录；Case ID 稳定且唯一（ST-<对象>-<NNN>）；责任摘要只写“要测什么、边界在哪”，不写输入与 Oracle；设计状态按状态语义；未实现与 NOT_RUN 不删；不适用转 §4。</em></span>
@@ -175,11 +156,7 @@
 |---|---|---|---|---|---|---|
 | <!-- TODO --> | <!-- TODO --> | | | <!-- TODO --> | <!-- TODO --> | |
 
-
-
-
 ## 4. 不适用与缺口裁决
-
 
 <span style="color:#1f6feb"><em>**本节目的**：区分“不适用”与“尚未设计”。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：Tailored-N/A 必须引用设计章节事实；Gap 须有 Owner 与恢复条件；两者都不从分母静默消失。</em></span>
@@ -194,11 +171,7 @@
 | 性能/长稳类目 | Tailored-N/A | `system-design` §11 未声明系统预算与 endurance 目标，无分母来源 |
 | 多实例（`TOP-3`）数据面 | Tailored-N/A | `system-design` §5.3 `TOP-3` 为 Planned，未实现，不构成分母 |
 
-
-
-
 ## 5. 文档联动与清单变更规则
-
 
 <span style="color:#1f6feb"><em>**本节目的**：固定方案—用例—计划的联动规则，防三处漂移。</em></span>
 <span style="color:#1f6feb"><em>**必须写清楚**：新 Case 先入本清单再建 case-design 文档（文档 ID＝Case ID）；清单变更须同步计划构成表；写明方案冻结/版本规则。</em></span>
@@ -207,8 +180,6 @@
 
 - 方案冻结与变更规则：Case 清单随 `system-design` 版本冻结；设计新增/删除保证时，先改 §3 清单再改 case 文档；已执行 Case 的编号不复用。
 - 与 case-design / 计划的同步规则：`设计状态=Designed` 的 Case 必须有同名 `tests.system-case` 文档（Document ID = Case ID）；`Gap` 允许暂无文档；`tests.system-test-plan` §4 只引用 Case ID，不复制判据。
-
-
 
 <!-- 交付自查：每个适用来源 ID 是否都有 Case 或具名缺口；清单里的每个 Case ID 是否都有（或计划有）对应 case-design 文档；方案里是否混入了输入构造或 Oracle 细节？ -->
 
@@ -228,5 +199,4 @@
 | `VRC-ST-013/014` | 控制面与执行面隔离 | 需求 PK-22、`system-design` §5.1/§8.2 | `ST-PROC-001/002` |
 | `VRC-ST-015..018` | 执行闭环、恢复、模型契约、真实模型 | 需求 PK-16/PK-12/PK-09/PK-03 | `ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001/002` |
 | `VRC-ST-019..021` | 讨论链路、观测、运维清理 | 需求 PK-08/PK-11、`CAP-PURGE` | `ST-MX-001`、`ST-OBS-001`、`ST-OPS-001` |
-
 

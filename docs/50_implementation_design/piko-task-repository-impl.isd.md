@@ -394,7 +394,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举
 
-#### 4.1.1 `TaskState` / `DiscussionIntakeState` / `TurnStatus`
+**4.1.1 `TaskState` / `DiscussionIntakeState` / `TurnStatus`**
 
 - **代码式声明、Data/Type ID 与唯一来源**：
 
@@ -416,7 +416,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `TaskRecord` / `RunRecord`
+**4.2.1 `TaskRecord` / `RunRecord`**
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
@@ -444,7 +444,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `{state:"Queued",generation:1,cancel_requested:0}`；拒绝 `{state:"Completed",cancel_requested:1}`。`VRC-REPO-001/004`；`NOT_RUN`。
 
-#### 4.2.2 `CreateRunOutcome` / `FencedRunCommand` / `FencedPublishResult`
+**4.2.2 `CreateRunOutcome` / `FencedRunCommand` / `FencedPublishResult`**
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
@@ -469,7 +469,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `expected_generation:1` 命中；拒绝落后 generation。`VRC-REPO-004`；`NOT_RUN`。
 
-#### 4.2.3 `ResultRecord` / `RunSessionRecord` / `SlotRow`
+**4.2.3 `ResultRecord` / `RunSessionRecord` / `SlotRow`**
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
@@ -492,7 +492,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `SlotRow{task_id:null,...}`；拒绝 `task_id` 非空而 `owner_id` 空。`VRC-REPO-002/003`；`NOT_RUN`。
 
-#### 4.2.4 ledger 记录类型
+**4.2.4 ledger 记录类型**
 
 - **代码式声明、Data/Type ID 与固定来源**：
 
@@ -521,7 +521,7 @@ flowchart LR
 
 ### 4.3 配置与规则数据结构
 
-#### 4.3.1 `TaskStoreConfig`
+**4.3.1 `TaskStoreConfig`**
 
 - **代码式声明、Data/Type ID 与配置 authority**：
 
@@ -554,7 +554,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `ExecutionSlot`（私有投影 + 持久 authority）
+**4.6.1 `ExecutionSlot`（私有投影 + 持久 authority）**
 
 - **代码式声明、Data/Type ID 与固定来源**：`SlotRow`（§4.2.3）是 `execution_slot` 行投影；持久 authority = `execution_slot` 表；状态模型来源 = 模块设计 §6.6 `T-REPO-01..06`。
 
@@ -566,7 +566,7 @@ flowchart LR
 
 - **合法及拒绝转移、V/Case 与证据状态**：合法 `FREE→HELD_LIVE→FREE`；拒绝两个 boot 同时 `HELD_LIVE`。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 4.6.2 `RunGeneration`
+**4.6.2 `RunGeneration`**
 
 - **代码式声明、Data/Type ID 与固定来源**：`runs.generation`（§4.2.1）；来源 `piko-run.md` §4.1.2。
 
@@ -580,7 +580,7 @@ flowchart LR
 
 ### 4.7 数据库表结构
 
-#### 4.7.1 `tasks` / `runs` / `run_sessions` / `execution_slot`
+**4.7.1 `tasks` / `runs` / `run_sessions` / `execution_slot`**
 
 - **DDL/表声明、Data/Type ID 与 schema authority**：authority = 本模块（`src/store/schema.ts`）；当前版本事实 = `src/store.ts` `migrate()`，`PRAGMA user_version=2`。
 
@@ -612,7 +612,7 @@ flowchart LR
 
 - **合法及拒绝行、V/Case 与证据状态**：合法 `execution_slot(1,NULL,NULL,NULL,0,NULL)`；拒绝 `state='Bogus'`。`VRC-REPO-001/003/005`；`NOT_RUN`。
 
-#### 4.7.2 `results` / `model_attempts` / `tool_calls` / `audit_events` / `instance_meta`
+**4.7.2 `results` / `model_attempts` / `tool_calls` / `audit_events` / `instance_meta`**
 
 - **DDL/表声明、Data/Type ID 与 schema authority**：authority = 本模块。
 
@@ -640,7 +640,7 @@ flowchart LR
 
 - **合法及拒绝行、V/Case 与证据状态**：合法 `results(run-1,2,...)`；拒绝同 generation 不同 sha。`VRC-REPO-002/006`；`NOT_RUN`。
 
-#### 4.7.3 `matrix_state` / `matrix_events` / `discussion_turns` / `matrix_sends` / `discussion_access_loss` / `provider_calls`
+**4.7.3 `matrix_state` / `matrix_events` / `discussion_turns` / `matrix_sends` / `discussion_access_loss` / `provider_calls`**
 
 - **DDL/表声明、Data/Type ID 与 schema authority**：authority = 本模块。
 
@@ -672,7 +672,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `PikoError` 与内部错误类
+**4.8.1 `PikoError` 与内部错误类**
 
 - **错误声明、Error/Data ID 与唯一来源**：
 
@@ -702,7 +702,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `TaskRepository.createOrGetRun(input: ValidatedTaskSubmission): CreateRunOutcome`
+**5.1.1 `TaskRepository.createOrGetRun(input: ValidatedTaskSubmission): CreateRunOutcome`**
 
 - **Interface/Member ID、用途**：`IF-RUN-CREATE`；受理与任务身份比较。
 
@@ -756,7 +756,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **装配、合法及拒绝实例**：装配 §3.8。合法：新 `task_id` → `created`。拒绝：tombstone 键 → `tombstone`。Oracle = 直读 `tasks`/`runs`（§9.1.1）。`NOT_RUN`。
 
-#### 5.1.2 `TaskRepository.mutateRun(command: FencedRunCommand): RunRecord | FencedWrite`
+**5.1.2 `TaskRepository.mutateRun(command: FencedRunCommand): RunRecord | FencedWrite`**
 
 - **Interface/Member ID、用途**：`IF-REPO-MUTATE`；fenced 状态/代次/取消写入。
 
@@ -810,7 +810,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **装配、合法及拒绝实例**：合法当前 generation 命中；拒绝旧 generation。`NOT_RUN`。
 
-#### 5.1.3 `TaskRepository.publishResult(command: FencedPublishResult): ResultRecord`
+**5.1.3 `TaskRepository.publishResult(command: FencedPublishResult): ResultRecord`**
 
 - **Interface/Member ID、用途**：`IF-RUN-PUBLISH`；Result 第一步。
 
@@ -864,7 +864,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **装配、合法及拒绝实例**：合法发表 gen N；拒绝同 N 不同 sha。`NOT_RUN`。
 
-#### 5.1.4 `TaskRepository.finish(result: AgentResult, epoch: number): RunRecord`
+**5.1.4 `TaskRepository.finish(result: AgentResult, epoch: number): RunRecord`**
 
 - **Interface/Member ID、用途**：`IF-REPO-FINISH`；Result 第二步 + 终态释放。
 
@@ -918,7 +918,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 
 - **装配、合法及拒绝实例**：合法终态写 + 释放；拒绝旧 epoch。`NOT_RUN`。
 
-#### 5.1.5 `TaskRepository.readSlot(): SlotRow | null`
+**5.1.5 `TaskRepository.readSlot(): SlotRow | null`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；读 slot 投影。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `readSlot`（经 `index.ts` 暴露）；模块内 public。
@@ -947,7 +947,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：合法 `task_id=null` 空闲行。`NOT_RUN`。
 
-#### 5.1.6 `TaskRepository.listQueued(limit: number): string[]`
+**5.1.6 `TaskRepository.listQueued(limit: number): string[]`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；列候选 `Queued` Run。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `listQueued`；模块内 public。
@@ -976,7 +976,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：合法 `["run-a","run-b"]` 升序。`NOT_RUN`。
 
-#### 5.1.7 `TaskRepository.tryClaimSlot(runId: string, ownerId: string, bootId: string): { epoch: number } | "slot_busy" | "run_not_queued"`
+**5.1.7 `TaskRepository.tryClaimSlot(runId: string, ownerId: string, bootId: string): { epoch: number } | "slot_busy" | "run_not_queued"`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；原子领取 slot。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `tryClaimSlot`；模块内 public。
@@ -1005,7 +1005,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：合法空闲 + `Queued` → `{epoch}`；拒绝忙 → `slot_busy`。`NOT_RUN`。
 
-#### 5.1.8 `TaskRepository.renewSlot(runId: string, epoch: number): boolean`
+**5.1.8 `TaskRepository.renewSlot(runId: string, epoch: number): boolean`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；CAS 刷新心跳。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `renewSlot`；模块内 public。
@@ -1034,7 +1034,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：当前 epoch → `true`；旧 epoch → `false`。`NOT_RUN`。
 
-#### 5.1.9 `TaskRepository.fenceSlot(runId: string, ownerId: string, bootId: string): { epoch: number } | "slot_released"`
+**5.1.9 `TaskRepository.fenceSlot(runId: string, ownerId: string, bootId: string): { epoch: number } | "slot_released"`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；重启后重领或清空。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `fenceSlot`；模块内 public。
@@ -1063,7 +1063,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：非终态 → `{epoch}`；终态 → `slot_released`。`NOT_RUN`。
 
-#### 5.1.10 `TaskRepository.releaseSlot(runId: string, epoch: number): boolean`
+**5.1.10 `TaskRepository.releaseSlot(runId: string, epoch: number): boolean`**
 
 - **Interface/Member ID、用途**：`IF-SCHED-STORE` 成员；清空 slot。**仅**本模块 `finish`/`patchTerminal` 内部调用。
 - **文件 / symbol / 可见性**：Planned `src/store/slot.ts` `releaseSlot`；模块内 public。
@@ -1092,7 +1092,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-003`。
 - **装配、合法及拒绝实例**：命中 → `true`；已释放 → `false`。`NOT_RUN`。
 
-#### 5.1.11 `TaskRepository.scanNonTerminalRuns(): string[]`
+**5.1.11 `TaskRepository.scanNonTerminalRuns(): string[]`**
 
 - **Interface/Member ID、用途**：`IF-REC-SCAN`；恢复扫描非终态 Run。
 - **文件 / symbol / 可见性**：Planned `src/store/index.ts` `scanNonTerminalRuns`；public。
@@ -1121,7 +1121,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-008`。
 - **装配、合法及拒绝实例**：含 `Running` Run 的列表。`NOT_RUN`。
 
-#### 5.1.12 `TaskRepository.patchTerminal(command: FencedPublishResult): RunRecord`
+**5.1.12 `TaskRepository.patchTerminal(command: FencedPublishResult): RunRecord`**
 
 - **Interface/Member ID、用途**：`IF-REC-PATCH`；恢复补第二步。
 - **文件 / symbol / 可见性**：Planned `src/store/index.ts` `patchTerminal`；public。
@@ -1150,7 +1150,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-008`。
 - **装配、合法及拒绝实例**：合法已存在 Result → 补终态。`NOT_RUN`。
 
-#### 5.1.13 `TaskRepository.openStore(cfg: TaskStoreConfig): TaskRepository`
+**5.1.13 `TaskRepository.openStore(cfg: TaskStoreConfig): TaskRepository`**
 
 - **Interface/Member ID、用途**：`IF-ST-STORE`；启动打开/迁移。
 - **文件 / symbol / 可见性**：Planned `src/store/index.ts` `openStore` + `src/store/schema.ts`；public。
@@ -1179,7 +1179,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-005`。
 - **装配、合法及拒绝实例**：空库 → 建表；`user_version=3` → 拒绝。`NOT_RUN`。
 
-#### 5.1.14 ledger / turn / send 事务
+**5.1.14 ledger / turn / send 事务**
 
 - **Interface/Member ID、用途**：`F-REPO-LEDGER`；attempt/tool/turn/send 持久化。caller = M006/M005/M008。
 - **文件 / symbol / 可见性**：Planned `src/store/ledger.ts`；public。
@@ -1208,7 +1208,7 @@ task-repository 的对外接口是 §5.1 的进程内函数；被消费的接口
 - **实现状态 / 验证项**：Planned / `VRC-REPO-006`。
 - **装配、合法及拒绝实例**：合法重复 reserve；拒绝 `replay='never'` 重放。`NOT_RUN`。
 
-#### 5.1.15 `TaskRepository.purge(scope: { task_id: string } | "all"): PurgeReceipt`
+**5.1.15 `TaskRepository.purge(scope: { task_id: string } | "all"): PurgeReceipt`**
 
 - **输入**：`{task_id}` 或 `"all"`（全局 retention GC）。
 - **行为**：单事务删大对象（`matrix_sends`/`discussion_turns`/`discussion_access_loss`/`provider_calls`/`tool_calls`/`model_attempts`/`results`/`run_sessions`）→ 删 `runs` → 置 `tasks.identity_state='Tombstone'`、`task_json=NULL`；**保留 tombstone**；写 `audit_events`。
@@ -1402,7 +1402,7 @@ COMMIT -> PurgeReceipt
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-REPO-01` · 并发受理同 `task_id`
+**7.1.1 `C-REPO-01` · 并发受理同 `task_id`**
 
 - **参与线程 / 回调 / 事务**：两个 `createOrGetRun` → SQLite 单 writer。
 - **已产生或可能产生的副作用**：`tasks`/`runs` 写（仅一个 `created`）。
@@ -1412,7 +1412,7 @@ COMMIT -> PurgeReceipt
 - **允许的 query / replay / takeover / retry**：query=`getTask`；replay=同 ID 同内容返回原 Run；新业务须换 `task_id`。
 - **验证项**：`VRC-REPO-007`（Case A）。
 
-#### 7.1.2 `C-REPO-02` · 并发领取 slot
+**7.1.2 `C-REPO-02` · 并发领取 slot**
 
 - **参与线程 / 回调 / 事务**：两个 tick / 恢复 vs 领取 → `tryClaimSlot` 单事务。
 - **已产生或可能产生的副作用**：`execution_slot`/`runs`/`run_sessions`（仅一个成功）。
@@ -1422,7 +1422,7 @@ COMMIT -> PurgeReceipt
 - **允许的 query / replay / takeover / retry**：query=`readSlot`；takeover=`fenceSlot`；retry=下 tick。
 - **验证项**：`VRC-REPO-003`（Case B）。
 
-#### 7.1.3 `C-REPO-03` · `finish` vs `renewSlot`
+**7.1.3 `C-REPO-03` · `finish` vs `renewSlot`**
 
 - **参与线程 / 回调 / 事务**：`finish` 事务 vs `renewSlot` 单语句。
 - **已产生或可能产生的副作用**：`finish` 清空 slot。
@@ -1432,7 +1432,7 @@ COMMIT -> PurgeReceipt
 - **允许的 query / replay / takeover / retry**：`false` 不重试。
 - **验证项**：`VRC-REPO-002/003`。
 
-#### 7.1.4 `C-REPO-04` · Result 两步间崩溃
+**7.1.4 `C-REPO-04` · Result 两步间崩溃**
 
 - **参与线程 / 回调 / 事务**：步 1 COMMIT 后进程崩溃；重启新连接。
 - **已产生或可能产生的副作用**：`results` 有 gen N，`runs` 非终态。
@@ -1442,7 +1442,7 @@ COMMIT -> PurgeReceipt
 - **允许的 query / replay / takeover / retry**：query=`results`/`runs`；takeover=新时代 fence 后补写；不重跑 Pi。
 - **验证项**：`VRC-REPO-002/008`。
 
-#### 7.1.5 `C-REPO-05` · 事务中崩溃 / `SQLITE_BUSY`
+**7.1.5 `C-REPO-05` · 事务中崩溃 / `SQLITE_BUSY`**
 
 - **参与线程 / 回调 / 事务**：受理或 fenced write 中崩溃，或 busy 超时。
 - **已产生或可能产生的副作用**：未提交事务回滚。
@@ -1452,7 +1452,7 @@ COMMIT -> PurgeReceipt
 - **允许的 query / replay / takeover / retry**：query=只读；replay 须核对 `task_id`/`(task_id,generation)`。
 - **验证项**：`VRC-REPO-007`（Case D）。
 
-#### 7.1.6 `C-REPO-06` · 迁移中断
+**7.1.6 `C-REPO-06` · 迁移中断**
 
 - **参与线程 / 回调 / 事务**：`migrate` 事务中崩溃。
 - **已产生或可能产生的副作用**：部分重建表。
@@ -1468,7 +1468,7 @@ COMMIT -> PurgeReceipt
 
 本模块**拥有持久化**：schema authority、DDL、事务与连接均归 M003。当前版本事实来源 = `src/store.ts` `migrate()`（`PRAGMA user_version=2`）。
 
-#### 7.2.1.1 `PERS-REPO-TX` · 通用事务边界
+**7.2.1.1 `PERS-REPO-TX` · 通用事务边界**
 
 - **原规则 / 事务**：所有写操作在单 `BEGIN IMMEDIATE` 内；`tx<T>(fn)` 包裹。
 - **原子范围 / 事务外副作用**：事务内包含全部 SQL；事务外无副作用（日志在提交后写）。
@@ -1478,7 +1478,7 @@ COMMIT -> PurgeReceipt
 - **恢复入口 / 判定记录 / 重复恢复条件**：重启后 `scanNonTerminalRuns` + `results`/`runs` 判定；`patchTerminal` 幂等。
 - **验证项**：`VRC-REPO-002/007`。
 
-#### 7.2.1.2 `PERS-REPO-SLOT` · slot 原语事务
+**7.2.1.2 `PERS-REPO-SLOT` · slot 原语事务**
 
 - **原规则 / 事务**：`tryClaimSlot`/`fenceSlot` 单事务；`renewSlot`/`releaseSlot` 单语句。
 - **原子范围 / 事务外副作用**：事务内 slot + `runs` + `run_sessions`；无事务外副作用。
@@ -1488,7 +1488,7 @@ COMMIT -> PurgeReceipt
 - **恢复入口 / 判定记录 / 重复恢复条件**：`fenceSlot` 幂等（已空返回 `slot_released`）。
 - **验证项**：`VRC-REPO-003`。
 
-#### 7.2.1.3 `PERS-REPO-TWOSTEP` · 两步事务
+**7.2.1.3 `PERS-REPO-TWOSTEP` · 两步事务**
 
 - **原规则 / 事务**：`publishResult` 与 `finish`/`patchTerminal` 各为独立事务。
 - **原子范围 / 事务外副作用**：第一步仅 `results`；第二步 `runs` + `execution_slot`（+ `discussion_turns`）；无事务外副作用。
@@ -1498,7 +1498,7 @@ COMMIT -> PurgeReceipt
 - **恢复入口 / 判定记录 / 重复恢复条件**：`patchTerminal`；已终态跳过。
 - **验证项**：`VRC-REPO-002`。
 
-#### 7.2.2 Schema 演进策略决定
+**7.2.2 Schema 演进策略决定**
 
 - **Schema authority / 当前版本事实来源**：authority = M003 `task-repository`（`src/store/schema.ts`）；当前版本事实 = `src/store.ts` `migrate()` 的 DDL + `PRAGMA user_version=2`。
 
@@ -1510,7 +1510,7 @@ COMMIT -> PurgeReceipt
 
 - **失败后的系统状态与责任方**：迁移失败 → ROLLBACK，**旧库保持可读且内容不变**；进程非零退出、不进入 READY（F1）；责任方 = M003（schema authority）+ operator（人工排查/备份恢复）；不做静默修复。
 
-#### 7.2.2.1 `SCHEMA-REPO-V1V2` · v1 → v2 演进规则
+**7.2.2.1 `SCHEMA-REPO-V1V2` · v1 → v2 演进规则**
 
 - **原规则**：`system-design` §7.11/§10.4 "`PRAGMA user_version` 单调整数；v1→v2 增加 `Abandoned` discussion turn 状态；失败保持旧库可读，worker 不启动"。
 - **升级 / 降级策略**：支持 v1→v2 升级；不支持 v2→v1 降级。
@@ -1519,7 +1519,7 @@ COMMIT -> PurgeReceipt
 - **拒绝后如何处理**：拒绝启动（`StoreUnavailable`）→ F1；旧库只读保留，交 operator；不得静默修复或删除。
 - **验证项**：`VRC-REPO-005`（Case C/D/F）。
 
-#### 7.2.3 库状态分支矩阵
+**7.2.3 库状态分支矩阵**
 
 | 库状态 | 判定事实 | 启动结果 | 是否允许重跑及条件 |
 |---|---|---|---|
@@ -1534,7 +1534,7 @@ COMMIT -> PurgeReceipt
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1.1 `SEC-REPO-NOSECRET` · 无鉴权与不记录敏感数据
+**7.3.1.1 `SEC-REPO-NOSECRET` · 无鉴权与不记录敏感数据**
 
 - **原规则**：模块设计 §11；本模块无外部输入、无身份/授权分支。
 - **可信输入 / 敏感字段 / 检查对象**：调用方为进程内模块；敏感字段 = `task_json`（含 `instruction`/路径）、`result_json`；不含 credential。
@@ -1544,7 +1544,7 @@ COMMIT -> PurgeReceipt
 - **日志 / 指标 / trace 口径及触发**：`info`（受理/领取/终态）、`warn`（`FencedWrite`/依赖错误）、`error`（不变量冲突/迁移失败）；关联键 `task_id` + `generation` + `lease_epoch`。
 - **验证项**：`VRC-REPO-004`（日志不含敏感字段由审查核对）。
 
-#### 7.3.1.2 `SEC-REPO-METRIC` · 指标写入点
+**7.3.1.2 `SEC-REPO-METRIC` · 指标写入点**
 
 - **原规则**：`system-design` §12；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：`piko.queue.depth`（`Queued` 计数）、`piko.slot.lease_epoch`（`execution_slot.lease_epoch`）、`piko.run.state.duration.{state}`（`started_at`/`finished_at`）。
@@ -1554,7 +1554,7 @@ COMMIT -> PurgeReceipt
 - **日志 / 指标 / trace 口径及触发**：单位=count/ms；重置=进程世代；关联 `task_id` + `generation`。
 - **验证项**：`VRC-REPO-003/007`。
 
-#### 7.3.2.1 `SEC-REPO-LOCALSTORE` · 本地持久化安全
+**7.3.2.1 `SEC-REPO-LOCALSTORE` · 本地持久化安全**
 
 - **适用对象 / 路径 / Owner**：`task_store.sqlite_path` 及其 WAL/journal；Owner = Piko Implementation Owner（operator 指定路径）。
 - **文件与目录权限 / umask**：目录由 `mkdirSync` 创建；权限由宿主/部署 umask 决定，进程不额外放宽。
@@ -1818,7 +1818,7 @@ COMMIT -> PurgeReceipt
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-REPO-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-REPO-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-task-repository` §2/§6.6/§8/§9（v0.1.0-draft.1）声明功能、状态模型、fenced 语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/SQL 事实派生——当前全部 `PLANNED`，无运行证据。

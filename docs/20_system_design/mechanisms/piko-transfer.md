@@ -15,7 +15,6 @@
 | Template Version | `3.3.1` |
 <!-- STD_DOCUMENT_COVER_END -->
 
-
 ## 1. 机制摘要：解决什么问题
 
 Slinky 派来的任务，其输入（`input_refs`）与产出（`output_paths`）是**文件**；文件**不经 HTTP**，由 Piko **主动搬运**（本期 `scp`，方法可选 `mount`/`object_store`）。搬运不能由单个模块完成：`task-api` 只规范化请求；`policy` 只判路径与授权；`worker` 只编排"何时拉、何时推"；`task-repository` 只持事实；真正的搬运、校验、重试、幂等、staging 需要一个独立责任单元 `transfer` M010（运行在 **P1**，避免阻塞 P0 应答）。
@@ -56,43 +55,53 @@ Slinky 派来的任务，其输入（`input_refs`）与产出（`output_paths`�
 ## 4. 数据结构设计
 
 ### 4.2 业务与操作数据结构
+
 - `InputRef { source, dest?, sha256? }`；`dest` 相对 `workspace_ref` 解析出的 workspace 根。
 - `ArtifactTarget { method, target, secret_ref? }`。
 - `OutputArtifact { path, sha256, size_bytes }`；`FailedItem { path/source, error }`。
 - 定义与机器契约同源：`interfaces/schemas/agent-runtime-v0.3.schema.json`。
 
 ### 4.3 配置与规则数据结构
+
 - `transfer.method`、`transfer.credential_ref`、`transfer.target_allowlist`、`transfer.known_hosts`、`transfer.max_input_bytes`、`transfer.retry`。
 
 ### 4.6 运行状态数据结构
+
 - `InputStaging { state: none|pending|in_progress|ready|failed, fetched[], failed[] }`。
 - `ArtifactDelivery { state: none|pending|in_progress|delivered|partial|failed, delivered[], failed[] }`。
 
 ### 4.7 数据库表结构
+
 - 事实落在 `runs` 行的 `input_staging_json` / `artifact_delivery_json` 列（M003 §4.7）；**P0 写入**。
 
 ### 4.8 错误码与错误结构
+
 - `InputFetchFailed`（`failure.code`，`cause_class=Dependency`）：输入拉取/校验失败，零调用 `Failed`。
 - 投递失败**不产生** `failure.code`，由 `artifact_delivery.state=failed/partial` 表达。
 
 ### 4.10 一致性、可见性与数据寿命
+
 - 事实可见点：`TaskView.input_staging` / `TaskView.artifact_delivery`。
 - 寿命：随 Run 保留期；staging 在终态或失败后按 retention 清理。
 
 ## 5. 接口设计
 
 ### 5.1 API（适用时）
+
 本机制**无面向 Slinky 的 API**；对外只体现为 `TaskView` 的两个字段。
 
 ### 5.2 消息与数据流接口
+
 - **P0→P1**：`FetchInputs{task_id,...}`、`DeliverArtifacts{task_id,...}`、`Abort{task_id}`。
 - **P1→P0**：`Staging{state,items}`、`Delivery{state,items}`、`Facts`。
 - **外部**：出站 `scp` 至 Slinky 存储主机；Secret provider 解析 `transfer.credential_ref`。
 
 ### 5.4 人机与维护接口
+
 无独立 CLI；状态经 `TaskView` 与诊断快照可见。
 
 ## 6. 正常端到端流程
+
 1. M001 受理（P0），Run=Queued，`input_staging=pending`。
 2. M005（P1）staging lane 领 Run → 发 `FetchInputs` → M010 出站 `scp` 拉到 `<staging>/<task_id>/<dest>` → 校 `sha256` → 上报 `Staging{ready}`。
 3. M003（P0）落库；Run 才有资格竞争 execution slot。
@@ -101,52 +110,70 @@ Slinky 派来的任务，其输入（`input_refs`）与产出（`output_paths`�
 6. Slinky 轮询见 `artifact_delivery=delivered` 后读产出。
 
 ## 7. 分支和替代流程
+
 - `sha256` 不符 → 重试（有界）→ 仍失败 → `Failed(InputFetchFailed)`，清理 staging，**从不领 slot**。
 - 目标不可达/拒绝 → 投递 `failed`/`partial`；`Result` 与 `failure` 不变。
 - staging 中 cancel → `Abort` → M010 中断 in-flight `scp` + 清 staging → 零调用 `Cancelled`。
 - 无 `input_refs`/`artifact_target` → `none`，跳过相应阶段。
 
 ## 8. 状态机与不变量
+
 - `input_staging`：`none|pending→in_progress→ready|failed`（单调，不回退）。
 - `artifact_delivery`：`none|pending→in_progress→delivered|partial|failed`。
 - 不变量：`delivered`/`failed` 的 path 集合不相交；`failed` ≠ 执行失败。
 
 ## 9. 失败传播、重试与恢复
+
 - 输入失败是**执行前提失败**：零调用 `Failed(InputFetchFailed)`；重试必须换新 `task_id`。
 - 投递失败：有界重试 + 退避；幂等 `(task_id,generation,path,sha256)`；**不阻断终态**。
 - 恢复：P1 重启后按 P0 事实重放（已 `ready`/`delivered` 不重复副作用）。
 
 ## 10. 并发、排序与容量
+
 - staging 与投递各**串行（并发=1）**；`transfer.max_input_bytes` 限单文件；重试次数可配。
 - 慢 `scp` 只占 P1，不影响 P0 与正在执行的 Run（staging 在槽前）。
 
 ## 11. 安全、权限与信任边界
+
 - 凭据经 **secret 挂载**，不进载荷/DB/Result/log；出站仅白名单主机；`known_hosts` 固定（不自动接受）。
 - 路径经 `policy` 边界校验，禁止逃逸 staging 根。
 
 ## 12. 可观测性与证据
+
 - 指标：`piko.transfer.bytes.{in,out}`、`piko.transfer.outcomes.{fetched,delivered,partial,failed}`。
 - 事件：`event.transfer.{fetch,deliver,retry}`（含 `task_id`/`generation`）。
 
 ## 13. 配置、兼容与部署
+
 - 配置见 §4.3；方法可换；部署在 P1 容器内，需出站可达存储主机。
 
 ## 14. 跨责任单元分解与接口分配
+
 ### 14.1 参与方到架构对象映射
+
 - M010→`transfer`；M005→`worker`；M003→`task-repository`；M000→`bootstrap`。
+
 ### 14.3 责任单元间接口契约
+
 - P0↔P1：`FetchInputs`/`DeliverArtifacts`/`Abort`/`Staging`/`Delivery`。
+
 ### 14.4 下级设计输入清单
+
 - M010 definition+ISD（`piko-transfer-design.md` / `piko-transfer-impl.isd.md`）。
 
 ## 15. 验证、上线与回滚
+
 ### 15.1 输入构造、故障控制与独立判据
+
 - PK-T41：注入源不可达 / `sha256` 不符 → 断言零调用 `Failed` 且从未领 slot。
 - PK-T42：注入目标拒绝 / 部分失败 → 断言终态不变、`failed/partial`、重试幂等。
+
 ### 15.3 组合验收、启用与旧机制退出
+
 - 与 MECH-RUN / MECH-CANCEL / MECH-RECOVERY 组合验收。
 
 ## 16. 风险、未决问题与决定
+
 - `scp` 私钥轮换与白名单维护成本；方法可换（`mount`/`object_store`）以降低。
 
 ## A. 输入基线、适用性与图文规则

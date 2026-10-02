@@ -40,7 +40,7 @@ task-repository 只做**持久化与事务**，不决策业务：不决定 Run �
 
 task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease fencing）、`CON-RUN-002`（PK-02，任务事务稳定身份）、`CON-RUN-004`（PK-07，Result 两步提交）、`CON-REC-001`（PK-12，恢复边界）、`CON-ST-001`（PK-12，启动 store 开库/迁移）、`CON-CFG-001`（PK-12，配置重启生效边界）、`CON-CX-001`（PK-03，取消分流的事务侧）、`CON-MX-001`（PK-08，discussion turn 持久化）。全部为 Approved。来源文档为 `system-design` §3.4 与五份机制文档 §3.1。`CON-RUN-003` / `PK-04`（期限/模型预算）已随 `system-design` v0.12.0-draft.1 §3.4（`PK-04` 行 · **本版撤销**）撤销：本模块不判定任何任务级 deadline/预算字段，`runs` 表不设相应列。
 
-#### 1.1.1 `CON-RUN-001` · 单 slot + lease epoch 唯一 fencing（持久化侧）
+**1.1.1 `CON-RUN-001` · 单 slot + lease epoch 唯一 fencing（持久化侧）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-01 行）+ `piko-run.md` §3.1 `CON-RUN-001` · PK-01 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文："lease epoch 唯一 fencing；`pi_session_id=task_id` 确定性绑定。"
 
@@ -56,7 +56,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none。多实例需另立设计（`system-design` §3.3 关键决定 2），不在本模块放宽。
 
-#### 1.1.2 `CON-RUN-002` · 任务事务稳定身份
+**1.1.2 `CON-RUN-002` · 任务事务稳定身份**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-02 行）+ `piko-run.md` §3.1 `CON-RUN-002` · PK-02 · Approved。上级原文："tombstone 永久拒绝；同 ID 同内容不重新检查动态条件。"
 
@@ -72,7 +72,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none。契约版本变化需独立评审（`piko-run.md` §13）。
 
-#### 1.1.3 `CON-RUN-004` · Result 两步提交
+**1.1.3 `CON-RUN-004` · Result 两步提交**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-07 行）+ `piko-run.md` §3.1 `CON-RUN-004` · PK-07 · Approved。上级原文："写 `results` 与写终态不可合并。"
 
@@ -88,7 +88,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.4 `CON-REC-001` · 崩溃恢复边界
+**1.1.4 `CON-REC-001` · 崩溃恢复边界**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-recovery.md` §3.1 `CON-REC-001` · PK-12 · Approved。上级原文："恢复顺序：Result → Run → lease → Pi session → Harness → ledger → Matrix"；"不复活旧权威、不模拟成功。"
 
@@ -104,7 +104,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.5 `CON-ST-001` · 启动 store 开库与迁移
+**1.1.5 `CON-ST-001` · 启动 store 开库与迁移**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-startup.md` §3.1 `CON-ST-001` · PK-12 · Approved；下级输入 `M-ST-DI-002`。上级规定启动 S5 由 M003 open/migrate SQLite（WAL+FK+busy_timeout）+ instance lock，失败 → F1 不进入 listen。
 
@@ -120,7 +120,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none；迁移策略的降级边界登记 `OQ-REPO-002`。
 
-#### 1.1.6 `CON-CFG-001` · 配置重启生效（本模块边界）
+**1.1.6 `CON-CFG-001` · 配置重启生效（本模块边界）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-config.md` §3.1 `CON-CFG-001` · PK-12 · Approved；本模块只受"config 变更需重启生效"约束。
 
@@ -136,7 +136,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：**非本模块决定**：配置 schema 的字段定义归 MECH-CONFIG / interfaces；本模块只消费。不自行新增 config key。
 
-#### 1.1.7 `CON-CX-001` · 取消分流（事务侧）
+**1.1.7 `CON-CX-001` · 取消分流（事务侧）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-03 行）+ `piko-cancel.md` §3.1 `CON-CX-001` · PK-03 · Approved；下级输入 `M-CX-DI-002`。上级规定"Queued 零调用 Result；Running 经 Cancelling"，"`StopRequested` ≠ 停止"。
 
@@ -152,7 +152,7 @@ task-repository 承接八条上级约束：`CON-RUN-001`（PK-01，slot + lease 
 
 - **差距/变更影响/反馈责任**：none；决定（分流）归 M005，写入归本模块。
 
-#### 1.1.8 `CON-MX-001` · discussion turn 持久化
+**1.1.8 `CON-MX-001` · discussion turn 持久化**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-08 行）+ `piko-matrix.md` §3.1 `CON-MX-001` · PK-08 · Approved；下级输入 `M-MX-DI-003`。上级规定每批 `syncOnce` 在 `BEGIN IMMEDIATE` 中写 dedup + `DiscussionTurn` + 新 cursor；失败时 cursor 不推进。
 
@@ -327,7 +327,7 @@ flowchart LR
 
 图 M-REPO-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用与返回，不是网络或新部署边界。task-repository 不创建线程/进程；所有事务在调用方事件循环上同步执行。持久化权威（SQLite 连接、事务、DDL）集中于本模块，其他模块绝不自行打开连接。
 
-#### 4.1 `DEP-REPO-SQLITE` · SQLite 存储引擎
+**4.1 `DEP-REPO-SQLITE` · SQLite 存储引擎**
 
 - **角色 / 运行位置 / Owner**：本模块独占的本地嵌入式数据库；同进程；Owner：Piko Implementation Owner。
 
@@ -341,7 +341,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：`SQLITE_BUSY` 超时/`SQLITE_IOERR`/`SQLITE_FULL` → 事务 ROLLBACK 并向上抛依赖错误，由调用方去映射 HTTP 503/500 或终止；启动阶段失败 → F1（§2.8）。
 
-#### 4.2 `DEP-REPO-FS` · 本地文件系统
+**4.2 `DEP-REPO-FS` · 本地文件系统**
 
 - **角色 / 运行位置 / Owner**：SQLite 数据文件与 WAL/journal 所在磁盘；Owner：Piko Implementation Owner（operator 配置路径）。
 
@@ -355,7 +355,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：路径不可创建/不可写/磁盘耗尽 → 启动 F1；运行中 `SQLITE_FULL` → 事务失败上抛，交 operator。
 
-#### 4.3 `DEP-REPO-CONFIG` · 任务存储与容量配置
+**4.3 `DEP-REPO-CONFIG` · 任务存储与容量配置**
 
 - **角色 / 运行位置 / Owner**：M000 `bootstrap` 从 config 解析并注入本模块；Owner：Piko Implementation Owner。
 
@@ -369,7 +369,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：配置缺失/非法 → 启动 F1（schema 校验在前，S2）。
 
-#### 4.4 `DEP-REPO-CLOCK` · 时间源（宿主提供）
+**4.4 `DEP-REPO-CLOCK` · 时间源（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力，同进程；Owner：Piko Implementation Owner（M000 装配）。
 
@@ -423,7 +423,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `S1` · TaskRepository（入口）
+**5.1.1 `S1` · TaskRepository（入口）**
 
 - **职责与非职责**：对外提供 §9.1 全部操作并保证 §6.6 不变量；编排"受理事务""fenced write 事务""slot 事务""Result 两步""恢复补写""openStore"。非职责：不实现身份比较算法（I1）、不做 guard 判定细节（I2）、不拼 DDL（I4）、不决定 Run 业务语义（M005）。
 
@@ -435,7 +435,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做事务编排，把身份比较与 guard 抽成纯/薄单元以便无外部依赖单测。替代方案"继续单文件"是 Current 形态，代价是事务、迁移、业务规则耦合、难以单独验证（这正是本设计要消除的）。
 
-#### 5.1.2 `I1` · AcceptancePolicy（受理与身份纯规则）
+**5.1.2 `I1` · AcceptancePolicy（受理与身份纯规则）**
 
 - **职责与非职责**：纯函数：`sameTask(a,b)`（集合字段按集合、时间按 UTC instant、成员顺序忽略）、`classifyExisting(identity_state, sameTask)`、`queueAdmitted(queuedCount, capacity)`、`initialRun()`（`Queued`/`generation=1`）。非职责：无 I/O、无状态、不读时钟。
 
@@ -447,7 +447,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：纯函数使 §8 `R-REPO-IDENTITY`/`R-REPO-CAPACITY` 可表驱动测试。替代方案"比较内联在 SQL 事务"无法对边界（同 ID 不同内容、tombstone、满队列）做无 DB 单测。
 
-#### 5.1.3 `I2` · FenceGuard（fenced write 守卫）
+**5.1.3 `I2` · FenceGuard（fenced write 守卫）**
 
 - **职责与非职责**：纯/薄：`matchesGeneration(row, expected)`、`matchesEpoch(slot, expected)`、`stateIn(current, expected_in)`、`nextGeneration(current)`；把 CAS 命中/未命中表达为可判定结果。非职责：不发 SQL、不做 slot 写入（I3）。
 
@@ -459,7 +459,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：guard 可独立验证"旧 generation 必被拒"。替代方案"WHERE 子句隐含"难以单测且易漏 guard。
 
-#### 5.1.4 `I3` · SlotLedger（单执行位原语）
+**5.1.4 `I3` · SlotLedger（单执行位原语）**
 
 - **职责与非职责**：实现 §9.1.5–9.1.10 六个 slot 原语与 §6.6 `T-REPO-01..06` 的原子动作；是 scheduler 消费的 `IF-SCHED-STORE` Provider。非职责：不做调度策略（M004）、不决定 Run 终态（M005）、不自判恢复完成。
 
@@ -471,7 +471,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把 slot CAS 与终态释放集中一处，保证 `(task_id, epoch)` 语义只有一份。替代方案"散在 finish 与 worker"正是 Current，代价是 fencing 语义分散、难以端到端保证。
 
-#### 5.1.5 `I4` · SchemaMigrator（DDL 与迁移）
+**5.1.5 `I4` · SchemaMigrator（DDL 与迁移）**
 
 - **职责与非职责**：持有全部 DDL 与 `PRAGMA user_version` 迁移序列；保证幂等与失败回滚。非职责：不决定业务（只保证库形状）。
 
@@ -483,7 +483,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：迁移独立使 §14.2 六类库状态可分别构造测试。替代方案"迁移内联构造器"难以在部分初始化/版本不匹配分支上做隔离测试。
 
-#### 5.1.6 `I5` · LedgerCodec（台账编解码）
+**5.1.6 `I5` · LedgerCodec（台账编解码）**
 
 - **职责与非职责**：实现 attempt/tool/turn/send 的行编码、`record_version` 推进与幂等去重。非职责：不聚合 usage 语义（M007）、不决定 turn 状态（M005）。
 
@@ -497,7 +497,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-REPO-ACCEPT` · 受理
+**5.2.1 `P-REPO-ACCEPT` · 受理**
 
 - **入口与调用上下文**：M001 `POST /tasks` handler（宿主事件循环）→ `TaskRepository.createOrGetRun(input)`。
 
@@ -509,7 +509,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-REPO-P1`；§9.1.1 `IF-RUN-CREATE`；`VRC-REPO-001`。
 
-#### 5.2.2 `P-REPO-CLAIM` · 领取 slot（M004 调用）
+**5.2.2 `P-REPO-CLAIM` · 领取 slot（M004 调用）**
 
 - **入口与调用上下文**：M004 scheduler tick → `readSlot`/`listQueued`/`tryClaimSlot`。
 
@@ -521,7 +521,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-REPO-P2`；§9.1.7 `IF-SCHED-STORE`；`VRC-REPO-003`。
 
-#### 5.2.3 `P-REPO-PUBLISH` · Result 两步
+**5.2.3 `P-REPO-PUBLISH` · Result 两步**
 
 - **入口与调用上下文**：M005 worker 两步提交 → `publishResult`（第一步）、`finish`（第二步）。
 
@@ -533,7 +533,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-REPO-P3`；§9.1.3 `IF-RUN-PUBLISH`、§9.1.4 `finish`；`VRC-REPO-002`。
 
-#### 5.2.4 `P-REPO-RECOVER` · 恢复扫描与补终态
+**5.2.4 `P-REPO-RECOVER` · 恢复扫描与补终态**
 
 - **入口与调用上下文**：M005 恢复流程（重启后、恢复门内）→ `scanNonTerminalRuns`/`patchTerminal`。
 
@@ -545,7 +545,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-REPO-P4`；§9.1.11 `IF-REC-SCAN`、§9.1.12 `IF-REC-PATCH`；`VRC-REPO-008`。
 
-#### 5.2.5 `P-REPO-OPEN` · 打开/迁移
+**5.2.5 `P-REPO-OPEN` · 打开/迁移**
 
 - **入口与调用上下文**：M000 bootstrap S5 → `TaskRepository.openStore(cfg)`。
 
@@ -561,7 +561,7 @@ flowchart TB
 
 本节只固定 task-repository 内部文件之间的交接；跨模块接口在 §9.1，字段类型在 §6。
 
-#### 5.3.1 `IF-REPO-ACCEPTANCE` · `index.ts` → `acceptance.ts`
+**5.3.1 `IF-REPO-ACCEPTANCE` · `index.ts` → `acceptance.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8（`R-REPO-IDENTITY`/`R-REPO-CAPACITY`）。
 
@@ -573,7 +573,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/store/acceptance.ts`；`VRC-REPO-001`/`VRC-REPO-007`。
 
-#### 5.3.2 `IF-REPO-FENCE` · `index.ts`/`slot.ts` → `fence.ts`
+**5.3.2 `IF-REPO-FENCE` · `index.ts`/`slot.ts` → `fence.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部 `FenceGuard`，规则权威在 §8 `R-REPO-FENCE`；slot 对外合同见 §9.1.5–9.1.10。
 
@@ -585,7 +585,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/store/fence.ts`；`VRC-REPO-004`。
 
-#### 5.3.3 `IF-REPO-SCHEMA` · `index.ts` → `schema.ts`
+**5.3.3 `IF-REPO-SCHEMA` · `index.ts` → `schema.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部 `SchemaMigrator`，策略权威在 ISD §7.2（本模块拥有持久化）。
 
@@ -623,7 +623,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 ### 6.1 公共基础类型与枚举
 
-#### 6.1.1 `TaskState` / `DiscussionIntakeState` / `TurnStatus` / `CancelOutcome`
+**6.1.1 `TaskState` / `DiscussionIntakeState` / `TurnStatus` / `CancelOutcome`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`；`DiscussionIntakeState = "Disabled" | "Open" | "Closing" | "Closed"`；`TurnStatus = "Pending" | "QueuedInPi" | "Consumed" | "Abandoned"`；`CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。来源：`system-design` §7.1 + `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.TaskState`；本模块是唯一写者。
 
@@ -635,7 +635,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `TaskRecord` / `RunRecord`
+**6.2.1 `TaskRecord` / `RunRecord`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`TaskRecord` 映射 `tasks` 行；`RunRecord` 映射 `runs` 行。权威：本设计 §6.7 与 ISD §4.2。
 
@@ -655,7 +655,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{state:"Queued", generation:1, cancel_requested:0}`。拒绝：`{state:"Completed", generation:2, cancel_requested:1}`。`VRC-REPO-001/004`；`NOT_RUN`。
 
-#### 6.2.2 `CreateRunOutcome` / `FencedRunCommand` / `FencedPublishResult`
+**6.2.2 `CreateRunOutcome` / `FencedRunCommand` / `FencedPublishResult`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：
 
@@ -676,7 +676,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{task_id:"run-1", expected_generation:1, expected_state_in:["Running"], expected_lease_epoch:3, mutation:"terminal"}`。拒绝：`expected_generation` 落后于 `runs.generation`。`VRC-REPO-004`；`NOT_RUN`。
 
-#### 6.2.3 `ResultRecord` / `RunSessionRecord`
+**6.2.3 `ResultRecord` / `RunSessionRecord`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：
 
@@ -696,7 +696,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{task_id:"run-1", generation:2, result_sha256:"..."}`。拒绝：同 generation 不同 `result_sha256`。`VRC-REPO-002`；`NOT_RUN`。
 
-#### 6.2.4 `ModelAttemptRecord` / `ToolCallRecord` / `DiscussionTurn` / `MatrixSendRecord`
+**6.2.4 `ModelAttemptRecord` / `ToolCallRecord` / `DiscussionTurn` / `MatrixSendRecord`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：
 
@@ -720,11 +720,11 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 M006/M005/M008 决定、本模块写入；可见点 = 事务提交；寿命 = Run + retention。去重/幂等失败以判别结果返回。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法：同一 attempt 重复 `reserveModel` 幂等。拒绝：`model_calls` 达上限后 reserve。`VRC-REPO-006`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法：同一 attempt 重复 `reserveModel` 幂等。拒绝：`replay='never'` 工具在无 outcome 时重放 → `UnsafeRetryBlocked`。`VRC-REPO-006`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
-#### 6.3.1 `TaskStoreConfig`
+**6.3.1 `TaskStoreConfig`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：
 
@@ -750,7 +750,7 @@ task-repository 拥有 Piko 全部持久表的 schema authority；本章定义�
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `ExecutionSlot`（跨步骤运行状态，必填）
+**6.6.1 `ExecutionSlot`（跨步骤运行状态，必填）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`ExecutionSlot` 是"唯一执行位"的持久运行状态，物理载体为 `execution_slot` 单行（`slot_id=1`）与 `run_sessions.lease_epoch`。唯一写者本模块（经 slot 原语与 `finish`/`patchTerminal` 的 releaseSlot）；权威事实 = `execution_slot` 行 + `runs.state`。
 
@@ -792,7 +792,7 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`HELD_LIVE{task_id:"run-1", owner_id:"worker-1", boot_id:"boot-1", lease_epoch:3}`。拒绝：`task_id` 非空但 `owner_id` 空；两个不同 `boot_id` 同时 `HELD_LIVE`。`VRC-REPO-002/003`；`NOT_RUN`。
 
-#### 6.6.2 `RunGeneration`（fenced write 代次）
+**6.6.2 `RunGeneration`（fenced write 代次）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`runs.generation` 单调正整数，随每次 fenced write 递增。来源：`piko-run.md` §4.1.2；本模块写入。
 
@@ -804,7 +804,7 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`1→2→3`。拒绝：携带 `expected_generation=1` 而现值为 3。`VRC-REPO-004`；`NOT_RUN`。
 
-#### 6.6.3 `Lease`（scheduler 消费值，非本模块持久列）
+**6.6.3 `Lease`（scheduler 消费值，非本模块持久列）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`Lease{task_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 由 M004 从本模块 slot CAS 结果构造；权威：`piko-scheduler` §6.2.1；本模块提供产生它的 `epoch`/时间戳。
 
@@ -818,7 +818,7 @@ stateDiagram-v2
 
 ### 6.7 数据库表结构
 
-#### 6.7.1 `tasks` / `runs` / `run_sessions` / `execution_slot`（当前代码事实在 `src/store.ts`）
+**6.7.1 `tasks` / `runs` / `run_sessions` / `execution_slot`（当前代码事实在 `src/store.ts`）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实**：`src/store.ts` `migrate()`（`src/store.ts:15`–`:33`）建表；`PRAGMA user_version=2`。本模块是 schema authority；ISD §7.2 固定迁移策略。原文 DDL 摘录（现有）：
 
@@ -846,7 +846,7 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`execution_slot(1, NULL, NULL, NULL, 0, NULL)`。拒绝：`state='Bogus'`（CHECK）。`VRC-REPO-001/005`；`NOT_RUN`。
 
-#### 6.7.2 `results` / `model_attempts` / `tool_calls` / `audit_events` / `instance_meta`
+**6.7.2 `results` / `model_attempts` / `tool_calls` / `audit_events` / `instance_meta`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实** `src/store.ts:22`–`:29`；`audit_events` 由 M009 经本模块事务写入、本模块建表；`instance_meta` 记 schema_generation/instance_id/boot_id。
 
@@ -856,7 +856,7 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`results(run-1, 2, "...", sha256, ts)`。拒绝：同 generation 不同 sha。`VRC-REPO-002/006`；`NOT_RUN`。
 
-#### 6.7.3 `matrix_state` / `matrix_events` / `discussion_turns` / `matrix_sends` / `discussion_access_loss` / `provider_calls`
+**6.7.3 `matrix_state` / `matrix_events` / `discussion_turns` / `matrix_sends` / `discussion_access_loss` / `provider_calls`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实** `src/store.ts:25`–`:32`；`discussion_turns.status` 含 `Abandoned`（v2）。`provider_calls` 由 M006 写、用于诊断。
 
@@ -868,7 +868,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `PikoError` 公共码 + 内部 `FencedWrite` / `LeaseLost` / `SlotInvariantViolation` / `StoreUnavailable`
+**6.8.1 `PikoError` 公共码 + 内部 `FencedWrite` / `LeaseLost` / `SlotInvariantViolation` / `StoreUnavailable`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：公共 HTTP 码沿用 `interfaces/error-codes/error-blocker-catalog-v0.3.json`：`TaskConflict`(409)、`Gone`(410)、`QueueFull`(429)、`TaskNotTerminal`(409)、`ResultUnavailable`(500)。本模块产生/透传它们；内部类型 `FencedWrite`（CAS 未命中）、`LeaseLost`（fenced 写 slot 不匹配）、`SlotInvariantViolation`（slot/lease 记录不一致）、`StoreUnavailable`（open/migrate 失败）为进程内异常，不映射为对外码。
 
@@ -971,7 +971,7 @@ flowchart TD
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-REPO-IDENTITY` · 任务身份比较与分支
+**8.1 `R-REPO-IDENTITY` · 任务身份比较与分支**
 
 - **输入前提 / 适用条件**：`createOrGetRun`；`task_id` 可能已存在或被 tombstone。
 
@@ -985,7 +985,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：同 `task_id` 同 `task_json` → `existing`；改动 `instruction` → `conflict`；tombstone 键 → `tombstone`。`VRC-REPO-001`。
 
-#### 8.2 `R-REPO-CAPACITY` · 队列容量受理
+**8.2 `R-REPO-CAPACITY` · 队列容量受理**
 
 - **输入前提 / 适用条件**：`createOrGetRun` 且 `task_id` 不存在。
 
@@ -999,7 +999,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：capacity=1、已有 1 个 `Queued` → 新任务 `queue_full` 且 `tasks` 不新增。`VRC-REPO-007`。
 
-#### 8.3 `R-REPO-FENCE` · fenced write 与 generation
+**8.3 `R-REPO-FENCE` · fenced write 与 generation**
 
 - **输入前提 / 适用条件**：`mutateRun`/`finish`/`patchTerminal`；调用方携带 `expected_generation`（必要时 `expected_lease_epoch`）。
 
@@ -1013,7 +1013,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：`expected_generation=1` 命中；`=0` 0 行；终态写与 releaseSlot 同事务。`VRC-REPO-004`。
 
-#### 8.4 `R-REPO-TWOSTEP` · Result 两步提交
+**8.4 `R-REPO-TWOSTEP` · Result 两步提交**
 
 - **输入前提 / 适用条件**：Run 终态发布；`results` 与 `runs.state` 分属两步。
 
@@ -1027,7 +1027,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：正常 Completed：`results(gen N)` + `runs(state=Completed, gen N+1)`；两步间崩溃 → 重启 `patchTerminal` 补第二步且 Result 不变。`VRC-REPO-002`。
 
-#### 8.5 `R-REPO-SLOT` · 单执行位 CAS 与 FIFO 选择
+**8.5 `R-REPO-SLOT` · 单执行位 CAS 与 FIFO 选择**
 
 - **输入前提 / 适用条件**：`tryClaimSlot`/`renewSlot`/`fenceSlot`/`listQueued`；`execution_slot.lease_epoch int >= 0`。
 
@@ -1041,7 +1041,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：空 slot + `["run-a","run-b"]` → 选 `run-a`；epoch `0→1`；旧 epoch `renewSlot` `false`。`VRC-REPO-003`。
 
-#### 8.6 `R-REPO-MIGRATE` · schema 版本迁移
+**8.6 `R-REPO-MIGRATE` · schema 版本迁移**
 
 - **输入前提 / 适用条件**：`openStore`；目标 `PRAGMA user_version=2`。
 
@@ -1055,7 +1055,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：空库 → `2`；v1 库 → 迁移后 `discussion_turns` 可写 `Abandoned`；`user_version=3` → 拒绝。`VRC-REPO-005`。
 
-#### 8.7 `R-REPO-RETENTION` · 保留与 tombstone
+**8.7 `R-REPO-RETENTION` · 保留与 tombstone**
 
 - **输入前提 / 适用条件**：purge 触发；`retention.minimum_query_days`。
 
@@ -1075,7 +1075,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`
+**9.1.1 `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-CREATE`（`piko-run.md` §5.1 声明为 M003 提供）；受理与任务身份比较。来源：本模块拥有。
 
@@ -1089,7 +1089,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `TaskRepository.createOrGetRun`（Planned）。合法：新 `task_id` → `created`。拒绝：tombstone → `tombstone`。`VRC-REPO-001/007`；`NOT_RUN`。
 
-#### 9.1.2 `mutateRun(command: FencedRunCommand) -> RunRecord | FencedWrite`
+**9.1.2 `mutateRun(command: FencedRunCommand) -> RunRecord | FencedWrite`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-REPO-MUTATE`（`system-design` §3.2 的 `mutateRun`）；fenced 状态/代次/取消写入。来源：本模块拥有。
 
@@ -1103,7 +1103,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `TaskRepository.mutateRun` + `src/store/fence.ts`（Planned）。`VRC-REPO-004`；`NOT_RUN`。
 
-#### 9.1.3 `publishResult(command: FencedPublishResult) -> ResultRecord | ResultConflict`
+**9.1.3 `publishResult(command: FencedPublishResult) -> ResultRecord | ResultConflict`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-PUBLISH`（`piko-run.md` §5.1 声明为 M003 提供）；Result 两步第一步。来源：本模块拥有。
 
@@ -1117,7 +1117,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `TaskRepository.publishResult`（Planned）。`VRC-REPO-002`；`NOT_RUN`。
 
-#### 9.1.4 `finish(result: AgentResult, epoch: number) -> RunRecord`
+**9.1.4 `finish(result: AgentResult, epoch: number) -> RunRecord`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-REPO-FINISH`（等价于 `piko-scheduler` §6.6 `T-SCHED-05` 引用的 M003 `finish`）；Result 两步第二步。来源：本模块拥有。
 
@@ -1131,7 +1131,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `TaskRepository.finish` + `slot.ts`（Planned）。`VRC-REPO-002/004`；`NOT_RUN`。
 
-#### 9.1.5 `readSlot() -> SlotRow | null`
+**9.1.5 `readSlot() -> SlotRow | null`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员（`piko-scheduler` §9.2.1）；读 slot 投影。来源：本模块采纳并为 Provider。
 
@@ -1145,7 +1145,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `readSlot`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.6 `listQueued(limit: number) -> string[]`
+**9.1.6 `listQueued(limit: number) -> string[]`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员；列出候选 `Queued` Run。来源：本模块采纳。
 
@@ -1159,7 +1159,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `listQueued`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.7 `tryClaimSlot(runId: string, ownerId: string, bootId: string) -> { epoch: number } | "slot_busy" | "run_not_queued"`
+**9.1.7 `tryClaimSlot(runId: string, ownerId: string, bootId: string) -> { epoch: number } | "slot_busy" | "run_not_queued"`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员；原子领取 slot。来源：本模块采纳。
 
@@ -1173,7 +1173,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `tryClaimSlot`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.8 `renewSlot(runId: string, epoch: number) -> boolean`
+**9.1.8 `renewSlot(runId: string, epoch: number) -> boolean`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员；CAS 刷新租约心跳。来源：本模块采纳。
 
@@ -1187,7 +1187,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `renewSlot`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.9 `fenceSlot(runId: string, ownerId: string, bootId: string) -> { epoch: number } | "slot_released"`
+**9.1.9 `fenceSlot(runId: string, ownerId: string, bootId: string) -> { epoch: number } | "slot_released"`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员；崩溃重启后重领或清空。来源：本模块采纳；对应 `piko-scheduler` `T-SCHED-04`/`T-SCHED-06`。
 
@@ -1201,7 +1201,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `fenceSlot`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.10 `releaseSlot(runId: string, epoch: number) -> boolean`
+**9.1.10 `releaseSlot(runId: string, epoch: number) -> boolean`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-SCHED-STORE` 成员（`piko-scheduler` §9.2.1）；清空 slot。来源：本模块采纳。**仅**由本模块 `finish`/`patchTerminal` 在终态事务内调用，scheduler 不调用。
 
@@ -1215,7 +1215,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/slot.ts` `releaseSlot`（Planned）。`VRC-REPO-003`；`NOT_RUN`。
 
-#### 9.1.11 `scanNonTerminalRuns() -> string[]`
+**9.1.11 `scanNonTerminalRuns() -> string[]`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-REC-SCAN`（`piko-recovery.md` §5.1 声明为 M003 提供）；恢复扫描。来源：本模块拥有。
 
@@ -1229,7 +1229,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `scanNonTerminalRuns`（Planned）。`VRC-REPO-008`；`NOT_RUN`。
 
-#### 9.1.12 `patchTerminal(command: FencedPublishResult) -> RunRecord | Rejected`
+**9.1.12 `patchTerminal(command: FencedPublishResult) -> RunRecord | Rejected`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-REC-PATCH`（`piko-recovery.md` §5.1 声明为 M003 提供）；恢复补第二步。来源：本模块拥有。
 
@@ -1243,7 +1243,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `patchTerminal`（Planned）。`VRC-REPO-008`；`NOT_RUN`。
 
-#### 9.1.13 `openStore(cfg: TaskStoreConfig) -> TaskStore`
+**9.1.13 `openStore(cfg: TaskStoreConfig) -> TaskStore`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-ST-STORE`（`piko-startup.md` §5.1 声明为 M003 提供）；启动打开/迁移。来源：本模块拥有。
 
@@ -1257,7 +1257,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **实现与验证**：`src/store/index.ts` `openStore` + `src/store/schema.ts`（Planned）。`VRC-REPO-005`；`NOT_RUN`。
 
-#### 9.1.14 ledger / turn / send 事务（`reserveModel`/`observeUsage`/`terminalModel`/`reserveTool`/`terminalTool`/`markTurn`/`ingestTurn`/`ingestMatrixEvent`/`ingestMatrixBatch`/`prepareMatrixSend`）
+**9.1.14 ledger / turn / send 事务（`reserveModel`/`observeUsage`/`terminalModel`/`reserveTool`/`terminalTool`/`markTurn`/`ingestTurn`/`ingestMatrixEvent`/`ingestMatrixBatch`/`prepareMatrixSend`）**
 
 - **Interface/Member ID、用途、提供责任与来源**：进程内持久化接口（`system-design` §3.2 的存储能力展开）；被 M006/M005/M008 消费。来源：本模块拥有。
 
@@ -1287,7 +1287,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 按 §1 的事实联动：§3 判无操作面（故无端点生命周期）；§6.6 登记了跨步骤状态 `ExecutionSlot`（故本节必须给状态变换并发出口），并引用同一 `T-REPO-*`；§6.7 登记了本模块写入的持久表（故本节必须给事务边界与崩溃恢复）。执行上下文：全部事务在宿主事件循环上同步执行；SQLite 以单 writer 串行化。
 
-#### 10.1 `C-REPO-01` · 并发受理同 `task_id`
+**10.1 `C-REPO-01` · 并发受理同 `task_id`**
 
 - **初始条件 / 并发交错 / 失败点**：两个 `POST /tasks` 携带同 `task_id` 同内容同时到达。失败点：两者都在查 `tasks` 前后竞争。
 
@@ -1301,7 +1301,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-001/007`；组合 PK-T03/PK-T15。
 
-#### 10.2 `C-REPO-02` · 并发 `tryClaimSlot`
+**10.2 `C-REPO-02` · 并发 `tryClaimSlot`**
 
 - **初始条件 / 并发交错 / 失败点**：两个 tick（或恢复与正常领取）同时 `tryClaimSlot`。失败点：读 slot 判空闲后、写 slot 前。
 
@@ -1315,7 +1315,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-003`；组合 PK-T01/PK-T13。
 
-#### 10.3 `C-REPO-03` · `finish` 与 `renewSlot` 竞态
+**10.3 `C-REPO-03` · `finish` 与 `renewSlot` 竞态**
 
 - **初始条件 / 并发交错 / 失败点**：M005 的 `finish` 与 M004 的 `renewSlot` 定时器并发。失败点：`finish` 已清空 slot 后 `renewSlot` 到达。
 
@@ -1329,7 +1329,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-002/003`；组合 PK-T15。
 
-#### 10.4 `C-REPO-04` · Result 两步之间崩溃
+**10.4 `C-REPO-04` · Result 两步之间崩溃**
 
 - **初始条件 / 并发交错 / 失败点**：进程在第一步 `publishResult` 提交后、第二步 `finish` 提交前崩溃。失败点：`results` 有 generation N 而 `runs.state` 非终态。
 
@@ -1343,7 +1343,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-002/008`；组合 PK-T05/PK-T12/PK-T15。
 
-#### 10.5 `C-REPO-05` · 受理事务中崩溃
+**10.5 `C-REPO-05` · 受理事务中崩溃**
 
 - **初始条件 / 并发交错 / 失败点**：进程在 `createOrGetRun` 的 `BEGIN IMMEDIATE` 内、COMMIT 前崩溃。失败点：`tasks` 已插入但未提交。
 
@@ -1357,7 +1357,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-007`；组合 PK-T15。
 
-#### 10.6 `C-REPO-06` · SQLite busy/IO 故障
+**10.6 `C-REPO-06` · SQLite busy/IO 故障**
 
 - **初始条件 / 并发交错 / 失败点**：外部 reader 或 WAL fsync 延迟导致 `SQLITE_BUSY`/`SQLITE_IOERR`/`SQLITE_FULL`。
 
@@ -1371,7 +1371,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / 组合责任**：`VRC-REPO-002/007`；组合 PK-T12。
 
-#### 10.7 `C-REPO-07` · 迁移中断
+**10.7 `C-REPO-07` · 迁移中断**
 
 - **初始条件 / 并发交错 / 失败点**：进程在 `R-REPO-MIGRATE` 的 `BEGIN IMMEDIATE` 内崩溃（部分重建表）。
 
@@ -1399,7 +1399,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-REPO-QUEUE` · 队列深度与单 writer 吞吐
+**12.1 `CAP-REPO-QUEUE` · 队列深度与单 writer 吞吐**
 
 - **目标 / 限制 / 单位**：队列深度上限 = `queue.capacity`（`Queued` Run 数）；单 writer 串行化使写吞吐受 WAL fsync 约束。
 
@@ -1415,7 +1415,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / Evidence**：`VRC-REPO-007`；`NOT_RUN`。
 
-#### 12.2 `CAP-REPO-WAL` · WAL/fsync 延迟与事务时长
+**12.2 `CAP-REPO-WAL` · WAL/fsync 延迟与事务时长**
 
 - **目标 / 限制 / 单位**：每 commit 受 WAL fsync 阻塞；目标为本地 NVMe 下单事务亚毫秒级（示意，非承诺）。
 
@@ -1431,7 +1431,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证项 / Evidence**：`VRC-REPO-002`；`NOT_RUN`。
 
-#### 12.3 `CAP-REPO-STORE` · 保留与存储规模
+**12.3 `CAP-REPO-STORE` · 保留与存储规模**
 
 - **目标 / 限制 / 单位**：每 Run 大对象（results/ledger/turns）在 retention（`>= 7d`）后被清理为 tombstone。
 
@@ -1451,7 +1451,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/store/index.ts`
+**13.1.1 `src/store/index.ts`**
 
 - **职责 / 非职责**：入口：实现 §9.1 全部事务操作、保证 §6.6 不变量、编排 I1–I5。非职责：纯规则、DDL、SQL 细节。
 
@@ -1465,7 +1465,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-001/002/003/004/006/007/008`。
 
-#### 13.1.2 `src/store/acceptance.ts`
+**13.1.2 `src/store/acceptance.ts`**
 
 - **职责 / 非职责**：纯函数身份比较与容量判定。非职责：无 import SQLite、无状态。
 
@@ -1479,7 +1479,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-001/007`（表驱动）。
 
-#### 13.1.3 `src/store/fence.ts`
+**13.1.3 `src/store/fence.ts`**
 
 - **职责 / 非职责**：fenced write guard 纯/薄函数。非职责：I/O、slot 写入。
 
@@ -1493,7 +1493,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-004`（表驱动）。
 
-#### 13.1.4 `src/store/slot.ts`
+**13.1.4 `src/store/slot.ts`**
 
 - **职责 / 非职责**：六个 slot 原语的 SQL 与事务。非职责：调度策略、终态语义。
 
@@ -1507,7 +1507,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-003`。
 
-#### 13.1.5 `src/store/schema.ts`
+**13.1.5 `src/store/schema.ts`**
 
 - **职责 / 非职责**：全部 DDL 与 `user_version` 迁移。非职责：业务语义。
 
@@ -1521,7 +1521,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-005`（六类库状态）。
 
-#### 13.1.6 `src/store/ledger.ts`
+**13.1.6 `src/store/ledger.ts`**
 
 - **职责 / 非职责**：attempt/tool/turn/send 事务与幂等去重。非职责：usage 语义、turn 决策。
 
@@ -1535,7 +1535,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：`VRC-REPO-006`。
 
-#### 13.1.7 `src/store.ts`（修改既有）
+**13.1.7 `src/store.ts`（修改既有）**
 
 - **职责 / 非职责**：既有 `TaskStore` 单文件实现；Target 拆到 `src/store/` 并把 `TaskStore` 收敛为 `TaskRepository` 的兼容层或删除。非职责：新增 schema。
 
@@ -1549,7 +1549,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **验证入口**：既有测试不回归 + `VRC-REPO-*`。
 
-#### 13.1.8 `src/main.ts`（修改既有）
+**13.1.8 `src/main.ts`（修改既有）**
 
 - **职责 / 非职责**：装配：`openStore(cfg)` → `TaskRepository` → 注入 M004/M005/M001/M008。
 
@@ -1565,7 +1565,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ### 13.2 实现步骤
 
-#### 13.2.1 冻结 slot 原语合同（采纳 IF-SCHED-STORE）
+**13.2.1 冻结 slot 原语合同（采纳 IF-SCHED-STORE）**
 
 - **前置输入 / 依赖**：`piko-scheduler` §9.2.1；`OQ-SCHED-001`（本设计采纳，见 `OQ-REPO-001`）。
 
@@ -1577,7 +1577,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **完成检查**：`VRC-REPO-003` 的 fake 端口与真 M003 两套可实现。
 
-#### 13.2.2 实现 `acceptance.ts` / `fence.ts` 与单测
+**13.2.2 实现 `acceptance.ts` / `fence.ts` 与单测**
 
 - **前置输入 / 依赖**：§8 `R-REPO-IDENTITY/CAPACITY/FENCE`。
 
@@ -1589,7 +1589,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **完成检查**：`VRC-REPO-001/004/007` 计划用例。
 
-#### 13.2.3 实现 `schema.ts` + 重构 `store.ts` 迁移
+**13.2.3 实现 `schema.ts` + 重构 `store.ts` 迁移**
 
 - **前置输入 / 依赖**：13.2.1；§8 `R-REPO-MIGRATE`。
 
@@ -1601,7 +1601,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **完成检查**：`VRC-REPO-005`；既有测试不回归。
 
-#### 13.2.4 实现 `index.ts` / `slot.ts` / `ledger.ts` 并装配
+**13.2.4 实现 `index.ts` / `slot.ts` / `ledger.ts` 并装配**
 
 - **前置输入 / 依赖**：13.2.1–13.2.3。
 
@@ -1619,7 +1619,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-RUN-001`
+**14.1.1 `CON-RUN-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.6（状态与不变量）、§8.3/§8.5、§9.1.4–9.1.10。
@@ -1627,7 +1627,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-003`、`VRC-REPO-004`；判据 = `execution_slot` 行 + `runs.generation`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.2 `CON-RUN-002`
+**14.1.2 `CON-RUN-002`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.1、§9.1.1、§6.2.1。
@@ -1635,7 +1635,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`；判据 = `tasks` 行数 = 1 / `kind`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.3 `CON-RUN-004`
+**14.1.3 `CON-RUN-004`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.4、§9.1.3/§9.1.4、§6.6 `T-REPO-05`、§10.4。
@@ -1643,7 +1643,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`；判据 = `results` 行数 = 1 + `runs.state` 终态。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.4 `CON-REC-001`
+**14.1.4 `CON-REC-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-recovery.md` §3.1；适用。
 - **选定方案与正文锚点**：§2.7、§9.1.11/§9.1.12、§6.6 `T-REPO-06`、§10.4。
@@ -1651,7 +1651,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-008`；判据 = 补写后 `generation=N+1` 且 Result 不变。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.5 `CON-ST-001`
+**14.1.5 `CON-ST-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-startup.md` §3.1；`M-ST-DI-002`；适用。
 - **选定方案与正文锚点**：§2.8、§8.6、§9.1.13、ISD §7.2。
@@ -1659,7 +1659,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005`；判据 = `user_version` 与六类库状态启动结果。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.6 `CON-CFG-001`
+**14.1.6 `CON-CFG-001`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §3.1 `CON-CFG-001` · PK-12 · Approved；**边界适用**（本模块无 config key，只受"变更需重启"约束）。
 - **选定方案与正文锚点**：§4.3、§6.3、§8.2/§8.7。
@@ -1667,7 +1667,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005/007`。
 - **父级组合验证或裁剪/阻断决定**：**非本模块决定**——config key 归 MECH-CONFIG/interfaces；本模块只消费，不新增 key。
 
-#### 14.1.7 `CON-CX-001`
+**14.1.7 `CON-CX-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-cancel.md` §3.1；`M-CX-DI-002`；适用。
 - **选定方案与正文锚点**：§9.1.2、§6.6 `T-REPO-05`。
@@ -1675,7 +1675,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-004`；判据 = Queued 取消零调用 Result + 单事务 `Cancelled`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.8 `CON-MX-001`
+**14.1.8 `CON-MX-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-matrix.md` §3.1；`M-MX-DI-003`；适用。
 - **选定方案与正文锚点**：§9.1.14、§6.7.3、§8.3（单事务边界）。
@@ -1683,7 +1683,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-006`；判据 = 重复事件不产生重复 turn + cursor 随事务。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.9 `F-REPO-CREATE`
+**14.1.9 `F-REPO-CREATE`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§5.2.1、§7 M-REPO-P1、§8.1/§8.2、§9.1.1。
@@ -1691,7 +1691,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`、`VRC-REPO-007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.10 `F-REPO-MUTATE`
+**14.1.10 `F-REPO-MUTATE`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§5.2.3、§8.3、§9.1.2。
@@ -1699,7 +1699,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-004`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T05。
 
-#### 14.1.11 `F-REPO-PUBLISH`
+**14.1.11 `F-REPO-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§5.2.3、§7 M-REPO-P3、§8.4、§9.1.3。
@@ -1707,7 +1707,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.12 `F-REPO-FINISH`
+**14.1.12 `F-REPO-FINISH`**
 
 - **来源与适用性 / 固定基线**：§2.4；适用。
 - **选定方案与正文锚点**：§5.2.3、§7 M-REPO-P3、§8.4、§9.1.4、§6.6 `T-REPO-05`。
@@ -1715,7 +1715,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`、`VRC-REPO-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.13 `F-REPO-SLOT`
+**14.1.13 `F-REPO-SLOT`**
 
 - **来源与适用性 / 固定基线**：§2.5；适用（采纳 `IF-SCHED-STORE`）。
 - **选定方案与正文锚点**：§5.2.2、§7 M-REPO-P2、§8.5、§9.1.5–9.1.10。
@@ -1723,7 +1723,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.14 `F-REPO-LEDGER`
+**14.1.14 `F-REPO-LEDGER`**
 
 - **来源与适用性 / 固定基线**：§2.6；适用。
 - **选定方案与正文锚点**：§8.3、§9.1.14、§6.7.2/§6.7.3。
@@ -1731,7 +1731,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T06/PK-T08/PK-T10。
 
-#### 14.1.15 `F-REPO-RECOVER`
+**14.1.15 `F-REPO-RECOVER`**
 
 - **来源与适用性 / 固定基线**：§2.7；适用。
 - **选定方案与正文锚点**：§5.2.4、§7 M-REPO-P4、§9.1.11/§9.1.12、§10.4。
@@ -1739,7 +1739,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-008`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.16 `F-REPO-OPEN`
+**14.1.16 `F-REPO-OPEN`**
 
 - **来源与适用性 / 固定基线**：§2.8；适用。
 - **选定方案与正文锚点**：§5.2.5、§7 M-REPO-P5、§8.6、§9.1.13、ISD §7.2。
@@ -1747,7 +1747,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.17 `P-REPO-ACCEPT`
+**14.1.17 `P-REPO-ACCEPT`**
 
 - **来源与适用性 / 固定基线**：§7 `M-REPO-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1、§7 M-REPO-P1。
@@ -1755,7 +1755,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001/007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.18 `P-REPO-CLAIM`
+**14.1.18 `P-REPO-CLAIM`**
 
 - **来源与适用性 / 固定基线**：§7 `M-REPO-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2、§7 M-REPO-P2。
@@ -1763,7 +1763,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.19 `P-REPO-PUBLISH`
+**14.1.19 `P-REPO-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：§7 `M-REPO-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3、§7 M-REPO-P3。
@@ -1771,7 +1771,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.20 `P-REPO-RECOVER`
+**14.1.20 `P-REPO-RECOVER`**
 
 - **来源与适用性 / 固定基线**：§7 `M-REPO-P4`；适用。
 - **选定方案与正文锚点**：§5.2.4、§7 M-REPO-P4。
@@ -1779,7 +1779,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-008`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.21 `P-REPO-OPEN`
+**14.1.21 `P-REPO-OPEN`**
 
 - **来源与适用性 / 固定基线**：§7 `M-REPO-P5`；适用。
 - **选定方案与正文锚点**：§5.2.5、§7 M-REPO-P5。
@@ -1787,7 +1787,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.22 `R-REPO-IDENTITY`
+**14.1.22 `R-REPO-IDENTITY`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.2.1。
@@ -1795,7 +1795,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.23 `R-REPO-CAPACITY`
+**14.1.23 `R-REPO-CAPACITY`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§12.1。
@@ -1803,7 +1803,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03。
 
-#### 14.1.24 `R-REPO-FENCE`
+**14.1.24 `R-REPO-FENCE`**
 
 - **来源与适用性 / 固定基线**：§8.3；适用。
 - **选定方案与正文锚点**：§8.3；§6.6 `INV-REPO-1/5`。
@@ -1811,7 +1811,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-004`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T05。
 
-#### 14.1.25 `R-REPO-TWOSTEP`
+**14.1.25 `R-REPO-TWOSTEP`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§10.4。
@@ -1819,7 +1819,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.26 `R-REPO-SLOT`
+**14.1.26 `R-REPO-SLOT`**
 
 - **来源与适用性 / 固定基线**：§8.5；适用（采纳 scheduler `R-SCHED-EPOCH/FIFO`）。
 - **选定方案与正文锚点**：§8.5；§6.6。
@@ -1827,7 +1827,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.27 `R-REPO-MIGRATE`
+**14.1.27 `R-REPO-MIGRATE`**
 
 - **来源与适用性 / 固定基线**：§8.6；适用。
 - **选定方案与正文锚点**：§8.6；ISD §7.2。
@@ -1835,7 +1835,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.28 `R-REPO-RETENTION`
+**14.1.28 `R-REPO-RETENTION`**
 
 - **来源与适用性 / 固定基线**：§8.7；适用。
 - **选定方案与正文锚点**：§8.7；§12.3。
@@ -1843,7 +1843,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15。
 
-#### 14.1.29 `IF-RUN-CREATE`
+**14.1.29 `IF-RUN-CREATE`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.1。
@@ -1851,7 +1851,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001/007`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03/PK-T15。
 
-#### 14.1.30 `IF-RUN-PUBLISH`
+**14.1.30 `IF-RUN-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.3/§9.1.4。
@@ -1859,7 +1859,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T05/PK-T15。
 
-#### 14.1.31 `IF-SCHED-STORE`
+**14.1.31 `IF-SCHED-STORE`**
 
 - **来源与适用性 / 固定基线**：`piko-scheduler` §9.2.1（Proposed，本设计采纳为 Provider）；适用。
 - **选定方案与正文锚点**：§9.1.5–9.1.10、§8.5。
@@ -1867,7 +1867,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-003`。
 - **父级组合验证或裁剪/阻断决定**：**协调点**：`OQ-REPO-001` 记录采纳；`OQ-SCHED-001` 的关闭与回写由 scheduler/架构侧在允许修改 scheduler 文档时执行。
 
-#### 14.1.32 `IF-REC-SCAN`
+**14.1.32 `IF-REC-SCAN`**
 
 - **来源与适用性 / 固定基线**：`piko-recovery.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.11。
@@ -1875,7 +1875,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-008`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.33 `IF-REC-PATCH`
+**14.1.33 `IF-REC-PATCH`**
 
 - **来源与适用性 / 固定基线**：`piko-recovery.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.12、§8.4。
@@ -1883,7 +1883,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-008`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.34 `IF-ST-STORE`
+**14.1.34 `IF-ST-STORE`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §5.1；`M-ST-DI-002`；适用。
 - **选定方案与正文锚点**：§9.1.13、§8.6。
@@ -1891,7 +1891,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.35 `IF-CX-QUEUED`
+**14.1.35 `IF-CX-QUEUED`**
 
 - **来源与适用性 / 固定基线**：`piko-cancel.md` §5.1；适用（本模块为持久化方）。
 - **选定方案与正文锚点**：§9.1.2；§6.6 `T-REPO-05`。
@@ -1899,7 +1899,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-004`。
 - **父级组合验证或裁剪/阻断决定**：PK-T05。
 
-#### 14.1.36 `IF-CX-RUNNING`
+**14.1.36 `IF-CX-RUNNING`**
 
 - **来源与适用性 / 固定基线**：`piko-cancel.md` §5.1；适用（本模块为持久化方）。
 - **选定方案与正文锚点**：§9.1.2。
@@ -1907,7 +1907,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-004`。
 - **父级组合验证或裁剪/阻断决定**：PK-T05。
 
-#### 14.1.37 `IF-MX-TURN`
+**14.1.37 `IF-MX-TURN`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §5.1（M003 持久化）；适用。
 - **选定方案与正文锚点**：§9.1.14、§6.7.3。
@@ -1915,7 +1915,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-006`。
 - **父级组合验证或裁剪/阻断决定**：PK-T08。
 
-#### 14.1.38 `ERR-REPO-TASKCONFLICT`
+**14.1.38 `ERR-REPO-TASKCONFLICT`**
 
 - **来源与适用性 / 固定基线**：`error-blocker-catalog-v0.3.json` `TaskConflict`(409)；适用。
 - **选定方案与正文锚点**：§6.8.1、§8.1、§9.1.1。
@@ -1923,7 +1923,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03/PK-T15。
 
-#### 14.1.39 `ERR-REPO-GONE`
+**14.1.39 `ERR-REPO-GONE`**
 
 - **来源与适用性 / 固定基线**：catalog `Gone`(410)；适用。
 - **选定方案与正文锚点**：§6.8.1、§8.1、§8.7。
@@ -1931,7 +1931,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-001`。
 - **父级组合验证或裁剪/阻断决定**：PK-T15。
 
-#### 14.1.40 `ERR-REPO-QUEUEFULL`
+**14.1.40 `ERR-REPO-QUEUEFULL`**
 
 - **来源与适用性 / 固定基线**：catalog `QueueFull`(429)；适用。
 - **选定方案与正文锚点**：§6.8.1、§8.2、§12.1。
@@ -1939,7 +1939,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-007`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03。
 
-#### 14.1.41 `ERR-REPO-RUNNOTTERMINAL`
+**14.1.41 `ERR-REPO-RUNNOTTERMINAL`**
 
 - **来源与适用性 / 固定基线**：catalog `TaskNotTerminal`(409)；适用。
 - **选定方案与正文锚点**：§6.8.1、§6.2.1（终态判定）。
@@ -1947,7 +1947,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T16。
 
-#### 14.1.42 `ERR-REPO-RESULTUNAVAILABLE`
+**14.1.42 `ERR-REPO-RESULTUNAVAILABLE`**
 
 - **来源与适用性 / 固定基线**：catalog `ResultUnavailable`(500)；适用。
 - **选定方案与正文锚点**：§6.8.1、§10.6。
@@ -1955,7 +1955,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 - **§14 VRC / Case / 独立判据**：`VRC-REPO-002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T16。
 
-#### 14.1.43 `ERR-REPO-FENCEDWRITE`
+**14.1.43 `ERR-REPO-FENCEDWRITE`**
 
 - **来源与适用性 / 固定基线**：§6.8.1（内部错误）；适用。
 - **选定方案与正文锚点**：§6.8.1、§8.3、§10.3。
@@ -1967,7 +1967,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-REPO-001` · 任务身份与 tombstone 比较
+**14.2.1 `VRC-REPO-001` · 任务身份与 tombstone 比较**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-CREATE`；`R-REPO-IDENTITY`；`CON-RUN-002`；`IF-RUN-CREATE`；`ERR-REPO-TASKCONFLICT`/`ERR-REPO-GONE`。
 
@@ -1983,7 +1983,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T03/PK-T15。
 
-#### 14.2.2 `VRC-REPO-002` · Result 两步提交与恢复
+**14.2.2 `VRC-REPO-002` · Result 两步提交与恢复**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-PUBLISH`/`F-REPO-FINISH`/`F-REPO-RECOVER`；`R-REPO-TWOSTEP`；`CON-RUN-004`/`CON-REC-001`；`IF-RUN-PUBLISH`；`ERR-REPO-RUNNOTTERMINAL`/`ERR-REPO-RESULTUNAVAILABLE`。
 
@@ -1999,7 +1999,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T05/PK-T15。
 
-#### 14.2.3 `VRC-REPO-003` · slot 原语 CAS / epoch / fence
+**14.2.3 `VRC-REPO-003` · slot 原语 CAS / epoch / fence**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-SLOT`/`F-REPO-FINISH`；`R-REPO-SLOT`；`CON-RUN-001`；`IF-SCHED-STORE`。
 
@@ -2015,7 +2015,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T01/PK-T12/PK-T13。
 
-#### 14.2.4 `VRC-REPO-004` · fenced write 与取消分流
+**14.2.4 `VRC-REPO-004` · fenced write 与取消分流**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-MUTATE`/`F-REPO-FINISH`；`R-REPO-FENCE`；`CON-RUN-001`/`CON-CX-001`；`IF-CX-QUEUED`/`IF-CX-RUNNING`；`ERR-REPO-FENCEDWRITE`。
 
@@ -2031,7 +2031,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T01/PK-T05。
 
-#### 14.2.5 `VRC-REPO-005` · schema 迁移与六类库状态
+**14.2.5 `VRC-REPO-005` · schema 迁移与六类库状态**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-OPEN`；`R-REPO-MIGRATE`；`CON-ST-001`/`CON-CFG-001`；`IF-ST-STORE`。
 
@@ -2047,7 +2047,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.6 `VRC-REPO-006` · ledger / turn / send 幂等
+**14.2.6 `VRC-REPO-006` · ledger / turn / send 幂等**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-LEDGER`；`CON-MX-001`/`CON-RUN-001`；`IF-MX-TURN`。
 
@@ -2063,7 +2063,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T06/PK-T08/PK-T10。
 
-#### 14.2.7 `VRC-REPO-007` · 并发受理与队列容量
+**14.2.7 `VRC-REPO-007` · 并发受理与队列容量**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-CREATE`；`R-REPO-IDENTITY`/`R-REPO-CAPACITY`；`CON-RUN-002`；`IF-RUN-CREATE`；`ERR-REPO-QUEUEFULL`。
 
@@ -2079,7 +2079,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **父级组合验证交接**：PK-T03/PK-T15。
 
-#### 14.2.8 `VRC-REPO-008` · 恢复扫描与补终态
+**14.2.8 `VRC-REPO-008` · 恢复扫描与补终态**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-REPO-RECOVER`；`CON-REC-001`；`IF-REC-SCAN`/`IF-REC-PATCH`。
 
@@ -2097,7 +2097,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-REPO-001` · IF-SCHED-STORE 采纳与 OQ-SCHED-001 关闭
+**15.1 `OQ-REPO-001` · IF-SCHED-STORE 采纳与 OQ-SCHED-001 关闭**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-SCHED-STORE`、`F-REPO-SLOT`、`CON-RUN-001`。
 
@@ -2111,7 +2111,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **关闭条件 / 决定或当前状态**：M003 采纳成立且 scheduler 已回写。**已关闭**。
 
-#### 15.2 `OQ-REPO-002` · 迁移的降级与未来版本边界
+**15.2 `OQ-REPO-002` · 迁移的降级与未来版本边界**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `R-REPO-MIGRATE`、`F-REPO-OPEN`、ISD §7.2。
 
@@ -2125,7 +2125,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **关闭条件 / 决定或当前状态**：明确 v3 迁移设计或沿用"只升不降"。当前 Open。
 
-#### 15.3 `RISK-REPO-001` · generation/epoch 溢出
+**15.3 `RISK-REPO-001` · generation/epoch 溢出**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-REPO-FENCE`、`INV-REPO-1`。
 
@@ -2139,7 +2139,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **关闭条件 / 决定或当前状态**：实现采用安全整数并加断言。当前 Open。
 
-#### 15.4 `RISK-REPO-002` · WAL fsync 延迟与单 writer 背压
+**15.4 `RISK-REPO-002` · WAL fsync 延迟与单 writer 背压**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 §12.1/§12.2、`CAP-REPO-WAL`。
 
@@ -2153,7 +2153,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **关闭条件 / 决定或当前状态**：采集实测数据后确认。当前 Open。
 
-#### 15.5 `15.ISD` · 实现规格采用方式
+**15.5 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-task-repository-impl` 已建立）。
 
@@ -2169,7 +2169,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-RUN`（`piko-run.md`）、`MECH-STARTUP`（`piko-startup.md`）、`MECH-MATRIX`（`piko-matrix.md`）、`MECH-RECOVERY`（`piko-recovery.md`）、`MECH-CANCEL`（`piko-cancel.md`）。`MECH-CONFIG`/`MECH-USAGE` 不直接涉及本模块（config 由 M000 注入；usage 语义由 M007 持有）。
 
-#### A.1 `piko-run` / `M-RUN-DI-003` · DDL + fenced write
+**A.1 `piko-run` / `M-RUN-DI-003` · DDL + fenced write**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-003`（下游 `task-repository`，固定输入 DDL + fenced write，约束 PK-01/02/07，自由度 SQL 组织）；接口 `IF-RUN-CREATE`/`IF-RUN-PUBLISH`（§5.1）。
 
@@ -2185,7 +2185,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **本地验证 / 组合验证交接**：本地 `VRC-REPO-001/002/004/006`；组合 PK-T01/PK-T05/PK-T15。
 
-#### A.2 `piko-startup` / `M-ST-DI-002` · SQLite path 与 migration
+**A.2 `piko-startup` / `M-ST-DI-002` · SQLite path 与 migration**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-STARTUP` §14.4 行 `M-ST-DI-002`（下游 `task-repository`，固定输入 SQLite path，约束 CON-ST-001，自由度 migration 实现）；接口 `IF-ST-STORE`（§5.1）。
 
@@ -2201,7 +2201,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **本地验证 / 组合验证交接**：本地 `VRC-REPO-005`；组合 PK-T12。
 
-#### A.3 `piko-matrix` / `M-MX-DI-003` · matrix_* DDL
+**A.3 `piko-matrix` / `M-MX-DI-003` · matrix_* DDL**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-MATRIX` §14.4 行 `M-MX-DI-003`（下游 `task-repository`，固定输入 `matrix_*` DDL，约束 CON-MX-001，自由度事务组织）；接口 `IF-MX-TURN`（§5.1）。
 
@@ -2217,7 +2217,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **本地验证 / 组合验证交接**：本地 `VRC-REPO-006`；组合 PK-T08。
 
-#### A.4 `piko-recovery` / `M-REC-DI-001` · 持久事实
+**A.4 `piko-recovery` / `M-REC-DI-001` · 持久事实**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RECOVERY` §14.4 行 `M-REC-DI-001`（下游 `task-repository`，固定输入持久事实，约束 CON-REC-001，自由度查询实现）；接口 `IF-REC-SCAN`/`IF-REC-PATCH`（§5.1）。
 
@@ -2233,7 +2233,7 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 
 - **本地验证 / 组合验证交接**：本地 `VRC-REPO-008`；组合 PK-T12。
 
-#### A.5 `piko-cancel` / `M-CX-DI-002` · runs DDL + flag
+**A.5 `piko-cancel` / `M-CX-DI-002` · runs DDL + flag**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CANCEL` §14.4 行 `M-CX-DI-002`（下游 `task-repository`，固定输入 runs DDL + flag，约束 CON-CX-001，自由度事务组织）；接口 `IF-CX-QUEUED`/`IF-CX-RUNNING`（§5.1）。
 

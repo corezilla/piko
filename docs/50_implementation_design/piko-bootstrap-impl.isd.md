@@ -428,7 +428,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举
 
-#### 4.1.1 `StartupStage` / `EffectiveConfigState`
+**4.1.1 `StartupStage` / `EffectiveConfigState`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有枚举，本 ISD `types.ts`；公共语义来源 = 模块设计 §6.1.1（`piko-startup` §4.1.1 / `piko-config` §4.1.1）。
 
@@ -447,7 +447,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `PreflightReport`
+**4.2.1 `PreflightReport`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型；语义来源 = 模块设计 §6.2.1。
 
@@ -468,7 +468,7 @@ flowchart LR
 
 - **验证**：`VRC-BOOT-006`；`NOT_RUN`。
 
-#### 4.2.2 `BootContext` / `ReadyHandle`
+**4.2.2 `BootContext` / `ReadyHandle`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型；语义来源 = 模块设计 §6.2.2。
 
@@ -512,7 +512,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `StageLedgerState`（内存投影）
+**4.6.1 `StageLedgerState`（内存投影）**
 
 - **完整定义 / 来源**：私有**派生**状态，非持久 authority（持久事实 `instance_meta` 属 M003）：
 
@@ -539,7 +539,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `FatalExit`
+**4.8.1 `FatalExit`**
 
 - **完整定义 / 来源**：私有错误结构；语义来源 = 模块设计 §6.8.1。
 
@@ -556,7 +556,7 @@ flowchart LR
 
 - **验证**：`VRC-BOOT-002/004/005/006`；`NOT_RUN`。
 
-#### 4.8.2 `StopReport`
+**4.8.2 `StopReport`**
 
 - **完整定义 / 来源**：```ts
   interface StopReport { outcome: "drained" | "forced"; reason: "SIGTERM" | "SIGINT"; }
@@ -1185,7 +1185,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-BOOT-01` · 两进程同时启动（instance lock 竞争）
+**7.1.1 `C-BOOT-01` · 两进程同时启动（instance lock 竞争）**
 
 - **参与线程 / 回调 / 事务**：两个 OS 进程各自的 `run()` → M003 instance lock。
 - **已产生或可能产生的副作用**：至多一个进程建库/写 `instance_meta`。
@@ -1195,7 +1195,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=重试启动；retry=胜者退出后；无 takeover。
 - **验证项**：`VRC-BOOT-008`（Case A）。
 
-#### 7.1.2 `C-BOOT-02` · F1 于 S5 后（`instance_meta` 已写）
+**7.1.2 `C-BOOT-02` · F1 于 S5 后（`instance_meta` 已写）**
 
 - **参与线程 / 回调 / 事务**：S5 成功 vs S6/S7 失败。
 - **已产生或可能产生的副作用**：`instance_meta` 已写（M003）。
@@ -1205,7 +1205,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=检查端口未绑定 + lock 可重取；retry=修依赖后重启。
 - **验证项**：`VRC-BOOT-004/006`。
 
-#### 7.1.3 `C-BOOT-03` · READY 前收到 SIGTERM
+**7.1.3 `C-BOOT-03` · READY 前收到 SIGTERM**
 
 - **参与线程 / 回调 / 事务**：信号 vs S1–S7 推进。
 - **已产生或可能产生的副作用**：可能已打开 store。
@@ -1215,7 +1215,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：N/A；重启重跑。
 - **验证项**：`VRC-BOOT-007`（Case D）。
 
-#### 7.1.4 `C-BOOT-04` · preflight 依赖超时
+**7.1.4 `C-BOOT-04` · preflight 依赖超时**
 
 - **参与线程 / 回调 / 事务**：`probe` 内 `Promise.all` + abort。
 - **已产生或可能产生的副作用**：无（只读探测）。
@@ -1225,7 +1225,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：query=复测依赖；retry=修依赖后重启。
 - **验证项**：`VRC-BOOT-006`（Case D）。
 
-#### 7.1.5 `C-BOOT-05` · 停止期间在途 Run drain 超时
+**7.1.5 `C-BOOT-05` · 停止期间在途 Run drain 超时**
 
 - **参与线程 / 回调 / 事务**：`Lifecycle` 信号回调 vs M005/M006 in-flight。
 - **已产生或可能产生的副作用**：可能已发 stop intent / fence。
@@ -1249,7 +1249,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-BOOT-NOSECRET` · credential 明文不入日志/持久层
+**7.3.1 `SEC-BOOT-NOSECRET` · credential 明文不入日志/持久层**
 
 - **原规则**：模块设计 §11；`CON-CFG-001`（credential 明文拒绝）。
 - **可信输入 / 敏感字段 / 检查对象**：config 文件 + `credential_ref`；敏感值 = 解析后的 Secret 明文。
@@ -1259,7 +1259,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`error`（F1 含 ref 不含值）；无明文指标。
 - **验证项**：`VRC-BOOT-003`（日志审阅核对）。
 
-#### 7.3.2 `SEC-BOOT-STAGE` · 启动阶段与依赖指标
+**7.3.2 `SEC-BOOT-STAGE` · 启动阶段与依赖指标**
 
 - **原规则**：`piko-startup.md` §12.1；`piko-config.md` §12.1；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：阶段事实（`S1..S8`/`READY`/`F1`）与依赖失败计数。
@@ -1269,7 +1269,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`boot_id` 关联；重启重置；单位 = 事件/阶段。
 - **验证项**：`VRC-BOOT-001/006`（阶段序列核对）。
 
-#### 7.3.3 `SEC-BOOT-LOCALSTORE` · 本地持久化的交接
+**7.3.3 `SEC-BOOT-LOCALSTORE` · 本地持久化的交接**
 
 **not_applicable（交接给 M003）。** bootstrap 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD §7.3 承接。本层交接事实 = 经 `IF-ST-STORE` 传递 `sqlite_path`/`busy_timeout_ms` 与 `boot_id`，不含 credential；`workspace` 路径规范化在 S4 拒绝越界/相对路径。
 
@@ -1503,7 +1503,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-BOOT-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-BOOT-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-bootstrap` §2/§6.6/§8/§9（v0.1.0-draft.1）声明七功能、`StartupState` 状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。

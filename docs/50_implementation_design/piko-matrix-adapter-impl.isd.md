@@ -353,7 +353,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `MatrixBatch` / `MatchEvent`
+**4.2.1 `MatrixBatch` / `MatchEvent`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.2/§6.2.3。
 
@@ -370,7 +370,7 @@ flowchart LR
 
 - **验证**：`VRC-MATRIX-002/004`；`NOT_RUN`。
 
-#### 4.2.2 `DiscussionContext` / `MatrixSendRecord`
+**4.2.2 `DiscussionContext` / `MatrixSendRecord`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型；语义来源 = 模块设计 §6.2.1/§6.2.3（并对应 `piko-matrix.md` §4.6.1）。
 
@@ -399,7 +399,7 @@ flowchart LR
 
 ### 4.4 通信报文结构
 
-#### 4.4.1 `MatrixEventEnvelope`（消费视图）
+**4.4.1 `MatrixEventEnvelope`（消费视图）**
 
 - **完整定义 / 来源**：私有消费视图；外部权威 = Matrix Client-Server v3；语义来源 = 模块设计 §6.4.1。
 
@@ -415,7 +415,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `MatrixRuntimeState`（内存投影）
+**4.6.1 `MatrixRuntimeState`（内存投影）**
 
 - **完整定义 / 来源**：私有**派生**态，非持久 authority（持久事实在 `matrix_state`/`matrix_sends`，属 M003）：
 
@@ -431,7 +431,7 @@ flowchart LR
 
 - **验证**：`VRC-MATRIX-001/002/003`；`NOT_RUN`。
 
-#### 4.6.2 `SyncPumpState`（pump 内存态）
+**4.6.2 `SyncPumpState`（pump 内存态）**
 
 - **完整定义 / 来源**：```ts
   interface SyncPumpState { pendingEvents: MatrixEvent[]; syncWork: Promise<void>; stopped: boolean }
@@ -479,7 +479,7 @@ flowchart LR
 
 - **验证**：`VRC-MATRIX-003`；`NOT_RUN`。
 
-#### 4.8.3 `MatrixInternalError`
+**4.8.3 `MatrixInternalError`**
 
 - **完整定义 / 来源**：```ts
   class MatrixInternalError extends Error { readonly cause_class: string; }
@@ -995,7 +995,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-MATRIX-01` · 两批 sync 竞争 cursor
+**7.1.1 `C-MATRIX-01` · 两批 sync 竞争 cursor**
 
 - **参与线程 / 回调 / 事务**：`ClientEvent.Sync` 回调；串行 `syncWork` 链；M003 单事务。
 - **已产生或可能产生的副作用**：`matrix_events`/`discussion_turns`/`sync_cursor` 写（按序）。
@@ -1005,7 +1005,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：replay=`hasMatrixEvent` 去重；无 takeover。
 - **验证项**：`VRC-MATRIX-002`（Case B）。
 
-#### 7.1.2 `C-MATRIX-02` · sync 失败与重放
+**7.1.2 `C-MATRIX-02` · sync 失败与重放**
 
 - **参与线程 / 回调 / 事务**：pump 回调 + M003 事务。
 - **已产生或可能产生的副作用**：事务回滚 → 无副作用。
@@ -1015,7 +1015,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：同请求重放（同 cursor）安全；无 takeover。
 - **验证项**：`VRC-MATRIX-002`（Case C）。
 
-#### 7.1.3 `C-MATRIX-03` · 身份不一致或 homeserver 不可达（启动期）
+**7.1.3 `C-MATRIX-03` · 身份不一致或 homeserver 不可达（启动期）**
 
 - **参与线程 / 回调 / 事务**：`start` 内 whoami/startClient。
 - **已产生或可能产生的副作用**：无业务写；`stopClient`。
@@ -1025,7 +1025,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：新业务重试 = 修 config/token 后重启。
 - **验证项**：`VRC-MATRIX-001`；组合 `PK-T12`。
 
-#### 7.1.4 `C-MATRIX-04` · membership 丢失（运行期）
+**7.1.4 `C-MATRIX-04` · membership 丢失（运行期）**
 
 - **参与线程 / 回调 / 事务**：`processBatch` 内 `getJoinedRooms` 复核。
 - **已产生或可能产生的副作用**：`markDiscussionAccessLost` 记 access-loss 行。
@@ -1035,7 +1035,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：交 operator；不自动重试。
 - **验证项**：`VRC-MATRIX-003`；组合 `PK-T08`。
 
-#### 7.1.5 `C-MATRIX-05` · media staging 半成品
+**7.1.5 `C-MATRIX-05` · media staging 半成品**
 
 - **参与线程 / 回调 / 事务**：`downloadMedia` 流式读 + 文件 I/O。
 - **已产生或可能产生的副作用**：`.tmp` 文件（未 rename）。
@@ -1045,7 +1045,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：可重下（同 turn 幂等）。
 - **验证项**：`VRC-MATRIX-005`（Case C/E）。
 
-#### 7.1.6 `C-MATRIX-06` · 发送响应丢失（Unknown）
+**7.1.6 `C-MATRIX-06` · 发送响应丢失（Unknown）**
 
 - **参与线程 / 回调 / 事务**：`sendDiscussionReply` 的 `sendEvent`。
 - **已产生或可能产生的副作用**：homeserver 可能已收事件；`matrix_sends.state='Unknown'`。
@@ -1069,7 +1069,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-MATRIX-TOKEN` · token 不落库不记录
+**7.3.1 `SEC-MATRIX-TOKEN` · token 不落库不记录**
 
 - **原规则**：模块设计 §11 `SEC-MATRIX-TOKEN`。
 - **可信输入 / 敏感字段 / 检查对象**：access token（构造 client 与 Bearer 头）；不得进入 turn/task/Result/日志/错误消息。
@@ -1079,7 +1079,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`event.matrix.{sync,send,turn}`（§11.1）；不含 token。
 - **验证项**：`VRC-MATRIX-001`（日志不含 token 由审查核对）。
 
-#### 7.3.2 `SEC-MATRIX-MEDIA-PATH` · staging 路径与权限
+**7.3.2 `SEC-MATRIX-MEDIA-PATH` · staging 路径与权限**
 
 - **适用对象 / 路径 / Owner**：`workspace.staging_root/<run>/` 下的下载文件；Owner = Piko Implementation Owner。
 - **文件与目录权限 / umask**：目录 `mkdir(...,{recursive:true,mode:0o700})`；文件 `writeFile(temp,{mode:0o600})` 后 rename。
@@ -1090,7 +1090,7 @@ flowchart TD
 - **检查时点 / 判定 / 拒绝或降级出口**：写前校验目标在 `staging_root` 内；失败 → 拒绝。
 - **验证项**：`VRC-MATRIX-005`（Case E）。
 
-#### 7.3.3 `SEC-MATRIX-OBS` · 可观测性写入点
+**7.3.3 `SEC-MATRIX-OBS` · 可观测性写入点**
 
 - **原规则**：模块设计 §11.1；`piko-matrix.md` §12.1。
 - **可信输入 / 敏感字段 / 检查对象**：指标 `piko.matrix.sync.lag`（秒/monotonic）+ 事件 `event.matrix.{sync,send,turn}`。
@@ -1287,7 +1287,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-MATRIX-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-MATRIX-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`matrix-adapter` §2/§6.6/§8/§9（v0.1.0-draft.1）声明五功能、状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——`src/adapters/matrix/*` = `PLANNED`，`src/matrix.ts`/`src/store.ts` = `IMPLEMENTED`，`src/main.ts` = `IN_PROGRESS`。

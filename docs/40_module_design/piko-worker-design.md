@@ -18,11 +18,11 @@
 
 ## 1. 单元摘要：为什么存在
 
-M005 `worker` 解决一个问题：一次已受理的 Run 在取得唯一执行位（lease）之后，如何把 Pi 执行、取消、截止、Usage 聚合与 Result 发布协调成**一条可跨重启对账的 Run 生命周期**，而**不复制 Pi Agent loop**。worker 是 Run 事务的协调者：它持有 lease、决定 Run 状态转换与 Result 内容、编排 M006 `pi-adapter` 的 Harness operation、调用 M007 `usage` 完成发布前校验、经 M003 `task-repository` 做 fenced 持久化；它不自己驱动模型调用、不实现工具循环与重试（那是 Pi Harness / M006 的职责），也不拥有 Run/Result 的持久 authority（那是 M003 的职责）。
+M005 `worker` 解决一个问题：一次已受理的 Run 在取得唯一执行位（lease）之后，如何把 Pi 执行、取消、Usage 聚合与 Result 发布协调成**一条可跨重启对账的 Run 生命周期**，而**不复制 Pi Agent loop**。worker 是 Run 事务的协调者：它持有 lease、决定 Run 状态转换与 Result 内容、编排 M006 `pi-adapter` 的 Harness operation、调用 M007 `usage` 完成发布前校验、经 M003 `task-repository` 做 fenced 持久化；它不自己驱动模型调用、不实现工具循环与重试（那是 Pi Harness / M006 的职责），也不拥有 Run/Result 的持久 authority（那是 M003 的职责）。
 
 worker 的核心不变量来自 `MECH-RUN` 的 **Result 两步提交协议**：第一步把不可变的 Result generation 写入 `results`，第二步把 `runs.state` 与 `runs.generation` 写入终态并释放 `execution_slot`；两步不可合并，两步之间崩溃时恢复器只补第二步、绝不重跑 Pi。worker 另承担 `MECH-CANCEL` 的取消分流（Queued 单事务零调用 Result、Running 写停止意图后 abort 并补终态）、`MECH-RECOVERY` 的恢复编排（Result → Run → lease → Pi session → Harness → ledger → Matrix）、`MECH-USAGE` 的发布前快照与语义校验、`MECH-MATRIX` 的 discussion intake CAS。
 
-用一次调用说明：M004 `scheduler` 领取 slot 后把 `Lease` 交给 worker；worker 在 M003 单事务内把 `runs.state` 由 `Queued` 推进到 `Running`、创建 `run_sessions`（`pi_session_id=task_id`），经 M006 `openOrCreateRunSession` + `lane.accept(typedInstruction)` 提交一次 durable Pi operation，并在宿主事件循环上持续 `drive` 其结果、接受取消/截止/讨论事件；operation 结束后 worker 对账在途工具、调用 M007 `snapshot(task_id)` + `validateBeforePublish(result, contractVersion)`，通过则执行 Result 两步提交，失败则抛 `InternalError` 且不写任何 Result。
+用一次调用说明：M004 `scheduler` 领取 slot 后把 `Lease` 交给 worker；worker 在 M003 单事务内把 `runs.state` 由 `Queued` 推进到 `Running`、创建 `run_sessions`（`pi_session_id=task_id`），经 M006 `openOrCreateRunSession` + `lane.accept(typedInstruction)` 提交一次 durable Pi operation，并在宿主事件循环上持续 `drive` 其结果、接受取消/讨论事件；operation 结束后 worker 对账在途工具、调用 M007 `snapshot(task_id)` + `validateBeforePublish(result, contractVersion)`，通过则执行 Result 两步提交，失败则抛 `InternalError` 且不写任何 Result。
 
 | 项目 | 内容 |
 |---|---|
@@ -31,7 +31,7 @@ worker 的核心不变量来自 `MECH-RUN` 的 **Result 两步提交协议**：�
 | 运行进程 | P1 执行进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.1 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 204 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
-| 解决的问题 | Run 生命周期协调、取消/截止分流、Result 两步发布、崩溃后可对账恢复 |
+| 解决的问题 | Run 生命周期协调、取消分流、Result 两步发布、崩溃后可对账恢复 |
 | 提供的能力 | `generateResult`（Result generation）、`cancelQueued`、`cancelTaskning`；经 M003 持久化、经 M006/M007 校验/驱动 |
 | 主要使用者 | M004 `scheduler`（dispatch 到 worker）、M001 `task-api`（取消入口到 worker）、M003/M006/M007/M008（协作） |
 | 不负责 | Run/Result 持久 authority 与 DDL（M003）；Pi Agent loop、工具循环与 provider 重试（M006）；Usage 聚合算法（M007）；HTTP 路由（M001）；Matrix 协议（M008）；优先级/抢占（明确不做） |
@@ -40,7 +40,7 @@ worker 的核心不变量来自 `MECH-RUN` 的 **Result 两步提交协议**：�
 
 worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应机制 §3.1 的 `CON-*` 反向登记。机制侧权威定义在 `piko-run.md`、`piko-usage.md`、`piko-matrix.md`、`piko-recovery.md`、`piko-cancel.md` §3.1。以下逐条写落实位置、预算份额、不可改变行为、可自行设计范围与验证入口。
 
-#### 1.1.1 `CON-RUN-001` · 单实例至多 1 个 Running Run（worker 边界）
+**1.1.1 `CON-RUN-001` · 单实例至多 1 个 Running Run（worker 边界）**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-01 行）+ `piko-run.md` §3.1 `CON-RUN-001` · PK-01 · Approved。上级原文：单实例单 Agent，同一实例同时至多 1 个 Running Run；M003+M004 保证 lease epoch 唯一。worker 在本行被分配的保证是自由度边界 worker 内部不引入并行阶段。
 
@@ -56,23 +56,23 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：none。worker 不改单 slot 语义；多实例另立设计（`system-design` §3.3 关键决定 2）。
 
-#### 1.1.2 `CON-RUN-003` · 截止与预算
+**1.1.2 `CON-RUN-003` · 期限/模型预算（PK-04 · 本版撤销）**
 
-- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文：本版不实现任务级截止/预算——worker 不读取也不判定任何 deadline/预算字段。
+- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文：本版不实现任务级期限/预算（见附录 B 修订记录）——worker 不读取也不判定任何任务级 deadline/预算字段。
 
-- **适用条件**：每次 Run 的整个执行期（**本版无 deadline/预算**）。
+- **适用条件**：每次 Run 的整个执行期（**本版无任务级 deadline/预算**）。
 
-- **继承预算或行为保证**：**本版撤销**（PK-04）；worker 不读取任何任务级截止/预算字段，也不据此终止。
+- **继承预算或行为保证**：**本版撤销**（`PK-04`）；worker 不读取任何任务级期限/预算字段，也不据此终止。
 
-- **可自行选择/不可改变**：不可改变：failure 映射、取消分流语义。可自行设计：检查时点与 poll 频率、与取消的优先级实现。
+- **可自行选择/不可改变**：不可改变：failure 映射、取消分流语义。可自行设计：执行期计时实现（进程内 monotonic，仅供取消/恢复使用）。
 
-- **本地落实/内部再分配**：§2.6 `F-WORKER-DEADLINE`；§8.3 `R-WORKER-DEADLINE`；§10 `C-WORKER-04`；§11（不做身份/授权）。
+- **本地落实/内部再分配**：n/a（`PK-04` 已撤销，无本地落实项）；§11（不做身份/授权）。
 
-- **验证方法与结果/证据**：局部 `VRC-WORKER-003`；组合 fault PK-T05；当前 `NOT_RUN`。
+- **验证方法与结果/证据**：n/a（无任务级 deadline/预算用例；见 §8.3、§10.4、§14.2.3 的 N/A 记录）。
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.3 `CON-RUN-004` · Result 两步提交
+**1.1.3 `CON-RUN-004` · Result 两步提交**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-07 行）+ `piko-run.md` §3.1 `CON-RUN-004` · PK-07 · Approved。上级原文：写 `results` 与写终态不可合并；恢复器只补第二步。
 
@@ -88,7 +88,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.4 `CON-USAGE-001` · Usage 字段完整性
+**1.1.4 `CON-USAGE-001` · Usage 字段完整性**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-09/10 行）+ `piko-usage.md` §3.1 `CON-USAGE-001` · PK-09 · Approved。上级原文：6 字段逐项 sum/null + missing_fields；ResultValidator 前置。
 
@@ -104,7 +104,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.5 `CON-USAGE-002` · Result 冻结
+**1.1.5 `CON-USAGE-002` · Result 冻结**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-10 行）+ `piko-usage.md` §3.1 `CON-USAGE-002` · PK-10 · Approved。上级原文：Result 发布后迟到 usage 不改 generation；semantic validator 失败 throw `InternalError`；Result 发布后不修改。
 
@@ -120,7 +120,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.6 `CON-MX-001` · Discussion intake CAS
+**1.1.6 `CON-MX-001` · Discussion intake CAS**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-08 行）+ `piko-matrix.md` §3.1 `CON-MX-001` · PK-08 · Approved。上级原文：single identity；intake CAS Open→Closing→Closed；不引入 AS 路径。
 
@@ -136,7 +136,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：worker 不管理 homeserver 内部；Matrix 协议边界见 `piko-matrix.md`。
 
-#### 1.1.7 `CON-REC-001` · 崩溃恢复边界
+**1.1.7 `CON-REC-001` · 崩溃恢复边界**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-12 行）+ `piko-recovery.md` §3.1 `CON-REC-001` · PK-12 · Approved。上级原文：recovery 顺序 Result → Run → lease → Pi session → Harness → ledger → Matrix；不复活旧权威；不模拟成功。
 
@@ -152,7 +152,7 @@ worker 承接的上级约束来自 `system-design` §3.4 的 PK 分配与对应�
 
 - **差距/变更影响/反馈责任**：none。
 
-#### 1.1.8 `CON-CX-001` · 取消分流
+**1.1.8 `CON-CX-001` · 取消分流**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-03 行）+ `piko-cancel.md` §3.1 `CON-CX-001` · PK-03 · Approved。上级原文：Queued 零调用 Result；Running 经 Cancelling；`StopRequested` 不等于停止。
 
@@ -180,7 +180,7 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **输入与前提**：`Lease{task_id, owner_id, boot_id, epoch, acquired_at, heartbeat_at}`；Run 已 `Running`；M003/M006 可用；M005 恢复门已完成。
 
-- **行为**：在 M003 单事务创建 `run_sessions`（`pi_session_id=task_id`、lane `main`）、绑定 `lease_epoch`；经 M006 `openOrCreateRunSession` 与 `lane.accept(typedInstruction, operationId)` 提交 durable Pi operation；在宿主事件循环上 `drive` 结果、接受取消/截止/讨论事件；operation 结束后对账在途工具。
+- **行为**：在 M003 单事务创建 `run_sessions`（`pi_session_id=task_id`、lane `main`）、绑定 `lease_epoch`；经 M006 `openOrCreateRunSession` 与 `lane.accept(typedInstruction, operationId)` 提交 durable Pi operation；在宿主事件循环上 `drive` 结果、接受取消/讨论事件；operation 结束后对账在途工具。
 
 - **输出**：终态前的 `PiOperationOutcome`（含 summary / failure / 已提交操作事实）与对账后的 `AgentResult` 素材；进入 `F-WORKER-PUBLISH`。
 
@@ -252,21 +252,9 @@ worker 的可观察功能是：驱动一次 Run 执行到底、发布稳定 Resu
 
 - **验收条件**：discussion Run 在 Pi 空闲且无 pending 时进入 `Closing` 并可发 Result；有 pending 时不得发 Completed Result；失败时未消费 turn 变 `Abandoned`。
 
-### 2.6 `F-WORKER-DEADLINE` · 截止与预算终止
+### 2.6 `F-WORKER-DEADLINE` · 期限/预算终止 · N/A（本版撤销）
 
-- **上级需求 / Constraint ID**：`CON-RUN-003`（PK-03）。
-
-- **调用方**：worker 在执行前检查 + 执行中 poll。
-
-- **输入与前提**：执行中事实来自 M006（工具调用/usage；本版无 deadline/预算）。
-
-- **行为**：**本版撤销**（PK-04）：无 deadline/预算判定；只按取消分流。进程内计时用 monotonic。
-
-- **输出**：对应的 failure code 与 Failed/Cancelled 终态 Result。
-
-- **错误与边界**：本版无 deadline/预算判定。
-
-- **验收条件**：取消分流正确；本版无 deadline/预算用例。
+**N/A · 本版撤销**：`PK-04` 撤销，worker 不判定任何任务级 deadline/预算字段，也不因期限/预算终止 Run。执行期终止只由取消分流（`F-WORKER-CANCEL`）与恢复/失败路径产生。
 
 ### 2.7 `F-WORKER-RECOVER` · 崩溃恢复编排
 
@@ -309,7 +297,7 @@ flowchart LR
 
 图 M-WRK-C1 · Target / Planned / NOT_BUILT。实线是同步/异步进程内调用与返回，不是网络或新部署边界。worker 不自建线程/进程；Pi drive 与续租看护在宿主事件循环上运行（续租由 M004 `Scheduler.renewLease` 承载）。持久化/事务权威属 M003。
 
-#### 4.1 `DEP-WORKER-REPO` · M003 `task-repository`（持久化与事务权威）
+**4.1 `DEP-WORKER-REPO` · M003 `task-repository`（持久化与事务权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P1**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
@@ -323,7 +311,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：`SQLITE_BUSY` 超时/`SQLITE_IOERR` → 上抛依赖错误，由 worker 按位置决定（执行中→Failed `InternalError`；恢复中→保留状态交 operator）；worker 不吞错、不改写 M003 语义。
 
-#### 4.2 `DEP-WORKER-PI` · M006 `pi-adapter`（Harness 执行权威）
+**4.2 `DEP-WORKER-PI` · M006 `pi-adapter`（Harness 执行权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -337,7 +325,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：Harness fault/invariant → worker 映射 `UnsafeRetryBlocked`/`ExecutionStateUnknown`；不可恢复 session → `InternalError`；不重发旧请求。
 
-#### 4.3 `DEP-WORKER-USAGE` · M007 `usage`（聚合与语义校验权威）
+**4.3 `DEP-WORKER-USAGE` · M007 `usage`（聚合与语义校验权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -351,7 +339,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：校验 FAIL → throw `InternalError("semantic-validator-fail")`，不写 Result；聚合不可用 → 依赖错误上抛，Run 以 `InternalError` Failed 收口。
 
-#### 4.4 `DEP-WORKER-MATRIX` · M008 `matrix-adapter`（discussion 协议）
+**4.4 `DEP-WORKER-MATRIX` · M008 `matrix-adapter`（discussion 协议）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -365,7 +353,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：membership/event/media 复核失败 → `DiscussionAccessLost` Failed；讨论发送失败按 M008 重试/永久错误分流，worker 不绕过。
 
-#### 4.5 `DEP-WORKER-SCHED` · M004 `scheduler`（dispatch 与 lease）
+**4.5 `DEP-WORKER-SCHED` · M004 `scheduler`（dispatch 与 lease）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -420,7 +408,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `S1` · RunCoordinator（入口）
+**5.1.1 `S1` · RunCoordinator（入口）**
 
 - **职责与非职责**：实现 §2 的七个功能并保证 §6.6 与两步提交不变量；编排“创建 session → accept → drive → 对账 → 发布”。非职责：不实现 Pi loop、不聚合 usage、不拼 SQL（经 I5）、不做 Matrix 协议。
 
@@ -432,7 +420,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做编排，把 Result 规则抽到 I1、取消抽到 I2、恢复抽到 I3，以便对 generation、零调用 Result、恢复分支做无 Pi 单测。替代方案“全部写在 `worker.ts`”是 Current 形态，代价是与 Pi/SQL 强耦合、无法独立验证两步提交与恢复。
 
-#### 5.1.2 `I1` · ResultBuilder
+**5.1.2 `I1` · ResultBuilder**
 
 - **职责与非职责**：纯逻辑：由 `PiOperationOutcome` + `UsageSnapshot` + 对账事实构造 `AgentResult`（state/partial/summary/outputs/known_actions/usage/failure）；决定 generation 取值。非职责：不做 I/O、不聚合 usage、不发 SQL（经 I5）。
 
@@ -444,7 +432,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：使 Completed 强制 `partial=false`/`failure=null`、Cancelled 强制 `CancelledByRequest` 等跨字段约束可表驱动测试。替代方案“在 run 内联拼装”难以覆盖 failure 映射矩阵。
 
-#### 5.1.3 `I2` · CancelRouter
+**5.1.3 `I2` · CancelRouter**
 
 - **职责与非职责**：按 `runs.state` 分流取消：Queued 零调用 Result 路径、Running stop intent + abort + 对账、终态 `AlreadyTerminal`。非职责：不做 HTTP 映射、不直接 abort Pi（经 I5→M006）。
 
@@ -456,7 +444,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：使“`StopRequested` 只证意图”“零调用 Result 结构”可单测。替代方案“复用 `store.cancel` 全包”把 worker 的 abort+对账义务隐没在 M003。
 
-#### 5.1.4 `I3` · RecoveryPlanner
+**5.1.4 `I3` · RecoveryPlanner**
 
 - **职责与非职责**：实现 R1-R7 编排：探测、判定 `RecoveryOutcome`、生成只补第二步/resume/accept/内部失败的下一步命令。非职责：不做 Pi inspect 实现（经 I5→M006）、不改已发布 Result。
 
@@ -468,7 +456,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：使“只补第二步”“不重跑 Pi”可注入故障单测。替代方案“散在 loop”无法对每个崩溃窗口断言。
 
-#### 5.1.5 `I4` · IntakeController
+**5.1.5 `I4` · IntakeController**
 
 - **职责与非职责**：intake CAS（Open→Closing）与 turn 领取/消费/封存；保证 Completed Result 前 `Closing` 且无 pending。非职责：不做 Matrix sync/发送协议（经 I5→M008）、不管理 homeserver 内部。
 
@@ -480,7 +468,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：使 intake 状态机与 turn 生命周期可独立测试。替代方案“塞进 finish 分支”使 CAS 重判语义不可见。
 
-#### 5.1.6 `I5` · WorkerPorts
+**5.1.6 `I5` · WorkerPorts**
 
 - **职责与非职责**：worker 内唯一跨模块适配层：M003（publishResult/fenced write/scan/patch/turn）、M006（session/accept/drive/abort/inspect）、M007（snapshot/validate）、M008（sync/send/media）、M004（acquireSlot/fence/Lease）。非职责：不做业务规则、不重试业务失败（只透传依赖错误）。
 
@@ -492,7 +480,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：端口使 worker 可在受控 fake 上测试（§14.2 用例）并集中跨模块合同。替代方案“直接 import 各模块”会传播实现类型、违反 §5.5 依赖方向。
 
-#### 5.1.7 `T` · 外部交接类型（§6.2）
+**5.1.7 `T` · 外部交接类型（§6.2）**
 
 - **职责与非职责**：worker 与相邻模块交换的稳定类型：`Lease`（M004）、`PiOperationOutcome`/`PiRunObservation`（M006）、`UsageSnapshot`（M007）、`DiscussionTurn`/`PikoDiscussionMessage`（M008/M003）、`AgentResult`/`CancelOutcome`/`FencedPublishResult`（契约/M003）。非职责：不重新定义机器契约字段。
 
@@ -506,7 +494,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-WORKER-EXEC` · 驱动一次 Run
+**5.2.1 `P-WORKER-EXEC` · 驱动一次 Run**
 
 - **入口与调用上下文**：M004 `scheduler` dispatch `Lease`（宿主事件循环）→ `RunCoordinator.onLease(lease)`。
 
@@ -518,7 +506,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-WRK-P1`；§9.1 `IF-WORKER-DISPATCH`、§9.2 `IF-RUN-SESSION/ACCEPT/DRIVE`；`VRC-WORKER-001/007`。
 
-#### 5.2.2 `P-WORKER-PUBLISH` · Result 两步发布
+**5.2.2 `P-WORKER-PUBLISH` · Result 两步发布**
 
 - **入口与调用上下文**：operation 结束或恢复补写 → `RunCoordinator.publish`。
 
@@ -530,7 +518,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-WRK-P2`；§9.1 `generateResult`、§9.2 `IF-RUN-PUBLISH`；`VRC-WORKER-001/004`。
 
-#### 5.2.3 `P-WORKER-CANCEL` · 取消分流
+**5.2.3 `P-WORKER-CANCEL` · 取消分流**
 
 - **入口与调用上下文**：M001 取消入口 → `CancelRouter.route(task_id)`。
 
@@ -542,7 +530,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-WRK-P3`；§9.1 `cancelQueued`/`cancelTaskning`、§9.2 `IF-CX-ABORT`；`VRC-WORKER-002`。
 
-#### 5.2.4 `P-WORKER-RECOVER` · 崩溃恢复编排
+**5.2.4 `P-WORKER-RECOVER` · 崩溃恢复编排**
 
 - **入口与调用上下文**：M000 启动后 → `RecoveryPlanner.plan()`（在恢复门内，先于正常领取）。
 
@@ -554,7 +542,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-WRK-P5`；§9.2 `IF-REC-SCAN/INSPECT/PATCH/FENCE`；`VRC-WORKER-006`。
 
-#### 5.2.5 `P-WORKER-INTAKE` · intake 推进
+**5.2.5 `P-WORKER-INTAKE` · intake 推进**
 
 - **入口与调用上下文**：Pi idle/abort 事件 → `IntakeController.onIdle(task_id)` / `onAbort(task_id)`。
 
@@ -570,7 +558,7 @@ flowchart TB
 
 本节只固定 worker 内部文件之间的交接；跨模块接口在 §9.2，字段类型在 §6.2。
 
-#### 5.3.1 `IF-WORKER-COORD` · `coordinator.ts` → `result.ts`/`cancel.ts`/`recovery.ts`/`intake.ts`
+**5.3.1 `IF-WORKER-COORD` · `coordinator.ts` → `result.ts`/`cancel.ts`/`recovery.ts`/`intake.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8（`R-WORKER-*`）。
 
@@ -582,7 +570,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/worker/*.ts`；`VRC-WORKER-001/002/006` 以表驱动与故障注入覆盖。
 
-#### 5.3.2 `IF-WORKER-PORT` · `coordinator.ts`/`result.ts`/`cancel.ts`/`recovery.ts`/`intake.ts` → `ports.ts`
+**5.3.2 `IF-WORKER-PORT` · `coordinator.ts`/`result.ts`/`cancel.ts`/`recovery.ts`/`intake.ts` → `ports.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `WorkerPorts`，方法契约见 §9.2（各 `IF-*`）。
 
@@ -620,7 +608,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 ### 6.1 公共基础类型与枚举（适用时）
 
-#### 6.1.1 `CancelOutcome`
+**6.1.1 `CancelOutcome`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。权威来源 = contract §1 + OpenAPI `cancelTask`；worker 为产生方。`CancelledBeforeStart`＝Queued 已取消（终态）；`StopRequested`＝Running 意图落盘（未停）；`AlreadyTerminal`＝已终态。未知值拒绝。
 
@@ -628,7 +616,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：Queued → `CancelledBeforeStart`。`VRC-WORKER-002`；`NOT_RUN`。
 
-#### 6.1.2 `RecoveryOutcome`
+**6.1.2 `RecoveryOutcome`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`RecoveryOutcome = "PatchedTerminal" | "ResumedOperation" | "Fenced" | "InternalError"`。来源 = `piko-recovery.md` §4.1.1 + M005 ISD。`PatchedTerminal`＝补第二步；`ResumedOperation`＝drive 既有 op；`Fenced`＝旧 lease 失效后重领；`InternalError`＝不可恢复。
 
@@ -638,7 +626,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `AgentResult`（worker 构造、M003 持久化）
+**6.2.1 `AgentResult`（worker 构造、M003 持久化）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`AgentResult`；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.AgentResult`。worker 是生产/构造者，M003 是持久化者，M001 是读路径提供者。字段：`task_id`、`task_id`、`generation`、`state ∈ {Completed,Failed,Cancelled}`、`partial`、`summary`、`outputs[]`、`known_actions[]`、`usage`、`failure`、`published_at`。
 
@@ -648,7 +636,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`Completed{partial:false, failure:null}`。拒绝：`Completed` 带 non-null failure；`Cancelled` 带 `InternalError`。`VRC-WORKER-001/004`；`NOT_RUN`。
 
-#### 6.2.2 `UsageSnapshot`
+**6.2.2 `UsageSnapshot`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.TokenUsage`（`source/quality/6 字段/model_attempts/usage_observed_attempts/missing_fields`）。authority = M007；worker 只消费并内嵌进 `AgentResult.usage`，不聚合、不改口径。
 
@@ -658,7 +646,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：3 attempt（完整/缺字段/完整）→ `Partial`。拒绝：`Complete` 但 `missing_fields` 非空。`VRC-WORKER-004`；`NOT_RUN`。
 
-#### 6.2.3 `FencedPublishResult`
+**6.2.3 `FencedPublishResult`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`FencedPublishResult { task_id, generation, result_json, result_sha256 }`；来源 `piko-run.md` §4.4.2 + M003 ISD §4.6。worker 生产命令、M003 执行。
 
@@ -668,7 +656,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`generation=N` 且 lease epoch 匹配。拒绝：旧 generation/旧 epoch。`VRC-WORKER-001`；`NOT_RUN`。
 
-#### 6.2.4 `WorkerRunPlan`（私有）
+**6.2.4 `WorkerRunPlan`（私有）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：私有类型 `WorkerRunPlan { task_id: string, lease_epoch: number, workspace: ResolvedWorkspace, instruction: string, discussion?: DiscussionContext, limits: RunLimits }`；来源 = 本设计 §5.1.1，字段引自机器契约 `AgentTaskRequest`。
 
@@ -684,7 +672,7 @@ worker 的权威数据是 Run/Result（由 M003 持久化），本模块自有�
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `WorkerRunPhase`（进程内单 Run 视图，必填）
+**6.6.1 `WorkerRunPhase`（进程内单 Run 视图，必填）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：私有派生枚举，非持久 authority（持久事实在 `runs.state`，属 M003）：
 
@@ -746,7 +734,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `FencedWrite` / `LeaseLost` / `DiscussionNotClosed`（内部错误）
+**6.8.1 `FencedWrite` / `LeaseLost` / `DiscussionNotClosed`（内部错误）**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：内部类型，不进入 HTTP 契约：`FencedWrite`（fenced write 未命中：lease/generation 不符，来自 M003）、`LeaseLost`（`piko-scheduler` 续租 CAS 未命中）、`DiscussionNotClosed`（Completed 前 intake 未 `Closing` 或仍有 pending）。定义在 `src/worker/types.ts`（Planned）+ M003/M004。三者不可互相替代：`FencedWrite` 是写入被拒，`LeaseLost` 是失去执行权，`DiscussionNotClosed` 是讨论结果前提未满足。
 
@@ -756,9 +744,9 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：`FencedWrite`：旧 epoch `finish` 0 行。`LeaseLost`：fence 后旧 epoch 续租。`DiscussionNotClosed`：有 pending turn 却发 Completed Result。`VRC-WORKER-001/005/007`；`NOT_RUN`。
 
-#### 6.8.2 对外 Result `failure.code` 映射（worker 生产）
+**6.8.2 对外 Result `failure.code` 映射（worker 生产）**
 
-- **完整定义、Data/Type/Error ID 与唯一来源**：worker 把执行/取消/截止事实映射为 contract §6 的 `Failure.code`：`ModelUnavailable`/`Dependency`、`ModelResponseInvalid`/`ModelProtocol`、`ToolFailure`/`Tool`、`UnsafeRetryBlocked`/`ExecutionUnknown`、`ExecutionStateUnknown`/`ExecutionUnknown`、`DiscussionAccessLost`/`Authorization`、`CancelledByRequest`/`Cancellation`、`InternalError`/`Internal`。
+- **完整定义、Data/Type/Error ID 与唯一来源**：worker 把执行/取消/恢复事实映射为 contract §6 的 `Failure.code`：`ModelUnavailable`/`Dependency`、`ModelResponseInvalid`/`ModelProtocol`、`ToolFailure`/`Tool`、`UnsafeRetryBlocked`/`ExecutionUnknown`、`ExecutionStateUnknown`/`ExecutionUnknown`、`DiscussionAccessLost`/`Authorization`、`CancelledByRequest`/`Cancellation`、`InternalError`/`Internal`。
 
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Failure {code, cause_class, message}`；`message` 非空不超过 8192；`Failed` 必须 non-null，`Completed` 强制 null，`Cancelled` 强制 `CancelledByRequest`。
 
@@ -870,7 +858,7 @@ flowchart TD
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-WORKER-TWOSTEP` · Result 两步提交与 generation
+**8.1 `R-WORKER-TWOSTEP` · Result 两步提交与 generation**
 
 - **输入前提 / 适用条件**：每次 Run 到达终态；当前 `runs.generation = G`。
 
@@ -884,7 +872,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：初始 `G=1`；完成 → `results.gen=2`、`runs.gen=3`。两步间 SIGKILL → 重启 `results.gen=2` 存在、`runs` 非终态 → 只补第二步。`VRC-WORKER-001/006`。
 
-#### 8.2 `R-WORKER-CANCEL-DISPATCH` · 按 state 分流
+**8.2 `R-WORKER-CANCEL-DISPATCH` · 按 state 分流**
 
 - **输入前提 / 适用条件**：`cancelTask(task_id)`；读取 `runs.state`。
 
@@ -898,11 +886,11 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：Queued → `CancelledBeforeStart` + 零调用 Result；Running → `StopRequested` 后终态 `Cancelled`。`VRC-WORKER-002`。
 
-#### 8.3 截止/预算判定 · N/A
+**8.3 期限/预算判定 · N/A**
 
 **N/A · 本版撤销**：`PK-04` 撤销，worker 不判定任务级 deadline/预算字段。
 
-#### 8.4 `R-WORKER-INTAKE-CAS` · intake 推进
+**8.4 `R-WORKER-INTAKE-CAS` · intake 推进**
 
 - **输入前提 / 适用条件**：discussion Run；Pi idle 或 abort。
 
@@ -916,7 +904,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：idle 无 pending → `Closing` 且可发 Result；有 pending → `DiscussionNotClosed`。`VRC-WORKER-005`。
 
-#### 8.5 `R-WORKER-RECOVERY-ORDER` · 恢复顺序
+**8.5 `R-WORKER-RECOVERY-ORDER` · 恢复顺序**
 
 - **输入前提 / 适用条件**：进程重启后恢复门内；存在非终态 Run。
 
@@ -930,7 +918,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：两步间崩溃 → `PatchedTerminal`；有 open op → `ResumedOperation`；无事实 → `InternalError`。`VRC-WORKER-006`。
 
-#### 8.6 `R-WORKER-USAGE-VALIDATE` · 发布前校验 fail closed
+**8.6 `R-WORKER-USAGE-VALIDATE` · 发布前校验 fail closed**
 
 - **输入前提 / 适用条件**：Result 第一步之前。
 
@@ -950,11 +938,11 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `generateResult(outcome, runId, epoch) -> AgentResult`（`IF-RUN-RESULTGEN`）
+**9.1.1 `generateResult(outcome, runId, epoch) -> AgentResult`（`IF-RUN-RESULTGEN`）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-RESULTGEN`（本模块提供的 Result generation 能力，`system-design` §3.2 M005 行）；把一次执行/取消/对账事实封装为可发布的 `AgentResult`（含 usage 与 failure 映射）。来源：本模块拥有。
 
-- **输入与前提**：`outcome`（`PiOperationOutcome` 或取消/截止/恢复判定）、`runId` 非空、`epoch >= 1`；lease 仍由本 worker 持有；M003/M007 可用。
+- **输入与前提**：`outcome`（`PiOperationOutcome` 或取消/恢复判定）、`runId` 非空、`epoch >= 1`；lease 仍由本 worker 持有；M003/M007 可用。
 
 - **成功输出与保证**：返回 `AgentResult`（`state ∈ {Completed,Failed,Cancelled}`，跨字段约束见 §6.2.1）；`generation = runs.generation + 1`；`usage` 来自 M007 snapshot 且已通过校验。
 
@@ -964,7 +952,7 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **实现与验证**：`src/worker/result.ts` `ResultBuilder.build` + `src/worker/coordinator.ts` 发布编排（Planned）。`VRC-WORKER-001/004`；`NOT_RUN`。
 
-#### 9.1.2 `cancelQueued(runId) -> CancelOutcome`（`IF-CX-QUEUED`）
+**9.1.2 `cancelQueued(runId) -> CancelOutcome`（`IF-CX-QUEUED`）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-CX-QUEUED`（`piko-cancel.md` §5.1，M005 提供）；Queued Run 单事务取消。
 
@@ -978,7 +966,7 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **实现与验证**：`src/worker/cancel.ts`（Planned）。`VRC-WORKER-002`；`NOT_RUN`。
 
-#### 9.1.3 `cancelTaskning(runId) -> CancelOutcome`（`IF-CX-RUNNING`）
+**9.1.3 `cancelTaskning(runId) -> CancelOutcome`（`IF-CX-RUNNING`）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-CX-RUNNING`（`piko-cancel.md` §5.1，M005 提供）；Running Run 停止意图 + abort + 对账。
 
@@ -992,7 +980,7 @@ worker 的对外接口是本模块提供的进程内函数（Result generation �
 
 - **实现与验证**：`src/worker/cancel.ts`（Planned）。`VRC-WORKER-002`；`NOT_RUN`。
 
-#### 9.1.4 `onLease(lease) -> void`（`IF-WORKER-DISPATCH`，内部入口）
+**9.1.4 `onLease(lease) -> void`（`IF-WORKER-DISPATCH`，内部入口）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-WORKER-DISPATCH`（M004 → M005 进程内 dispatch）；开始协调一个 Run。
 
@@ -1042,7 +1030,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 按 §1 的事实联动：§3 判无操作面（故无端点生命周期）；§6.6 登记了跨步骤状态 `WorkerRunPhase`（故本节给状态变换并发出口），并引用同一 `D-*`；§6.7 判本模块不拥有持久表（故本节给事务边界与崩溃恢复的交接）。执行上下文：全部操作在宿主事件循环上；SQLite 由 M003 单 writer 串行化。
 
-#### 10.1 `C-WORKER-01` · 两步提交窗口崩溃
+**10.1 `C-WORKER-01` · 两步提交窗口崩溃**
 
 - **初始条件 / 并发交错 / 失败点**：第一步 `INSERT results` 已提交、第二步终态未提交时进程崩溃。失败点 = 两步之间。
 
@@ -1056,7 +1044,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-006`；组合 PK-T05/PK-T12/T15。
 
-#### 10.2 `C-WORKER-02` · 取消与终态发布竞态
+**10.2 `C-WORKER-02` · 取消与终态发布竞态**
 
 - **初始条件 / 并发交错 / 失败点**：`cancelTaskning` 与 operation 自然结束同时发生；或 M003 `finish` 已清空 slot 后 `renewSlot` 到达。
 
@@ -1070,7 +1058,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-002/007`；组合 PK-T05。
 
-#### 10.3 `C-WORKER-03` · 崩溃恢复与正常领取的顺序
+**10.3 `C-WORKER-03` · 崩溃恢复与正常领取的顺序**
 
 - **初始条件 / 并发交错 / 失败点**：进程重启；恢复未完成时 M004 若尝试正常领取。失败点 = 门未开却 dispatch。
 
@@ -1084,11 +1072,11 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-006`；组合 PK-T12。
 
-#### 10.4 截止与取消同时到达 · N/A
+**10.4 期限与取消同时到达 · N/A**
 
-**N/A · 本版撤销**：本版无 deadline，不存在该并发用例（取消仍按 `C-WORKER-02`）。
+**N/A · 本版撤销**：`PK-04` 撤销，本版无任务级 deadline，不存在该并发用例（取消仍按 `C-WORKER-02`）。
 
-#### 10.5 `C-WORKER-05` · 语义校验失败与发布
+**10.5 `C-WORKER-05` · 语义校验失败与发布**
 
 - **初始条件 / 并发交错 / 失败点**：`validateBeforePublish` 返回 `ok=false`。失败点 = 校验与第一步之间。
 
@@ -1102,7 +1090,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-004`；组合 PK-T16。
 
-#### 10.6 `C-WORKER-06` · intake CAS 与新 turn 竞态
+**10.6 `C-WORKER-06` · intake CAS 与新 turn 竞态**
 
 - **初始条件 / 并发交错 / 失败点**：worker CAS `Open→Closing` 与 M008 sync 写入新 `Pending` turn 并发。失败点 = Closing 后仍附着 turn。
 
@@ -1116,7 +1104,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证项 / 组合责任**：`VRC-WORKER-005`；组合 PK-T08。
 
-#### 10.7 `C-WORKER-07` · drive 定时器延迟/丢失
+**10.7 `C-WORKER-07` · drive 定时器延迟/丢失**
 
 - **初始条件 / 并发交错 / 失败点**：宿主事件循环繁忙导致 drive 轮询延迟。失败点 = 误判 operation 状态。
 
@@ -1144,7 +1132,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-WORKER-RUN` · 单 Run 协调开销
+**12.1 `CAP-WORKER-RUN` · 单 Run 协调开销**
 
 - **目标 / 限制 / 单位**：worker 同时协调 1 个 Run（`INV-WORKER-1`）；自身开销限于每 tick 一次 operation 状态 poll、每 Run 一次 session 创建与两次 Result 事务。
 
@@ -1164,13 +1152,13 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/worker/coordinator.ts`
+**13.1.1 `src/worker/coordinator.ts`**
 
 - **职责 / 非职责**：入口：实现 §2 功能、编排 I1-I5、保证 §6.6 与两步提交不变量。非职责：SQL、Pi loop、usage 聚合。
 
 - **关键 symbol / 导出范围**：`class RunCoordinator`（`onLease`, `publish`, `routeCancel`, `recover`）；仅对 M000/M001/M004 导出。
 
-- **承接 Function / Rule / Constraint / Interface ID**：`F-WORKER-EXEC/PUBLISH/CANCEL/RECOVER/DEADLINE/INTAKE`；`R-WORKER-TWOSTEP/CANCEL-DISPATCH/DEADLINE/INTAKE-CAS/RECOVERY-ORDER`；`CON-RUN-001/003/004`、`CON-REC-001`、`CON-CX-001`；`IF-RUN-RESULTGEN`/`IF-WORKER-DISPATCH`。
+- **承接 Function / Rule / Constraint / Interface ID**：`F-WORKER-EXEC/PUBLISH/CANCEL/RECOVER/INTAKE`；`R-WORKER-TWOSTEP/CANCEL-DISPATCH/INTAKE-CAS/RECOVERY-ORDER`；`CON-RUN-001/004`、`CON-REC-001`、`CON-CX-001`；`IF-RUN-RESULTGEN`/`IF-WORKER-DISPATCH`。
 
 - **构建目标 / 依赖 / 宿主装配**：`tsc -p tsconfig.json`；依赖 `result.ts`/`cancel.ts`/`recovery.ts`/`intake.ts`/`ports.ts`/`types.ts`；由 `src/main.ts` 装配注入各模块端口。
 
@@ -1178,7 +1166,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-001/002/003/006/007`。
 
-#### 13.1.2 `src/worker/result.ts`
+**13.1.2 `src/worker/result.ts`**
 
 - **职责 / 非职责**：纯逻辑构造 `AgentResult`；无 I/O、无时钟。
 
@@ -1192,7 +1180,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-001/004`。
 
-#### 13.1.3 `src/worker/cancel.ts`
+**13.1.3 `src/worker/cancel.ts`**
 
 - **职责 / 非职责**：取消分流与 Running 对账命令生成。非职责：HTTP 映射、直接 abort Pi。
 
@@ -1206,7 +1194,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-002`。
 
-#### 13.1.4 `src/worker/recovery.ts`
+**13.1.4 `src/worker/recovery.ts`**
 
 - **职责 / 非职责**：R1-R7 编排与 `RecoveryOutcome` 判定。非职责：Pi inspect 实现、改已发布 Result。
 
@@ -1220,7 +1208,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-006`。
 
-#### 13.1.5 `src/worker/intake.ts`
+**13.1.5 `src/worker/intake.ts`**
 
 - **职责 / 非职责**：intake CAS 与 turn 生命周期。非职责：Matrix sync/发送协议。
 
@@ -1234,7 +1222,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-005`。
 
-#### 13.1.6 `src/worker/ports.ts`
+**13.1.6 `src/worker/ports.ts`**
 
 - **职责 / 非职责**：跨模块适配（M003/M004/M006/M007/M008）；只透传依赖错误，不做业务规则。
 
@@ -1248,7 +1236,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-001..006`（fake + 真模块两套）。
 
-#### 13.1.7 `src/worker/types.ts`
+**13.1.7 `src/worker/types.ts`**
 
 - **职责 / 非职责**：本层私有类型与错误类。非职责：逻辑。
 
@@ -1262,7 +1250,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：编译期。
 
-#### 13.1.8 `src/worker.ts`（修改既有）
+**13.1.8 `src/worker.ts`（修改既有）**
 
 - **职责 / 非职责**：改为薄入口：装配 `RunCoordinator` 并暴露 M000/M001/M004 所需方法；删除内联 Result 拼装、取消判定与恢复分支。非职责：业务规则。
 
@@ -1276,7 +1264,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-001/002`。
 
-#### 13.1.9 `src/store.ts`（修改既有，M003 侧）
+**13.1.9 `src/store.ts`（修改既有，M003 侧）**
 
 - **职责 / 非职责**：为 worker 提供端口原语：`publishResult(FencedPublishResult)`、`finishTerminal(runId, state, generation, epoch)`、`scanNonTerminalRuns()`、`patchTerminal(...)`、`casIntake`/`markTurnConsumed`/`abandonTurns`；保留既有 `finish` 的 guard 语义拆分。非职责：业务规则。
 
@@ -1290,7 +1278,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **验证入口**：`VRC-WORKER-001/005/006`。
 
-#### 13.1.10 `src/main.ts`（修改既有）
+**13.1.10 `src/main.ts`（修改既有）**
 
 - **职责 / 非职责**：装配：构造 M003/M006/M007/M008/M004 句柄 → `createWorkerPorts` → `RunCoordinator` → `RunWorker`；启动恢复编排后放行。
 
@@ -1306,7 +1294,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 ### 13.2 实现步骤
 
-#### 13.2.1 冻结 worker 外部端口与 M003 原语
+**13.2.1 冻结 worker 外部端口与 M003 原语**
 
 - **前置输入 / 依赖**：M003 设计采纳 `IF-RUN-PUBLISH`/`IF-REC-*`（`OQ-WORKER-002`）；M004 冻结 `acquireSlot`/`fence`。
 
@@ -1318,7 +1306,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **完成检查**：fake 端口可实现（`VRC-WORKER-001/004/006`）。
 
-#### 13.2.2 实现 `result.ts` + 单测
+**13.2.2 实现 `result.ts` + 单测**
 
 - **前置输入 / 依赖**：§6.2/§8.1/§8.6。
 
@@ -1330,7 +1318,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **完成检查**：`VRC-WORKER-001/004` 计划用例。
 
-#### 13.2.3 实现 `coordinator.ts` + `ports.ts` 正常路径
+**13.2.3 实现 `coordinator.ts` + `ports.ts` 正常路径**
 
 - **前置输入 / 依赖**：13.2.1/13.2.2。
 
@@ -1342,7 +1330,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **完成检查**：`VRC-WORKER-001`；PK-T01/PK-T05 集成可用。
 
-#### 13.2.4 实现 `cancel.ts` 与 `intake.ts`
+**13.2.4 实现 `cancel.ts` 与 `intake.ts`**
 
 - **前置输入 / 依赖**：13.2.3；M008 `IF-MX-TURN` 可用。
 
@@ -1354,7 +1342,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **完成检查**：`VRC-WORKER-002/005`；PK-T05/PK-T08 集成可用。
 
-#### 13.2.5 实现 `recovery.ts` 与装配
+**13.2.5 实现 `recovery.ts` 与装配**
 
 - **前置输入 / 依赖**：13.2.3；M004 `fence` 可用。
 
@@ -1372,7 +1360,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-RUN-001`
+**14.1.1 `CON-RUN-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-run.md` §3.1；适用（边界）。
 - **选定方案与正文锚点**：§6.6（`INV-WORKER-1/2`）、§7 `M-WRK-P1`、§9.1.4。
@@ -1380,15 +1368,15 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/007`；独立判据 = `SELECT count(*) FROM runs WHERE state='Running'` + `execution_slot`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.2 `CON-RUN-003`
+**14.1.2 `CON-RUN-003` · N/A（本版撤销 · PK-04）**
 
-- **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-run.md` §3.1；适用。
-- **选定方案与正文锚点**：§8.3；§10 `C-WORKER-04`；§6.8.2。
-- **§13 实现文件 / 装配责任**：`coordinator.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-WORKER-003`；独立判据 = 终态 `failure.code`。
-- **父级组合验证或裁剪/阻断决定**：组合 fault PK-T05。
+- **来源与适用性 / 固定基线**：`system-design` v0.12.0-draft.1 §3.4（`PK-04` 行 · 本版撤销）；本版不适用。
+- **选定方案与正文锚点**：n/a；§2.6、§8.3、§10.4 均为 N/A 记录。
+- **§13 实现文件 / 装配责任**：n/a（无实现文件）。
+- **§14 VRC / Case / 独立判据**：n/a（无验证项；见 §14.2.3）。
+- **父级组合验证或裁剪/阻断决定**：n/a。
 
-#### 14.1.3 `CON-RUN-004`
+**14.1.3 `CON-RUN-004`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.1；§7 `M-WRK-P2`；§6.6 `INV-WORKER-6`。
@@ -1396,7 +1384,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/006`；独立判据 = `results.generation` 与 `runs.generation` 关系。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.4 `CON-USAGE-001`
+**14.1.4 `CON-USAGE-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-usage.md` §3.1；适用。
 - **选定方案与正文锚点**：§2.2；§8.6；§9.2 `IF-RUN-SNAPSHOT`。
@@ -1404,7 +1392,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-004`；独立判据 = JSON Schema + semantic invariants。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10/PK-T16。
 
-#### 14.1.5 `CON-USAGE-002`
+**14.1.5 `CON-USAGE-002`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-usage.md` §3.1；适用。
 - **选定方案与正文锚点**：§2.2/§2.3；§8.6；§10 `C-WORKER-05`。
@@ -1412,7 +1400,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-004`；独立判据 = 无 Result 写入。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T16。
 
-#### 14.1.6 `CON-MX-001`
+**14.1.6 `CON-MX-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-matrix.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.4；§7 `M-WRK-P4`；§10 `C-WORKER-06`。
@@ -1420,7 +1408,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`；独立判据 = `discussion_intake_state`/`discussion_turns.status`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.7 `CON-REC-001`
+**14.1.7 `CON-REC-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-recovery.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.5；§7 `M-WRK-P5`；§10 `C-WORKER-01/03`。
@@ -1428,7 +1416,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-006`；独立判据 = `results` 不变 + 终态补齐。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.8 `CON-CX-001`
+**14.1.8 `CON-CX-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-cancel.md` §3.1；适用。
 - **选定方案与正文锚点**：§8.2；§7 `M-WRK-P3`；§9.1.2/9.1.3。
@@ -1436,7 +1424,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-002`；独立判据 = `CancelOutcome` + 零调用 Result。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.9 `F-WORKER-EXEC`
+**14.1.9 `F-WORKER-EXEC`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§5.2.1；§7 `M-WRK-P1`；§9.1.4。
@@ -1444,7 +1432,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01。
 
-#### 14.1.10 `F-WORKER-USAGE`
+**14.1.10 `F-WORKER-USAGE`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§8.6；§9.2 `IF-RUN-SNAPSHOT`。
@@ -1452,7 +1440,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-004`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.11 `F-WORKER-PUBLISH`
+**14.1.11 `F-WORKER-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§8.1；§7 `M-WRK-P2`；§9.1.1。
@@ -1460,7 +1448,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T07/PK-T15。
 
-#### 14.1.12 `F-WORKER-CANCEL`
+**14.1.12 `F-WORKER-CANCEL`**
 
 - **来源与适用性 / 固定基线**：§2.4；适用。
 - **选定方案与正文锚点**：§8.2；§7 `M-WRK-P3`；§9.1.2/9.1.3。
@@ -1468,7 +1456,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.13 `F-WORKER-INTAKE`
+**14.1.13 `F-WORKER-INTAKE`**
 
 - **来源与适用性 / 固定基线**：§2.5；适用。
 - **选定方案与正文锚点**：§8.4；§7 `M-WRK-P4`；§9.2 `IF-MX-TURN`。
@@ -1476,15 +1464,15 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.14 `F-WORKER-DEADLINE`
+**14.1.14 `F-WORKER-DEADLINE` · N/A（本版撤销）**
 
-- **来源与适用性 / 固定基线**：§2.6；适用。
-- **选定方案与正文锚点**：§8.3；§10 `C-WORKER-04`。
-- **§13 实现文件 / 装配责任**：`coordinator.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-WORKER-003`。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
+- **来源与适用性 / 固定基线**：`PK-04` 已撤销；本版不适用。
+- **选定方案与正文锚点**：n/a；§2.6 与 §8.3 均为 N/A 记录。
+- **§13 实现文件 / 装配责任**：n/a（无实现文件）。
+- **§14 VRC / Case / 独立判据**：n/a（无验证项；见 §14.2.3）。
+- **父级组合验证或裁剪/阻断决定**：n/a。
 
-#### 14.1.15 `F-WORKER-RECOVER`
+**14.1.15 `F-WORKER-RECOVER`**
 
 - **来源与适用性 / 固定基线**：§2.7；适用。
 - **选定方案与正文锚点**：§8.5；§7 `M-WRK-P5`。
@@ -1492,7 +1480,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.16 `P-WORKER-EXEC`
+**14.1.16 `P-WORKER-EXEC`**
 
 - **来源与适用性 / 固定基线**：§5.2.1/§7 `M-WRK-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1、§7 M-WRK-P1。
@@ -1500,7 +1488,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01。
 
-#### 14.1.17 `P-WORKER-PUBLISH`
+**14.1.17 `P-WORKER-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：§5.2.2/§7 `M-WRK-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2、§7 M-WRK-P2、§8.1。
@@ -1508,7 +1496,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/004/006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05/PK-T15。
 
-#### 14.1.18 `P-WORKER-CANCEL`
+**14.1.18 `P-WORKER-CANCEL`**
 
 - **来源与适用性 / 固定基线**：§5.2.3/§7 `M-WRK-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3、§7 M-WRK-P3、§8.2。
@@ -1516,7 +1504,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.19 `P-WORKER-INTAKE`
+**14.1.19 `P-WORKER-INTAKE`**
 
 - **来源与适用性 / 固定基线**：§5.2.5/§7 `M-WRK-P4`；适用。
 - **选定方案与正文锚点**：§5.2.5、§7 M-WRK-P4、§8.4。
@@ -1524,7 +1512,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.20 `P-WORKER-RECOVER`
+**14.1.20 `P-WORKER-RECOVER`**
 
 - **来源与适用性 / 固定基线**：§5.2.4/§7 `M-WRK-P5`；适用。
 - **选定方案与正文锚点**：§5.2.4、§7 M-WRK-P5、§8.5。
@@ -1532,7 +1520,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.21 `R-WORKER-TWOSTEP`
+**14.1.21 `R-WORKER-TWOSTEP`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.6 `INV-WORKER-6`。
@@ -1540,7 +1528,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15。
 
-#### 14.1.22 `R-WORKER-CANCEL-DISPATCH`
+**14.1.22 `R-WORKER-CANCEL-DISPATCH`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§6.6 `INV-WORKER-3`。
@@ -1548,15 +1536,15 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.23 `R-WORKER-DEADLINE`
+**14.1.23 `R-WORKER-DEADLINE` · N/A（本版撤销）**
 
-- **来源与适用性 / 固定基线**：§8.3；适用。
-- **选定方案与正文锚点**：§8.3；§10 `C-WORKER-04`。
-- **§13 实现文件 / 装配责任**：`coordinator.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-WORKER-003`。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
+- **来源与适用性 / 固定基线**：`PK-04` 已撤销；本版不适用。
+- **选定方案与正文锚点**：n/a；§8.3 为 N/A 记录。
+- **§13 实现文件 / 装配责任**：n/a（无实现文件）。
+- **§14 VRC / Case / 独立判据**：n/a（无验证项；见 §14.2.3）。
+- **父级组合验证或裁剪/阻断决定**：n/a。
 
-#### 14.1.24 `R-WORKER-INTAKE-CAS`
+**14.1.24 `R-WORKER-INTAKE-CAS`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§10 `C-WORKER-06`。
@@ -1564,7 +1552,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.25 `R-WORKER-RECOVERY-ORDER`
+**14.1.25 `R-WORKER-RECOVERY-ORDER`**
 
 - **来源与适用性 / 固定基线**：§8.5；适用。
 - **选定方案与正文锚点**：§8.5；§10 `C-WORKER-01`。
@@ -1572,7 +1560,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.26 `R-WORKER-USAGE-VALIDATE`
+**14.1.26 `R-WORKER-USAGE-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§8.6；适用。
 - **选定方案与正文锚点**：§8.6；§6.6 `INV-WORKER-4`。
@@ -1580,7 +1568,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-004`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T16。
 
-#### 14.1.27 `IF-RUN-RESULTGEN`
+**14.1.27 `IF-RUN-RESULTGEN`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.1（`system-design` §3.2 Result generation）；适用。
 - **选定方案与正文锚点**：§9.1.1；§6.2.1；§6.8.2。
@@ -1588,7 +1576,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/004`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15/PK-T16。
 
-#### 14.1.28 `IF-CX-QUEUED` / `IF-CX-RUNNING`
+**14.1.28 `IF-CX-QUEUED` / `IF-CX-RUNNING`**
 
 - **来源与适用性 / 固定基线**：`piko-cancel.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.2/§9.1.3；§8.2。
@@ -1596,7 +1584,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
 
-#### 14.1.29 `IF-RUN-PUBLISH`
+**14.1.29 `IF-RUN-PUBLISH`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1（Proposed）；适用但依赖 `OQ-WORKER-002`。
 - **选定方案与正文锚点**：§9.2；§8.1；当前代码事实 `src/store.ts` `finish`/`insertResult`。
@@ -1604,7 +1592,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/006`。
 - **父级组合验证或裁剪/阻断决定**：阻断点：`OQ-WORKER-002` 未关闭前不得宣称 M003 端口已完成。
 
-#### 14.1.30 `IF-REC-SCAN/INSPECT/PATCH/FENCE`
+**14.1.30 `IF-REC-SCAN/INSPECT/PATCH/FENCE`**
 
 - **来源与适用性 / 固定基线**：`piko-recovery.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.2；§8.5；§7 `M-WRK-P5`。
@@ -1612,7 +1600,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.31 `IF-RUN-SESSION/ACCEPT/DRIVE` / `IF-CX-ABORT`
+**14.1.31 `IF-RUN-SESSION/ACCEPT/DRIVE` / `IF-CX-ABORT`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1/§5.2 + `piko-cancel.md` §5.2；适用。
 - **选定方案与正文锚点**：§9.2；§5.2.1/§5.2.3。
@@ -1620,7 +1608,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/002/007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T05/PK-T09。
 
-#### 14.1.32 `IF-MX-TURN` / `IF-MX-VERIFY`
+**14.1.32 `IF-MX-TURN` / `IF-MX-VERIFY`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §5.1/§5.2；适用。
 - **选定方案与正文锚点**：§9.2；§8.4。
@@ -1628,7 +1616,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.33 `ERR-WORKER-FENCED`（`FencedWrite`）
+**14.1.33 `ERR-WORKER-FENCED`（`FencedWrite`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（内部错误）。
 - **选定方案与正文锚点**：§6.8.1；§8.1；§10 `C-WORKER-01`。
@@ -1636,7 +1624,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-001/007`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15。
 
-#### 14.1.34 `ERR-WORKER-DISCUSSION`（`DiscussionNotClosed`）
+**14.1.34 `ERR-WORKER-DISCUSSION`（`DiscussionNotClosed`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（内部错误）。
 - **选定方案与正文锚点**：§6.8.1；§8.4；§10 `C-WORKER-06`。
@@ -1644,7 +1632,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 - **§14 VRC / Case / 独立判据**：`VRC-WORKER-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T08。
 
-#### 14.1.35 `ERR-WORKER-INTERNAL`（`InternalError` 语义校验/恢复不可用）
+**14.1.35 `ERR-WORKER-INTERNAL`（`InternalError` 语义校验/恢复不可用）**
 
 - **来源与适用性 / 固定基线**：§6.8.2；适用。
 - **选定方案与正文锚点**：§6.8.2；§8.6；§10 `C-WORKER-05`。
@@ -1656,7 +1644,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-WORKER-001` · 正常执行与 Result 两步发布
+**14.2.1 `VRC-WORKER-001` · 正常执行与 Result 两步发布**
 
 - **Rule / 成员**：`F-WORKER-EXEC`/`F-WORKER-PUBLISH`；`R-WORKER-TWOSTEP`；`CON-RUN-004`；`IF-RUN-SESSION/ACCEPT/DRIVE`/`IF-RUN-PUBLISH`。
 
@@ -1674,7 +1662,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.2 `VRC-WORKER-002` · 取消分流
+**14.2.2 `VRC-WORKER-002` · 取消分流**
 
 - **Rule / 成员**：`F-WORKER-CANCEL`；`R-WORKER-CANCEL-DISPATCH`；`CON-CX-001`；`IF-CX-QUEUED/RUNNING/ABORT`。
 
@@ -1692,11 +1680,11 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.3 截止/预算终止 · N/A
+**14.2.3 期限/预算终止 · N/A**
 
-**N/A · 本版撤销**：`PK-04` 撤销。
+**N/A · 本版撤销**：`PK-04` 撤销（`F-WORKER-DEADLINE` / `R-WORKER-DEADLINE` 无适用用例）。
 
-#### 14.2.4 `VRC-WORKER-004` · Usage 快照与语义校验 fail closed
+**14.2.4 `VRC-WORKER-004` · Usage 快照与语义校验 fail closed**
 
 - **Rule / 成员**：`F-WORKER-USAGE`；`R-WORKER-USAGE-VALIDATE`；`CON-USAGE-001/002`；`IF-RUN-SNAPSHOT`/`IF-USAGE-VALIDATE`。
 
@@ -1714,7 +1702,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.5 `VRC-WORKER-005` · Discussion intake CAS 与 turn
+**14.2.5 `VRC-WORKER-005` · Discussion intake CAS 与 turn**
 
 - **Rule / 成员**：`F-WORKER-INTAKE`；`R-WORKER-INTAKE-CAS`；`CON-MX-001`；`IF-MX-TURN`/`IF-MX-VERIFY`。
 
@@ -1732,7 +1720,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.6 `VRC-WORKER-006` · 崩溃恢复编排 R1-R7
+**14.2.6 `VRC-WORKER-006` · 崩溃恢复编排 R1-R7**
 
 - **Rule / 成员**：`F-WORKER-RECOVER`；`R-WORKER-RECOVERY-ORDER`；`CON-REC-001`；`IF-REC-SCAN/INSPECT/PATCH/FENCE`。
 
@@ -1750,7 +1738,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **Run ID / Status**：`NOT_RUN`。
 
-#### 14.2.7 `VRC-WORKER-007` · LeaseLost 停止驱动不写终态
+**14.2.7 `VRC-WORKER-007` · LeaseLost 停止驱动不写终态**
 
 - **Rule / 成员**：`F-WORKER-EXEC`；`CON-RUN-001`；`LeaseLost`；`INV-WORKER-5`。
 
@@ -1770,7 +1758,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-WORKER-001` · M004 抽取后 worker 的 lease 接口边界
+**15.1 `OQ-WORKER-001` · M004 抽取后 worker 的 lease 接口边界**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `F-WORKER-EXEC`/`F-WORKER-RECOVER`、`IF-WORKER-DISPATCH`、§4.5。
 
@@ -1784,7 +1772,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **关闭条件 / 决定或当前状态**：M004 端口与回调语义冻结且与本设计 §9.1.4/§9.2 一致。当前 Open。
 
-#### 15.2 `OQ-WORKER-002` · M003 publishResult / fenced write 端口未冻结
+**15.2 `OQ-WORKER-002` · M003 publishResult / fenced write 端口未冻结**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `F-WORKER-PUBLISH`/`F-WORKER-RECOVER`、`IF-RUN-PUBLISH`/`IF-REC-PATCH`、§9.2。
 
@@ -1798,7 +1786,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **关闭条件 / 决定或当前状态**：M003 设计与 §9.2 一致（或回写超集）。当前 Open。
 
-#### 15.3 `OQ-WORKER-003` · worker 落位（`src/worker.ts` 拆 `src/worker/`）
+**15.3 `OQ-WORKER-003` · worker 落位（`src/worker.ts` 拆 `src/worker/`）**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 §13 文件分解与 §5 内部结构。
 
@@ -1812,7 +1800,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **关闭条件 / 决定或当前状态**：明确拆分或保留并同步 §13。当前 Open。
 
-#### 15.4 `RISK-WORKER-001` · 两步提交中间态被误当成功
+**15.4 `RISK-WORKER-001` · 两步提交中间态被误当成功**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-WORKER-TWOSTEP`、`INV-WORKER-6`、§10 `C-WORKER-01`。
 
@@ -1826,7 +1814,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **关闭条件 / 决定或当前状态**：`VRC-WORKER-006` 用例证明中间态不冒充成功。当前 Open。
 
-#### 15.5 `15.ISD` · 实现规格采用方式
+**15.5 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-worker-impl` 已建立）。
 
@@ -1842,7 +1830,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-RUN`（`piko-run.md`）、`MECH-USAGE`（`piko-usage.md`）、`MECH-MATRIX`（`piko-matrix.md`）、`MECH-RECOVERY`（`piko-recovery.md`）、`MECH-CANCEL`（`piko-cancel.md`）。其余机制（CONFIG/STARTUP）不涉及 worker。
 
-#### A.1 `piko-run` / `M-RUN-DI-005`
+**A.1 `piko-run` / `M-RUN-DI-005`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-005`（下游 `worker`，固定输入 lease + Pi/Usage/Repo，约束 PK-01/03/07，自由度协调实现且不镜像 loop）；接口 `IF-RUN-SESSION`/`IF-RUN-ACCEPT`/`IF-RUN-DRIVE`/`IF-RUN-SNAPSHOT`/`IF-RUN-PUBLISH`。
 
@@ -1858,7 +1846,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-001/004/007`；组合 PK-T01/PK-T05/PK-T15。
 
-#### A.2 `piko-usage` / `IF-USAGE-SNAPSHOT`
+**A.2 `piko-usage` / `IF-USAGE-SNAPSHOT`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-USAGE` §3 参与方（M005 负责在 Result 发布前调用 snapshot + validate，无独立 usage state）、§5.1 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`、约束 `CON-USAGE-001/002`（PK-09/10）。承接 MECH-USAGE §14.4 行 `M-USAGE-DI-003`（worker，发布前 snapshot+validate）与 §5.1 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`。
 
@@ -1874,7 +1862,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-004`；组合 PK-T10/PK-T16。
 
-#### A.3 `piko-matrix` / `M-MX-DI-002`
+**A.3 `piko-matrix` / `M-MX-DI-002`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-MATRIX` §3 参与方（M005 负责 intake CAS 与 turn 领取）、§14.4 行 `M-MX-DI-002`（下游 `worker`，固定输入 intake state machine，约束 CON-MX-001，自由度 CAS 实现）；接口 `IF-MX-VERIFY`/`IF-MX-SYNC`/`IF-MX-SEND`/`IF-MX-TURN`。
 
@@ -1890,7 +1878,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-005`；组合 PK-T08。
 
-#### A.4 `piko-recovery` / `M-REC-DI-002`
+**A.4 `piko-recovery` / `M-REC-DI-002`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RECOVERY` §3 参与方（M005 负责恢复编排与补终态）、§14.4 行 `M-REC-DI-002`（下游 `worker`，固定输入恢复顺序，约束 CON-REC-001，自由度编排实现）；接口 `IF-REC-SCAN`/`IF-REC-INSPECT`/`IF-REC-PATCH`/`IF-REC-FENCE`。
 
@@ -1906,7 +1894,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-006`；组合 PK-T12。
 
-#### A.5 `piko-cancel` / `M-CX-DI-003`
+**A.5 `piko-cancel` / `M-CX-DI-003`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CANCEL` §3 参与方（M005 负责取消分流 + Pi abort + 对账）、§14.4 行 `M-CX-DI-003`（下游 `worker`，固定输入 state 分流 + abort，约束 CON-CX-001，自由度对账实现）；接口 `IF-CX-QUEUED`/`IF-CX-RUNNING`/`IF-CX-ABORT`。
 
@@ -1922,7 +1910,7 @@ worker 不跨部署边界发消息；其与相邻模块的进程内协作接口�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-WORKER-002`；组合 PK-T05。
 
-#### A.6 `OQ-WORKER-004` · MECH-USAGE §14.4 未列 M005
+**A.6 `OQ-WORKER-004` · MECH-USAGE §14.4 未列 M005**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `piko-usage` §14.4 承接完整性、A.2。
 

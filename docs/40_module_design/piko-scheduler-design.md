@@ -40,7 +40,7 @@ scheduler 只做 slot 的领取、续租、fence 和队列选择，**不决策�
 
 scheduler 承接两条上级约束：`CON-RUN-001`（PK-01，单 slot + lease epoch 唯一 fencing）与 `CON-REC-001`（PK-12，崩溃恢复边界中的 lease 环节）。两条均为 Approved。约束的来源文档是 `system-design` §3.4（`CON-RUN-001..004` / `CON-REC-001` 由机制 §3.1 反向登记），机制侧权威定义在 `piko-run.md` §3.1 与 `piko-recovery.md` §3.1。
 
-#### 1.1.1 `CON-RUN-001` · 单 slot + lease epoch 唯一 fencing
+**1.1.1 `CON-RUN-001` · 单 slot + lease epoch 唯一 fencing**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-01 行）+ `piko-run.md` §3.1 `CON-RUN-001` · PK-01 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文："单实例单 Agent，同一实例同时至多 1 个 Running Run；M003+M004 保证 lease epoch 唯一。"
 
@@ -56,7 +56,7 @@ scheduler 承接两条上级约束：`CON-RUN-001`（PK-01，单 slot + lease ep
 
 - **差距/变更影响/反馈责任**：none。多实例需另立设计（`system-design` §3.3 关键决定 2），不在本模块放宽。
 
-#### 1.1.2 `CON-REC-001` · 崩溃恢复边界中的 lease 环节
+**1.1.2 `CON-REC-001` · 崩溃恢复边界中的 lease 环节**
 
 - **上级基线与决定状态**：`system-design` v0.11.1 §3.4（PK-12 行）+ `piko-recovery.md` §3.1 `CON-REC-001` · PK-12 · Approved。上级原文规定恢复顺序为 "Result → Run → lease → Pi session → Harness → ledger → Matrix"，且"不复活旧权威、不模拟成功"。
 
@@ -147,7 +147,7 @@ flowchart LR
 
 图 M-SCH-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用与返回，不是网络或新部署边界。scheduler 不创建线程/进程；续租定时器是宿主（M005）事件循环上的定时器，见 §5.4 与 §10。持久化权威（SQLite 连接、事务、DDL）属 M003，见 §9.2 `IF-SCHED-STORE`。
 
-#### 4.1 `DEP-SCHED-REPO` · M003 `task-repository`（持久化与事务权威）
+**4.1 `DEP-SCHED-REPO` · M003 `task-repository`（持久化与事务权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
@@ -161,7 +161,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：`SQLITE_BUSY` 超时 → 向上抛依赖错误，由 M005 决定重试/终止；scheduler 不吞错、不改写 M003 语义。M003 是唯一 SQLite writer，scheduler 绝不自行打开连接。
 
-#### 4.2 `DEP-SCHED-CLOCK` · 时间源（宿主提供）
+**4.2 `DEP-SCHED-CLOCK` · 时间源（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力，同进程；Owner：Piko Implementation Owner（M000/bootstrap 装配）。
 
@@ -175,7 +175,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：时钟回拨会使 UTC 心跳倒退但不影响 CAS 正确性（CAS 只比 `(task_id, epoch)`）；stale 判定用 monotonic，不受回拨影响。
 
-#### 4.3 `DEP-SCHED-CONFIG` · 固定常量（宿主提供）
+**4.3 `DEP-SCHED-CONFIG` · 固定常量（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：宿主注入的调度常量；Owner：Piko Implementation Owner。
 
@@ -224,7 +224,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `S1` · Scheduler（入口）
+**5.1.1 `S1` · Scheduler（入口）**
 
 - **职责与非职责**：对外提供 §9.1 三个操作并保证 §6.6 不变量；编排"读 slot → 选候选 → CAS 领取""续租""重领 fence"。非职责：不发 SQL（经 I3）、不持有租约状态机（I2 持有续租状态）、不决策 Run/Result 语义。
 
@@ -236,7 +236,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做编排，把策略抽到 I1 以便对 `(accepted_at, task_id)` 顺序、epoch 规则做无 DB 单测。替代方案"全部写在 worker 里"是 Current 形态，代价是与执行逻辑耦合、无法独立验证单 slot 不变量（这正是本设计要消除的）。
 
-#### 5.1.2 `I1` · SlotPolicy（纯策略）
+**5.1.2 `I1` · SlotPolicy（纯策略）**
 
 - **职责与非职责**：纯函数：候选选择 `selectCandidate(slotFree, queued)`、epoch 推进 `nextEpoch(current)`、租约是否 stale `isStale(bootId, currentBoot)`、恢复门 `mayAcquire(recoveryComplete)`。非职责：无 I/O、无状态、不读时钟。
 
@@ -248,7 +248,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：纯函数使 §8 的 `R-SCHED-EPOCH/FIFO/HEARTBEAT/GATE` 可表驱动测试，不需 SQLite。替代方案"策略内嵌在 SQL 里"无法对边界（空队列、epoch 溢出、恢复门）单测。
 
-#### 5.1.3 `I2` · LeaseKeeper（租约看护）
+**5.1.3 `I2` · LeaseKeeper（租约看护）**
 
 - **职责与非职责**：持有一次执行期间的续租状态：启动/停止续租定时器（宿主事件循环上的 `setInterval`）、按 `R-SCHED-HEARTBEAT` 判定 `LeaseLost`、向 S1 暴露"当前租约是否仍有效"。非职责：不领取（S1 做）、不硬编码间隔（配置常量注入）、不 kill 执行（由 M005 决定）。
 
@@ -260,7 +260,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把"心跳定时与丢失判定"从执行逻辑中分离，使 M005 只需响应 `LeaseLost` 而不自带定时器。替代方案"worker 自己 setInterval"是 Current 形态，代价是租约判定散落在执行代码、难以对"CAS 失败即停"做单测。
 
-#### 5.1.4 `I3` · SlotStorePort（持久化端口）
+**5.1.4 `I3` · SlotStorePort（持久化端口）**
 
 - **职责与非职责**：把 §9.2 `IF-SCHED-STORE` 的六个操作适配到 M003；是 scheduler 内唯一接触持久化的单元。非职责：不做策略判断、不拼 Run 语义、不重试业务失败（只透传依赖错误）。
 
@@ -274,7 +274,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-SCHED-CLAIM` · 领取（tick 驱动）
+**5.2.1 `P-SCHED-CLAIM` · 领取（tick 驱动）**
 
 - **入口与调用上下文**：M005 worker 驱动循环 tick（宿主事件循环，非新线程）→ `Scheduler.acquireSlot(ownerId)`。
 
@@ -286,7 +286,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-SCH-P1`；§9.1 `IF-RUN-SLOT`、§9.2 `IF-SCHED-STORE`；`VRC-SCHED-001/004/005`。
 
-#### 5.2.2 `P-SCHED-RENEW` · 续租（定时驱动）
+**5.2.2 `P-SCHED-RENEW` · 续租（定时驱动）**
 
 - **入口与调用上下文**：`LeaseKeeper` 的定时器回调（宿主事件循环）。
 
@@ -298,7 +298,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-SCH-P2`；§9.1 `IF-RUN-RENEW`；`VRC-SCHED-002`。
 
-#### 5.2.3 `P-SCHED-FENCE` · 崩溃后重领
+**5.2.3 `P-SCHED-FENCE` · 崩溃后重领**
 
 - **入口与调用上下文**：M005 恢复流程（进程启动、恢复门内）→ `Scheduler.fence(runId, ownerId, bootId)`。
 
@@ -314,7 +314,7 @@ flowchart TB
 
 本节只固定 scheduler 内部文件之间的交接；跨模块的 M003 接口在 §9.2，字段类型在 §6.2。
 
-#### 5.3.1 `IF-SCHED-POLICY` · `scheduler.ts` → `policy.ts`
+**5.3.1 `IF-SCHED-POLICY` · `scheduler.ts` → `policy.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8（`R-SCHED-EPOCH`/`FIFO`/`HEARTBEAT`/`GATE`）。
 
@@ -326,7 +326,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/scheduler/policy.ts`；`VRC-SCHED-004`（选择）、`VRC-SCHED-005`（门）以表驱动覆盖。
 
-#### 5.3.2 `IF-SCHED-PORT` · `scheduler.ts`/`lease.ts` → `port.ts`
+**5.3.2 `IF-SCHED-PORT` · `scheduler.ts`/`lease.ts` → `port.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `SlotStorePort`，方法契约见 §9.2 `IF-SCHED-STORE`。
 
@@ -364,7 +364,7 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `Lease`
+**6.2.1 `Lease`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`Lease`；本模块作用域内类型（无公共 Data ID）；权威定义在 `src/scheduler/types.ts`（Planned）。
 
@@ -387,7 +387,7 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{task_id:"task-042", owner_id:"worker-<uuid>", boot_id:"boot-<uuid>", epoch:3, ...}`。拒绝：`epoch:0`（违反 `>=1`）、`heartbeat_at < acquired_at`、`task_id` 为空串。`VRC-SCHED-001/002`；`NOT_RUN`。
 
-#### 6.2.2 `SlotRow` / `SlotClaimResult`
+**6.2.2 `SlotRow` / `SlotClaimResult`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`SlotRow` 是 `execution_slot` 的只读投影；`SlotClaimResult` 是 CAS 结果联合。权威：本设计 §9.2；映射 M003 行（§6.7）。
 
@@ -409,7 +409,7 @@ scheduler 拥有的运行态数据是 `execution_slot`（§6.7，DDL 属 M003）
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `ExecutionSlot`（跨步骤运行状态，必填）
+**6.6.1 `ExecutionSlot`（跨步骤运行状态，必填）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`ExecutionSlot` 是"唯一执行位"的持久运行状态，物理载体为 `execution_slot` 单行（`slot_id=1`，DDL 属 M003，§6.7）和 `run_sessions.lease_epoch`。权威事实来源：`execution_slot` 行（slot 绑定、owner、boot、epoch、heartbeat）+ `runs.state`（绑定 Run 是否终态）。scheduler 是 slot 的**唯一写者**（经 M003 原子操作）；M003 在终态事务内是 slot 的唯一释放者（`T-SCHED-05`）。
 
@@ -454,7 +454,7 @@ stateDiagram-v2
 
 ### 6.7 数据库表结构
 
-#### 6.7.1 `execution_slot` / `run_sessions`（当前代码事实在 `src/store.ts`）
+**6.7.1 `execution_slot` / `run_sessions`（当前代码事实在 `src/store.ts`）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实**：`src/store.ts` `migrate()` 内建表——`run_sessions`（`src/store.ts:19`，含 `lease_epoch INTEGER NOT NULL CHECK(lease_epoch>=1)`）、`execution_slot`（`src/store.ts:20`，单行 `slot_id=1`；初始化 `INSERT OR IGNORE ... VALUES(1,0)` 见 `src/store.ts:21`）；`PRAGMA user_version=2`。**Adopted**：`piko-task-repository-design.md` §6.7 与 ISD §4.7 已编写并采纳，其 DDL 为设计权威；此代码事实引用保留为可定位的当前实现锚点。本模块不复制 CREATE TABLE，只固定本模块使用的行语义与写入点。
 
@@ -477,7 +477,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `LeaseLost` / `LeaseRenewalUnavailable` / `SlotInvariantViolation`（内部错误）
+**6.8.1 `LeaseLost` / `LeaseRenewalUnavailable` / `SlotInvariantViolation`（内部错误）**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：内部类型，无对外错误码（不进入 HTTP 契约）：`LeaseLost`（续租 CAS 未命中，租约已丢失，可判定）、`LeaseRenewalUnavailable`（续租因 M003 依赖故障连续不可判定，状态未知）、`SlotInvariantViolation`（权威记录不一致，如 `execution_slot` 与 `run_sessions.lease_epoch` 不符）。定义在 `src/scheduler/types.ts`（Planned）。三者不可互相替代：`LeaseLost` 是"确定失去执行权"，`LeaseRenewalUnavailable` 是"暂时无法判定"，`SlotInvariantViolation` 是"权威记录自身损坏"。
 
@@ -550,7 +550,7 @@ flowchart TD
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-SCHED-EPOCH` · epoch 推进与 fencing
+**8.1 `R-SCHED-EPOCH` · epoch 推进与 fencing**
 
 - **输入前提 / 适用条件**：每次成功领取（`T-SCHED-01`）或重领（`T-SCHED-04`）；`execution_slot.lease_epoch` 为 `int >= 0`。
 
@@ -564,11 +564,11 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：初始 `lease_epoch=0`；首次 `acquireSlot` 得 `1`；重启 `fence` 得 `2`；用 epoch `1` 调 `renewSlot`/`finish` 均 0 行。`VRC-SCHED-001/003`。
 
-#### 8.2 `R-SCHED-FIFO` · 候选选择
+**8.2 `R-SCHED-FIFO` · 候选选择**
 
 - **输入前提 / 适用条件**：`acquireSlot` 且 slot 空闲。
 
-- **算法 / 规则 / 选择依据**：从 `listQueued()` 中取 `(accepted_at, task_id)` 字典序最小者。不实现优先级、不抢占、不按长度/截止排序（`M-RUN-DI-004` 自由度上限）。选择依据：可复现、稳定、与 MECH-RUN §10 "queue 顺序 `(accepted_at, task_id)`，不实现优先级或抢占"一致。
+- **算法 / 规则 / 选择依据**：从 `listQueued()` 中取 `(accepted_at, task_id)` 字典序最小者。不实现优先级、不抢占、不按长度/任务规模排序（`M-RUN-DI-004` 自由度上限）。选择依据：可复现、稳定、与 MECH-RUN §10 "queue 顺序 `(accepted_at, task_id)`，不实现优先级或抢占"一致。
 
 - **结果 / 不变量 / 边界**：结果=唯一候选或空。边界：空队列返回 `null`；`accepted_at` 相同用 `task_id` 二级排序（确定性）。
 
@@ -578,7 +578,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：3 个 Run `accepted_at` 递增 → 取最旧；两个相同 `accepted_at`、`task_id` 分别为 `run-b`/`run-a` → 取 `run-a`。`VRC-SCHED-004`。
 
-#### 8.3 `R-SCHED-HEARTBEAT` · 续租与 stale 判定
+**8.3 `R-SCHED-HEARTBEAT` · 续租与 stale 判定**
 
 - **输入前提 / 适用条件**：持有 `Lease`；`heartbeat_interval_ms`（固定常量）。
 
@@ -592,7 +592,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：正常：连续 `true` 且 `heartbeat_at` 前进。丢失：fence 后旧 epoch 续租 `false`。`VRC-SCHED-002`。
 
-#### 8.4 `R-SCHED-GATE` · 恢复门
+**8.4 `R-SCHED-GATE` · 恢复门**
 
 - **输入前提 / 适用条件**：`acquireSlot` 之前；`recoveryComplete` 事实存在。
 
@@ -606,7 +606,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：恢复未完成 → `acquireSlot` 返回 `null` 且 epoch 不变；完成后 → 正常领取。`VRC-SCHED-005`。
 
-#### 8.5 `R-SCHED-RENEW-FAILURE` · 续租故障分类与出口
+**8.5 `R-SCHED-RENEW-FAILURE` · 续租故障分类与出口**
 
 - **输入前提 / 适用条件**：持有 `Lease` 期间，`LeaseKeeper` 定时回调调用 `renewSlot(runId, epoch)`。
 
@@ -634,7 +634,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `acquireSlot(ownerId: string) -> Lease | null`
+**9.1.1 `acquireSlot(ownerId: string) -> Lease | null`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-SLOT`（`piko-run.md` §5.1 声明为 M004 提供）；领取唯一执行位并绑定最旧 `Queued` Run。来源：本模块拥有。
 
@@ -648,7 +648,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 - **实现与验证**：`src/scheduler/scheduler.ts` `Scheduler.acquireSlot`（Planned）。合法实例见 §6.1；拒绝实例：slot 已占 → `null`。`VRC-SCHED-001/004/005`；`NOT_RUN`。
 
-#### 9.1.2 `renewLease(runId: string, epoch: number) -> boolean`
+**9.1.2 `renewLease(runId: string, epoch: number) -> boolean`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-RENEW`；续租。来源：本模块拥有。
 
@@ -662,7 +662,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 - **实现与验证**：`src/scheduler/lease.ts`（Planned）。`VRC-SCHED-002`；`NOT_RUN`。
 
-#### 9.1.3 `fence(runId: string, ownerId: string, bootId: string) -> Lease | null`
+**9.1.3 `fence(runId: string, ownerId: string, bootId: string) -> Lease | null`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-REC-FENCE`（`piko-recovery.md` §5.1，M004 提供新 epoch → M003 fence）。来源：本模块拥有。
 
@@ -680,7 +680,7 @@ scheduler 的对外接口是三个进程内函数；被消费的跨模块接口�
 
 scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协作接口是跨模块合同，按 STD 在此唯一维护（不使用 §6.4 报文节）。
 
-#### 9.2.1 `IF-SCHED-STORE` · M004 → M003 slot 端口（Adopted）
+**9.2.1 `IF-SCHED-STORE` · M004 → M003 slot 端口（Adopted）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-SCHED-STORE`；Provider：M003 `task-repository`（已采纳，见其设计 §2.5/§9.1.5–9.1.10）；Consumer：M004 scheduler。用途：在单事务内提供 slot 的原子 CAS 原语。权威：本设计提出，M003 设计已采纳（`OQ-SCHED-001` 已关闭）。
 
@@ -706,7 +706,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **实现与验证**：M003 侧（Planned）；`VRC-SCHED-001/002/003` 以受控 fake 与真 M003 两套覆盖；`NOT_RUN`。
 
-#### 9.2.2 `IF-SCHED-GATE` · M005 → M004 恢复门（Proposed）
+**9.2.2 `IF-SCHED-GATE` · M005 → M004 恢复门（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-SCHED-GATE`；Provider：M005 `worker` 恢复流程；Consumer：M004 scheduler。用途：把"MECH-RECOVERY 恢复已完成"事实交给 scheduler，供 `R-SCHED-GATE` 判定是否允许领取。权威：本设计提出（`R-SCHED-GATE` 的实现前提）。
 
@@ -732,7 +732,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 按 §1 的事实联动：§3 判无操作面（故无端点生命周期）；§6.6 登记了跨步骤状态 `ExecutionSlot`（故本节必须给状态变换并发出口），并引用同一 `T-SCHED-*`；§6.7 登记了本模块写入的持久表 `execution_slot`（故本节必须给事务边界与崩溃恢复）。执行上下文：全部操作在宿主事件循环上同步执行；SQLite 由 M003 单 writer 串行化。
 
-#### 10.1 `C-SCHED-01` · 两个 tick 并发领取
+**10.1 `C-SCHED-01` · 两个 tick 并发领取**
 
 - **初始条件 / 并发交错 / 失败点**：worker 循环与一次恢复流程或异常重入同时调用 `acquireSlot`。失败点：`readSlot` 判断空闲后、`tryClaimSlot` 前。
 
@@ -746,7 +746,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证项 / 组合责任**：`VRC-SCHED-001`；组合 PK-T01。
 
-#### 10.2 `C-SCHED-02` · 续租与终态释放竞态
+**10.2 `C-SCHED-02` · 续租与终态释放竞态**
 
 - **初始条件 / 并发交错 / 失败点**：`renewLease` 定时器与 M003 `finish` 终态事务并发。失败点：`finish` 已清空 slot 后 `renewSlot` 到达。
 
@@ -760,7 +760,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证项 / 组合责任**：`VRC-SCHED-002`；组合 PK-T15。
 
-#### 10.3 `C-SCHED-03` · 崩溃后 stale slot
+**10.3 `C-SCHED-03` · 崩溃后 stale slot**
 
 - **初始条件 / 并发交错 / 失败点**：进程在 `HELD_LIVE` 期间崩溃（`execution_slot` 仍绑定 Running Run）。重启后首次读取。
 
@@ -774,7 +774,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证项 / 组合责任**：`VRC-SCHED-003`；组合 PK-T12。
 
-#### 10.4 `C-SCHED-04` · 恢复门与领取的顺序
+**10.4 `C-SCHED-04` · 恢复门与领取的顺序**
 
 - **初始条件 / 并发交错 / 失败点**：恢复未完成时 worker 循环尝试 `acquireSlot`。失败点：门未开却选候选。
 
@@ -788,7 +788,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证项 / 组合责任**：`VRC-SCHED-005`；组合 PK-T12。
 
-#### 10.5 `C-SCHED-05` · 续租定时器延迟/丢失
+**10.5 `C-SCHED-05` · 续租定时器延迟/丢失**
 
 - **初始条件 / 并发交错 / 失败点**：宿主事件循环繁忙导致续租定时器延迟。失败点：误判租约丢失或漏续。
 
@@ -804,7 +804,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **备注**：定时器是 M005 宿主上的 `setInterval`，属运行态看护；证据不可恢复但可通过受控 fake 端口与假时钟重现（§14.2）。本模块不提供中途取消：调用返回即结束，宿主放弃等待不等于操作终止。
 
-#### 10.6 `C-SCHED-06` · 续租依赖故障与恢复/退出
+**10.6 `C-SCHED-06` · 续租依赖故障与恢复/退出**
 
 - **初始条件 / 并发交错 / 失败点**：续租定时回调中 M003 抛依赖错误（`SQLITE_BUSY`/`SQLITE_IOERR`）。
 
@@ -832,7 +832,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-SCHED-SLOT` · 单 slot 与调度开销
+**12.1 `CAP-SCHED-SLOT` · 单 slot 与调度开销**
 
 - **目标 / 限制 / 单位**：并发执行位恒为 1（slot）；scheduler 自身的运行开销限于每个 tick 一次 `readSlot` + 一次候选 CAS、每 `heartbeat_interval_ms` 一次单行 CAS。
 
@@ -852,7 +852,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/scheduler/scheduler.ts`
+**13.1.1 `src/scheduler/scheduler.ts`**
 
 - **职责 / 非职责**：入口：实现 `acquireSlot`/`renewLease`/`fence`、保证 §6.6 不变量、编排 I1/I2/I3。非职责：SQL、策略、Run/Result 语义。
 
@@ -866,7 +866,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：`VRC-SCHED-001/003/004/005`。
 
-#### 13.1.2 `src/scheduler/policy.ts`
+**13.1.2 `src/scheduler/policy.ts`**
 
 - **职责 / 非职责**：纯函数策略。非职责：无 import、无 I/O、无状态。
 
@@ -880,7 +880,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：`VRC-SCHED-004/005`（表驱动）。
 
-#### 13.1.3 `src/scheduler/lease.ts`
+**13.1.3 `src/scheduler/lease.ts`**
 
 - **职责 / 非职责**：续租定时与 `LeaseLost` 判定。非职责：领取、硬编码间隔。
 
@@ -894,7 +894,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：`VRC-SCHED-002`（假时钟）。
 
-#### 13.1.4 `src/scheduler/port.ts`
+**13.1.4 `src/scheduler/port.ts`**
 
 - **职责 / 非职责**：`SlotStorePort` 抽象 + `M003SlotStore` 适配。非职责：策略、重试业务失败。
 
@@ -908,7 +908,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：`VRC-SCHED-001/002/003`。
 
-#### 13.1.5 `src/scheduler/types.ts`
+**13.1.5 `src/scheduler/types.ts`**
 
 - **职责 / 非职责**：`Lease`/`SlotRow`/`SlotClaimResult`/`LeaseLost`/`SlotInvariantViolation`。非职责：逻辑。
 
@@ -922,7 +922,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：编译期。
 
-#### 13.1.6 `src/worker.ts`（修改既有）
+**13.1.6 `src/worker.ts`（修改既有）**
 
 - **职责 / 非职责**：改为消费 scheduler：删除本地领取/心跳/epoch 逻辑，tick 调 `Scheduler.acquireSlot`，持有 `LeaseKeeper`。非职责：slot 规则。
 
@@ -936,7 +936,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **验证入口**：`VRC-SCHED-001/002`（经 worker）。
 
-#### 13.1.7 `src/store.ts`（修改既有）
+**13.1.7 `src/store.ts`（修改既有）**
 
 - **职责 / 非职责**：抽出 slot 原语为 `IF-SCHED-STORE` 的 M003 实现（`tryClaimSlot`/`renewSlot`/`fenceSlot`/`releaseSlot`/`readSlot`/`listQueued`）；保留 Run/Result 事务。非职责：策略。
 
@@ -952,7 +952,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 ### 13.2 实现步骤
 
-#### 13.2.1 冻结 `IF-SCHED-STORE` 合同
+**13.2.1 冻结 `IF-SCHED-STORE` 合同**
 
 - **前置输入 / 依赖**：M003 `piko-task-repository-design.md`（已采纳 `IF-SCHED-STORE`，`OQ-SCHED-001` 已关闭）。
 
@@ -964,7 +964,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **完成检查**：`VRC-SCHED-001/002/003` 的 fake 端口可实现。
 
-#### 13.2.2 实现 `policy.ts` 与单测
+**13.2.2 实现 `policy.ts` 与单测**
 
 - **前置输入 / 依赖**：§8 规则。
 
@@ -976,7 +976,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **完成检查**：`VRC-SCHED-004/005` 计划用例通过（先设计后实现）。
 
-#### 13.2.3 实现 `port.ts` + 重构 `store.ts`
+**13.2.3 实现 `port.ts` + 重构 `store.ts`**
 
 - **前置输入 / 依赖**：`IF-SCHED-STORE` 冻结。
 
@@ -988,7 +988,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **完成检查**：`VRC-SCHED-001/003`；M003 既有测试不回归。
 
-#### 13.2.4 实现 `scheduler.ts`/`lease.ts` 并改 `worker.ts`
+**13.2.4 实现 `scheduler.ts`/`lease.ts` 并改 `worker.ts`**
 
 - **前置输入 / 依赖**：上两步。
 
@@ -1006,7 +1006,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-RUN-001`
+**14.1.1 `CON-RUN-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.6（状态与不变量）、§8.1–8.3、§9.1。
@@ -1014,7 +1014,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001`、`VRC-SCHED-002`；独立判据 = `execution_slot` 行 + `runs.state` 计数。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T13。
 
-#### 14.1.2 `CON-REC-001`
+**14.1.2 `CON-REC-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.1 §3.4 / `piko-recovery.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.6 `T-SCHED-03/04/06`、§8.4/§8.5、§9.1.3。
@@ -1022,7 +1022,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-003`、`VRC-SCHED-005`；独立判据 = fence 后 epoch 推进 + 旧 epoch 写 0 行。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.3 `CON-CFG-001`
+**14.1.3 `CON-CFG-001`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §3.1 `CON-CFG-001`（PK-12）· Approved；**边界适用**——本模块无 config key，只受"config 变更需重启生效"约束。
 - **选定方案与正文锚点**：§4.3（固定常量）、§6.3（N/A + 依据）、§8.5（退避常量随 §4.3 固定）。
@@ -1030,7 +1030,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-006`（退避常量不可热改，进程内固定）。
 - **父级组合验证或裁剪/阻断决定**：**非本模块决定**——常量是否暴露为 config 归 MECH-CONFIG / M001；Owner=Piko Architecture，见 `OQ-SCHED-002`。不自行新增 config key。
 
-#### 14.1.4 `F-SCHED-ACQUIRE`
+**14.1.4 `F-SCHED-ACQUIRE`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§7 `M-SCH-P1`；§9.1.1。
@@ -1038,7 +1038,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001`（唯一性）、`VRC-SCHED-004`（FIFO）、`VRC-SCHED-005`（门）。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01。
 
-#### 14.1.5 `F-SCHED-RENEW`
+**14.1.5 `F-SCHED-RENEW`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§7 `M-SCH-P2`；§8.5；§9.1.2。
@@ -1046,7 +1046,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-002`、`VRC-SCHED-006`；独立判据 = `heartbeat_at` 与 CAS 行数。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15/PK-T12。
 
-#### 14.1.6 `F-SCHED-FENCE`
+**14.1.6 `F-SCHED-FENCE`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§7 `M-SCH-P3`；§9.1.3。
@@ -1054,7 +1054,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.7 `P-SCHED-CLAIM`
+**14.1.7 `P-SCHED-CLAIM`**
 
 - **来源与适用性 / 固定基线**：§5.2.1/§7 `M-SCH-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1（调用链）、§7 M-SCH-P1。
@@ -1062,7 +1062,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001/004/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01。
 
-#### 14.1.8 `P-SCHED-RENEW`
+**14.1.8 `P-SCHED-RENEW`**
 
 - **来源与适用性 / 固定基线**：§5.2.2/§7 `M-SCH-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2（调用链）、§7 M-SCH-P2、§8.5。
@@ -1070,7 +1070,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-002/006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.9 `P-SCHED-FENCE`
+**14.1.9 `P-SCHED-FENCE`**
 
 - **来源与适用性 / 固定基线**：§5.2.3/§7 `M-SCH-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3（调用链）、§7 M-SCH-P3、§6.6 `T-SCHED-04/06`。
@@ -1078,7 +1078,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.10 `R-SCHED-EPOCH`
+**14.1.10 `R-SCHED-EPOCH`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.6 `INV-SCHED-1`、`T-SCHED-01/04`。
@@ -1086,7 +1086,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-004`（epoch +1）、`VRC-SCHED-003`（旧 epoch 拒写）。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01/PK-T12。
 
-#### 14.1.11 `R-SCHED-FIFO`
+**14.1.11 `R-SCHED-FIFO`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§10.1。
@@ -1094,7 +1094,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-004`；独立判据 = 期望 `task_id` 常量。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T01；自由度上限见 `M-RUN-DI-004`（无优先级）。
 
-#### 14.1.12 `R-SCHED-HEARTBEAT`
+**14.1.12 `R-SCHED-HEARTBEAT`**
 
 - **来源与适用性 / 固定基线**：§8.3；适用。
 - **选定方案与正文锚点**：§8.3；§10.2/§10.5；§4.3（常量）。
@@ -1102,7 +1102,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-002`；独立判据 = `heartbeat_at`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15。
 
-#### 14.1.13 `R-SCHED-GATE`
+**14.1.13 `R-SCHED-GATE`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§10.4；§9.2.2 `IF-SCHED-GATE`。
@@ -1110,7 +1110,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.14 `R-SCHED-RENEW-FAILURE`
+**14.1.14 `R-SCHED-RENEW-FAILURE`**
 
 - **来源与适用性 / 固定基线**：§8.5；适用。
 - **选定方案与正文锚点**：§8.5；§9.1.2；§10.6；§6.8.1。
@@ -1118,7 +1118,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-006`；独立判据 = `execution_slot` 在依赖错误期间不变。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.15 `IF-RUN-SLOT`
+**14.1.15 `IF-RUN-SLOT`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.1。
@@ -1126,7 +1126,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001/004/005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T01/PK-T13。
 
-#### 14.1.16 `IF-RUN-RENEW`
+**14.1.16 `IF-RUN-RENEW`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.2（MECH-RUN 未单列该成员，属本模块自持）；适用。
 - **选定方案与正文锚点**：§9.1.2；§8.5。
@@ -1134,7 +1134,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-002/006`。
 - **父级组合验证或裁剪/阻断决定**：PK-T15。
 
-#### 14.1.17 `IF-REC-FENCE`
+**14.1.17 `IF-REC-FENCE`**
 
 - **来源与适用性 / 固定基线**：`piko-recovery.md` §5.1（签名已与本文 §9.1.3 对齐）；适用。
 - **选定方案与正文锚点**：§9.1.3；§6.6 `T-SCHED-04/06`。
@@ -1142,7 +1142,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-003`。
 - **父级组合验证或裁剪/阻断决定**：PK-T01/PK-T12。
 
-#### 14.1.18 `IF-SCHED-STORE`
+**14.1.18 `IF-SCHED-STORE`**
 
 - **来源与适用性 / 固定基线**：§9.2.1（Adopted）；适用（M003 已采纳）。
 - **选定方案与正文锚点**：§9.2.1；§6.7（当前代码事实 `src/store.ts`）。
@@ -1150,7 +1150,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-001/002/003/006`（fake + 真 M003 两套）。
 - **父级组合验证或裁剪/阻断决定**：`OQ-SCHED-001` 已关闭（M003 已采纳）；组合验证仍待 `VRC-SCHED-*` 执行。
 
-#### 14.1.19 `IF-SCHED-GATE`
+**14.1.19 `IF-SCHED-GATE`**
 
 - **来源与适用性 / 固定基线**：§9.2.2（Proposed）；适用。
 - **选定方案与正文锚点**：§9.2.2；§8.4。
@@ -1158,7 +1158,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.20 `ERR-SCHED-LEASELOST`（`LeaseLost`）
+**14.1.20 `ERR-SCHED-LEASELOST`（`LeaseLost`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（内部错误）。
 - **选定方案与正文锚点**：§6.8.1；§10.2。
@@ -1166,7 +1166,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T15。
 
-#### 14.1.21 `ERR-SCHED-RENEWUNAVAIL`（`LeaseRenewalUnavailable`）
+**14.1.21 `ERR-SCHED-RENEWUNAVAIL`（`LeaseRenewalUnavailable`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（内部错误）。
 - **选定方案与正文锚点**：§6.8.1；§8.5；§10.6。
@@ -1174,7 +1174,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **§14 VRC / Case / 独立判据**：`VRC-SCHED-006`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.22 `ERR-SCHED-INVARIANT`（`SlotInvariantViolation`）
+**14.1.22 `ERR-SCHED-INVARIANT`（`SlotInvariantViolation`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（内部错误）。
 - **选定方案与正文锚点**：§6.8.1；§6.6 `INV-SCHED-*`；§10.3。
@@ -1186,7 +1186,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-SCHED-001` · 并发领取唯一性
+**14.2.1 `VRC-SCHED-001` · 并发领取唯一性**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-ACQUIRE`；`R-SCHED-FIFO`；`CON-RUN-001`；`IF-RUN-SLOT`/`IF-SCHED-STORE`。
 
@@ -1202,7 +1202,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **父级组合验证交接**：PK-T01/PK-T13。
 
-#### 14.2.2 `VRC-SCHED-002` · 续租 CAS 与 LeaseLost
+**14.2.2 `VRC-SCHED-002` · 续租 CAS 与 LeaseLost**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-RENEW`；`R-SCHED-HEARTBEAT`；`CON-RUN-001`；`IF-RUN-RENEW`；`LeaseLost`。
 
@@ -1218,7 +1218,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **父级组合验证交接**：PK-T15。
 
-#### 14.2.3 `VRC-SCHED-003` · 崩溃后 fence 与旧写拒绝
+**14.2.3 `VRC-SCHED-003` · 崩溃后 fence 与旧写拒绝**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-FENCE`；`R-SCHED-EPOCH`；`CON-REC-001`；`IF-REC-FENCE`。
 
@@ -1234,7 +1234,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.4 `VRC-SCHED-004` · FIFO 选择与无优先级
+**14.2.4 `VRC-SCHED-004` · FIFO 选择与无优先级**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-ACQUIRE`；`R-SCHED-FIFO`；`M-RUN-DI-004` 自由度边界。
 
@@ -1250,7 +1250,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **父级组合验证交接**：PK-T01。
 
-#### 14.2.5 `VRC-SCHED-005` · 恢复门
+**14.2.5 `VRC-SCHED-005` · 恢复门**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-ACQUIRE`；`R-SCHED-GATE`；`CON-REC-001`。
 
@@ -1266,7 +1266,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.6 `VRC-SCHED-006` · 续租依赖故障分类
+**14.2.6 `VRC-SCHED-006` · 续租依赖故障分类**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-SCHED-RENEW`；`R-SCHED-RENEW-FAILURE`；`CON-RUN-001`/`CON-CFG-001`；`IF-RUN-RENEW`；`LeaseRenewalUnavailable`。
 
@@ -1284,7 +1284,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-SCHED-001` · M003 slot 端口合同未定
+**15.1 `OQ-SCHED-001` · M003 slot 端口合同未定**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-SCHED-STORE`、`F-SCHED-*`、`CON-RUN-001`。
 
@@ -1298,7 +1298,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **关闭条件 / 决定或当前状态**：M003 设计与本声明一致（已满足）。**已关闭**（`decision_ref = piko-task-repository` v0.1.0-draft.1）。
 
-#### 15.2 `OQ-SCHED-002` · 调度常量是否暴露为配置
+**15.2 `OQ-SCHED-002` · 调度常量是否暴露为配置**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `R-SCHED-HEARTBEAT`、§4.3、§12.1。
 
@@ -1312,7 +1312,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **关闭条件 / 决定或当前状态**：明确"固定"或"接入 config 并重启生效"之一。当前 Open。
 
-#### 15.3 `OQ-SCHED-003` · MECH-RECOVERY §14.4 未列 M004
+**15.3 `OQ-SCHED-003` · MECH-RECOVERY §14.4 未列 M004**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 MECH-RECOVERY 承接完整性、附录 A。
 
@@ -1326,7 +1326,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **关闭条件 / 决定或当前状态**：机制已补行 `M-REC-DI-004`。**已关闭**。
 
-#### 15.3b `OQ-SCHED-004` · MECH-RUN §5.1 `Lease` 缺 `task_id`
+**15.3b `OQ-SCHED-004` · MECH-RUN §5.1 `Lease` 缺 `task_id`**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-RUN-SLOT`/`IF-REC-FENCE`、§6.2.1。
 - **事实缺口 / 触发条件**：`piko-run.md` §5.1 的 `Lease{owner_id, boot_id, epoch, acquired_at, heartbeat_at}` 未含 `task_id`，但领取/重领必须向调用方标识具体 Run；本设计已将 `task_id` 并入 `Lease`（§6.2.1），需机制确认。
@@ -1335,7 +1335,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 - **选项 / 推荐 / 下一步取证**：推荐：`piko-run.md` §5.1 的 `Lease` 补 `task_id`。下一步：提交机制修订。
 - **关闭条件 / 决定或当前状态**：机制补字段或明确 `task_id` 属模块私有扩展。当前 Open。
 
-#### 15.4 `RISK-SCHED-001` · epoch 溢出
+**15.4 `RISK-SCHED-001` · epoch 溢出**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-SCHED-EPOCH`、`INV-SCHED-1`。
 
@@ -1349,7 +1349,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **关闭条件 / 决定或当前状态**：实现采用安全整数并加断言。当前 Open。
 
-#### 15.5 `15.ISD` · 实现规格采用方式
+**15.5 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-scheduler-impl` 已建立）。
 
@@ -1365,7 +1365,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-RUN`（`piko-run.md`）、`MECH-RECOVERY`（`piko-recovery.md`）。其余机制（CONFIG/STARTUP/USAGE/MATRIX/CANCEL）不涉及 scheduler。
 
-#### A.1 `piko-run` / `M-RUN-DI-004`
+**A.1 `piko-run` / `M-RUN-DI-004`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-004`（下游 `scheduler`，固定输入 singleton slot，约束 PK-01，自由度调度策略但不加优先级）；接口 `IF-RUN-SLOT`（§5.1 `acquireSlot`）。
 
@@ -1381,7 +1381,7 @@ scheduler 不跨部署边界发消息；但 M004 与 M003 之间的进程内协�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-SCHED-001/002/004`；组合 PK-T01/PK-T13。
 
-#### A.2 `piko-recovery` / `IF-REC-FENCE`
+**A.2 `piko-recovery` / `IF-REC-FENCE`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RECOVERY` §3.5 参与方（M004 负责新 lease epoch）、§5.1 `IF-REC-FENCE`、约束 `CON-REC-001`（PK-12）。承接 MECH-RECOVERY §14.4 行 `M-REC-DI-004`（scheduler，新 lease epoch）与 §5.1 `IF-REC-FENCE`。
 

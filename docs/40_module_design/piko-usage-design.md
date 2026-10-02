@@ -40,7 +40,7 @@ usage 只做"聚合 + 语义校验 + 冻结边界"，**不改写上游语义**�
 
 usage 承接两条上级约束：`CON-USAGE-001`（PK-09，Usage 字段完整性）与 `CON-USAGE-002`（PK-10，Result 冻结 UsageSnapshot）。两条均为 Approved。约束来源是 `system-design` §3.4（PK-09/10 行）与 `piko-usage.md` §3.1；机制侧权威定义在 `piko-usage.md` §3.1、`piko-run.md` §14.4 `M-RUN-DI-007`。
 
-#### 1.1.1 `CON-USAGE-001` · Usage 字段完整性
+**1.1.1 `CON-USAGE-001` · Usage 字段完整性**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-09/10 行）+ `piko-usage.md` §3.1 `CON-USAGE-001` · PK-09 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文："6 字段逐项 sum/null + missing_fields；Complete/Partial/Unknown"。
 
@@ -56,7 +56,7 @@ usage 承接两条上级约束：`CON-USAGE-001`（PK-09，Usage 字段完整性
 
 - **差距/变更影响/反馈责任**：none。字段集合变化需契约升级（`piko-usage.md` §13），不在本模块放宽。
 
-#### 1.1.2 `CON-USAGE-002` · Result 冻结 UsageSnapshot
+**1.1.2 `CON-USAGE-002` · Result 冻结 UsageSnapshot**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-09/10 行）+ `piko-usage.md` §3.1 `CON-USAGE-002` · PK-10 · Approved。上级原文："Result 发布后迟到 usage 不修改 generation"。
 
@@ -149,7 +149,7 @@ flowchart LR
 
 图 M-USAGE-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用、SQLite 读写或装配；虚线是字段 authority 引用。usage 不创建线程/进程，不直接打开 SQLite（经 §9.2 端口）。持久化权威（`model_attempts`/`results` DDL、事务）属 M003，见 §9.2 `IF-USAGE-STORE`。
 
-#### 4.1 `DEP-USAGE-PIADAPTER` · M006 `pi-adapter`（原始 usage 观察者）
+**4.1 `DEP-USAGE-PIADAPTER` · M006 `pi-adapter`（原始 usage 观察者）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
@@ -163,7 +163,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：M006 未落库的 attempt 在本模块表现为"字段可能缺失"，进入 `missing_fields`（保守，不下界冒充）；不由 M007 补齐或伪造。
 
-#### 4.2 `DEP-USAGE-WORKER` · M005 `worker`（调用方）
+**4.2 `DEP-USAGE-WORKER` · M005 `worker`（调用方）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -177,7 +177,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：usage 抛依赖错误 → M005 决定重试/失败；`ok:false` → M005 必须 fail closed（抛 `InternalError`、回滚、不写结果）。
 
-#### 4.3 `DEP-USAGE-REPO` · M003 `task-repository`（持久化与 schema 权威）
+**4.3 `DEP-USAGE-REPO` · M003 `task-repository`（持久化与 schema 权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -191,7 +191,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：`SQLITE_BUSY` 超时 → 向上抛依赖错误，由 M005 决定；usage 不吞错、不改写 M003 语义。`results` 的写与 generation 权威属 M003。
 
-#### 4.4 `DEP-USAGE-CONTRACT` · 机器契约 `0.3.0-simplified.6`（字段 authority）
+**4.4 `DEP-USAGE-CONTRACT` · 机器契约 `0.3.0-simplified.6`（字段 authority）**
 
 - **角色 / 运行位置 / Owner**：设计期契约 artifact，非运行时进程；Owner：Piko Contract Owner。
 
@@ -241,7 +241,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `S1` · UsageAggregator（聚合入口）
+**5.1.1 `S1` · UsageAggregator（聚合入口）**
 
 - **职责与非职责**：对外提供 §9.1.1 `snapshot(runId)`：读 attempt → 逐字段归约 → 组 `UsageSnapshot`。非职责：不发 SQL（经 I3）、不做三态/算术判定（I1/I2 做）、不写 Result。
 
@@ -253,7 +253,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把"读 attempt + 归约"独立，使 §8 的 `R-USAGE-SUMFIELD/QUALITY` 可对纯数据表驱动单测，不需真 SQLite。替代方案"留在 worker 内联"是 Current 形态，代价是与执行逻辑耦合、无法独立验证三态。
 
-#### 5.1.2 `S2` · ResultValidator（校验入口）
+**5.1.2 `S2` · ResultValidator（校验入口）**
 
 - **职责与非职责**：对外提供 §9.1.2 `validateBeforePublish(result, contractVersion)`：调用 `SemanticRules.check` 得 `SemanticCheck`。非职责：不修复数据、不改 Result、不抛 `InternalError`（由 M005 抛）。
 
@@ -265,7 +265,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：纯规则抽到 I2 以便对每条不变量构造反例单测。替代方案"校验内嵌在 store.insertResult"（Current 形态之一）使失败点不可独立触发，也无法对未知契约版本做 fail closed 单测。
 
-#### 5.1.3 `I1` · FieldReducer（纯字段归约）
+**5.1.3 `I1` · FieldReducer（纯字段归约）**
 
 - **职责与非职责**：纯函数：`reduce(attempts:number, rows:RawAttemptUsage[]) -> UsageSnapshot`，实现 `R-USAGE-SUMFIELD`/`R-USAGE-QUALITY`/`R-USAGE-MISSING`。非职责：无 I/O、无状态、不读时钟。
 
@@ -277,7 +277,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：纯函数使三态与缺失判定可表驱动测试，覆盖零 attempt、全缺、部分缺。替代方案"直接在 aggregator 里读 DB 归约"无法脱离 SQLite 单测。
 
-#### 5.1.4 `I2` · SemanticRules（纯语义规则）
+**5.1.4 `I2` · SemanticRules（纯语义规则）**
 
 - **职责与非职责**：纯函数：`check(usage, contractVersion) -> SemanticCheck`，实现 `R-USAGE-VALIDATE`。非职责：无 I/O、不抛异常、不修复。
 
@@ -289,7 +289,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把每条不变量写成可列举的反例检查，未知版本 fail closed。替代方案"复用 schema validator"引入运行期大依赖且无法对私有 `SemanticCheck` 语义做单测。
 
-#### 5.1.5 `I3` · AttemptStorePort（持久化读端口）
+**5.1.5 `I3` · AttemptStorePort（持久化读端口）**
 
 - **职责与非职责**：把 §9.2 `IF-USAGE-STORE` 的读操作适配到 M003；是 usage 内唯一接触持久化的单元。非职责：不聚合、不校验、不写。
 
@@ -303,7 +303,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-USAGE-SNAPSHOT` · 聚合（发布前）
+**5.2.1 `P-USAGE-SNAPSHOT` · 聚合（发布前）**
 
 - **入口与调用上下文**：M005 worker Result 两步提交第一步 → `UsageAggregator.snapshot(runId)`。
 
@@ -315,7 +315,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-USAGE-P1`；§9.1.1 `IF-USAGE-SNAPSHOT`、§9.2.1 `IF-USAGE-STORE`；`VRC-USAGE-001/002`。
 
-#### 5.2.2 `P-USAGE-VALIDATE` · 校验（发布前）
+**5.2.2 `P-USAGE-VALIDATE` · 校验（发布前）**
 
 - **入口与调用上下文**：M005 在 `snapshot` 之后、`INSERT results` 之前 → `ResultValidator.validateBeforePublish(result, contractVersion)`。
 
@@ -327,7 +327,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-USAGE-P2`；§9.1.2 `IF-USAGE-VALIDATE`；`VRC-USAGE-004/005`。
 
-#### 5.2.3 `P-USAGE-FREEZE` · 冻结边界（发布后）
+**5.2.3 `P-USAGE-FREEZE` · 冻结边界（发布后）**
 
 - **入口与调用上下文**：M003 发布 `results` generation；M006 处理迟到 raw usage 时 → `store.observeUsage`（M006/M003 路径）。
 
@@ -343,7 +343,7 @@ flowchart TB
 
 本节只固定 usage 内部文件之间的交接；跨模块接口在 §9.1/§9.2，字段类型在 §6.2。
 
-#### 5.3.1 `IF-USAGE-REDUCE` · `aggregator.ts` → `reducer.ts`
+**5.3.1 `IF-USAGE-REDUCE` · `aggregator.ts` → `reducer.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8（`R-USAGE-SUMFIELD/QUALITY/MISSING`）。
 
@@ -355,7 +355,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/usage/reducer.ts`；`VRC-USAGE-001/002` 以表驱动覆盖。
 
-#### 5.3.2 `IF-USAGE-CHECK` · `validator.ts` → `rules.ts`
+**5.3.2 `IF-USAGE-CHECK` · `validator.ts` → `rules.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；规则权威在 §8.4（`R-USAGE-VALIDATE`）。
 
@@ -367,7 +367,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/usage/rules.ts`；`VRC-USAGE-004/005`。
 
-#### 5.3.3 `IF-USAGE-PORT` · `aggregator.ts` → `port.ts`
+**5.3.3 `IF-USAGE-PORT` · `aggregator.ts` → `port.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `AttemptStorePort`，方法契约见 §9.2.1 `IF-USAGE-STORE`。
 
@@ -405,7 +405,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
 ### 6.1 公共基础类型与枚举
 
-#### 6.1.1 `UsageQuality`
+**6.1.1 `UsageQuality`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`UsageQuality = "Complete" | "Partial" | "Unknown"`；公共类型，唯一来源 = contract `0.3.0-simplified.6` `$defs.TokenUsage.quality`；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json`。
 
@@ -417,7 +417,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `RawAttemptUsage`
+**6.2.1 `RawAttemptUsage`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：本模块私有视图；来源 = M006 `RawUsage`（`piko-usage.md` §4.4.1）落库后的 `model_attempts.raw_usage_json` 解析投影。
 
@@ -435,7 +435,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{input:1200, output:340, totalTokens:1540, cacheRead:100, cacheWrite:0, reasoning:50}`。拒绝：把缺失 `reasoning` 记为 0 冒充完整。`VRC-USAGE-001`；`NOT_RUN`。
 
-#### 6.2.2 `ModelAttemptView`
+**6.2.2 `ModelAttemptView`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`model_attempts` 行的只读投影；来源 = M003 `model_attempts` DDL（当前代码事实 `src/store.ts:23`）+ §9.2.1。
 
@@ -454,7 +454,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`{attempts:3, rows:[..., ...]}`（2 行有 usage）。拒绝：`rows.length > attempts`。`VRC-USAGE-001`；`NOT_RUN`。
 
-#### 6.2.3 `UsageSnapshot`（公共）
+**6.2.3 `UsageSnapshot`（公共）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：公共类型 `TokenUsage`（契约名）；唯一来源 = contract `0.3.0-simplified.6` `$defs.TokenUsage` / `interfaces/schemas/agent-runtime-v0.3.schema.json`。本模块是它的生产者。
 
@@ -481,7 +481,7 @@ usage 拥有的运行态数据是派生的 `UsageDerivedState`（§6.6，权威�
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `UsageDerivedState`（派生运行状态）
+**6.6.1 `UsageDerivedState`（派生运行状态）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`UsageDerivedState = "Live" | "Frozen"`；usage 的**派生**观察状态，**非**持久 authority。权威事实来源：`results` 是否已有该 Run 的已提交 generation（M003）+ `model_attempts.record_version`。M007 不写任何状态表，只在内存按事实派生。
 
@@ -523,7 +523,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `SemanticValidationError` → `InternalError("semantic-validator-fail")`
+**6.8.1 `SemanticValidationError` → `InternalError("semantic-validator-fail")`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：公共错误码 `InternalError`（`cause_class="Internal"`）来自 contract `$defs.Failure`；失败事实 `semantic-validator-fail` 由 MECH-USAGE/MECH-RUN 定义（`piko-usage.md` §4.8、`piko-run.md` §5.1）。usage 的私有 `SemanticCheck{ok:false, reason}` 是它的**触发信号**，不是独立对外错误码。
 
@@ -605,7 +605,7 @@ sequenceDiagram
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-USAGE-SUMFIELD` · 逐字段完整才求和
+**8.1 `R-USAGE-SUMFIELD` · 逐字段完整才求和**
 
 - **输入前提 / 适用条件**：`snapshot` 且 `attempts > 0`；`rows` 为带 usage 的 durable attempt 投影。
 
@@ -619,7 +619,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：attempt1 完整、attempt2 缺 `reasoning`、attempt3 完整 → `reasoning=null` 入 missing、其余 5 字段求和。`VRC-USAGE-001`。
 
-#### 8.2 `R-USAGE-QUALITY` · 三态判定
+**8.2 `R-USAGE-QUALITY` · 三态判定**
 
 - **输入前提 / 适用条件**：`snapshot`；`attempts >= 0`，`missing_fields` 由 §8.1 得出。
 
@@ -633,7 +633,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`attempts=3, rows.length=3, missing=1` → `Partial`；`attempts=2, rows.length=0` → `Unknown`；`attempts=0` → `Complete` 全零。`VRC-USAGE-001`。
 
-#### 8.3 `R-USAGE-MISSING` · missing_fields 与 null 一致
+**8.3 `R-USAGE-MISSING` · missing_fields 与 null 一致**
 
 - **输入前提 / 适用条件**：`snapshot` 产出后。
 
@@ -647,7 +647,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`Partial` 快照 `missing_fields=["reasoning_tokens"]` 且恰该字段为 null。`VRC-USAGE-002`。
 
-#### 8.4 `R-USAGE-VALIDATE` · 语义不变量校验（fail closed）
+**8.4 `R-USAGE-VALIDATE` · 语义不变量校验（fail closed）**
 
 - **输入前提 / 适用条件**：`validateBeforePublish` 且 `result.usage` 由 `snapshot` 产出；`contractVersion` 已知。
 
@@ -661,7 +661,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：A：合法 Partial → `ok:true`。B：`total != input+output` → `ok:false`。C：`cache_read_tokens > input_tokens` → `ok:false`。D：`contractVersion` 不符 → `ok:false`。`VRC-USAGE-004/005`。
 
-#### 8.5 `R-USAGE-FREEZE` · 发布后不重算不回写
+**8.5 `R-USAGE-FREEZE` · 发布后不重算不回写**
 
 - **输入前提 / 适用条件**：Result 已发布（`results` 有 generation）；迟到 raw usage 到达。
 
@@ -681,7 +681,7 @@ usage 的对外接口是两个进程内函数（§9.1）；被消费的跨模块
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `snapshot(runId: string) -> UsageSnapshot`
+**9.1.1 `snapshot(runId: string) -> UsageSnapshot`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-USAGE-SNAPSHOT`（`piko-run.md` §5.1 `IF-RUN-SNAPSHOT` 的 M007 成员）；逐字段聚合生成唯一 `UsageSnapshot`。来源：本模块拥有。
 
@@ -695,7 +695,7 @@ usage 的对外接口是两个进程内函数（§9.1）；被消费的跨模块
 
 - **实现与验证**：`src/usage/aggregator.ts` `UsageAggregator.snapshot`（Planned）。合法实例见 §6.2.3；拒绝实例：无。`VRC-USAGE-001/002`；`NOT_RUN`。
 
-#### 9.1.2 `validateBeforePublish(result, contractVersion) -> SemanticCheck`
+**9.1.2 `validateBeforePublish(result, contractVersion) -> SemanticCheck`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-USAGE-VALIDATE`（`piko-run.md` §5.1 `IF-RUN-SNAPSHOT` 的 M007 成员）；Result 发布前语义校验。来源：本模块拥有。
 
@@ -713,7 +713,7 @@ usage 的对外接口是两个进程内函数（§9.1）；被消费的跨模块
 
 usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接口、M006 与 M007 之间的 raw usage 事件是跨模块合同，按 STD 在此唯一维护。
 
-#### 9.2.1 `IF-USAGE-STORE` · M007 → M003 attempt 读端口（Proposed）
+**9.2.1 `IF-USAGE-STORE` · M007 → M003 attempt 读端口（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-USAGE-STORE`；Provider：M003 `task-repository`（Proposed，待其设计采纳）；Consumer：M007 usage。用途：在单次查询内返回该 Run 的 attempt 计数与带 usage 的行投影。权威：本设计提出，`OQ-USAGE-002` 跟踪。
 
@@ -729,7 +729,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **实现与验证**：M003 侧（Planned）；`VRC-USAGE-001` 以受控 fake 与真 M003 两套覆盖；`NOT_RUN`。
 
-#### 9.2.2 `IF-USAGE-RAW` · M006 → M007 raw usage 事件（Proposed）
+**9.2.2 `IF-USAGE-RAW` · M006 → M007 raw usage 事件（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-USAGE-RAW`；Provider：M006 `pi-adapter`（`piko-usage.md` §5.1/§14.3）；Consumer：M007 usage。用途：把每次模型调用的原始 usage（字段存在性 + 值）经 `model_attempts` 交给聚合。权威：`piko-usage.md` §4.4.1/§5.2。
 
@@ -759,7 +759,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 按 §1 的事实联动：§3 判无操作面（故无端点生命周期）；§6.6 登记了跨步骤派生状态 `UsageDerivedState`（故本节给状态变换并发出口，引用同一 `T-USAGE-*`）；§6.7 登记 `model_attempts` 读（写 authority 属 M003），故本节给只读一致性、迟到与崩溃恢复口径。执行上下文：全部操作在宿主事件循环上同步执行；SQLite 由 M003 单 writer 串行化。
 
-#### 10.1 `C-USAGE-01` · 迟到 usage 与 Result 发布竞态
+**10.1 `C-USAGE-01` · 迟到 usage 与 Result 发布竞态**
 
 - **初始条件 / 并发交错 / 失败点**：M005 发布 Result 的同时，M006 处理同一 attempt 的迟到 raw usage。失败点：发布后 usage 到达。
 
@@ -773,7 +773,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证项 / 组合责任**：`VRC-USAGE-003`；组合 PK-T10/PK-T16。
 
-#### 10.2 `C-USAGE-02` · 同 attempt 多次回调
+**10.2 `C-USAGE-02` · 同 attempt 多次回调**
 
 - **初始条件 / 并发交错 / 失败点**：M006 对同一 `(task_id, operation_id, step_id, attempt)` 多次 `onRawUsage`。失败点：重复相加。
 
@@ -787,7 +787,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证项 / 组合责任**：`VRC-USAGE-001`（Case 覆盖重复 attempt）。
 
-#### 10.3 `C-USAGE-03` · validator FAIL 与回滚
+**10.3 `C-USAGE-03` · validator FAIL 与回滚**
 
 - **初始条件 / 并发交错 / 失败点**：`validateBeforePublish` 返回 `ok:false`；M005 已进入第一步事务。失败点：把非法 usage 写入 results。
 
@@ -801,7 +801,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证项 / 组合责任**：`VRC-USAGE-004/005`；组合 PK-T16。
 
-#### 10.4 `C-USAGE-04` · 零 attempt / 立即失败 / 取消
+**10.4 `C-USAGE-04` · 零 attempt / 立即失败 / 取消**
 
 - **初始条件 / 并发交错 / 失败点**：Run 未发生任何模型调用即取消/失败。失败点：把"无 usage"误判为错误或 Partial。
 
@@ -815,7 +815,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证项 / 组合责任**：`VRC-USAGE-002`（零 attempt 向量）；组合 PK-T10。
 
-#### 10.5 `C-USAGE-05` · 崩溃后重算一致性
+**10.5 `C-USAGE-05` · 崩溃后重算一致性**
 
 - **初始条件 / 并发交错 / 失败点**：usage 聚合前后进程崩溃；重启后 M005 重新进入发布路径。失败点：不可复现的聚合结果。
 
@@ -829,7 +829,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证项 / 组合责任**：`VRC-USAGE-006`；组合 PK-T12。
 
-#### 10.6 `C-USAGE-06` · M003 读依赖故障
+**10.6 `C-USAGE-06` · M003 读依赖故障**
 
 - **初始条件 / 并发交错 / 失败点**：`readAttempts` 遇 `SQLITE_BUSY` 超时。失败点：把依赖故障当作"零 attempt"。
 
@@ -857,7 +857,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-USAGE-AGG` · 聚合开销与 attempt 规模
+**12.1 `CAP-USAGE-AGG` · 聚合开销与 attempt 规模**
 
 - **目标 / 限制 / 单位**：`snapshot` 读该 Run 全量 durable attempt 并在常数 6 字段上归约；`validateBeforePublish` 为固定条数不变量检查。目标：单 Run 聚合为 O(6 × attempts) 次内存操作 + 一次 DB 读。
 
@@ -877,7 +877,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/usage/aggregator.ts`
+**13.1.1 `src/usage/aggregator.ts`**
 
 - **职责 / 非职责**：聚合入口：`snapshot(runId)`，读 attempt → 归约 → 组快照。非职责：SQL、语义校验、写 Result。
 
@@ -891,7 +891,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-001/002`。
 
-#### 13.1.2 `src/usage/validator.ts`
+**13.1.2 `src/usage/validator.ts`**
 
 - **职责 / 非职责**：校验入口：`validateBeforePublish(result, contractVersion)`。非职责：修复数据、抛 `InternalError`、写 Result。
 
@@ -905,7 +905,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-004/005`。
 
-#### 13.1.3 `src/usage/reducer.ts`
+**13.1.3 `src/usage/reducer.ts`**
 
 - **职责 / 非职责**：纯字段归约：`reduce(attempts, rows)`。非职责：无 import（除 `types`）、无 I/O、无状态。
 
@@ -919,7 +919,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-001/002`（表驱动）。
 
-#### 13.1.4 `src/usage/rules.ts`
+**13.1.4 `src/usage/rules.ts`**
 
 - **职责 / 非职责**：纯语义规则：`check(usage, contractVersion) -> SemanticCheck`。非职责：无 import（除 `types`）、无 I/O、不抛异常。
 
@@ -933,7 +933,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-004/005`。
 
-#### 13.1.5 `src/usage/port.ts`
+**13.1.5 `src/usage/port.ts`**
 
 - **职责 / 非职责**：`AttemptStorePort` 抽象 + `M003AttemptStore` 适配。非职责：聚合、校验、重试业务失败。
 
@@ -947,7 +947,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-001/006`。
 
-#### 13.1.6 `src/usage/types.ts`
+**13.1.6 `src/usage/types.ts`**
 
 - **职责 / 非职责**：私有类型与错误信号：`RawAttemptUsage`/`ModelAttemptView`/`AttemptSet`/`UsageSnapshot`/`SemanticCheck`/`TokenField`。非职责：逻辑。
 
@@ -961,7 +961,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：编译期。
 
-#### 13.1.7 `src/usage/index.ts`
+**13.1.7 `src/usage/index.ts`**
 
 - **职责 / 非职责**：唯一装配入口：导出 `UsageAggregator`/`ResultValidator` 与 `createUsageService(store)`。非职责：不重复维护类型。
 
@@ -975,7 +975,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：装配冒烟。
 
-#### 13.1.8 `src/worker.ts`（修改既有）
+**13.1.8 `src/worker.ts`（修改既有）**
 
 - **职责 / 非职责**：改为消费 `UsageAggregator`/`ResultValidator`：删除内联 `aggregateUsage`，`finish` 内改调 `snapshot` + `validateBeforePublish`；`ok:false` 抛 `InternalError`。非职责：usage 规则。
 
@@ -989,7 +989,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-004`（经 worker）。
 
-#### 13.1.9 `src/semantic.ts`（修改既有）
+**13.1.9 `src/semantic.ts`（修改既有）**
 
 - **职责 / 非职责**：迁移 `validateUsage`/`emptyUsage` 到 `src/usage/`；本文件保留为向后兼容 re-export（或将引用改到 `src/usage/`）。非职责：新增语义。
 
@@ -1003,7 +1003,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-004/005`。
 
-#### 13.1.10 `src/store.ts`（修改既有）
+**13.1.10 `src/store.ts`（修改既有）**
 
 - **职责 / 非职责**：M003 侧：把 `usage(run)` 读重构为端口原语 `readAttempts(runId)`（返回 attempts + rows）；`insertResult` 内保留 `validateUsage` 调用（M003 fail closed 防线）。非职责：聚合。
 
@@ -1017,7 +1017,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **验证入口**：`VRC-USAGE-001`。
 
-#### 13.1.11 `src/main.ts`（修改既有）
+**13.1.11 `src/main.ts`（修改既有）**
 
 - **职责 / 非职责**：装配：构造 `TaskStore` → `createUsageService(store)` → 注入 `RunWorker`。
 
@@ -1033,7 +1033,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 ### 13.2 实现步骤
 
-#### 13.2.1 冻结 `IF-USAGE-STORE` 合同
+**13.2.1 冻结 `IF-USAGE-STORE` 合同**
 
 - **前置输入 / 依赖**：M003 `piko-task-repository-design.md` 评审（`OQ-USAGE-002`）。
 
@@ -1045,7 +1045,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **完成检查**：`VRC-USAGE-001` 的 fake 端口可实现。
 
-#### 13.2.2 实现 `reducer.ts` + `rules.ts` 与单测
+**13.2.2 实现 `reducer.ts` + `rules.ts` 与单测**
 
 - **前置输入 / 依赖**：§8 规则；契约 `TokenUsage.x-semantic-invariants`。
 
@@ -1057,7 +1057,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **完成检查**：`VRC-USAGE-001/002/004/005` 计划用例通过（先设计后实现）。
 
-#### 13.2.3 实现 `port.ts` + 重构 `store.ts`
+**13.2.3 实现 `port.ts` + 重构 `store.ts`**
 
 - **前置输入 / 依赖**：`IF-USAGE-STORE` 冻结。
 
@@ -1069,7 +1069,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **完成检查**：`VRC-USAGE-001/006`；M003 既有测试不回归。
 
-#### 13.2.4 实现 `aggregator.ts`/`validator.ts`/`index.ts` 并改 `worker.ts`/`semantic.ts`/`main.ts`
+**13.2.4 实现 `aggregator.ts`/`validator.ts`/`index.ts` 并改 `worker.ts`/`semantic.ts`/`main.ts`**
 
 - **前置输入 / 依赖**：上两步。
 
@@ -1087,7 +1087,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-USAGE-001`
+**14.1.1 `CON-USAGE-001`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-usage.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.1/§6.2、§8.1–8.3、§9.1.1、§9.2。
@@ -1095,7 +1095,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001`、`VRC-USAGE-002`；独立判据 = 契约 `TokenUsage` 语义不变量 + 手工期望值。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.2 `CON-USAGE-002`
+**14.1.2 `CON-USAGE-002`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-usage.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.6 `T-USAGE-02/03/04`、§8.4/§8.5、§9.1.2。
@@ -1103,7 +1103,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-003`、`VRC-USAGE-004`；独立判据 = `results` sha/generation 不变 + `record_version` 递增。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10/PK-T16。
 
-#### 14.1.3 `F-USAGE-SNAPSHOT`
+**14.1.3 `F-USAGE-SNAPSHOT`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§7 `M-USAGE-P1`；§9.1.1。
@@ -1111,7 +1111,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.4 `F-USAGE-VALIDATE`
+**14.1.4 `F-USAGE-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§7 `M-USAGE-P2`；§8.4；§9.1.2。
@@ -1119,7 +1119,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-004/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T16。
 
-#### 14.1.5 `F-USAGE-FREEZE`
+**14.1.5 `F-USAGE-FREEZE`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§6.6；§8.5；§7 `M-USAGE-P3`。
@@ -1127,7 +1127,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.6 `P-USAGE-SNAPSHOT`
+**14.1.6 `P-USAGE-SNAPSHOT`**
 
 - **来源与适用性 / 固定基线**：§5.2.1/§7 `M-USAGE-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1（调用链）、§7 M-USAGE-P1。
@@ -1135,7 +1135,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.7 `P-USAGE-VALIDATE`
+**14.1.7 `P-USAGE-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§5.2.2/§7 `M-USAGE-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2（调用链）、§7 M-USAGE-P2、§8.4。
@@ -1143,7 +1143,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-004/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T16。
 
-#### 14.1.8 `P-USAGE-FREEZE`
+**14.1.8 `P-USAGE-FREEZE`**
 
 - **来源与适用性 / 固定基线**：§5.2.3/§7 `M-USAGE-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3（调用链）、§7 M-USAGE-P3、§8.5。
@@ -1151,7 +1151,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.9 `R-USAGE-SUMFIELD`
+**14.1.9 `R-USAGE-SUMFIELD`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.6 `INV-USAGE-3`。
@@ -1159,7 +1159,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001`；独立判据 = 手工期望 sum/null。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.10 `R-USAGE-QUALITY`
+**14.1.10 `R-USAGE-QUALITY`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§6.1；§6.6 `INV-USAGE-3`。
@@ -1167,7 +1167,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.11 `R-USAGE-MISSING`
+**14.1.11 `R-USAGE-MISSING`**
 
 - **来源与适用性 / 固定基线**：§8.3；适用。
 - **选定方案与正文锚点**：§8.3；§6.2.3；§6.6 `INV-USAGE-3`。
@@ -1175,7 +1175,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-002`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.12 `R-USAGE-VALIDATE`
+**14.1.12 `R-USAGE-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§9.1.2；§10.3；§6.8.1。
@@ -1183,7 +1183,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-004/005`；独立判据 = 契约语义不变量反例。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T16。
 
-#### 14.1.13 `R-USAGE-FREEZE`
+**14.1.13 `R-USAGE-FREEZE`**
 
 - **来源与适用性 / 固定基线**：§8.5；适用。
 - **选定方案与正文锚点**：§8.5；§6.6 `T-USAGE-03/04`；§10.1。
@@ -1191,7 +1191,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-003`；独立判据 = `results` sha 不变。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10。
 
-#### 14.1.14 `IF-USAGE-SNAPSHOT`
+**14.1.14 `IF-USAGE-SNAPSHOT`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1 `IF-RUN-SNAPSHOT`；适用。
 - **选定方案与正文锚点**：§9.1.1。
@@ -1199,7 +1199,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T10/PK-T16。
 
-#### 14.1.15 `IF-USAGE-VALIDATE`
+**14.1.15 `IF-USAGE-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：`piko-run.md` §5.1 `IF-RUN-SNAPSHOT`；适用。
 - **选定方案与正文锚点**：§9.1.2；§8.4。
@@ -1207,7 +1207,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-004/005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T16。
 
-#### 14.1.16 `IF-USAGE-STORE`
+**14.1.16 `IF-USAGE-STORE`**
 
 - **来源与适用性 / 固定基线**：§9.2.1（Proposed）；适用但依赖 `OQ-USAGE-002`。
 - **选定方案与正文锚点**：§9.2.1；§6.7（当前代码事实 `src/store.ts:23`/`:79`）。
@@ -1215,7 +1215,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/006`（fake + 真 M003 两套）。
 - **父级组合验证或裁剪/阻断决定**：**阻断点**：`OQ-USAGE-002` 未关闭前，M003 端口未定则对应实现不得宣称完成。
 
-#### 14.1.17 `IF-USAGE-RAW`
+**14.1.17 `IF-USAGE-RAW`**
 
 - **来源与适用性 / 固定基线**：`piko-usage.md` §5.1/§14.3；适用（消费端经 DB 落点）。
 - **选定方案与正文锚点**：§9.2.2；§4.1；§6.2.1。
@@ -1223,7 +1223,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 - **§14 VRC / Case / 独立判据**：`VRC-USAGE-001/003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T10；字段名差异见 `OQ-USAGE-001`。
 
-#### 14.1.18 `ERR-USAGE-SEMANTIC`（`InternalError("semantic-validator-fail")`）
+**14.1.18 `ERR-USAGE-SEMANTIC`（`InternalError("semantic-validator-fail")`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用（公共 `InternalError`）。
 - **选定方案与正文锚点**：§6.8.1；§8.4；§10.3。
@@ -1235,7 +1235,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-USAGE-001` · 逐字段 sum/null 与三态
+**14.2.1 `VRC-USAGE-001` · 逐字段 sum/null 与三态**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-SNAPSHOT`；`R-USAGE-SUMFIELD`/`R-USAGE-QUALITY`；`CON-USAGE-001`；`IF-USAGE-SNAPSHOT`/`IF-USAGE-STORE`。
 
@@ -1251,7 +1251,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **父级组合验证交接**：PK-T10。
 
-#### 14.2.2 `VRC-USAGE-002` · missing_fields 一致性与边界
+**14.2.2 `VRC-USAGE-002` · missing_fields 一致性与边界**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-SNAPSHOT`；`R-USAGE-MISSING`/`R-USAGE-QUALITY`；`CON-USAGE-001`。
 
@@ -1267,7 +1267,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **父级组合验证交接**：PK-T10。
 
-#### 14.2.3 `VRC-USAGE-003` · 发布后迟到不改 Result
+**14.2.3 `VRC-USAGE-003` · 发布后迟到不改 Result**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-FREEZE`；`R-USAGE-FREEZE`；`CON-USAGE-002`；`IF-USAGE-RAW`。
 
@@ -1283,7 +1283,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **父级组合验证交接**：PK-T10/PK-T16。
 
-#### 14.2.4 `VRC-USAGE-004` · validator 语义不变量 fail closed
+**14.2.4 `VRC-USAGE-004` · validator 语义不变量 fail closed**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-VALIDATE`；`R-USAGE-VALIDATE`；`CON-USAGE-001/002`；`ERR-USAGE-SEMANTIC`。
 
@@ -1299,7 +1299,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **父级组合验证交接**：PK-T16。
 
-#### 14.2.5 `VRC-USAGE-005` · 校验通过后正常发布
+**14.2.5 `VRC-USAGE-005` · 校验通过后正常发布**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-VALIDATE`；`R-USAGE-VALIDATE`；`CON-USAGE-001`；`IF-USAGE-VALIDATE`。
 
@@ -1315,7 +1315,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **父级组合验证交接**：PK-T10/PK-T16。
 
-#### 14.2.6 `VRC-USAGE-006` · 依赖故障与重算一致性
+**14.2.6 `VRC-USAGE-006` · 依赖故障与重算一致性**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-USAGE-SNAPSHOT`；`R-USAGE-SUMFIELD`；`CON-USAGE-001`；`IF-USAGE-STORE`。
 
@@ -1333,7 +1333,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-USAGE-001` · 契约字段名 `cache_read_tokens` 与机制散文别名不一致
+**15.1 `OQ-USAGE-001` · 契约字段名 `cache_read_tokens` 与机制散文别名不一致**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（机制/契约反馈）；影响 §6.2.3、§9.1.1、§9.2.2、`R-USAGE-VALIDATE`。
 
@@ -1347,7 +1347,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **关闭条件 / 决定或当前状态**：机制散文与 schema 字段名一致。当前 Open。
 
-#### 15.2 `OQ-USAGE-002` · `IF-USAGE-STORE` 合同未冻结
+**15.2 `OQ-USAGE-002` · `IF-USAGE-STORE` 合同未冻结**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 `IF-USAGE-STORE`、`F-USAGE-SNAPSHOT`、`CON-USAGE-001`。
 
@@ -1361,7 +1361,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **关闭条件 / 决定或当前状态**：M003 设计与本 `IF-USAGE-STORE` 声明一致（或给出超集并回写本文）。当前 Open。
 
-#### 15.3 `OQ-USAGE-003` · `IF-USAGE-RAW` 无直接回调
+**15.3 `OQ-USAGE-003` · `IF-USAGE-RAW` 无直接回调**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-USAGE-RAW`、§4.1、附录 A。
 
@@ -1375,7 +1375,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **关闭条件 / 决定或当前状态**：机制明确落点或确认读端口等价的消费方式。当前 Open。
 
-#### 15.4 `RISK-USAGE-001` · semantic validator 与契约版本绑定
+**15.4 `RISK-USAGE-001` · semantic validator 与契约版本绑定**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-USAGE-VALIDATE`、`F-USAGE-VALIDATE`、`CON-USAGE-001`。
 
@@ -1389,7 +1389,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **关闭条件 / 决定或当前状态**：实现采用版本常量并加断言，契约升级流程明确。当前 Open。
 
-#### 15.5 `15.ISD` · 实现规格采用方式
+**15.5 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-usage-impl` 已建立）。
 
@@ -1405,7 +1405,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-RUN`（`piko-run.md`）、`MECH-USAGE`（`piko-usage.md`）。其余机制（CONFIG/STARTUP/RECOVERY/MATRIX/CANCEL）不作为本模块的上级设计输入。
 
-#### A.1 `piko-run` / `M-RUN-DI-007`
+**A.1 `piko-run` / `M-RUN-DI-007`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-007`（下游 `usage`，固定输入 contract `0.3.0-simplified.6`，约束 PK-09/10，自由度聚合实现但不改 generation）；接口 `IF-RUN-SNAPSHOT`（§5.1 `snapshot` + `validateBeforePublish`）；流程 §6 步骤 7（`snapshot` + `validateBeforePublish`）。
 
@@ -1421,7 +1421,7 @@ usage 不跨部署边界发消息；但 M007 与 M003 之间的进程内读接�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-USAGE-001/002/003/004/005`；组合 PK-T10/PK-T16。
 
-#### A.2 `piko-usage` / `M-USAGE-DI-002`
+**A.2 `piko-usage` / `M-USAGE-DI-002`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-USAGE` §14.4 行 `M-USAGE-DI-002`（下游 `usage`，固定输入 contract `0.3.0-simplified.6`，约束 `CON-USAGE-001/002`，自由度聚合数据结构）；接口 `IF-USAGE-SNAPSHOT`/`IF-USAGE-VALIDATE`（§5.1）；参与方 §3.5（M007 负责逐字段聚合 + 三态 + ResultValidator）。
 

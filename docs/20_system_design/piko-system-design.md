@@ -15,7 +15,6 @@
 | Template Version | `2.1.3` |
 <!-- STD_DOCUMENT_COVER_END -->
 
-
 ## 1. 文档说明
 
 Piko 仓库只有一份顶层软件设计：`system-design`（本文）。模板采用 `design.software-system` 2.1.0，纯软件项目顶层模式（无总体系统父稿）；项目 `parent_document_id` 为空。Template ID 记录在 cover 与 metadata，不允许把设计层级、依赖或目录层数填入 parent_document_id。
@@ -280,7 +279,6 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 
 > **CON 反向登记**：各机制的 §3.1 在本表 PK 约束下派生 `CON-<MECH>-<nnn>` 子约束。当前映射：`CON-RUN-001..004`←PK-01/02/07；`CON-USAGE-001/002`←PK-09/10；`CON-MX-001`←PK-08；`CON-CFG-001`←PK-12；`CON-ST-001`←PK-12；`CON-REC-001`←PK-12；`CON-CX-001`←需求 PK-04（本版记账语义保留、预算上限取消）；`CON-XFER-001..003`←需求 PK-21（输入完整性 / 投递幂等 / 投递不阻塞终态）。子约束不得放宽本表分配。
 
-
 ### 3.5 机制清单与文档映射
 
 每个跨多个直属模块的共同机制独立建 1 份 `design.system-mechanism` 文档，路径在 `docs/20_system_design/mechanisms/`。机制文档唯一维护详细协议、状态、参与方协议与失败/恢复细则；本文不复制同一套字段。
@@ -298,7 +296,7 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 
 > 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-RUN 是机制族设计锚点（`parent none`、`prereq none`）；其余 7 个以 MECH-RUN 为归属父项，且不构成前置依赖循环（CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL/TRANSFER 的 prereq 单向指向 MECH-RUN 或 MECH-CONFIG）。
 
-#### 3.5.1 机制依赖矩阵（唯一权威）
+**3.5.1 机制依赖矩阵（唯一权威）**
 
 四类关系必须分开，只有**设计前置**参与无环检查；运行时消费与恢复读取是事实/API 关系，允许双向：
 
@@ -315,7 +313,6 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 
 **设计前置 DAG（无环）**：`MECH-RUN → MECH-CONFIG → MECH-STARTUP`；`MECH-RUN → {MECH-USAGE, MECH-MATRIX, MECH-RECOVERY, MECH-CANCEL, MECH-TRANSFER}`。运行时消费与恢复读取**不改变**设计前置；因此 MECH-RUN 在运行时消费 RECOVERY/USAGE/MATRIX/TRANSFER 不构成设计循环。
 
-
 ### 3.6 功能设计
 
 本节按用户任务分功能，再映射实现。功能表是索引；关键功能原理见 §3.6.1，用户任务与可观察功能结果见 §3.6.2。具体操作入口、参数、反馈与退出码在 §8.4 唯一维护，本节不复制接口合同。
@@ -331,7 +328,7 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 
 Framework: 功能与用户交互按"用户任务"组织：每个 CAP 对应一个用户任务（派 Run / 查状态 / 取消 / 读 Result / 诊断），不是按控件或命令名。§3.6.2 说明每个任务的完成事实与失败边界，§8.4 说明入口合同。
 
-#### 3.6.1 关键功能概要（按能力展开）
+**3.6.1 关键功能概要（按能力展开）**
 
 **CAP-SUBMIT**：Piko 接收请求后两步验证：（1）JSON/Schema 静态校验 + bearer principal 校验；（2）按 `task_id` 在 SQLite 查记录。tombstone 返回 410 `Gone`；active `task_json` 已存且字段值与提交一致时直接返回原 Run，不重新检查 policy/queue/dependency；active 但不同返回 409 `TaskConflict`；不存在时检查 policy、discussion 事实（**若已被 P1 的 sync 缓存则同步判定；否则先接受、核实异步**）、依赖 ready fact 与 queue capacity，在一个事务中插入 `tasks` 行与初始 Queued `runs` 行（discussion 任务同时插入初始 Pending turn）。已受理返回 202，未创建任务的 422/429/503 可用同一 `task_id` 重试；新逻辑任务必须换新 `task_id`。关键规则：`task_id` 由 Slinky 生成且全局唯一，一个 `task_id` 只绑定一个不可变任务与一个 Run。受理后（异步，**Queued 阶段、不占 execution slot**）先做**输入预备**（P-INPUT，§6.5）：拉取或校验失败 = 执行前提失败 → 零调用 `Failed`（`InputFetchFailed`），**从不领取 slot**。
 
@@ -339,7 +336,7 @@ Framework: 功能与用户交互按"用户任务"组织：每个 CAP 对应一�
 
 **CAP-RESULT**：非终态 Run 返回 `TaskNotTerminal`；Result generation 由 `results` 表维护，已发布 generation 内容冻结。迟到 usage 替换内部 `model_attempts.record_version` 但不修改 Result、不创建新 generation。关键规则：`Completed` 只表示执行结束，不表示 Slinky 接受产物；产出是否可读见 `TaskView.artifact_delivery`（§6.5）。
 
-#### 3.6.2 用户任务与功能结果
+**3.6.2 用户任务与功能结果**
 
 | 用户任务 | 触发场景 / 角色 | 前提 | 期望结果 / 结果已知性 | 失败或不支持条件 | 入口引用 | 过程与验证 |
 |---|---|---|---|---|---|---|
@@ -569,7 +566,7 @@ sequenceDiagram
 
 **失败与清理**：J3 tombstone 立即 410 退出事务；J4 字段不同 409 退出事务；J4 字段同直接返回原 Run，不重新检查动态条件（PK-02）；J5 policy/queue/discussion 任一失败 422/429/503 退出事务，不创建 Run；J5 后到 scheduler 的失败由 worker 修复或 abort，不会回到 J4 冒充成功。
 
-#### 6.2.1 Result 两步提交协议（`MECH-RUN` 关键过程）
+**6.2.1 Result 两步提交协议（`MECH-RUN` 关键过程）**
 
 Pi operation 完成后 worker 进入 Result 两步提交：第一步把 immutable Result generation 写入 `results` 表（原子事务），第二步把 `runs.state` 与 `runs.generation` 写入终态（原子事务）。两步间崩溃时恢复器只补第二步（绝不重跑 Pi）。
 
@@ -730,14 +727,14 @@ sequenceDiagram
 
 ### 7.1 公共基础类型与枚举
 
-#### 7.1.1 `TaskState`
+**7.1.1 `TaskState`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。固定来源 `system-design` §3 + `piko-agent-runtime-contract-v0.3` §4 + `piko-task-repository-impl.isd.md` §4.1.1（M003 module ISD）。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：每值代表 Run 的当前事务层阶段；与 `cancel_requested`、`discussion_intake_state` 跨字段约束见 M003 ISD §4.2 `RunRecord`。
 - **生产/修改、所有权、可见点、寿命及失败出口**：唯一写入者 M003 `task-repository`；可见点为 `runs.state` 字段；寿命 = Run 寿命；不允许从 `Completed`/`Failed`/`Cancelled` 回退。
 - **合法与拒绝实例、V/Case 与证据状态**：合法转移：`Queued→Running|Cancelled`、`Running→Cancelling|Completed|Failed`、`Cancelling→Cancelled|Failed`。非法转移返回内部 `FencedWrite`，不影响 HTTP。Case：M003/M005 ISD §9.1。
 
-#### 7.1.2 `DiscussionIntakeState`
+**7.1.2 `DiscussionIntakeState`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`DiscussionIntakeState = "Disabled" | "Open" | "Closing" | "Closed"`。来源 `MECH-MATRIX` + M003/M008 ISD §4.1.2。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：仅 discussion Run 使用；非 discussion Run 固定 `Disabled`；discussion Run 单向 `Open → Closing → Closed`。
@@ -822,7 +819,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 
 ### 8.1 API
 
-#### `POST /tasks` · `TaskSubmitRequest` → `TaskView` | `<Error>`
+**`POST /tasks` · `TaskSubmitRequest` → `TaskView` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`createTask`（OpenAPI operationId）；`piko-agent-runtime-contract-v0.3` §1-§2；唯一来源 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` `paths./tasks.post`。
 - **输入与前提**：`TaskSubmitRequest` 字段：`task_id`（Slinky 全局唯一，必填）、`instruction`（不可变任务定义，必填）、`workspace_ref`（**Slinky 侧工作区标识**，审计/映射用，必填）、`permissions`（`{read_paths, write_paths, tool_profile_ref}`，必填）、`output_paths`（RelPath 集合，必填）、`input_refs?`（`[{source, dest?, sha256?}]`）、`artifact_target?`（`{method: scp|mount|object_store, target, secret_ref?}`）、`discussion?`（`{room_id, trigger_event_id}`）。**路径基准**：`permissions.read_paths` / `write_paths` / `output_paths` 统一相对 **`workspace_ref` 解析出的 workspace 根**（`workspace.roots[workspace_ref]`）；`input_refs[].dest` 为拉取落点，同样相对该 workspace 根。模型字段由实例配置，非 selector；**本版无 deadline / 预算字段**。bearer principal 已配置。
@@ -832,7 +829,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互与生命周期**：同步返回；Run 状态由后续 `GET /tasks/{task_id}` 查询；同 ID 同内容重发不创建新 Run。受理后异步做输入拉取（P-INPUT，§6.5），失败 → 零调用 `Failed(InputFetchFailed)`。
 - **实现与验证**：M001 `task-api` + M002 `policy` + M003 `task-repository`；Case PK-T03/PK-T15。
 
-#### `GET /tasks/{task_id}` · `TaskView` | `<Error>`
+**`GET /tasks/{task_id}` · `TaskView` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`getTask`（OpenAPI operationId）；`piko-agent-runtime-contract-v0.3` §1；唯一来源 `interfaces/openapi/agent-runtime-openapi-v0.3.yaml` `paths./tasks/{task_id}.get`。
 - **输入与前提**：`task_id` 路径参数；bearer principal 一致。
@@ -841,7 +838,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互与生命周期**：只读；与 cancel/result 共享同一 `task-repository` 视图；**读产出字节前确认 `artifact_delivery.state=delivered`**。
 - **实现与验证**：M001 `task-api` + M003 `task-repository`；Case PK-T03。
 
-#### `POST /tasks/{task_id}:cancel` · `CancelOutcome` | `<Error>`
+**`POST /tasks/{task_id}:cancel` · `CancelOutcome` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`cancelTask`（OpenAPI operationId）；`piko-agent-runtime-contract-v0.3` §1；唯一来源同 §8.1。
 - **输入与前提**：`task_id` 路径参数；bearer principal 一致。
@@ -850,7 +847,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互与生命周期**：与 `POST /tasks` 同源；不持有 lease 的 Queued 取消走单事务路径。
 - **实现与验证**：M001 `task-api` + M005 `worker` + M003 `task-repository`；Case PK-T05。
 
-#### `GET /tasks/{task_id}/result` · `AgentResult` | `<Error>`
+**`GET /tasks/{task_id}/result` · `AgentResult` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：`getTaskResult`（OpenAPI operationId）；`piko-agent-runtime-contract-v0.3` §3；唯一来源同 §8.1。
 - **输入与前提**：`task_id` 路径参数；bearer principal 一致。
@@ -859,7 +856,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互与生命周期**：与 `getTask` 共享 read path；迟到 usage 不修改 generation。
 - **实现与验证**：M001 `task-api` + M003 `task-repository`；Case PK-T16。
 
-#### Operator Diagnostics · `DiagnosticSnapshot` | `<Error>`
+**Operator Diagnostics · `DiagnosticSnapshot` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：仅 operator authorization；定义见 `piko-runtime-release-and-operations-v0.3`。
 - **输入与前提**：operator 已配置；目标为唯一 Piko 实例。
@@ -868,7 +865,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互与生命周期**：只读；受控不写。
 - **实现与验证**：由 ops 文档与本设计 §3.6.1 shutdown 协议约束；Case PK-T12。
 
-#### Operator Purge · `PurgeReceipt` | `<Error>`
+**Operator Purge · `PurgeReceipt` | `<Error>`**
 
 - **Interface/Member ID、用途、提供责任与唯一来源**：**写操作**；仅 operator authorization（非 Slinky API）；定义见 `piko-runtime-release-and-operations-v0.3`。
 - **输入与前提**：`{ task_id }` 或 `--all`（全局 retention GC）；operator 已授权。
@@ -883,7 +880,7 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 
 > **进程归属（§3.3 关键决定 7）**：下列**外部协作接口全部在 P1**（会阻塞的外部 IO），P0 绝不直接调用；P0↔P1 用本地 IPC。
 
-#### P0 ↔ P1 进程接口（本地 IPC，一等公民）
+**P0 ↔ P1 进程接口（本地 IPC，一等公民）**
 
 - **用途与提供责任**：P0（控制）↔ P1（执行）的生命周期监督 + 事实/指令交换。M000 `bootstrap`（监督者）+ M005 `worker`（执行侧）。
 - **指令（P0→P1）**：`Dispatch{task_id, generation, lease_epoch, instruction, workspace, permissions, input_refs, artifact_target}`、`Abort{task_id, reason}`、`FetchInputs{...}`、`DeliverArtifacts{...}`。
@@ -891,41 +888,41 @@ Piko 不重写 OpenAPI / Schema / error catalog；接口契约由 `interfaces/op
 - **交互、错误与生命周期**：P1 **不直接写 SQLite**；P0 校验后单事务落库；**P1 崩溃/失联 → P0 强杀并重启**（P1 可丢弃，权威在 P0）；`Abort` 有界等待，超时强杀。
 - **实现与验证**：M000/M005；Case PK-T43/PK-T44。
 
-#### Pi（vendored 源码）`AgentHarness.lane.accept` / `.drive` / `.requestAbort` / `.getResult` / `.watch`
+**Pi（vendored 源码）`AgentHarness.lane.accept` / `.drive` / `.requestAbort` / `.getResult` / `.watch`**
 
 - **Interface/Member ID、用途、提供责任与来源**：Pi **`0.85.1` @ commit `9767ba275f3e9a5ee0f5c5342249b629ab1b2282`**，以 **vendored 源码**置于 `upstream/pi/`，Piko 按其**内部模块路径**（`packages/agent/src/harness/...`、`packages/ai/src/...`）import——**不是稳定 SDK / 公共 API**。运行于 **P1**。
 - **输入输出与关联身份**：输入 `typedInstruction` + 可选 `PikoDiscussionMessage`；输出 `PiOperationOutcome stream`；关联身份 `task_id` / `pi_operation_id` / `stepId`。
 - **交互、错误与生命周期**：`stream:true, store:false, maxRetries:0`；Harness retry policy 形成新 attempt；ordered stream events；`requestAbort` 中途可中断（**外部能力假设，须在上游能力验证中确认**）；崩溃后按确定性 session id inspect/getResult，不重发。
 - **实现与验证**：M006 `pi-adapter`（P1）；Case PK-T09/PK-T10 + LLMTier 联调。**风险**：上游内部结构变更即破坏兼容（pin 必需；升级 = 设计变更）。
 
-#### Matrix `client-server` send/receive/sync
+**Matrix `client-server` send/receive/sync**
 
 - **Interface/Member ID、用途、提供责任与来源**：`matrix-js-sdk` Client-Server API；M008 `matrix-adapter` 封装。运行于 **P1**（E2EE CPU 重 + `sync` 长轮询，**不得进 P0 应答路径**）。
 - **输入输出与关联身份**：sync cursor；`event_id` 关联；`MatrixSendRecord.txn_id` 确定性派生；E2EE crypto store 持久在容器卷。
 - **交互、错误与生命周期**：P1 拉取/发送，把 event dedup / `DiscussionTurn` / 新 cursor 作为**事实上报 P0** 落库（P1 不写库）；cursor 未确认前不推进；**投喂运行中 Run 的 turn 在 P1 内部完成**（`followUp`/新 accept）；membership/event/media 复核失败 → `DiscussionAccessLost`。
 - **实现与验证**：M008（P1）；Case PK-T08。
 
-#### OpenAI-compatible Responses SSE
+**OpenAI-compatible Responses SSE**
 
 - **Interface/Member ID、用途、提供责任与来源**：LLMTier OpenAI-compatible `/v1/responses` endpoint；Pi `openai-responses` provider。运行于 **P1**。
 - **输入输出与关联身份**：固定 Pi 实际使用的事件子集（`response.created`/`output_item.added`/`output_text.delta`/`function_call_arguments.delta|done`/`output_item.done`/`completed|incomplete`/`failed`/顶层 `error`；reasoning/refusal 标准事件如有也原样支持）。
 - **交互、错误与生命周期**：`stream:true, store:false, maxRetries:0`；三次 prompt-cache 字段缺席；非 SSE 整体由 Harness 形成 recoverable operation，不切非流式。**外部能力假设，须联调确认。**
 - **实现与验证**：M006 `pi-adapter`（P1）；Case PK-T09/PK-T10 + LLMTier 联调。
 
-#### 数据面搬运（`scp` / `mount` / `object_store`）
+**数据面搬运（`scp` / `mount` / `object_store`）**
 
 - **Interface/Member ID、用途、提供责任与来源**：Piko **容器出站** `scp`（本期）从/向 **Slinky 存储主机**搬运；M010 `transfer` 封装。运行于 **P1**。
 - **输入输出与关联身份**：输入 `input_refs`（`source`/`dest`/`sha256`）；输出 `output_paths` → `<artifact_target.target>/<path>`；凭据来自 `transfer.credential_ref`；出站目标受 `transfer.target_allowlist` 限制，主机密钥由 `known_hosts` 固定。
 - **交互、错误与生命周期**：**可中断**（cancel/停止时 abort in-flight `scp`）；有界重试；投递幂等 `(task_id,generation,path,sha256)`；输入拉取失败 = 前提失败。
 - **实现与验证**：M010（P1）；Case PK-T41/PK-T42。
 
-#### Secret provider
+**Secret provider**
 
 - **Interface/Member ID、用途、提供责任与来源**：按 `credential_ref` 解析 secret（bearer / LLMTier key / Matrix token / `scp` 私钥）。**接口形态由部署环境提供**（文件挂载 / env / KMS 之一，由 ops 明确）；Piko 只持引用。
 - **交互、错误与生命周期**：启动时解析；**明文不进 config/DB/Result/log**；轮换 = 改挂载 + 重启。
 - **实现与验证**：M000 `bootstrap` + M002 `policy`；Case PK-T12。
 
-#### Slinky 存储主机（数据面外部对象）
+**Slinky 存储主机（数据面外部对象）**
 
 - **Interface/Member ID、用途、提供责任与来源**：输入来源 + 产出目标宿主（`scp` 对端）。**外部对象**，其可达性与目录预建由 Slinky 负责。
 - **交互、错误与生命周期**：出站可达 + `known_hosts` 固定；不可达 → 输入前提失败 / 投递 `failed`。
@@ -1003,7 +1000,7 @@ Piko 配置由 `interfaces/schemas/piko-runtime-config-v0.3.schema.json` + `inte
 | `piko.slot.lease_epoch` | count | 单实例 | scheduler 写入 `execution_slot.lease_epoch` | 诊断端点；脱敏 | 恢复顺序判定 |
 | `piko.harness.operation.generation` | count | per task_id | `run_sessions.active_operation_id` 推进 | 诊断端点；脱敏 | 进度 |
 | `piko.model.attempts.{state}` | count | per task_id | `model_attempts` 表 | 诊断端点 + metric；脱敏 | 用量与重试 |
-| `piko.tool.attempts.{state}` | count | per task_id | `tool_calls` 表 | 同上 | 工具预算 |
+| `piko.tool.attempts.{state}` | count | per task_id | `tool_calls` 表 | 同上 | 工具调用记账 |
 | `piko.usage.quality.{Complete,Partial,Unknown}` | ratio | per task_id | `UsageSnapshot.quality` | metric；脱敏 | 模型端完整性 |
 | `piko.matrix.sync.lag` | s / 当前 | 全实例 | `matrix_state.sync_cursor` 与 last observed | metric；脱敏 | 集成健康 |
 | `piko.dependency.failures.{llmtier,matrix,store}` | count / 区间 | 全实例 | preflight + 错误事件 | metric；脱敏 | 集成健康 |

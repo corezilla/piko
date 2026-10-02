@@ -38,7 +38,6 @@ flowchart LR
 
 图 M-MX-0 · MECH-MATRIX 用途概览 / Target / NOT_BUILT。讨论事件经去重、落盘、领取后成为 Pi 输入。
 
-
 - **机制形态与适用性 / 业务副作用**：**有副作用**。讨论事件落盘为 `discussion_turns`、cursor 推进、intake 关闭、send txn 均持久；事件复制进本地并可能触发 Pi 投喂。
 - **交接域**：**纯软件 + 外部 Matrix homeserver + 跨进程**。M005/M008 在 **P1**（Matrix 置于 P1 以避免 E2EE/长轮询阻塞 P0 应答）；M003 在 **P0**；homeserver 为外部 HTTPS 服务。
 - **裁剪依据**：附录 A；§4.5/§5.3 因纯软件为 N/A；不支持 E2EE（见 §3.3.1）。
@@ -113,7 +112,7 @@ flowchart LR
 | `event_id` / sync cursor | Client-Server API / 本地 SQLite | homeserver（event paging token） | cursor 在本地 SQLite | 旧 cursor 保留；不推进即不丢 |
 | media MXC | `mxc://{serverName}/{mediaId}` | homeserver media repo | 随 homeserver 域 | 过期 media 不可下载 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | homeserver | 身份来源 | 网络/TLS | 用途 |
 |---|---|---|---|---|
@@ -133,14 +132,14 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `DiscussionIntakeState`
+**4.1.1 `DiscussionIntakeState`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`"Disabled" | "Open" | "Closing" | "Closed"`。来源 MECH-RUN §4.1.2 + M005 ISD §4.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：仅 Open 可接收 turn；单向 Open→Closing→Closed；非 discussion Run 固定 `Disabled`。未知值拒绝。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M005 写，M003 持久化；可见点 `runs.discussion_intake_state`；Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：Open→Closing CAS 失败（已有新 turn）必须重判。Case PK-T08（NOT_RUN）。
 
-#### 4.1.2 `DiscussionTurnStatus`
+**4.1.2 `DiscussionTurnStatus`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`"Pending" | "QueuedInPi" | "Consumed" | "Abandoned"`。来源 M005 ISD §4.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Abandoned` 只用于 Failed/Cancelled 时封存未消费 turn，不等同 Consumed。
@@ -149,14 +148,14 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `DiscussionTurn`
+**4.2.1 `DiscussionTurn`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`(task_id, event_id)` 主键 + `turn_seq`/`status`/`visible_content`/`pi_entry_id`/`pi_operation_id`。来源 M003 ISD §4.2.7。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`unique(task_id, turn_seq)`；`visible_content` 非空；`turn_seq` 单调递增。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写（sync 事务内）；Run 寿命 + retention。
 - **合法与拒绝实例、V/Case 与证据状态**：同 `(task_id, event_id)` 重复插入必须去重。Case PK-T08。
 
-#### 4.2.2 `PikoDiscussionMessage`
+**4.2.2 `PikoDiscussionMessage`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：持久字段 `event_id` + `visible_content` + `reply_context?` + `attachments?`；provider 投影删除 `event_id`。来源 M006 ISD §4.4.4。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`event_id` 仅在持久层保留（幂等/replay 用）；`reply_context.in_reply_to_event_id` 必须指向同 room 已见事件；`attachments[].mxc` 必须 `mxc://` 格式。
@@ -182,7 +181,7 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-#### 4.4.1 Matrix Client-Server 事件（Piko 消费子集）
+**4.4.1 Matrix Client-Server 事件（Piko 消费子集）**
 
 Piko 只消费以下事件类型（其余忽略）：
 
@@ -196,7 +195,7 @@ Piko 只消费以下事件类型（其余忽略）：
 
 事件信封（Piko 读取字段）：`{type, event_id, sender, room_id, origin_server_ts, content}`。
 
-#### 4.4.2 `PikoDiscussionMessage`（Piko 内部载荷）
+**4.4.2 `PikoDiscussionMessage`（Piko 内部载荷）**
 
 ```text
 PikoDiscussionMessage {
@@ -217,7 +216,7 @@ PikoDiscussionMessage {
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `MatrixSendRecord`
+**4.6.1 `MatrixSendRecord`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`txn_id` 主键 + `task_id`/`turn_seq`/`payload_sha256`/`event_id`/`state`。来源 M003 ISD §4.2.8。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`txn_id` 由 instance/run/turn/action 确定性派生；`state ∈ {Pending, Sent, Unknown}`。
@@ -230,14 +229,14 @@ PikoDiscussionMessage {
 
 ### 4.8 错误码与错误结构（适用时）
 
-#### 4.8.1 Piko typed error 逐码
+**4.8.1 Piko typed error 逐码**
 
 | Error ID | 触发事实 | HTTP | 调用方合法下一步 |
 |---|---|---|---|
 | `InvalidDiscussionContext` | room/event 不存在或不可见 | 409 | 核对 room/event 与 membership；不换 ID |
 | `DiscussionAccessLost` | membership/event/media 权限丢失 | Result failure（Failed） | 停止 intake；交 operator |
 
-#### 4.8.2 homeserver 错误码映射
+**4.8.2 homeserver 错误码映射**
 
 | homeserver `errcode` | HTTP | Piko 映射 | 合法下一步 |
 |---|---|---|---|
@@ -247,7 +246,7 @@ PikoDiscussionMessage {
 | `M_NOT_FOUND` | 404 | `InvalidDiscussionContext`（受理）/ 忽略（运行） | 核对 event |
 | `M_UNKNOWN` | 500 | 内部重试 | 重试同批 |
 
-#### 4.8.3 内部错误
+**4.8.3 内部错误**
 
 `InternalError`（sync 事务失败 / dedup 冲突不可恢复）；对调用方不暴露 Matrix 细节。
 
@@ -270,7 +269,7 @@ PikoDiscussionMessage {
 
 MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /tasks`）；进程内 `MatrixRuntime` 方法是本机制 API。
 
-#### `verifyDiscussionStart(context: DiscussionContext) -> VerifiedEvent`（IF-MX-VERIFY）
+**`verifyDiscussionStart(context: DiscussionContext) -> VerifiedEvent`（IF-MX-VERIFY）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-MX-VERIFY`；M008 `matrix-adapter` 提供；M001/M005 消费。
 - **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3；Proposed。
@@ -280,7 +279,7 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /task
 - **交互与生命周期**：同步；调用 `GET .../event/{eventId}` + membership。
 - **代表调用与验证**：§6.1.1 q2；PK-T08。
 
-#### `syncOnce(cursor: string | null) -> MatrixBatch`（IF-MX-SYNC）
+**`syncOnce(cursor: string | null) -> MatrixBatch`（IF-MX-SYNC）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-MX-SYNC`；M008 提供；M003 持久化。
 - **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3。
@@ -301,7 +300,7 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /task
 - **交互与生命周期**：长轮询；cursor 只随事务推进。
 - **代表调用与验证**：§6.1.1 q3；PK-T08。
 
-#### `sendWithStableTxn(record: MatrixSendRecord) -> MatrixSendOutcome`（IF-MX-SEND）
+**`sendWithStableTxn(record: MatrixSendRecord) -> MatrixSendOutcome`（IF-MX-SEND）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-MX-SEND`；M008 提供；M003 持久化 txn。
 - **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server v3。
@@ -311,7 +310,7 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /task
 - **交互与生命周期**：先持久 send record 再 PUT。
 - **代表调用与验证**：§6.1.1 q4；PK-T08。
 
-#### `downloadContent(mxc) -> MediaContent | MediaError`（IF-MX-MEDIA-DOWN）
+**`downloadContent(mxc) -> MediaContent | MediaError`（IF-MX-MEDIA-DOWN）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA-DOWN`；M008 提供。
 - **唯一契约、版本与状态**：M008 ISD §5.1；Client-Server media v3。
@@ -321,7 +320,7 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /task
 - **交互与生命周期**：写 Run staging 目录，校验后移入 allowed path。
 - **代表调用与验证**：PK-T08。
 
-#### `uploadContent(bytes, content_type) -> {content_uri} | MediaError`（IF-MX-MEDIA-UP）
+**`uploadContent(bytes, content_type) -> {content_uri} | MediaError`（IF-MX-MEDIA-UP）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-MX-MEDIA-UP`；M008 提供。
 - **输入与前提**：文件字节 + MIME；Bearer。
@@ -333,7 +332,7 @@ MECH-MATRIX 无面向 Slinky 的独立 API（discussion 经 MECH-RUN `POST /task
 
 Matrix Client-Server HTTP 端点（Piko 消费/发送的消息载荷）：
 
-#### `GET /_matrix/client/v3/sync`（长轮询同步）
+**`GET /_matrix/client/v3/sync`（长轮询同步）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-SYNC`；homeserver 提供；Client-Server v3。
 - **输入与前提**：`since`、`timeout`、`filter`；Bearer。
@@ -342,7 +341,7 @@ Matrix Client-Server HTTP 端点（Piko 消费/发送的消息载荷）：
 - **交互与生命周期**：长轮询；`limited=true` 表示截断。
 - **代表调用与验证**：§6.1.1 q3；PK-T08。
 
-#### `PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`（稳定事务发送）
+**`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`（稳定事务发送）**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-SEND`；homeserver 提供；v3。
 - **输入与前提**：`roomId` + 客户端 `txnId`；body `m.room.message` + reply。
@@ -350,13 +349,13 @@ Matrix Client-Server HTTP 端点（Piko 消费/发送的消息载荷）：
 - **错误与合法下一步**：见 §4.8.2。
 - **代表调用与验证**：§6.1.1 q4。
 
-#### `GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}` + `/state/m.room.member/{userId}`
+**`GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}` + `/state/m.room.member/{userId}`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-VERIFY`；homeserver 提供。
 - **成功输出**：事件对象 + membership。
 - **代表调用与验证**：§6.1.1 q2。
 
-#### `GET /_matrix/media/v3/download/...` + `POST /_matrix/media/v3/upload`
+**`GET /_matrix/media/v3/download/...` + `POST /_matrix/media/v3/upload`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-HTTP-MEDIA`；homeserver media repo。
 - **成功输出**：字节流 / `content_uri`。
@@ -436,7 +435,7 @@ flowchart TD
   3. 若回补仍截断（达到 limit 仍未到边界）→ 记录 `truncation_unresolved=true`，**仍推进 cursor**（否则永久卡死），但该 Run 的 turn 集合标记"可能不完整"，Result 不声称讨论完整。
 - **cursor 推进条件**：只有本批事件（含回补）已写 turn 后 cursor 才推进；`truncation_unresolved` 单独记录，不阻止推进但阻止完整性声称。
 
-#### 6.1.1 完整调用实例（Matrix Client-Server）
+**6.1.1 完整调用实例（Matrix Client-Server）**
 
 room `!r-7:hs`，trigger event `$e-7`。
 
@@ -513,7 +512,7 @@ flowchart TD
 
 图 M-MX-8 · 条件依赖图 / Target / NOT_BUILT。intake 关闭不等 sync；sync 在 closing 后不附着 Run。无循环等待。
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
 |---|---|---|---|---|---|
@@ -589,7 +588,7 @@ flowchart TD
 
 图 M-MX-5 · 异常处置图 / Target / NOT_BUILT。已知/未知：sync 失败结果未知（cursor 不动）；发送响应丢失结果未知（复用 txn）；E2EE 是明确不支持。
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -606,7 +605,7 @@ flowchart TD
 - turn 按 `turn_seq` 顺序领取；`(task_id, event_id)` 唯一。
 - media 下载有字节上限（schema 控制）；超限拒绝。
 - 等待出口与期限：sync 长轮询 `timeout=30000 ms`（内部常量）；429 退避按 homeserver `retry_after_ms`；Pi followUp 等 Harness 空闲；membership 复核失败立即终止。每个等待有期限、事实来源（cursor/state）和合法出口。
-- rate limit 退避不消耗 Run 预算（属 adapter 内部）。
+- rate limit 退避不计入 Run 执行（属 adapter 内部）。
 
 ## 11. 安全、权限与信任边界
 
@@ -702,7 +701,6 @@ flowchart TD
 | `M-MX-DI-002` | `worker` | intake state machine | CON-MX-001 | CAS 实现 |
 | `M-MX-DI-003` | `task-repository` | matrix_* DDL | CON-MX-001 | 事务组织 |
 
-
 ## 15. 验证、上线与回滚
 
 ### 15.1 输入构造、故障控制与独立判据
@@ -719,7 +717,7 @@ flowchart TD
 
 独立判据=homeserver 侧 event 记录 + SQLite turn/cursor + Pi transcript；不拿 adapter 自身返回成功当 oracle；Run 状态仍 NOT_RUN。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

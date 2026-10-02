@@ -18,7 +18,7 @@
 
 ## 1. 单元摘要：为什么存在
 
-M002 `policy` 解决一个问题：Piko 在**受理一个任务之前**必须把外部请求变成"可被事务层安全接受"的已验证对象，并且在**启动时**已经知道本实例允许哪些工具与哪些路径。这两件事都不能由 HTTP handler（M001）或事务层（M003）自己决定：前者只该管路由与规范化，后者只该管持久化。policy 把这些判定集中成一个**无状态、纯判定**的模块：启动时把 `ToolProfile` 与 recovery registry 绑定成一份冻结的 `BoundToolProfile`（工具名、`effect`、`replay`、可解析的 `recovery_contract_ref` 必须互相一致）；受理时把 `AgentTaskRequest` 校验并规范化成 `ValidatedTaskSubmission`（路径规范化、权限交集、截止时间、预算、discussion 形状），再交给 M003。
+M002 `policy` 解决一个问题：Piko 在**受理一个任务之前**必须把外部请求变成"可被事务层安全接受"的已验证对象，并且在**启动时**已经知道本实例允许哪些工具与哪些路径。这两件事都不能由 HTTP handler（M001）或事务层（M003）自己决定：前者只该管路由与规范化，后者只该管持久化。policy 把这些判定集中成一个**无状态、纯判定**的模块：启动时把 `ToolProfile` 与 recovery registry 绑定成一份冻结的 `BoundToolProfile`（工具名、`effect`、`replay`、可解析的 `recovery_contract_ref` 必须互相一致）；受理时把 `AgentTaskRequest` 校验并规范化成 `ValidatedTaskSubmission`（路径规范化、权限交集、discussion 形状），再交给 M003。
 
 policy 只做判定，**不持状态、不落库、不发网络**：它不拥有任何持久表（DDL/事务 authority 属 M003），不监听端口（HTTP 面属 M001），不解析 Secret（属 M000/bootstrap 与 Secret provider），不改写 Run 状态机（属 M003/M005）。它的输出是**不可变值对象**：一份进程寿命的 `BoundToolProfile` 与每次请求一份 `ValidatedTaskSubmission`。任何需要"记住上一次判定"的需求都被显式推给持有状态的模块（M003 存 `tasks.task_json`，M001 存请求寿命的规范化结果）。
 
@@ -31,16 +31,16 @@ policy 只做判定，**不持状态、不落库、不发网络**：它不拥有
 | 运行进程 | P0 控制进程（见 `system-design` §3.3 关键决定 7） || 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | 父设计 Document ID / 固定基线 / 登记位置 | `system-design` v0.11.2 / 契约 `0.3.0-simplified.6` / §3.2 直属模块表 + §3.4 约束分配；本模块登记见 §3.2 第 201 行 |
 | 上级系统/父单元 | 无（纯软件顶层，无总体系统父稿） |
-| 解决的问题 | 启动期工具/恢复绑定一致；受理期请求/路径/工具/截止/预算判定与规范化，且不引入模块状态 |
+| 解决的问题 | 启动期工具/恢复绑定一致；受理期请求/路径/工具判定与规范化，且不引入模块状态 |
 | 提供的能力 | `bindToolProfile`、`validateSubmission`、`canonicalizePath`；产出 `BoundToolProfile`、`ValidatedTaskSubmission` |
-| 主要使用者 | M000 `bootstrap`（启动 S3 绑定）、M001 `task-api`（每次受理）、M003/M006（消费已规范化路径与预算字段） |
-| 不负责 | 持久化与事务（M003）；HTTP 路由/bearer principal 校验（M001）；工具实际执行与预算 CAS（M006）；Run 状态机（M003/M005）；Secret 解析（M000）；discussion membership 验证（M008） |
+| 主要使用者 | M000 `bootstrap`（启动 S3 绑定）、M001 `task-api`（每次受理）、M003/M006（消费已规范化路径与工具授权字段） |
+| 不负责 | 持久化与事务（M003）；HTTP 路由/bearer principal 校验（M001）；工具实际执行与工具 CAS（M006）；Run 状态机（M003/M005）；Secret 解析（M000）；discussion membership 验证（M008） |
 
 ### 1.1 继承的上级约束与落实方式
 
-policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份，与 M001/M003 共担）、`CON-RUN-003`（PK-03 截止与预算，与 M006 共担）、`CON-CFG-001`（PK-12 配置加载/绑定，经 MECH-CONFIG）、`CON-ST-001`（PK-12 启动顺序，经 MECH-STARTUP）。四者均为 Approved。约束来源为 `system-design` §3.4，机制侧权威定义在 `piko-run.md` §3.1、`piko-config.md` §3.1 与 `piko-startup.md` §3.1。
+policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份，与 M001/M003 共担）、`CON-RUN-003`（PK-04 期限/模型预算，与 M006 共担 · **本版撤销**）、`CON-CFG-001`（PK-12 配置加载/绑定，经 MECH-CONFIG）、`CON-ST-001`（PK-12 启动顺序，经 MECH-STARTUP）。四者均为 Approved。约束来源为 `system-design` §3.4，机制侧权威定义在 `piko-run.md` §3.1、`piko-config.md` §3.1 与 `piko-startup.md` §3.1。
 
-#### 1.1.1 `CON-RUN-002` · 任务事务稳定身份（PK-02）
+**1.1.1 `CON-RUN-002` · 任务事务稳定身份（PK-02）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-02 行）+ `piko-run.md` §3.1 `CON-RUN-002` · PK-02 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文："同 `task_id` 重复提交时，同 ID 同内容不重新检查动态条件；path 集合字段按集合比较、时间按 UTC instant、对象成员顺序忽略。"
 
@@ -56,23 +56,23 @@ policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份
 
 - **差距/变更影响/反馈责任**：none。字段集合变化属契约变更，需独立评审（contract §1）。
 
-#### 1.1.2 `CON-RUN-003` · 截止与预算（PK-03）
+**1.1.2 `CON-RUN-003` · 期限/模型预算（PK-04 · 本版撤销）**
 
-- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文："本版不实现任务级截止/预算（见附录 B 修订记录）"——policy **不校验**任何 deadline/预算字段。
+- **上级基线与决定状态**：`system-design` v0.12.0-draft.1 §3.4（PK-04 行 · **本版撤销**）。上级原文："本版不实现任务级期限/预算（见附录 B 修订记录）"——policy **不校验**任何任务级 deadline/预算字段。
 
-- **适用条件**：每次新 `task_id` 受理；`limits` 字段存在且为整数/时间。
+- **适用条件**：每次新 `task_id` 受理（本版无 `limits` 字段校验）。
 
-- **继承预算或行为保证**：**本版无任务级截止/预算**；policy 不做 deadline/预算判定（`PK-04` 已撤销）。
+- **继承预算或行为保证**：**本版无任务级期限/预算**；policy 不做 deadline/预算判定（`PK-04` 已撤销）。
 
-- **可自行选择/不可改变**：不可改变：policy 不引入任务级截止/预算。可自行设计：校验顺序、错误码选择。
+- **可自行选择/不可改变**：不可改变：policy 不引入任务级期限/预算。可自行设计：校验顺序、错误码选择。
 
-- **本地落实/内部再分配**：§8.5 `R-POLICY-DEADLINE`、§8.6 `R-POLICY-BUDGET`；§9.1.2 合同；§6.8.1 错误映射。
+- **本地落实/内部再分配**：n/a（`PK-04` 已撤销，无本地落实项）；§6.8.1 错误映射不含 limit 类错误。
 
-- **验证方法与结果/证据**：局部 `VRC-POLICY-002/005`（path/工具判定）。当前 `NOT_RUN`。
+- **验证方法与结果/证据**：n/a（无期限/预算用例；见 §8.5 的 N/A 记录）。
 
-- **差距/变更影响/反馈责任**：none。若契约新增预算字段，本模块校验随之扩展，属契约变更。
+- **差距/变更影响/反馈责任**：none。若契约未来新增任务级期限/预算字段，本模块校验随之扩展，属契约变更。
 
-#### 1.1.3 `CON-CFG-001` · 配置加载/绑定/生效（PK-12，经 MECH-CONFIG）
+**1.1.3 `CON-CFG-001` · 配置加载/绑定/生效（PK-12，经 MECH-CONFIG）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-config.md` §3.1 `CON-CFG-001` · PK-12 · Approved。上级原文："config 变更需重启生效；配置先校验、再绑定、后生效，不部分就绪。"
 
@@ -88,7 +88,7 @@ policy 承接四条上级约束：`CON-RUN-002`（PK-02 任务事务稳定身份
 
 - **差距/变更影响/反馈责任**：`piko-config.md` §4.3.1/§4.4.1/§4.4.2 的 config 与 tool profile 字段描述与本项目锁定的机器 schema 存在漂移（机制侧未同步新 schema），登记 `OQ-POLICY-001`、`OQ-POLICY-002`（Owner：Piko Architecture）。
 
-#### 1.1.4 `CON-ST-001` · 启动顺序与 READY（PK-12，经 MECH-STARTUP）
+**1.1.4 `CON-ST-001` · 启动顺序与 READY（PK-12，经 MECH-STARTUP）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-startup.md` §3.1 `CON-ST-001` · PK-12 · Approved。上级原文："启动顺序 S1-S8；未 READY 不接受 Run；不允许跳级。"
 
@@ -126,7 +126,7 @@ policy 的可观察功能是三个进程内操作：启动期绑定工具注册�
 
 ### 2.2 `F-POLICY-VALIDATE` · 校验并规范化提交
 
-- **上级需求 / Constraint ID**：`CON-RUN-002`（PK-02）；`CON-RUN-003`（PK-03）。
+- **上级需求 / Constraint ID**：`CON-RUN-002`（PK-02）；`CON-RUN-003`（PK-04 · 本版撤销，无对应判定）。
 
 - **调用方**：M001 `task-api`，每次新 `task_id` 受理（bearer principal 校验之后、M003 事务之前）。
 
@@ -181,7 +181,7 @@ flowchart LR
 
 图 M-POL-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用与返回，不是网络或新部署边界。policy 不创建线程/进程、不打开 SQLite、不解析 Secret。持久化权威（SQLite、事务、DDL）属 M003，见 §6.7。
 
-#### 4.1 `DEP-POLICY-CONFIG` · M000 `bootstrap`（已校验 config + registry）
+**4.1 `DEP-POLICY-CONFIG` · M000 `bootstrap`（已校验 config + registry）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P0**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
@@ -195,7 +195,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：config/registry 非法或缺失由 M000 S2 先拒绝；policy 的绑定失败抛 `ToolBindFailure` 交 M000 走 F1。policy 不自行读文件、不重新解释 config 语义。
 
-#### 4.2 `DEP-POLICY-API` · M001 `task-api`（调用方）
+**4.2 `DEP-POLICY-API` · M001 `task-api`（调用方）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -209,7 +209,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：校验失败 → M001 映射 4xx 且不创建 Run；policy 不吞掉依赖错误（如 FS `realpath` 失败按 `InvalidRequest`/`ScopeDenied` 归类，不伪装成功）。
 
-#### 4.3 `DEP-POLICY-FS` · 宿主文件系统（realpath/stat）
+**4.3 `DEP-POLICY-FS` · 宿主文件系统（realpath/stat）**
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力（Node `fs/promises`），同进程；Owner：Piko Implementation Owner。
 
@@ -223,7 +223,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：路径不存在/无权限 → 拒绝（`ScopeDenied`/`InvalidRequest`）；不重试、不降级为字符串比较（否则绕过 symlink 边界）。
 
-#### 4.4 `DEP-POLICY-CLOCK` · 时间源（宿主提供）
+**4.4 `DEP-POLICY-CLOCK` · 时间源（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：宿主运行时能力，同进程；Owner：Piko Implementation Owner（M000 装配）。
 
@@ -237,7 +237,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：时钟回拨会使严格的"未来 instant"判定变化（`RISK-POLICY-002`）；policy 只在受理瞬间判定一次，运行期耗尽由 M006 用持久 UTC 判定，不依赖 policy 的内存时间。
 
-#### 4.5 `DEP-POLICY-MATRIX` · M008 `matrix-adapter`（discussion 事实，非直接依赖）
+**4.5 `DEP-POLICY-MATRIX` · M008 `matrix-adapter`（discussion 事实，非直接依赖）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同进程；Owner：Piko Implementation Owner。
 
@@ -285,7 +285,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `P1` · PolicyService（入口）
+**5.1.1 `P1` · PolicyService（入口）**
 
 - **职责与非职责**：对外提供 §9.1 三个操作并保证"无状态、纯判定"；把启动绑定与受理校验编排到 I1/I2/I3。非职责：不做 HTTP、不写库、不解析 Secret、不读 config 文件（由 M000 注入）。
 
@@ -297,7 +297,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做编排，把规则抽到 I1/I2/I3 以便对 path 边界、recovery 绑定、工具授权做无 DB、无网络单测。替代方案"检查逻辑留在 config.ts/server.ts"是 Current 形态，代价是绑定与受理耦合、无法独立验证无状态与拒绝语义。
 
-#### 5.1.2 `I1` · SubmissionValidator（提交校验器）
+**5.1.2 `I1` · SubmissionValidator（提交校验器）**
 
 - **职责与非职责**：把 `AgentTaskRequest` 变成 `ValidatedTaskSubmission`：调用 I2 规范化路径、用 I3 的绑定结果校验 `tool_profile_ref`、执行归一化。非职责：无持久化、无网络、不解析 discussion membership。
 
@@ -307,9 +307,9 @@ flowchart TB
 
 - **文件 / symbol / 实现状态**：`src/policy/submission.ts`（Planned / NOT_IMPLEMENTED），导出 `validateSubmission`、`normalizeTask`。现基线在 `src/task-equality.ts`（`normalizedTask`/`sameTask`）与 `src/server.ts`。
 
-- **拆分依据与替代方案代价**：把请求判定与路径机制分离，使 `R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET` 可表驱动测试。替代方案把所有逻辑写进 handler，代价是无法覆盖拒绝矩阵。
+- **拆分依据与替代方案代价**：把请求判定与路径机制分离，使 `R-POLICY-NORMALIZE/PERMISSION` 可表驱动测试。替代方案把所有逻辑写进 handler，代价是无法覆盖拒绝矩阵。
 
-#### 5.1.3 `I2` · PathPolicy（路径策略）
+**5.1.3 `I2` · PathPolicy（路径策略）**
 
 - **职责与非职责**：语法校验 + `realpath` + 包含判定；是 policy 内唯一接触 FS 的单元。非职责：不做业务授权决策（授权集合由 I1 传入）、不写文件、不缓存。
 
@@ -321,7 +321,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：端口化 FS 使 symlink 边界可用受控 fake FS 做单测（`VRC-POLICY-003`）。替代方案"直接 scattered realpath"是 Current 形态，代价是边界测试依赖真实 FS。
 
-#### 5.1.4 `I3` · ToolBinder（工具绑定器）
+**5.1.4 `I3` · ToolBinder（工具绑定器）**
 
 - **职责与非职责**：启动期把 `ToolRegistry` 绑定/校验为不可变 `BoundToolProfile`。非职责：无 FS、无网络、不执行工具、不注册实现（实现注册表由 M000/构建提供）。
 
@@ -333,7 +333,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：把绑定从 config 加载中剥离，使 `R-POLICY-TOOLBIND` 可对注册矩阵表驱动测试（`VRC-POLICY-001`）。替代方案"绑定混在 loadConfig"是 Current 形态，代价是启动与受理生命周期耦合。
 
-#### 5.1.5 `I4` · types
+**5.1.5 `I4` · types**
 
 - **职责与非职责**：本层私有类型与错误类；无逻辑。
 
@@ -347,7 +347,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-POLICY-BIND` · 启动绑定
+**5.2.1 `P-POLICY-BIND` · 启动绑定**
 
 - **入口与调用上下文**：M000 S3 → `PolicyService.bindToolProfile(registry)`（宿主启动序列，单线程）。
 
@@ -359,7 +359,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7 `M-POL-P1`；§9.1.1；`VRC-POLICY-001`。
 
-#### 5.2.2 `P-POLICY-VALIDATE` · 受理校验
+**5.2.2 `P-POLICY-VALIDATE` · 受理校验**
 
 - **入口与调用上下文**：M001 `POST /tasks` handler（JSON/Schema + bearer 之后）→ `PolicyService.validateSubmission(raw, principal)`。
 
@@ -369,9 +369,9 @@ flowchart TB
 
 - **返回、异常与清理**：成功返回不可变 `ValidatedTaskSubmission`；失败抛 `PolicyViolation`；无副作用需清理（未触达 M003 事务）。
 
-- **对应流程 / 接口 / 验证**：§7 `M-POL-P2`；§9.1.2；`VRC-POLICY-002/004/005`。
+- **对应流程 / 接口 / 验证**：§7 `M-POL-P2`；§9.1.2；`VRC-POLICY-002/005`。
 
-#### 5.2.3 `P-POLICY-PATH` · 路径规范化
+**5.2.3 `P-POLICY-PATH` · 路径规范化**
 
 - **入口与调用上下文**：由 `P-POLICY-VALIDATE` 内部逐 path 调用；输出/写路径复核亦复用。
 
@@ -387,9 +387,9 @@ flowchart TB
 
 本节只固定 policy 内部文件之间的交接；跨模块接口在 §9.2，字段类型在 §6。
 
-#### 5.3.1 `IF-POLICY-SUBMIT` · `policy.ts` → `submission.ts`
+**5.3.1 `IF-POLICY-SUBMIT` · `policy.ts` → `submission.ts`**
 
-- **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为权威在 §8（`R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET`）。
+- **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为权威在 §8（`R-POLICY-NORMALIZE/PERMISSION`）。
 
 - **本文件的提供或使用责任**：`submission.ts` 提供校验/归一化；`policy.ts` 调用并包装 typed 错误。
 
@@ -397,9 +397,9 @@ flowchart TB
 
 - **§9 生命周期约束**：无状态、无所有权；调用即返回。
 
-- **实现与验证位置**：`src/policy/submission.ts`；`VRC-POLICY-002/004/005` 表驱动。
+- **实现与验证位置**：`src/policy/submission.ts`；`VRC-POLICY-002/005` 表驱动。
 
-#### 5.3.2 `IF-POLICY-PATH` · `submission.ts` → `path.ts`
+**5.3.2 `IF-POLICY-PATH` · `submission.ts` → `path.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `PathPolicy`，方法契约见 §9.1.3。
 
@@ -411,7 +411,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/policy/path.ts`；`VRC-POLICY-003` 以受控 fake FS + 真 FS 两套覆盖。
 
-#### 5.3.3 `IF-POLICY-BIND` · `policy.ts` → `tools.ts`
+**5.3.3 `IF-POLICY-BIND` · `policy.ts` → `tools.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `ToolBinder`，方法契约见 §9.1.1。
 
@@ -449,7 +449,7 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 ### 6.1 公共基础类型与枚举
 
-#### 6.1.1 `RelPath` / `ToolEffect` / `ReplayMode`
+**6.1.1 `RelPath` / `ToolEffect` / `ReplayMode`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`RelPath`（规范化相对路径）、`ToolEffect`、`ReplayMode` 由机器 schema 定义（`agent-runtime-v0.3.schema.json` `$defs/RelativePath`；`piko-tool-profile-v0.3.schema.json` `effect`/`replay` 枚举），本模块只引用不重定义。
 
@@ -467,7 +467,7 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `BoundToolProfile`
+**6.2.1 `BoundToolProfile`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`BoundToolProfile` 是启动 S3 的冻结产物；本模块作用域内类型（无公共 Data ID）；权威定义在 `src/policy/types.ts`（Planned）。语义对应 `piko-config.md` §4.2.1 `BoundToolProfile`（"M002 输出的已绑定 tool allowlist"）。
 
@@ -488,7 +488,7 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`tools.read = {effect:"read_only", replay:"never", recovery_contract_ref:null}`。拒绝：`tools.write = {effect:"workspace_write", replay:"safe", recovery_contract_ref:"missing"}`（未绑定 contract）。`VRC-POLICY-001`；`NOT_RUN`。
 
-#### 6.2.2 `ValidatedTaskSubmission`
+**6.2.2 `ValidatedTaskSubmission`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`ValidatedTaskSubmission` 是 policy 的受理输出；字段与 `AgentTaskRequest` 同构但已规范化；权威：本设计 §9.1.2（对应 `piko-run.md` §4.2.1，其细节"来源 M002 ISD"）。
 
@@ -508,11 +508,11 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 - **生产/修改、所有权、可见点、寿命及失败出口**：由 `PolicyService.validateSubmission` 构造并冻结；所有权随返回移交 M001（M001 交给 M003 持久化 `task_json`）；寿命 = 请求寿命；失败出口为 `PolicyViolation`（不落库、不创建 Run）。
 
-- **合法与拒绝实例、V/Case 与证据状态**：合法示例见 §9.1.2。拒绝：`output_paths=["../secret"]`（`ScopeDenied`）、`tool_profile_ref` 未授权（`ScopeDenied`）。`VRC-POLICY-002/004/005`；`NOT_RUN`。
+- **合法与拒绝实例、V/Case 与证据状态**：合法示例见 §9.1.2。拒绝：`output_paths=["../secret"]`（`ScopeDenied`）、`tool_profile_ref` 未授权（`ScopeDenied`）。`VRC-POLICY-002/005`；`NOT_RUN`。
 
 ### 6.3 配置与规则数据结构
 
-#### 6.3.1 `PikoRuntimeConfig`（消费型）
+**6.3.1 `PikoRuntimeConfig`（消费型）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：机器权威 `interfaces/schemas/piko-runtime-config-v0.3.schema.json`（`additionalProperties:false`，13 个 required 段）。policy 只读 `workspace.roots`（`Record<string,absolutePath>`）与 `tools.profile_registry_path`。当前实现事实：`src/types.ts` `RuntimeConfig`、`src/config.ts` `loadConfig`。
 
@@ -522,7 +522,7 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法：`workspace.roots = {"default":"/srv/ws"}`。拒绝：相对路径 root（schema `absolutePath` 拒绝）。`VRC-POLICY-002`；`NOT_RUN`。
 
-#### 6.3.2 `ToolRegistry` / `ToolPolicy` / `RecoveryContract`（消费型）
+**6.3.2 `ToolRegistry` / `ToolPolicy` / `RecoveryContract`（消费型）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：机器权威 `interfaces/schemas/piko-tool-profile-v0.3.schema.json`（`profile_version` const `"0.3"`；`recovery_contracts`、`profiles`）。当前实现事实：`src/config.ts` `ToolRegistry`/`ToolPolicy`/`RecoveryContract`。
 
@@ -542,7 +542,7 @@ policy 不拥有持久数据；模块自有类型是 `BoundToolProfile`、`Valid
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `PolicyViolation` / `ToolBindFailure`（内部错误映射）
+**6.8.1 `PolicyViolation` / `ToolBindFailure`（内部错误映射）**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：policy 用内部错误类型表达拒绝，携带**契约错误码**供 M001 映射 HTTP；不在 policy 内定义 HTTP 状态。定义在 `src/policy/types.ts`（Planned）。契约错误码权威：`interfaces/error-codes/error-blocker-catalog-v0.3.json`。
 
@@ -617,14 +617,14 @@ sequenceDiagram
 | Process ID | 触发/适用条件 | 图与正文位置 | 正常/异常出口 | 接口/规则/验证项 |
 |---|---|---|---|---|
 | `P-POLICY-BIND` | 启动 S3、S2 通过后 | §5.2.1 / M-POL-P1 | 正常 `BoundToolProfile`；异常 `ToolBindFailure`→F1 | `IF-CFG-BIND`、`R-POLICY-TOOLBIND`、`VRC-POLICY-001` |
-| `P-POLICY-VALIDATE` | 每次新 `task_id` 受理 | §5.2.2 / M-POL-P2 | 正常 `ValidatedTaskSubmission`；异常 `PolicyViolation` | `IF-RUN-VALIDATE`、`R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET`、`VRC-POLICY-002/004/005` |
+| `P-POLICY-VALIDATE` | 每次新 `task_id` 受理 | §5.2.2 / M-POL-P2 | 正常 `ValidatedTaskSubmission`；异常 `PolicyViolation` | `IF-RUN-VALIDATE`、`R-POLICY-NORMALIZE/PERMISSION`、`VRC-POLICY-002/005` |
 | `P-POLICY-PATH` | 逐 path 规范化（受理内） | §5.2.3 / M-POL-P3 | 正常绝对路径；异常 `ScopeDenied`/`InvalidRequest` | `IF-POLICY-PATH`、`R-POLICY-PATH`、`VRC-POLICY-003` |
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-POLICY-NORMALIZE` · 字段归一化与可比较性
+**8.1 `R-POLICY-NORMALIZE` · 字段归一化与可比较性**
 
-- **输入前提 / 适用条件**：`validateSubmission` 末端；全部路径与预算已通过校验。
+- **输入前提 / 适用条件**：`validateSubmission` 末端；全部路径与工具授权已通过校验。
 
 - **算法 / 规则 / 选择依据**：path 集合按字典序排序并去重；对象成员顺序不作为判等依据；`discussion` 缺省归一为 `null`。选择依据：`CON-RUN-002` 要求同 ID 同内容稳定重放，M003 的比较必须与 policy 的归一化一致。当前实现事实：`src/task-equality.ts` `normalizedTask`（排序 + `toISOString`）。
 
@@ -636,7 +636,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`["b","a","a"]` → `["a","b"]`；`"2026-09-27T10:00:00+08:00"` 与 `"2026-09-27T02:00:00Z"` 归一为同一 instant。`VRC-POLICY-002`。
 
-#### 8.2 `R-POLICY-PATH` · 路径规范化与越界拒绝
+**8.2 `R-POLICY-PATH` · 路径规范化与越界拒绝**
 
 - **输入前提 / 适用条件**：每个 read/write/output path；`workspace` 已解析为真实根。
 
@@ -650,7 +650,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`"a/b.txt"` → `/srv/ws/a/b.txt`；`"../../etc/passwd"` → `ScopeDenied`；workspace 内 symlink→`/etc` 的授权路径 → `ScopeDenied`。`VRC-POLICY-003`。
 
-#### 8.3 `R-POLICY-TOOLBIND` · 工具/恢复绑定
+**8.3 `R-POLICY-TOOLBIND` · 工具/恢复绑定**
 
 - **输入前提 / 适用条件**：启动 S3；`ToolRegistry` 已 schema 校验。
 
@@ -664,7 +664,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：合法 registry → 成功；`write` + `safe` + 无 ref → 失败；contract `implementation_ref` 未注册 → 失败。`VRC-POLICY-001`。
 
-#### 8.4 `R-POLICY-PERMISSION` · 权限交集与工具授权
+**8.4 `R-POLICY-PERMISSION` · 权限交集与工具授权**
 
 - **输入前提 / 适用条件**：`permissions` 与 `BoundToolProfile` 均存在。
 
@@ -678,7 +678,7 @@ sequenceDiagram
 
 - **具体输入推演 / 验证项**：`tool_profile_ref` 不存在 → `ScopeDenied`；`write_paths` 含 workspace 外 → `ScopeDenied`。`VRC-POLICY-005`。
 
-#### 8.5 截止/预算判定 · N/A
+**8.5 期限/预算判定 · N/A**
 
 **N/A · 本版撤销**：`PK-04` 撤销，policy 不判定任何任务级 deadline/预算字段；原 `R-POLICY-DEADLINE` / `R-POLICY-BUDGET` 已移除。
 
@@ -688,7 +688,7 @@ policy 的对外接口是三个进程内函数；被消费的跨模块接口是 
 
 ### 9.1 API
 
-#### 9.1.1 `bindToolProfile(tools: ToolRegistry) -> BoundToolProfile`
+**9.1.1 `bindToolProfile(tools: ToolRegistry) -> BoundToolProfile`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-CFG-BIND`（`piko-config.md` §5.1 声明为 M002 提供）；把注册表绑定/校验为不可变 allowlist。来源：本模块拥有（机制侧权威 `piko-config` §5.1）。
 
@@ -702,7 +702,7 @@ policy 的对外接口是三个进程内函数；被消费的跨模块接口是 
 
 - **实现与验证**：`src/policy/tools.ts` `bindToolProfile`（Planned）。`VRC-POLICY-001`；`NOT_RUN`。
 
-#### 9.1.2 `validateSubmission(raw: AgentTaskRequest, principal: string) -> ValidatedTaskSubmission`
+**9.1.2 `validateSubmission(raw: AgentTaskRequest, principal: string) -> ValidatedTaskSubmission`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-RUN-VALIDATE`（本模块拥有；机制侧对应 `piko-run.md` §14.2 步骤 "请求/路径/工具判定 M002 → 原始请求 → ValidatedTaskSubmission"）；把请求校验并规范化为可受理对象。
 
@@ -714,9 +714,9 @@ policy 的对外接口是三个进程内函数；被消费的跨模块接口是 
 
 - **交互与生命周期**：同步（含对 FS 的异步 `realpath`）；无共享状态；输出寿命 = 请求寿命。
 
-- **实现与验证**：`src/policy/submission.ts`（Planned）。`VRC-POLICY-002/004/005`；`NOT_RUN`。
+- **实现与验证**：`src/policy/submission.ts`（Planned）。`VRC-POLICY-002/005`；`NOT_RUN`。
 
-#### 9.1.3 `canonicalizePath(workspace: string, rel: string, allowed: string[], write: boolean) -> string`
+**9.1.3 `canonicalizePath(workspace: string, rel: string, allowed: string[], write: boolean) -> string`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-POLICY-PATH`（本模块拥有）；路径策略服务。来源：本模块拥有；`piko-run.md` §7 path 边界。
 
@@ -734,7 +734,7 @@ policy 的对外接口是三个进程内函数；被消费的跨模块接口是 
 
 policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨模块合同，按 STD 在此唯一维护。
 
-#### 9.2.1 `IF-POLICY-CONFIG` · M000 → M002 已校验 config/registry 注入（Proposed）
+**9.2.1 `IF-POLICY-CONFIG` · M000 → M002 已校验 config/registry 注入（Proposed）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-POLICY-CONFIG`；Provider：M000 `bootstrap`（`piko-config.md` §5.1 `IF-CFG-LOAD` 已提供 config；registry 由 M000 读入）；Consumer：M002 policy。用途：把进程寿命的 config 与 registry 交给 policy 做启动绑定与受理判定。权威：`piko-config.md` §5.1 + 本设计。
 
@@ -761,7 +761,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 按 §1 的事实联动：§3 判无操作面（故无端点生命周期）；§6.6 判无跨步骤状态（故无状态变换出口）；§6.7 判无持久表（故无事务/崩溃重放）。执行上下文：全部操作在宿主事件循环上执行；policy 无共享可变状态，`BoundToolProfile` 不可变。
 
-#### 10.1 `C-POLICY-01` · 并发受理校验独立
+**10.1 `C-POLICY-01` · 并发受理校验独立**
 
 - **初始条件 / 并发交错 / 失败点**：多个 `POST /tasks` 在事件循环上交错进入 `validateSubmission`。失败点：无（纯函数式判定，无共享可变状态）。
 
@@ -775,7 +775,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证项 / 组合责任**：`VRC-POLICY-006`；组合 PK-T03。
 
-#### 10.2 `C-POLICY-02` · 启动绑定失败
+**10.2 `C-POLICY-02` · 启动绑定失败**
 
 - **初始条件 / 并发交错 / 失败点**：S3 绑定遇到未注册 `recovery_contract_ref` 或 name/effect/replay 不一致。
 
@@ -789,7 +789,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证项 / 组合责任**：`VRC-POLICY-001`；组合 PK-T12。
 
-#### 10.3 `C-POLICY-03` · 路径判定与 FS 变化的竞态（TOCTOU）
+**10.3 `C-POLICY-03` · 路径判定与 FS 变化的竞态（TOCTOU）**
 
 - **初始条件 / 并发交错 / 失败点**：`realpath` 判定通过后、目标被替换为指向 workspace 外的 symlink（或反之）。失败点：判定与后续使用之间存在时间窗。
 
@@ -803,7 +803,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证项 / 组合责任**：`VRC-POLICY-003`（Case C）；组合 PK-T12。
 
-#### 10.4 `C-POLICY-04` · 配置变更与在途请求
+**10.4 `C-POLICY-04` · 配置变更与在途请求**
 
 - **初始条件 / 并发交错 / 失败点**：Operator 修改 config，与在途 `validateSubmission` 并发。失败点：误用"部分新配置"。
 
@@ -827,11 +827,11 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **诊断与维护**：无独立命令；绑定失败原因经启动日志与 audit（`CON-CFG-001`）。诊断只读，不改变判定结果。
 
-- **真实故障的识别与处理**：启动期 registry 不一致 → `ToolBindFailure` → M000 F1（不 READY）。受理期路径/预算/截止拒绝 → typed `PolicyViolation` → M001 映射 4xx，不创建 Run。FS `realpath` 失败按"路径不可判定"拒绝（`ScopeDenied`/`InvalidRequest`），不降级为放行，不写"由平台保障"。
+- **真实故障的识别与处理**：启动期 registry 不一致 → `ToolBindFailure` → M000 F1（不 READY）。受理期路径/工具拒绝 → typed `PolicyViolation` → M001 映射 4xx，不创建 Run。FS `realpath` 失败按"路径不可判定"拒绝（`ScopeDenied`/`InvalidRequest`），不降级为放行，不写"由平台保障"。
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-POLICY-VALIDATE` · 受理校验开销
+**12.1 `CAP-POLICY-VALIDATE` · 受理校验开销**
 
 - **目标 / 限制 / 单位**：单次 `validateSubmission` 的开销 = O(路径数) 次 FS 探测 + O(路径数 log) 归一化；路径数上限由契约 `maxItems:256` 界定。
 
@@ -851,7 +851,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/policy/policy.ts`
+**13.1.1 `src/policy/policy.ts`**
 
 - **职责 / 非职责**：入口：实现 `bindToolProfile`/`validateSubmission`/`canonicalizePath`、保证无状态；编排 I1/I2/I3。非职责：FS 细节、绑定规则、HTTP。
 
@@ -865,21 +865,21 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证入口**：`VRC-POLICY-001/002/005`。
 
-#### 13.1.2 `src/policy/submission.ts`
+**13.1.2 `src/policy/submission.ts`**
 
 - **职责 / 非职责**：受理校验与归一化。非职责：FS 细节、绑定校验。
 
 - **关键 symbol / 导出范围**：`validateSubmission`、`normalizeTask`。
 
-- **承接 Function / Rule / Constraint / Interface ID**：`F-POLICY-VALIDATE`；`R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET`；`CON-RUN-002/003`。
+- **承接 Function / Rule / Constraint / Interface ID**：`F-POLICY-VALIDATE`；`R-POLICY-NORMALIZE/PERMISSION`；`CON-RUN-002`（`CON-RUN-003` · PK-04 已撤销）。
 
 - **构建目标 / 依赖 / 宿主装配**：同构建；依赖 `path.ts`/`types.ts`；零外部模块。
 
 - **实现状态**：Planned（现逻辑在 `src/task-equality.ts` + `src/server.ts`）。
 
-- **验证入口**：`VRC-POLICY-002/004/005`。
+- **验证入口**：`VRC-POLICY-002/005`。
 
-#### 13.1.3 `src/policy/path.ts`
+**13.1.3 `src/policy/path.ts`**
 
 - **职责 / 非职责**：路径语法 + `realpath` + 包含判定。非职责：授权决策、缓存。
 
@@ -893,7 +893,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证入口**：`VRC-POLICY-003`。
 
-#### 13.1.4 `src/policy/tools.ts`
+**13.1.4 `src/policy/tools.ts`**
 
 - **职责 / 非职责**：绑定/校验 registry 为 `BoundToolProfile`。非职责：注册实现、执行工具。
 
@@ -907,7 +907,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证入口**：`VRC-POLICY-001`。
 
-#### 13.1.5 `src/policy/types.ts`
+**13.1.5 `src/policy/types.ts`**
 
 - **职责 / 非职责**：类型与错误类。非职责：逻辑。
 
@@ -921,7 +921,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **验证入口**：编译期。
 
-#### 13.1.6 `src/config.ts` / `src/workspace.ts` / `src/task-equality.ts`（修改既有）
+**13.1.6 `src/config.ts` / `src/workspace.ts` / `src/task-equality.ts`（修改既有）**
 
 - **职责 / 非职责**：把 `validateToolRegistry`/`authorizePath`/`normalizedTask` 的实现迁到 `src/policy/` 并保留兼容转发；`loadConfig` 仍属 M000。非职责：不改变 config 文件解析职责。
 
@@ -937,7 +937,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 ### 13.2 实现步骤
 
-#### 13.2.1 实现 `tools.ts` 与单测
+**13.2.1 实现 `tools.ts` 与单测**
 
 - **前置输入 / 依赖**：§8.3 规则与 `piko-tool-profile-v0.3.schema.json`。
 
@@ -949,7 +949,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **完成检查**：`VRC-POLICY-001` 计划用例通过（先设计后实现）。
 
-#### 13.2.2 实现 `path.ts` 与单测
+**13.2.2 实现 `path.ts` 与单测**
 
 - **前置输入 / 依赖**：§8.2 规则。
 
@@ -961,7 +961,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **完成检查**：`VRC-POLICY-003` 计划用例通过。
 
-#### 13.2.3 实现 `submission.ts` 与单测
+**13.2.3 实现 `submission.ts` 与单测**
 
 - **前置输入 / 依赖**：上两步与 §8.1/8.4/8.5/8.6。
 
@@ -971,9 +971,9 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **交付结果**：受理校验器 + 归一化。
 
-- **完成检查**：`VRC-POLICY-002/004/005` 计划用例通过。
+- **完成检查**：`VRC-POLICY-002/005` 计划用例通过。
 
-#### 13.2.4 实现 `policy.ts` 并接入 M000/M001
+**13.2.4 实现 `policy.ts` 并接入 M000/M001**
 
 - **前置输入 / 依赖**：上三步。
 
@@ -991,7 +991,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 分母 = §1.1 约束 + §2 功能 + §7 过程 + §8 规则 + §9 接口 + §6.8 错误。逐 ID 正向核对，空白项不算覆盖。
 
-#### 14.1.1 `CON-RUN-002`
+**14.1.1 `CON-RUN-002`**
 
 - **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-run.md` §3.1；适用。
 - **选定方案与正文锚点**：§6.2.2（`ValidatedTaskSubmission`）、§8.1、§9.1.2。
@@ -999,15 +999,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-002`、`VRC-POLICY-005`；独立判据 = 规范化输出与 M003 存储的 `task_json` 逐字段核对。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.2 `CON-RUN-003`
+**14.1.2 `CON-RUN-003` · N/A（本版撤销 · PK-04）**
 
-- **来源与适用性 / 固定基线**：`system-design` v0.11.2 §3.4 / `piko-run.md` §3.1；适用。
-- **选定方案与正文锚点**：§8.5/§8.6、§9.1.2。
-- **§13 实现文件 / 装配责任**：`submission.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-004`；独立判据 = typed 错误码与"未创建 Run"事实。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T05（运行期预算由 M006）。
+- **来源与适用性 / 固定基线**：`system-design` v0.12.0-draft.1 §3.4（`PK-04` 行 · 本版撤销）；本版不适用。
+- **选定方案与正文锚点**：n/a；§8.5 为 N/A 记录。
+- **§13 实现文件 / 装配责任**：n/a（无实现文件）。
+- **§14 VRC / Case / 独立判据**：n/a（原 `VRC-POLICY-004` 已移除）。
+- **父级组合验证或裁剪/阻断决定**：n/a。
 
-#### 14.1.3 `CON-CFG-001`
+**14.1.3 `CON-CFG-001`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §3.1（PK-12）· Approved；适用。
 - **选定方案与正文锚点**：§8.3、§10.4、§9.1.1、§6.3.2。
@@ -1015,7 +1015,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`；独立判据 = 启动退出码 + 绑定产物。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.4 `CON-ST-001`
+**14.1.4 `CON-ST-001`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §3.1（PK-12）· Approved；适用（S3 环节）。
 - **选定方案与正文锚点**：§10.2、§9.1.1；附录 A.3。
@@ -1023,7 +1023,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`；独立判据 = 端口未绑定 + 非零退出。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12；机制侧 `OQ-POLICY-003`。
 
-#### 14.1.5 `F-POLICY-BIND`
+**14.1.5 `F-POLICY-BIND`**
 
 - **来源与适用性 / 固定基线**：§2.1；适用。
 - **选定方案与正文锚点**：§7 `M-POL-P1`；§9.1.1。
@@ -1031,15 +1031,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.6 `F-POLICY-VALIDATE`
+**14.1.6 `F-POLICY-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§2.2；适用。
 - **选定方案与正文锚点**：§7 `M-POL-P2`；§9.1.2。
 - **§13 实现文件 / 装配责任**：`submission.ts`/`policy.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/004/005`。
+- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T05。
 
-#### 14.1.7 `F-POLICY-PATH`
+**14.1.7 `F-POLICY-PATH`**
 
 - **来源与适用性 / 固定基线**：§2.3；适用。
 - **选定方案与正文锚点**：§7 `M-POL-P3`；§8.2；§9.1.3。
@@ -1047,7 +1047,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.8 `P-POLICY-BIND`
+**14.1.8 `P-POLICY-BIND`**
 
 - **来源与适用性 / 固定基线**：§5.2.1/§7 `M-POL-P1`；适用。
 - **选定方案与正文锚点**：§5.2.1、§7 M-POL-P1。
@@ -1055,15 +1055,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.9 `P-POLICY-VALIDATE`
+**14.1.9 `P-POLICY-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：§5.2.2/§7 `M-POL-P2`；适用。
 - **选定方案与正文锚点**：§5.2.2、§7 M-POL-P2。
 - **§13 实现文件 / 装配责任**：`submission.ts` + `path.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/004/005`。
+- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03。
 
-#### 14.1.10 `P-POLICY-PATH`
+**14.1.10 `P-POLICY-PATH`**
 
 - **来源与适用性 / 固定基线**：§5.2.3/§7 `M-POL-P3`；适用。
 - **选定方案与正文锚点**：§5.2.3、§7 M-POL-P3、§8.2。
@@ -1071,7 +1071,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-003`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.11 `R-POLICY-NORMALIZE`
+**14.1.11 `R-POLICY-NORMALIZE`**
 
 - **来源与适用性 / 固定基线**：§8.1；适用。
 - **选定方案与正文锚点**：§8.1；§6.2.2。
@@ -1079,7 +1079,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-002`；独立判据 = 期望规范化常量。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T15。
 
-#### 14.1.12 `R-POLICY-PATH`
+**14.1.12 `R-POLICY-PATH`**
 
 - **来源与适用性 / 固定基线**：§8.2；适用。
 - **选定方案与正文锚点**：§8.2；§10.3。
@@ -1087,7 +1087,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-003`；独立判据 = 受控 FS 布局与 `ScopeDenied` 事实。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.13 `R-POLICY-TOOLBIND`
+**14.1.13 `R-POLICY-TOOLBIND`**
 
 - **来源与适用性 / 固定基线**：§8.3；适用。
 - **选定方案与正文锚点**：§8.3；§9.1.1。
@@ -1095,7 +1095,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T12。
 
-#### 14.1.14 `R-POLICY-PERMISSION`
+**14.1.14 `R-POLICY-PERMISSION`**
 
 - **来源与适用性 / 固定基线**：§8.4；适用。
 - **选定方案与正文锚点**：§8.4；§9.1.2。
@@ -1103,23 +1103,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03。
 
-#### 14.1.15 `R-POLICY-DEADLINE`
+**14.1.15 `R-POLICY-DEADLINE` · N/A（本版撤销）**
 
-- **来源与适用性 / 固定基线**：§8.5；适用。
-- **选定方案与正文锚点**：§8.5；§4.4。
-- **§13 实现文件 / 装配责任**：`submission.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-004`。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
+**N/A · 本版撤销**：`PK-04` 撤销；见 §8.5。
 
-#### 14.1.16 `R-POLICY-BUDGET`
+**14.1.16 `R-POLICY-BUDGET` · N/A（本版撤销）**
 
-- **来源与适用性 / 固定基线**：§8.6；适用。
-- **选定方案与正文锚点**：§8.6。
-- **§13 实现文件 / 装配责任**：`submission.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-004`。
-- **父级组合验证或裁剪/阻断决定**：组合 PK-T05。
+**N/A · 本版撤销**：`PK-04` 撤销；见 §8.5。
 
-#### 14.1.17 `IF-CFG-BIND`
+**14.1.17 `IF-CFG-BIND`**
 
 - **来源与适用性 / 固定基线**：`piko-config.md` §5.1；适用。
 - **选定方案与正文锚点**：§9.1.1。
@@ -1127,15 +1119,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.18 `IF-RUN-VALIDATE`
+**14.1.18 `IF-RUN-VALIDATE`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.2（module-owned；`piko-run.md` §14.2 步骤承接）；适用。
 - **选定方案与正文锚点**：§9.1.2；§8.1/8.4/8.5/8.6。
 - **§13 实现文件 / 装配责任**：`submission.ts`/`policy.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/004/005`。
+- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/005`。
 - **父级组合验证或裁剪/阻断决定**：PK-T03；机制侧 `OQ-POLICY-004`。
 
-#### 14.1.19 `IF-POLICY-PATH`
+**14.1.19 `IF-POLICY-PATH`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.1.3；适用。
 - **选定方案与正文锚点**：§9.1.3；§8.2。
@@ -1143,7 +1135,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-003`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12。
 
-#### 14.1.20 `IF-POLICY-CONFIG`
+**14.1.20 `IF-POLICY-CONFIG`**
 
 - **来源与适用性 / 固定基线**：§9.2.1（Proposed）；适用。
 - **选定方案与正文锚点**：§9.2.1；§6.3。
@@ -1151,15 +1143,15 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **§14 VRC / Case / 独立判据**：`VRC-POLICY-001/002`。
 - **父级组合验证或裁剪/阻断决定**：PK-T12；依赖 `OQ-POLICY-001/002`。
 
-#### 14.1.21 `ERR-POLICY-VIOLATION`（`PolicyViolation`）
+**14.1.21 `ERR-POLICY-VIOLATION`（`PolicyViolation`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用。
 - **选定方案与正文锚点**：§6.8.1；§7 M-POL-P2。
 - **§13 实现文件 / 装配责任**：`types.ts`/`submission.ts`/`path.ts`（Planned）。
-- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/003/004/005`。
+- **§14 VRC / Case / 独立判据**：`VRC-POLICY-002/003/005`。
 - **父级组合验证或裁剪/阻断决定**：组合 PK-T03/PK-T05。
 
-#### 14.1.22 `ERR-POLICY-TOOLBINDFAIL`（`ToolBindFailure`）
+**14.1.22 `ERR-POLICY-TOOLBINDFAIL`（`ToolBindFailure`）**
 
 - **来源与适用性 / 固定基线**：§6.8.1；适用。
 - **选定方案与正文锚点**：§6.8.1；§10.2。
@@ -1171,7 +1163,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-POLICY-001` · 工具/恢复绑定
+**14.2.1 `VRC-POLICY-001` · 工具/恢复绑定**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-BIND`；`R-POLICY-TOOLBIND`；`CON-CFG-001`/`CON-ST-001`；`IF-CFG-BIND`；`ToolBindFailure`。
 - **Case / 正常、边界与失败输入**：A：合法 registry → 返回覆盖全部 tool 的 `BoundToolProfile`。B：`recovery_contract_ref` 指向未注册 contract → `ToolBindFailure`。C：`write` + `replay:"safe"` 无 ref → 失败。D：contract `implementation_ref` 未注册 → 失败。E：空 profiles 由 schema 拒绝（前置）。
@@ -1181,7 +1173,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.2 `VRC-POLICY-002` · 受理校验与规范化
+**14.2.2 `VRC-POLICY-002` · 受理校验与规范化**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-VALIDATE`；`R-POLICY-NORMALIZE`；`CON-RUN-002`；`IF-RUN-VALIDATE`。
 - **Case / 正常、边界与失败输入**：A：合法请求 → `ValidatedTaskSubmission` 且 path 排序、时间 UTC。B：`output_paths` 无序/重复 → 归一为排序去重。C：path 集合顺序变化 → 归一为同集合。D：`discussion` 缺省 → `null`。
@@ -1191,7 +1183,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T03/PK-T15。
 
-#### 14.2.3 `VRC-POLICY-003` · 路径越界与 symlink 拒绝
+**14.2.3 `VRC-POLICY-003` · 路径越界与 symlink 拒绝**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-PATH`；`R-POLICY-PATH`；`IF-POLICY-PATH`。
 - **Case / 正常、边界与失败输入**：A：合法相对路径 → 规范绝对路径。B：`../` 或绝对路径 → `InvalidRequest`。C：workspace 内 symlink 指向 workspace 外 → `ScopeDenied`。D：`allowed` 授权根本身越界 → `ScopeDenied`。E：read 目标不存在 → 以父目录判定（允许未生成输出）。
@@ -1201,7 +1193,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T12。
 
-#### 14.2.5 `VRC-POLICY-005` · 权限交集与工具授权
+**14.2.5 `VRC-POLICY-005` · 权限交集与工具授权**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-VALIDATE`；`R-POLICY-PERMISSION`；`CON-RUN-002`；`IF-RUN-VALIDATE`。
 - **Case / 正常、边界与失败输入**：A：`tool_profile_ref` 在 `BoundToolProfile` 内 → 通过。B：`tool_profile_ref` 不存在 → `ScopeDenied`。C：`write_paths` 含 workspace 外路径 → `ScopeDenied`。D：空 `read_paths`/`write_paths` → 通过（无文件任务）。
@@ -1211,7 +1203,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：PK-T03。
 
-#### 14.2.6 `VRC-POLICY-006` · 无状态与并发独立
+**14.2.6 `VRC-POLICY-006` · 无状态与并发独立**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-POLICY-VALIDATE`/`F-POLICY-PATH`；`CON-RUN-002`；模块无状态不变量。
 - **Case / 正常、边界与失败输入**：A：同一输入并发 N 次 → 输出完全一致。B：交错不同输入 → 各自结论不受他者影响。C：任意调用后 `BoundToolProfile` 引用未被修改（`Object.isFrozen`）。D：失败调用不改变后续成功调用的结果。
@@ -1223,7 +1215,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 ## 15. 风险、未决问题与引用
 
-#### 15.1 `OQ-POLICY-001` · MECH-CONFIG config 字段与锁定 schema 漂移
+**15.1 `OQ-POLICY-001` · MECH-CONFIG config 字段与锁定 schema 漂移**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `IF-POLICY-CONFIG`、`R-POLICY-PATH`、§6.3.1。
 - **事实缺口 / 触发条件**：`piko-config.md` §4.3.1/§4.4.1 描述 `api_auth.slinky_principal`/`workspace_root`/`storage{max_queue_depth,retention_days}` 等字段，而项目锁定的 `piko-runtime-config-v0.3.schema.json` 与 `src/types.ts` 使用 `api_auth.principal_id`/`workspace.roots`/`task_store`/`queue.capacity` 等新字段。
@@ -1232,7 +1224,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐把 `piko-config.md` §4.3.1/§4.4.1 更新为锁定 schema 的字段。下一步：提交机制修订。
 - **关闭条件 / 决定或当前状态**：已满足——`piko-config` §4.3/§4.4 已对齐锁定 schema。**已关闭**。
 
-#### 15.2 `OQ-POLICY-002` · tool profile 形状漂移
+**15.2 `OQ-POLICY-002` · tool profile 形状漂移**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 `R-POLICY-TOOLBIND`、§6.3.2。
 - **事实缺口 / 触发条件**：`piko-config.md` §4.4.2 描述 `tools[{name,effect,replay,implementation_ref}]` 的**数组**形状，而锁定的 `piko-tool-profile-v0.3.schema.json` 与 `src/config.ts` 用 `profiles{tools{...}}` 的**映射**形状并额外含 `permissions`。
@@ -1241,7 +1233,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐 `piko-config.md` §4.4.2 对齐 schema。
 - **关闭条件 / 决定或当前状态**：已满足——`piko-config` §4.4.2 已对齐 `profiles`/`recovery_contracts`。**已关闭**。
 
-#### 15.3 `OQ-POLICY-003` · MECH-STARTUP §14.4 未列 M002
+**15.3 `OQ-POLICY-003` · MECH-STARTUP §14.4 未列 M002**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（已关闭）；影响 MECH-STARTUP 承接完整性、附录 A.3、`CON-ST-001`。
 - **事实缺口 / 触发条件**：`piko-startup.md` §14.4 下级设计输入清单只列 M000/M003/M006/M008，未给 M002 分配 `M-ST-DI-*`，但 §3.5 参与方与 §14.2 S3 明确 M002 承接 bind。
@@ -1250,7 +1242,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐在 `piko-startup.md` §14.4 补 M002 行（如 `M-ST-DI-005`：S3 tool/recovery bind）。
 - **关闭条件 / 决定或当前状态**：已满足——§14.4 已补 `M-ST-DI-005`。**已关闭**。
 
-#### 15.4 `OQ-POLICY-004` · MECH-RUN 未列 policy 提交校验接口成员
+**15.4 `OQ-POLICY-004` · MECH-RUN 未列 policy 提交校验接口成员**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question（机制反馈）；影响 `IF-RUN-VALIDATE`、附录 A.1。
 - **事实缺口 / 触发条件**：`piko-run.md` §14.3 接口契约表未列 M002 的提交校验成员（只有 `IF-RUN-CREATE` 等），§14.2 仅以步骤描述 "请求/路径/工具判定 M002 → ValidatedTaskSubmission"。
@@ -1259,7 +1251,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐 `piko-run.md` §14.3/§14.4 为 policy 提交校验分配成员（如 `IF-RUN-VALIDATE` / 细化 `M-RUN-DI-002`）。
 - **关闭条件 / 决定或当前状态**：机制补列或明确该成员属模块私有。当前 Open。
 
-#### 15.5 `RISK-POLICY-001` · 路径判定的 TOCTOU
+**15.5 `RISK-POLICY-001` · 路径判定的 TOCTOU**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-POLICY-PATH`、§10.3。
 - **事实缺口 / 触发条件**：`realpath` 判定与后续写文件之间存在时间窗，攻击者可在窗口内替换为指向 workspace 外的 symlink。
@@ -1268,7 +1260,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 - **选项 / 推荐 / 下一步取证**：推荐写路径由 M006 打开文件时再次经受 OS 层约束，policy 只保证判定时刻结论；不引入额外锁。
 - **关闭条件 / 决定或当前状态**：实现按"判定即结论、写方自查"落地。当前 Open。
 
-#### 15.7 `15.ISD` · 实现规格采用方式
+**15.7 `15.ISD` · 实现规格采用方式**
 
 - **采用模式**：`separate`（独立 ISD `piko-policy-impl` 已建立）。
 
@@ -1284,7 +1276,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 本模块参与的机制（核对 `system-design` §3.5 机制清单）：`MECH-RUN`（`piko-run.md`）、`MECH-CONFIG`（`piko-config.md`）、`MECH-STARTUP`（`piko-startup.md`）。其余机制（USAGE/MATRIX/RECOVERY/CANCEL）不涉及 policy。
 
-#### A.1 `piko-run` / `M-RUN-DI-002`
+**A.1 `piko-run` / `M-RUN-DI-002`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-RUN` §14.4 行 `M-RUN-DI-002`（下游 `policy`，固定输入 config + registry，约束 PK-03，自由度校验顺序）；§14.2 步骤 "请求/路径/工具判定 M002 → 原始请求 → ValidatedTaskSubmission"。
 
@@ -1298,9 +1290,9 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **允许自行决定的范围**：校验顺序、归一化实现；不可改变可比较字段集合与拒绝码语义。
 
-- **本地验证 / 组合验证交接**：本地 `VRC-POLICY-002/004/005`；组合 PK-T03/PK-T05；机制侧 `OQ-POLICY-004`。
+- **本地验证 / 组合验证交接**：本地 `VRC-POLICY-002/005`；组合 PK-T03/PK-T05；机制侧 `OQ-POLICY-004`。
 
-#### A.2 `piko-config` / `M-CFG-DI-002`
+**A.2 `piko-config` / `M-CFG-DI-002`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-CONFIG` §14.4 行 `M-CFG-DI-002`（下游 `policy`，固定输入 `BoundToolProfile`，约束 `CON-CFG-001`，自由度校验顺序）；接口 `IF-CFG-BIND`（§5.1）。
 
@@ -1316,7 +1308,7 @@ policy 不跨部署边界发消息；但 M000 → M002 的进程内注入是跨�
 
 - **本地验证 / 组合验证交接**：本地 `VRC-POLICY-001`；组合 PK-T12。
 
-#### A.3 `piko-startup` / `M-ST-DI-005`
+**A.3 `piko-startup` / `M-ST-DI-005`**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`MECH-STARTUP` §3.5 参与方（M002 负责 S3 tool/recovery 绑定）、§14.2 步骤 S3（M002 → profile+registry → `BoundToolProfile`）、约束 `CON-ST-001`。承接 MECH-STARTUP §14.4 行 `M-ST-DI-005`（policy，S3 启动绑定）与 §14.2 S3。
 

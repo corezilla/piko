@@ -38,7 +38,7 @@ matrix-adapter 只做协议封装与 sync 事实，**不管理 homeserver 内部
 
 matrix-adapter 承接一条直属约束 `CON-MX-001`（PK-08，Matrix Client-Server 单身份 + intake CAS），并参与 MECH-RUN / MECH-STARTUP 的上位机制。约束来源是 `system-design` §3.4（PK-08 行）与 `piko-matrix.md` §3.1 `CON-MX-001`，启动侧承接 `piko-startup.md` §3.1 `CON-ST-001`（PK-12）的 S7 环节。两条均为 Approved。
 
-#### 1.1.1 `CON-MX-001` · Matrix Client-Server 单身份 + intake CAS
+**1.1.1 `CON-MX-001` · Matrix Client-Server 单身份 + intake CAS**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-08 行）+ `piko-matrix.md` §3.1 `CON-MX-001` · PK-08 · Approved；固定基线 machine contract `0.3.0-simplified.6`。上级原文："discussion Run 使用 single identity；intake CAS Open→Closing→Closed；不引入 AS、不支持 E2EE 房间。"
 
@@ -54,7 +54,7 @@ matrix-adapter 承接一条直属约束 `CON-MX-001`（PK-08，Matrix Client-Ser
 
 - **差距/变更影响/反馈责任**：`matrix-js-sdk` 版本变化需复审（§15 `RISK-MATRIX-003`）。`RISK-MATRIX-002`（E2EE 缺席）由 Piko Project Owner 在生产拓扑确定时裁决；本模块不放宽。
 
-#### 1.1.2 `CON-ST-001` · 启动 preflight 中的 Matrix whoami 环节（S7）
+**1.1.2 `CON-ST-001` · 启动 preflight 中的 Matrix whoami 环节（S7）**
 
 - **上级基线与决定状态**：`system-design` v0.11.2 §3.4（PK-12 行）+ `piko-startup.md` §3.1 `CON-ST-001` · PK-12 · Approved。上级要求"完整 preflight 通过才 READY"，其中 S7 含 Matrix whoami。
 
@@ -179,7 +179,7 @@ flowchart LR
 
 图 M-MX-C1 · Target / Planned / NOT_BUILT。实线是同步进程内函数调用与出站 HTTPS；不是新部署边界。homeserver 为外部独立故障域；SQLite 事务权威属 M003，见 §9.2 `IF-MX-TURN`；staging 是本地文件，见 §10 `C-MATRIX-05`。
 
-#### 4.1 `DEP-MATRIX-HOMESERVER` · Matrix homeserver（外部 Client-Server 服务）
+**4.1 `DEP-MATRIX-HOMESERVER` · Matrix homeserver（外部 Client-Server 服务）**
 
 - **角色 / 运行位置 / Owner**：外部 HTTPS 服务（Synapse 等），独立网络故障域；Owner：客户 Operator（homeserver 运维），非 Piko。
 
@@ -193,7 +193,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：启动期不可达 → `whoami` 失败 → F1（不 READY）；运行期 401/403 → `DiscussionAccessLost`（交 operator 轮换 token 或停止 intake）；429 → 内部退避（不映射）；500/网络超时 → 重试同批，cursor 不推进；homeserver 不可达期间 discussion 不可用但不阻塞非 discussion Run。
 
-#### 4.2 `DEP-MATRIX-REPO` · M003 `task-repository`（持久化与事务权威）
+**4.2 `DEP-MATRIX-REPO` · M003 `task-repository`（持久化与事务权威）**
 
 - **角色 / 运行位置 / Owner**：同级直属模块，同实例（PK-01）；**运行进程 P1**（见 `system-design` §3.3 关键决定 7）；Owner：Piko Implementation Owner。
 
@@ -207,7 +207,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：`SQLITE_BUSY` 超时 → 依赖错误上抛，cursor 不推进（batch 未提交）；matrix-adapter 不吞错、不改写 M003 语义。M003 是唯一 SQLite writer，adapter 绝不自行打开连接。
 
-#### 4.3 `DEP-MATRIX-SECRET` · access token Secret provider（宿主提供）
+**4.3 `DEP-MATRIX-SECRET` · access token Secret provider（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：宿主/启动期能力（M000 + MECH-CONFIG）；Owner：Piko Implementation Owner。
 
@@ -221,7 +221,7 @@ flowchart LR
 
 - **不可用或失败影响 / 责任出口**：Secret 缺失/格式非法 → MECH-CONFIG S2 失败或 `start` 失败 → F1；access token **只**用于 Bearer 头与 SDK 构造，不得进入 turn/task/Result/日志（§11 `SEC-MATRIX-TOKEN`）。
 
-#### 4.4 `DEP-MATRIX-WORKSPACE` · workspace staging 根（宿主提供）
+**4.4 `DEP-MATRIX-WORKSPACE` · workspace staging 根（宿主提供）**
 
 - **角色 / 运行位置 / Owner**：本地可靠 FS；Owner：Piko Implementation Owner（M000 S4 canonicalize）。
 
@@ -275,7 +275,7 @@ flowchart TB
 
 ### 5.1 内部组成
 
-#### 5.1.1 `S1` · MatrixRuntime（入口）
+**5.1.1 `S1` · MatrixRuntime（入口）**
 
 - **职责与非职责**：对外提供 §9.1 的操作并保证 §6 不变量；编排"start/whoami、verify、sync pump、send、media"。非职责：不拼 SQL（经 I4）、不直接算去重/内容（I1）、不解析 media（I2）、不决策 intake 状态（M005）。
 
@@ -287,7 +287,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：入口只做编排与 SDK 生命周期，把事件准备/媒体/发送抽到独立单元以便独立测试。替代方案"保持在 `src/matrix.ts` 单文件"是 Current 形态，代价是去重/内容/媒体/发送耦合、难以对 409/429/E2EE 分支做无网络单测。
 
-#### 5.1.2 `I1` · EventPreparer（事件准备与去重）
+**5.1.2 `I1` · EventPreparer（事件准备与去重）**
 
 - **职责与非职责**：把原始 Matrix 事件转换为 `MatchEvent{room, event, sender, txn, turns[]}`：类型过滤（只 `m.room.message` 的 text/image/file/audio/video）、自身 sender 剔除、`hasMatrixEvent` 去重、按 `openDiscussionRuns(room)` 生成 turns（非 text 调 I2 下载）。非职责：不发 HTTP（经 S1 的 client）、不写 DB（经 I4）、不判 cursor。
 
@@ -299,7 +299,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：纯准备逻辑可表驱动测试（去重命中、自身 echo、E2EE 忽略、msgtype 过滤），不需网络与 SQLite。替代方案"内联在 runtime"难以覆盖非 text 附件与去重的组合边界。
 
-#### 5.1.3 `I2` · MediaResolver（附件下载与 staging）
+**5.1.3 `I2` · MediaResolver（附件下载与 staging）**
 
 - **职责与非职责**：下载 `mxc://` 附件到 staging 并返回引用摘要；校验 size/MIME/ACL；`mxcUrlToHttp` 解析与字节上限。非职责：不决定是否投喂（I1/S1）、不改 Run 状态、不负责上传（上传在 I3 的发送路径）。
 
@@ -311,7 +311,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：媒体有独立 ACL/字节/原子落盘语义（`.tmp`→rename），抽出后可对超限/MIME 不符/ACL 失败单测。替代方案"内联"会把文件 I/O 安全散落。
 
-#### 5.1.4 `I3` · SendCoordinator（稳定事务发送）
+**5.1.4 `I3` · SendCoordinator（稳定事务发送）**
 
 - **职责与非职责**：按确定性 `txn_id` + `payload_sha256` 经 `prepareMatrixSend` 复用/新建 `matrix_sends`；`PUT send`；按结果 `finishMatrixSend`/`unknownMatrixSend`。非职责：不生成回复正文（M005 传入）、不判 `Consumed`、不上传附件（经 I2）。
 
@@ -323,7 +323,7 @@ flowchart TB
 
 - **拆分依据与替代方案代价**：发送可靠性（txn 幂等、Unknown 复权）可单测而不触网。替代方案内联难以覆盖"同 txn 不同 payload → TaskConflict"边界。
 
-#### 5.1.5 `I4` · MatrixStorePort（持久化端口）
+**5.1.5 `I4` · MatrixStorePort（持久化端口）**
 
 - **职责与非职责**：把 §9.2 `IF-MX-STORE`/`IF-MX-TURN` 的 matrix 原语适配到 M003；是 adapter 内唯一接触持久化的单元。非职责：不做去重判断（I1）、不重试业务失败（只透传依赖错误）、不生成 cursor。
 
@@ -337,7 +337,7 @@ flowchart TB
 
 ### 5.2 内部调用过程
 
-#### 5.2.1 `P-MATRIX-START` · 启动与身份核对
+**5.2.1 `P-MATRIX-START` · 启动与身份核对**
 
 - **入口与调用上下文**：M000 S7 preflight → `MatrixRuntime.start()`（宿主事件循环，非新线程）。
 
@@ -349,7 +349,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7.1 `M-MATRIX-P1`；§9.1.1 `IF-MX-START`、§9.2 `IF-MX-HTTP-WHOAMI`；`VRC-MATRIX-001`。
 
-#### 5.2.2 `P-MATRIX-SYNC` · 同步批处理
+**5.2.2 `P-MATRIX-SYNC` · 同步批处理**
 
 - **入口与调用上下文**：`ClientEvent.Sync` 回调（`PREPARED/SYNCING`）→ `MatrixRuntime.processBatch(events, next)`（串行 promise 链，非并发）。
 
@@ -361,7 +361,7 @@ flowchart TB
 
 - **对应流程 / 接口 / 验证**：§7.2 `M-MATRIX-P2`；§9.2 `IF-MX-HTTP-SYNC`、`IF-MX-TURN`；`VRC-MATRIX-002`。
 
-#### 5.2.3 `P-MATRIX-SEND` · 稳定事务发送
+**5.2.3 `P-MATRIX-SEND` · 稳定事务发送**
 
 - **入口与调用上下文**：M005 worker → `MatrixRuntime.sendDiscussionReply(run, room, event, turn, body)`。
 
@@ -377,7 +377,7 @@ flowchart TB
 
 本节只固定 adapter 内部文件之间的交接；跨模块的 M003 接口在 §9.2，字段类型在 §6。
 
-#### 5.3.1 `IF-MATRIX-PREPARE` · `runtime.ts` → `events.ts`
+**5.3.1 `IF-MATRIX-PREPARE` · `runtime.ts` → `events.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部无公共成员 ID；行为规则权威在 §8.1/§8.4（去重、回补、类型过滤）。
 
@@ -389,7 +389,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/adapters/matrix/events.ts`；`VRC-MATRIX-002`（去重）、`VRC-MATRIX-004`（E2EE/类型）。
 
-#### 5.3.2 `IF-MATRIX-STORE` · `runtime.ts`/`events.ts`/`send.ts` → `port.ts`
+**5.3.2 `IF-MATRIX-STORE` · `runtime.ts`/`events.ts`/`send.ts` → `port.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部接口 `MatrixStorePort`，方法契约见 §9.2 `IF-MX-STORE`/`IF-MX-TURN`。
 
@@ -401,7 +401,7 @@ flowchart TB
 
 - **实现与验证位置**：`src/adapters/matrix/port.ts`；`VRC-MATRIX-002/003/005` 以受控 fake 端口 + 真 M003 两套覆盖。
 
-#### 5.3.3 `IF-MATRIX-MEDIA` · `events.ts` → `media.ts`
+**5.3.3 `IF-MATRIX-MEDIA` · `events.ts` → `media.ts`**
 
 - **接口成员 ID / §9 逐接口定义位置**：内部 `downloadMedia(run, event, content) -> string`；合同见 §9.1.4 `IF-MX-MEDIA-DOWN`。
 
@@ -439,7 +439,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 ### 6.2 业务与操作数据结构
 
-#### 6.2.1 `DiscussionContext`
+**6.2.1 `DiscussionContext`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`DiscussionContext`；来源 `piko-matrix.md` §5.1 `IF-MX-VERIFY` 输入；权威定义在 `src/adapters/matrix/types.ts`（Planned）。
 
@@ -453,7 +453,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法 `{room_id:"!r-7:hs", trigger_event_id:"$e-7"}`。拒绝：`trigger_event_id` 指向其它 room、起点为 `m.room.encrypted`。`VRC-MATRIX-001`；`NOT_RUN`。
 
-#### 6.2.2 `MatrixBatch`
+**6.2.2 `MatrixBatch`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`MatrixBatch`；来源 `piko-matrix.md` §5.1 `IF-MX-SYNC` 输出；权威在 `src/adapters/matrix/types.ts`（Planned）。
 
@@ -472,7 +472,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法 `{next_batch:"s101", events:[...], limited:false, prev_batch:"s100"}`。拒绝：`limited=true` 且 `prev_batch` 空（不合法，回补无起点）。`VRC-MATRIX-002`；`NOT_RUN`。
 
-#### 6.2.3 `MatchEvent` / `MatrixSendRecord`
+**6.2.3 `MatchEvent` / `MatrixSendRecord`**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`MatchEvent` 是去重后待落盘项；`MatrixSendRecord` 对应 `piko-matrix.md` §4.6.1；权威在 `src/adapters/matrix/types.ts`（Planned）。
 
@@ -494,7 +494,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 ### 6.4 通信报文结构
 
-#### 6.4.1 Matrix 事件信封（Piko 消费子集）
+**6.4.1 Matrix 事件信封（Piko 消费子集）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`MatrixEventEnvelope`；来源 `piko-matrix.md` §4.4.1；外部权威 = Matrix Client-Server v3 规范。
 
@@ -509,7 +509,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 - **合法与拒绝实例、V/Case 与证据状态**：合法 `{type:"m.room.message", event_id:"$e-8", sender:"@pm:hs", room_id:"!r-7:hs", origin_server_ts:1758800010000, content:{msgtype:"m.text", body:"also check tests"}}`。拒绝/忽略：`type:"m.room.encrypted"`（起点 → `InvalidDiscussionContext`；运行期 → 忽略）。`VRC-MATRIX-004`；`NOT_RUN`。
 
-#### 6.4.2 `PikoDiscussionMessage`（Piko 内部载荷）
+**6.4.2 `PikoDiscussionMessage`（Piko 内部载荷）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`DATA-MX-DISCUSSION`；来源 `piko-matrix.md` §4.4.2（= M006 ISD §4.4.4）。
 
@@ -530,7 +530,7 @@ matrix-adapter 引用的持久行（`matrix_state`/`matrix_events`/`matrix_sends
 
 ### 6.6 运行状态数据结构
 
-#### 6.6.1 `MatrixRuntimeState`（跨步骤运行状态，必填）
+**6.6.1 `MatrixRuntimeState`（跨步骤运行状态，必填）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：`MatrixRuntimeState` 是 adapter 的进程内运行态，持久事实载体为 `matrix_state` 单行（`sync_cursor`/`membership_version`，DDL 属 M003，§6.7）与 `matrix_sends` 行状态。权威事实来源：`matrix_state.sync_cursor`（同步位置）+ `matrix_sends.state`（发送状态）+ `runs.discussion_intake_state`（是否附着，M005 所有）。adapter 是 cursor 的**唯一推进者**（经 M003 `ingestMatrixBatch` 事务）；是 send record 的**唯一写者**。
 
@@ -586,7 +586,7 @@ stateDiagram-v2
 
 ### 6.7 数据库表结构
 
-#### 6.7.1 `matrix_state` / `matrix_events` / `matrix_sends` / `discussion_turns`（当前代码事实在 `src/store.ts`，DDL authority 属 M003）
+**6.7.1 `matrix_state` / `matrix_events` / `matrix_sends` / `discussion_turns`（当前代码事实在 `src/store.ts`，DDL authority 属 M003）**
 
 - **完整定义、Data/Type/Data ID 与唯一来源**：**当前代码事实**：`src/store.ts` `migrate()` 内建表——`matrix_state`（`src/store.ts:25`，单行 `singleton=1`，`sync_cursor`/`membership_version`）、`matrix_events`（`src/store.ts:26`，主键 `(room_id,event_id)`，去重）、`matrix_sends`（`src/store.ts:28`，主键 `txn_id`，`state ∈ {Pending,Sent,Unknown}`）；`discussion_turns` 的 DDL 亦在 `src/store.ts`。**Proposed**：`piko-task-repository-design.md` / `piko-task-repository-impl.isd.md` §4.7 尚未编写；采纳后其 DDL 成为设计权威并取代此代码事实引用。本模块不复制 CREATE TABLE，只固定本模块使用的行语义与写入点。
 
@@ -606,7 +606,7 @@ stateDiagram-v2
 
 ### 6.8 错误码与错误结构
 
-#### 6.8.1 `InvalidDiscussionContext` / `DiscussionAccessLost` / `InternalError`（Piko typed）
+**6.8.1 `InvalidDiscussionContext` / `DiscussionAccessLost` / `InternalError`（Piko typed）**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：对外 typed error，来源 `piko-matrix.md` §4.8.1/§4.8.3。`InvalidDiscussionContext`（room/event 不存在或不可见，受理侧 409）、`DiscussionAccessLost`（membership/event/media 权限丢失，映射 Result `Failed`）、`InternalError`（sync 事务失败/dedup 冲突不可恢复，不暴露 Matrix 细节）。定义在 `src/adapters/matrix/types.ts`（Planned）；当前 `src/matrix.ts` 抛 `Error` + `isPermanentMatrixError` 分类，Target 映射为 typed。
 
@@ -616,7 +616,7 @@ stateDiagram-v2
 
 - **合法与拒绝实例、V/Case 与证据状态**：起点在别的 room → `InvalidDiscussionContext`；401 → `DiscussionAccessLost`；`ingestMatrixBatch` dedup 冲突不可恢复 → `InternalError`。`VRC-MATRIX-001/003`；`NOT_RUN`。
 
-#### 6.8.2 homeserver errcode 映射
+**6.8.2 homeserver errcode 映射**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：来源 `piko-matrix.md` §4.8.2；外部权威 = Matrix Client-Server 错误规范。
 
@@ -716,7 +716,7 @@ flowchart TD
 
 ## 8. 关键算法与业务规则
 
-#### 8.1 `R-MATRIX-IDENTITY` · 单身份核对与 E2EE 唯一结果
+**8.1 `R-MATRIX-IDENTITY` · 单身份核对与 E2EE 唯一结果**
 
 - **输入前提 / 适用条件**：`start`/`verifyDiscussion`；config `matrix.user_id` 与 runtime token 已就绪。
 
@@ -730,7 +730,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：token 属 `@other:hs` → 抛身份不一致 → F1；起点 `$e-enc`（`m.room.encrypted`）→ `InvalidDiscussionContext`；运行期 `$e-enc` → 无 turn。`VRC-MATRIX-001/004`。
 
-#### 8.2 `R-MATRIX-DEDUP` · 事件去重与附着判定
+**8.2 `R-MATRIX-DEDUP` · 事件去重与附着判定**
 
 - **输入前提 / 适用条件**：`processBatch` 逐事件。
 
@@ -744,7 +744,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：`$e-8` 首次 → 写 1 turn（seq=1）；再送同 `$e-8` → 不新增；自身 sender → 只写 dedup。`VRC-MATRIX-002`。
 
-#### 8.3 `R-MATRIX-CURSOR` · cursor 推进条件
+**8.3 `R-MATRIX-CURSOR` · cursor 推进条件**
 
 - **输入前提 / 适用条件**：每批 `syncOnce` 已取得 `next_batch`。
 
@@ -758,7 +758,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：批成功 → s100→s101；批失败 → 仍 s100。`VRC-MATRIX-002`。
 
-#### 8.4 `R-MATRIX-BACKFILL` · 截断有界回补
+**8.4 `R-MATRIX-BACKFILL` · 截断有界回补**
 
 - **输入前提 / 适用条件**：`limited=true`。
 
@@ -772,7 +772,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：`limited=true`、`prev_batch=p-9`，mock `/messages` 返回 `$e-9` → 回补后 seq=3、cursor 推进；mock 持续缺批 → `truncation_unresolved=true`、cursor 推进、Result 不声称完整。`VRC-MATRIX-002`。
 
-#### 8.5 `R-MATRIX-SEND-TXN` · 确定性 txn 与复用
+**8.5 `R-MATRIX-SEND-TXN` · 确定性 txn 与复用**
 
 - **输入前提 / 适用条件**：`sendDiscussionReply`。
 
@@ -786,7 +786,7 @@ flowchart TD
 
 - **具体输入推演 / 验证项**：首次成功 → `$sent-1` 且 Sent；响应丢失后同 payload → 复用 txn 得原 event_id；异 payload → `TaskConflict`。`VRC-MATRIX-003`。
 
-#### 8.6 `R-MATRIX-MEDIA` · 附件 ACL 与字节预算
+**8.6 `R-MATRIX-MEDIA` · 附件 ACL 与字节预算**
 
 - **输入前提 / 适用条件**：`downloadMedia`。
 
@@ -804,7 +804,7 @@ flowchart TD
 
 ### 9.1 API（适用时）
 
-#### 9.1.1 `MatrixRuntime.start(): Promise<void>`
+**9.1.1 `MatrixRuntime.start(): Promise<void>`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-START`；M008 提供，M000 S7 消费；来源 `piko-startup.md` §5.1 `IF-ST-MATRIX`（`matrixWhoami`）。
 
@@ -818,7 +818,7 @@ flowchart TD
 
 - **实现与验证**：当前 `src/matrix.ts` `MatrixRuntime.start`（Implemented）；Target `src/adapters/matrix/runtime.ts`（Planned）。合法：身份一致 → READY。拒绝：token 属他人 → F1。`VRC-MATRIX-001`。
 
-#### 9.1.2 `MatrixRuntime.verifyDiscussion(room, event): Promise<string>`
+**9.1.2 `MatrixRuntime.verifyDiscussion(room, event): Promise<string>`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-VERIFY`；M008 提供，M001/M005 消费；来源 `piko-matrix.md` §5.1。
 
@@ -832,7 +832,7 @@ flowchart TD
 
 - **实现与验证**：当前 `src/matrix.ts` `verifyDiscussion`（Implemented）；Target `runtime.ts`（Planned）。合法：`{"body":"Please analyze the repo"}`。拒绝：其它 room / encrypted。`VRC-MATRIX-001/004`。
 
-#### 9.1.3 `MatrixRuntime.sendDiscussionReply(run, room, event, turn, body): Promise<string>`
+**9.1.3 `MatrixRuntime.sendDiscussionReply(run, room, event, turn, body): Promise<string>`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-SEND`（消费 M003 的 `IF-MX-SEND` 持久侧）；M008 提供，M005 消费；来源 `piko-matrix.md` §5.1。
 
@@ -846,7 +846,7 @@ flowchart TD
 
 - **实现与验证**：当前 `src/matrix.ts` `sendDiscussionReply`（Implemented）；Target `send.ts`（Planned）。合法：`$sent-1`。拒绝：异 payload `TaskConflict`。`VRC-MATRIX-003`。
 
-#### 9.1.4 `MatrixRuntime.downloadMedia(run, event, content): Promise<string>` / `uploadContent(bytes, contentType): Promise<{content_uri}>`
+**9.1.4 `MatrixRuntime.downloadMedia(run, event, content): Promise<string>` / `uploadContent(bytes, contentType): Promise<{content_uri}>`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-MEDIA-DOWN`/`IF-MX-MEDIA-UP`；M008 提供；来源 `piko-matrix.md` §5.1。
 
@@ -860,7 +860,7 @@ flowchart TD
 
 - **实现与验证**：当前 `src/matrix.ts` `downloadMedia`（Implemented，内部方法）；Target `media.ts`（Planned）。合法：落盘且一致。拒绝：超限无文件。`VRC-MATRIX-005`。
 
-#### 9.1.5 `MatrixRuntime.close(): Promise<void>`
+**9.1.5 `MatrixRuntime.close(): Promise<void>`**
 
 - **Interface/Member ID、用途、提供责任与来源**：`IF-MX-CLOSE`；M008 提供，M000/进程退出时消费。
 
@@ -878,7 +878,7 @@ flowchart TD
 
 matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与 M003 的交接是进程内持久化原语。后者（`IF-MX-TURN`/`IF-MX-STORE`）是内部协作接口的具体合同，在此唯一维护。
 
-#### 9.2.1 `GET /_matrix/client/v3/sync`（长轮询同步，`IF-MX-HTTP-SYNC`）
+**9.2.1 `GET /_matrix/client/v3/sync`（长轮询同步，`IF-MX-HTTP-SYNC`）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-MX-HTTP-SYNC`；homeserver 提供，M008 消费；来源 `piko-matrix.md` §5.2；外部权威 = Client-Server v3。
 
@@ -888,7 +888,7 @@ matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与
 
 - **实现与验证**：`src/adapters/matrix/runtime.ts`（Planned）；正常批推进 cursor、注入 429/401 走退避/收口。`VRC-MATRIX-002/003`。
 
-#### 9.2.2 `PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`（`IF-MX-HTTP-SEND`）
+**9.2.2 `PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.message/{txnId}`（`IF-MX-HTTP-SEND`）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-MX-HTTP-SEND`；homeserver 提供，M008 消费；来源 `piko-matrix.md` §5.2。
 
@@ -898,7 +898,7 @@ matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与
 
 - **实现与验证**：`src/adapters/matrix/send.ts`（Planned）；正常 `$sent-1`、响应丢失复用 txn。`VRC-MATRIX-003`。
 
-#### 9.2.3 `GET /_matrix/client/v3/account/whoami` + `GET /rooms/{roomId}/event/{eventId}` + `GET /joined_rooms`（`IF-MX-HTTP-VERIFY`）
+**9.2.3 `GET /_matrix/client/v3/account/whoami` + `GET /rooms/{roomId}/event/{eventId}` + `GET /joined_rooms`（`IF-MX-HTTP-VERIFY`）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-MX-HTTP-VERIFY`；homeserver 提供，M008 消费；来源 `piko-matrix.md` §5.2。
 
@@ -908,7 +908,7 @@ matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与
 
 - **实现与验证**：`src/adapters/matrix/runtime.ts`（Planned）；`VRC-MATRIX-001/004`。
 
-#### 9.2.4 `GET /_matrix/media/v3/download/...` + `POST /_matrix/media/v3/upload`（`IF-MX-HTTP-MEDIA`）
+**9.2.4 `GET /_matrix/media/v3/download/...` + `POST /_matrix/media/v3/upload`（`IF-MX-HTTP-MEDIA`）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-MX-HTTP-MEDIA`；homeserver media repo 提供，M008 消费；来源 `piko-matrix.md` §5.2。
 
@@ -918,7 +918,7 @@ matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与
 
 - **实现与验证**：`src/adapters/matrix/media.ts`（Planned）；`VRC-MATRIX-005`。
 
-#### 9.2.5 `ingestMatrixBatch(events, cursor)` / `prepareMatrixSend` / `finishMatrixSend` / `unknownMatrixSend`（`IF-MX-TURN` / `IF-MX-STORE`，消费 M003）
+**9.2.5 `ingestMatrixBatch(events, cursor)` / `prepareMatrixSend` / `finishMatrixSend` / `unknownMatrixSend`（`IF-MX-TURN` / `IF-MX-STORE`，消费 M003）**
 
 - **Interface/Member ID、用途、责任与唯一来源**：`IF-MX-TURN`（turn/事件落盘事务）、`IF-MX-STORE`（matrix 持久化原语）；M003 提供，M008 消费；来源 `piko-matrix.md` §14.3 + 本设计 §4.2。**Proposed（`OQ-MATRIX-001`）**。
 
@@ -940,7 +940,7 @@ matrix-adapter 与外部 homeserver 的交接是 Matrix Client-Server HTTP；与
 
 matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；与 M003 的事务由 SQLite 单 writer 串行化。同步 pump 以串行 promise 链（`syncWork`）保证同一时刻至多一批在处理，无自建线程/进程。下述交错与故障引用 §6.6 转换 ID。
 
-#### 10.1 `C-MATRIX-01` · 两批 sync 竞争 cursor
+**10.1 `C-MATRIX-01` · 两批 sync 竞争 cursor**
 
 - **初始条件 / 并发交错 / 失败点**：两个 `Sync` 回调几乎同时触发；两批都携带不同 `next_batch`。
 - **检测事实 / authority / 期限**：`syncWork` 串行链；`matrix_state.sync_cursor` 是权威；无期限。
@@ -949,7 +949,7 @@ matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；�
 - **最终状态 / 资源归属 / 后续合法入口**：cursor 单调前进；无部分副作用。
 - **验证项 / 组合责任**：`VRC-MATRIX-002`（Case 并发）。
 
-#### 10.2 `C-MATRIX-02` · sync 失败与重放
+**10.2 `C-MATRIX-02` · sync 失败与重放**
 
 - **初始条件 / 并发交错 / 失败点**：`ingestMatrixBatch` 前网络中断或 SQLite busy 超时。
 - **检测事实 / authority / 期限**：fetch 抛错 / `SQLITE_BUSY`；`matrix_state.sync_cursor` 未变；受 `busy_timeout_ms`。
@@ -958,7 +958,7 @@ matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；�
 - **最终状态 / 资源归属 / 后续合法入口**：cursor 停在最后提交点；重试同批。
 - **验证项 / 组合责任**：`VRC-MATRIX-002`（Case 失败）。
 
-#### 10.3 `C-MATRIX-03` · 身份不一致或 homeserver 不可达（启动期）
+**10.3 `C-MATRIX-03` · 身份不一致或 homeserver 不可达（启动期）**
 
 - **初始条件 / 并发交错 / 失败点**：S7 `start`；token 属他人 / homeserver 不可达。
 - **检测事实 / authority / 期限**：`whoami.user_id != config.user_id` / fetch 失败；60s 首同步守护。
@@ -967,7 +967,7 @@ matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；�
 - **最终状态 / 资源归属 / 后续合法入口**：进程非零退出，无入口。
 - **验证项 / 组合责任**：`VRC-MATRIX-001`；组合 `PK-T12`。
 
-#### 10.4 `C-MATRIX-04` · membership 丢失（运行期）
+**10.4 `C-MATRIX-04` · membership 丢失（运行期）**
 
 - **初始条件 / 并发交错 / 失败点**：sync 批处理中 `getJoinedRooms()` 不再含某 tracked room。
 - **检测事实 / authority / 期限**：joined_rooms 权威；立即。
@@ -976,7 +976,7 @@ matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；�
 - **最终状态 / 资源归属 / 后续合法入口**：`ACCESS_LOST`；等 operator 修 membership/token + 重启。
 - **验证项 / 组合责任**：`VRC-MATRIX-003`；组合 `PK-T08`。
 
-#### 10.5 `C-MATRIX-05` · media staging 半成品
+**10.5 `C-MATRIX-05` · media staging 半成品**
 
 - **初始条件 / 并发交错 / 失败点**：下载中途超限/断流/进程退出。
 - **检测事实 / authority / 期限**：累计 size 超限 / fetch 异常；staging 路径权威 = `staging_root/<run>`。
@@ -985,7 +985,7 @@ matrix-adapter 的全部操作在宿主 Node 单线程事件循环上执行；�
 - **最终状态 / 资源归属 / 后续合法入口**：staging 无残留（或仅 `.tmp` 由清理移除）；turn 仍按原状态。
 - **验证项 / 组合责任**：`VRC-MATRIX-005`。
 
-#### 10.6 `C-MATRIX-06` · 发送响应丢失（Unknown）
+**10.6 `C-MATRIX-06` · 发送响应丢失（Unknown）**
 
 - **初始条件 / 并发交错 / 失败点**：`PUT send` 已发出但响应丢失/超时。
 - **检测事实 / authority / 期限**：`client.sendEvent` 抛错；`matrix_sends.state='Unknown'`。
@@ -1023,7 +1023,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ## 12. 容量、性能与运行限制
 
-#### 12.1 `CAP-MATRIX-SYNC-BATCH` · sync 批与回补规模
+**12.1 `CAP-MATRIX-SYNC-BATCH` · sync 批与回补规模**
 
 - **目标 / 限制 / 单位**：单批处理事件数无 Piko 硬上限（由 homeserver `timeline.limit` 决定，典型 ≤ 20–100）；回补每页 `<limit>`（100），页数上限由 §8.4 有界（默认 1 页，最多按缺口逐页到边界）。
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：`matrix.sync_timeout_ms`（1000–120000，默认 30000）；**P1 单进程单 pump**；homeserver 侧限制。
@@ -1033,7 +1033,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **超限行为 / 责任出口**：回补达 limit 仍缺 → `truncation_unresolved=true` 并推进（不卡死）；批事务 busy 超时 → 依赖错误、重试同批。
 - **验证项 / Evidence**：`VRC-MATRIX-002`；`NOT_RUN`。
 
-#### 12.2 `CAP-MATRIX-MEDIA` · 附件字节预算
+**12.2 `CAP-MATRIX-MEDIA` · 附件字节预算**
 
 - **目标 / 限制 / 单位**：单附件 ≤ `matrix.max_media_bytes`（1–1073741824 字节，config 必填）；MIME ∈ `matrix.allowed_mime_types`。
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：本地可靠 FS；staging_root 容量。
@@ -1043,7 +1043,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **超限行为 / 责任出口**：超限/MIME 不符 → 拒绝、不落盘；磁盘耗尽 → 下载失败、`.tmp` 清理。
 - **验证项 / Evidence**：`VRC-MATRIX-005`；`NOT_RUN`。
 
-#### 12.3 `CAP-MATRIX-MEMORY` · 内存与连接
+**12.3 `CAP-MATRIX-MEMORY` · 内存与连接**
 
 - **目标 / 限制 / 单位**：常驻 = `MatrixClient`（SDK 内部状态，含 sync 窗口）+ 单批 `pendingEvents` + 单次 `.tmp` 缓冲。
 - **适用版本 / 配置 / 硬件 / 虚拟化 / 依赖**：Node `>= 22.19.0`；`matrix-js-sdk` lockfile 版本。
@@ -1057,7 +1057,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ### 13.1 文件分解（设计 → 代码文件）
 
-#### 13.1.1 `src/matrix.ts`（当前实现事实）
+**13.1.1 `src/matrix.ts`（当前实现事实）**
 
 - **职责 / 非职责**：当前单文件实现 `MatrixRuntime`（start/verify/sync/send/media/close）+ `isPermanentMatrixError`。非职责：不新建 schema（M003）。
 - **关键 symbol / 导出范围**：`class MatrixRuntime`、`function isPermanentMatrixError`；模块外 public。
@@ -1066,7 +1066,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Implemented（单文件基线）。
 - **验证入口**：`VRC-MATRIX-001..005`（Planned 用例）。
 
-#### 13.1.2 `src/adapters/matrix/runtime.ts`
+**13.1.2 `src/adapters/matrix/runtime.ts`**
 
 - **职责 / 非职责**：Target 入口编排（start/verify/sync pump/send 委托/close）。非职责：不拼 SQL、不解析 media。
 - **关键 symbol / 导出范围**：`class MatrixRuntime`；public（经 `src/adapters/matrix/index.ts`）。
@@ -1075,7 +1075,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned。
 - **验证入口**：`VRC-MATRIX-001/002/004`。
 
-#### 13.1.3 `src/adapters/matrix/events.ts`
+**13.1.3 `src/adapters/matrix/events.ts`**
 
 - **职责 / 非职责**：Target 事件准备/去重（`prepareEvent`）。非职责：发 HTTP、写 DB。
 - **关键 symbol / 导出范围**：`prepareEvent`；模块内 public。
@@ -1084,7 +1084,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned。
 - **验证入口**：`VRC-MATRIX-002/004`。
 
-#### 13.1.4 `src/adapters/matrix/media.ts`
+**13.1.4 `src/adapters/matrix/media.ts`**
 
 - **职责 / 非职责**：Target 附件下载/staging 与上传。非职责：去重/投喂决策。
 - **关键 symbol / 导出范围**：`downloadMedia`/`uploadContent`；模块内 public。
@@ -1093,7 +1093,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned。
 - **验证入口**：`VRC-MATRIX-005`。
 
-#### 13.1.5 `src/adapters/matrix/send.ts`
+**13.1.5 `src/adapters/matrix/send.ts`**
 
 - **职责 / 非职责**：Target 稳定事务发送（txn 派生/复用）。非职责：生成正文、上传附件。
 - **关键 symbol / 导出范围**：`sendDiscussionReply`；模块内 public。
@@ -1102,7 +1102,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned。
 - **验证入口**：`VRC-MATRIX-003`。
 
-#### 13.1.6 `src/adapters/matrix/port.ts`
+**13.1.6 `src/adapters/matrix/port.ts`**
 
 - **职责 / 非职责**：Target M003 端口抽象与 `M003MatrixStore`。非职责：去重判断、业务重试。
 - **关键 symbol / 导出范围**：`interface MatrixStorePort`、`class M003MatrixStore`；`MatrixStorePort` 模块内 public。
@@ -1111,7 +1111,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned（受 `OQ-MATRIX-001`）。
 - **验证入口**：`VRC-MATRIX-002/003/005`。
 
-#### 13.1.7 `src/adapters/matrix/index.ts`
+**13.1.7 `src/adapters/matrix/index.ts`**
 
 - **职责 / 非职责**：Target 唯一装配入口；导出 `MatrixRuntime` 与 `createMatrixRuntime`。非职责：业务逻辑。
 - **关键 symbol / 导出范围**：`createMatrixRuntime(config, store, token)`；public。
@@ -1120,7 +1120,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Planned。
 - **验证入口**：`VRC-MATRIX-001`。
 
-#### 13.1.8 `src/store.ts`（修改既有，M003 侧）
+**13.1.8 `src/store.ts`（修改既有，M003 侧）**
 
 - **职责 / 非职责**：保留并稳定 matrix 原语（`ingestMatrixBatch`/`prepareMatrixSend`/`finishMatrixSend`/`unknownMatrixSend`/`matrixCursor`/`openDiscussionRuns`/`markDiscussionAccessLost`）；不改语义。非职责：不新增 schema。
 - **关键 symbol / 导出范围**：见 `src/store.ts:59`–`:73`；public（同级模块）。
@@ -1129,7 +1129,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **实现状态**：Implemented。
 - **验证入口**：`VRC-MATRIX-002/003`。
 
-#### 13.1.9 `src/main.ts`（修改既有）
+**13.1.9 `src/main.ts`（修改既有）**
 
 - **职责 / 非职责**：装配 `createMatrixRuntime` 注入 `RunWorker`；S7 调 `start`。非职责：业务。
 - **关键 symbol / 导出范围**：`main()` 内新增装配行。
@@ -1140,7 +1140,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ### 13.2 实现步骤
 
-#### 13.2.1 `T-MATRIX-01` · 冻结 `IF-MX-STORE` 合同
+**13.2.1 `T-MATRIX-01` · 冻结 `IF-MX-STORE` 合同**
 
 - **前置输入 / 依赖**：M003 设计评审（`OQ-MATRIX-001`）。
 - **新增 / 修改文件与 symbol**：`src/adapters/matrix/port.ts` 抽象 + `src/store.ts` 原语签名。
@@ -1148,7 +1148,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **交付结果**：冻结端口签名。
 - **完成检查**：fake 端口可实现（`VRC-MATRIX-002/003`）。
 
-#### 13.2.2 `T-MATRIX-02` · 抽出 events.ts/media.ts 并单测
+**13.2.2 `T-MATRIX-02` · 抽出 events.ts/media.ts 并单测**
 
 - **前置输入 / 依赖**：无（纯准备逻辑）。
 - **新增 / 修改文件与 symbol**：`events.ts`/`media.ts` + 单测。
@@ -1156,7 +1156,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **交付结果**：可无网络/无 DB 测试的准备与媒体单元。
 - **完成检查**：`VRC-MATRIX-002/004/005` 计划用例。
 
-#### 13.2.3 `T-MATRIX-03` · 抽出 send.ts 并接 port
+**13.2.3 `T-MATRIX-03` · 抽出 send.ts 并接 port**
 
 - **前置输入 / 依赖**：T-MATRIX-01。
 - **新增 / 修改文件与 symbol**：`send.ts`；`port.ts` 的 send 原语。
@@ -1164,7 +1164,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **交付结果**：可单测的发送协调器。
 - **完成检查**：`VRC-MATRIX-003` 计划用例。
 
-#### 13.2.4 `T-MATRIX-04` · 组装 runtime.ts + index.ts 并改 main.ts
+**13.2.4 `T-MATRIX-04` · 组装 runtime.ts + index.ts 并改 main.ts**
 
 - **前置输入 / 依赖**：T-MATRIX-02/03。
 - **新增 / 修改文件与 symbol**：`runtime.ts`/`index.ts`；`main.ts` 装配。
@@ -1176,7 +1176,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ### 14.1 正向覆盖与交付闭环
 
-#### 14.1.1 `CON-MX-001`
+**14.1.1 `CON-MX-001`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §3.1 · PK-08 · Approved；适用（本模块核心约束）。
 - **选定方案与正文锚点**：§1.1.1、§6.6.1（`INV-MX-1..5`）、§8.1–§8.6。
@@ -1184,7 +1184,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-001..005`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.2 `CON-ST-001`
+**14.1.2 `CON-ST-001`**
 
 - **来源与适用性 / 固定基线**：`piko-startup.md` §3.1 · PK-12 · Approved；适用（S7 whoami）。
 - **选定方案与正文锚点**：§1.1.2、§7 `M-MATRIX-P1`、§10.3。
@@ -1192,7 +1192,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-001`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T12`。
 
-#### 14.1.3 `F-MATRIX-VERIFY`
+**14.1.3 `F-MATRIX-VERIFY`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §2 `CAP-MX-VERIFY`；适用。
 - **选定方案与正文锚点**：§2.1、§8.1、§9.1.2。
@@ -1200,7 +1200,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-001/004`（`NOT_RUN`，Oracle = homeserver 侧 event + membership）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.4 `F-MATRIX-SYNC`
+**14.1.4 `F-MATRIX-SYNC`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §2 `CAP-MX-SYNC`；适用。
 - **选定方案与正文锚点**：§2.2、§8.2–§8.4、§9.2.1、§9.2.5。
@@ -1208,7 +1208,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-002`（`NOT_RUN`，Oracle = `matrix_state.sync_cursor` + turn 行）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.5 `F-MATRIX-SEND`
+**14.1.5 `F-MATRIX-SEND`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §2 `CAP-MX-SEND`；适用。
 - **选定方案与正文锚点**：§2.3、§8.5、§9.1.3、§9.2.2、§9.2.5。
@@ -1216,7 +1216,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-003`（`NOT_RUN`，Oracle = `matrix_sends` 行 + homeserver event）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.6 `F-MATRIX-MEDIA`
+**14.1.6 `F-MATRIX-MEDIA`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §2 `CAP-MX-MEDIA`；适用。
 - **选定方案与正文锚点**：§2.4、§8.6、§9.1.4、§9.2.4、§11。
@@ -1224,7 +1224,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-005`（`NOT_RUN`，Oracle = staging 文件 mime/size）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.7 `F-MATRIX-INTAKE-OBSERVE`
+**14.1.7 `F-MATRIX-INTAKE-OBSERVE`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §2 `CAP-MX-INTAKE`（推进权属 M005）；适用（本模块只观察/登记）。
 - **选定方案与正文锚点**：§2.5、§8.2、§9.2.5。
@@ -1232,7 +1232,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-002`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`；推进责任方 = M005。
 
-#### 14.1.8 `R-MATRIX-BACKFILL`
+**14.1.8 `R-MATRIX-BACKFILL`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §6.1；适用（`limited=true`）。
 - **选定方案与正文锚点**：§8.4、§7 `M-MATRIX-P2`。
@@ -1240,7 +1240,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-002`（`NOT_RUN`，Oracle = `truncation_unresolved` + turn 集）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.9 `R-MATRIX-IDENTITY`
+**14.1.9 `R-MATRIX-IDENTITY`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §3.3.1；适用。
 - **选定方案与正文锚点**：§8.1、§10.3、§9.1.1。
@@ -1248,7 +1248,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-001/004`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T12`。
 
-#### 14.1.10 `IF-MX-HTTP-SYNC`
+**14.1.10 `IF-MX-HTTP-SYNC`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §5.2；适用（外部 HTTP）。
 - **选定方案与正文锚点**：§9.2.1、§4.1、§6.8.2。
@@ -1256,7 +1256,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-002/003`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：组合 `PK-T08`。
 
-#### 14.1.11 `IF-MX-STORE`
+**14.1.11 `IF-MX-STORE`**
 
 - **来源与适用性 / 固定基线**：本设计 §9.2.5（Proposed，`OQ-MATRIX-001`）；适用但未冻结。
 - **选定方案与正文锚点**：§4.2、§9.2.5。
@@ -1264,7 +1264,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **§14 VRC / Case / 独立判据**：`VRC-MATRIX-002/003/005`（`NOT_RUN`）。
 - **父级组合验证或裁剪/阻断决定**：阻断编码，待 M003 采纳（`OQ-MATRIX-001`）。
 
-#### 14.1.12 `InvalidDiscussionContext` / `DiscussionAccessLost` / `InternalError`
+**14.1.12 `InvalidDiscussionContext` / `DiscussionAccessLost` / `InternalError`**
 
 - **来源与适用性 / 固定基线**：`piko-matrix.md` §4.8.1/§4.8.3；适用。
 - **选定方案与正文锚点**：§6.8.1/§6.8.2。
@@ -1274,7 +1274,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ### 14.2 验证要求与用例
 
-#### 14.2.1 `VRC-MATRIX-001` · 启动身份核对与 READY/F1
+**14.2.1 `VRC-MATRIX-001` · 启动身份核对与 READY/F1**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-MATRIX-VERIFY`、`R-MATRIX-IDENTITY`、`CON-ST-001`、`IF-MX-START`。
 - **Case / 正常、边界与失败输入**：A（token 属 `@piko:hs` → READY）；B（token 属 `@other:hs` → F1）；C（homeserver 不可达 → F1）；D（`enabled=false` → DISABLED）。
@@ -1284,7 +1284,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：`PK-T12`。
 
-#### 14.2.2 `VRC-MATRIX-002` · sync 去重/cursor/回补
+**14.2.2 `VRC-MATRIX-002` · sync 去重/cursor/回补**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-MATRIX-SYNC`、`R-MATRIX-DEDUP/CURSOR/BACKFILL`、`IF-MX-HTTP-SYNC`、`IF-MX-STORE`。
 - **Case / 正常、边界与失败输入**：A（正常批 → turn+cursor）；B（重复批 → 去重、cursor 不变）；C（网络失败 → cursor 不动）；D（429 → 退避、cursor 不动）；E（`limited=true` 回补闭合 → seq 正确、cursor 推进）；F（回补仍截断 → `truncation_unresolved=true`、cursor 推进）。
@@ -1294,7 +1294,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：`PK-T08`。
 
-#### 14.2.3 `VRC-MATRIX-003` · 稳定发送 txn 与权限/限流
+**14.2.3 `VRC-MATRIX-003` · 稳定发送 txn 与权限/限流**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-MATRIX-SEND`、`R-MATRIX-SEND-TXN`、`IF-MX-HTTP-SEND`、`IF-MX-STORE`、`DiscussionAccessLost`。
 - **Case / 正常、边界与失败输入**：A（首次 → `$sent-1`、Sent）；B（响应丢失 → Unknown，同 txn 重试返回原 event_id、homeserver 单事件）；C（同 txn 异 payload → `TaskConflict`）；D（403 → `DiscussionAccessLost`）；E（429 → 退避复用同 txn）。
@@ -1304,7 +1304,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：`PK-T08`。
 
-#### 14.2.4 `VRC-MATRIX-004` · E2EE 与事件类型唯一结果
+**14.2.4 `VRC-MATRIX-004` · E2EE 与事件类型唯一结果**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-MATRIX-VERIFY`、`R-MATRIX-IDENTITY/DEDUP`、`INV-MX-4`。
 - **Case / 正常、边界与失败输入**：A（起点 `m.room.encrypted` → `InvalidDiscussionContext`）；B（运行期 encrypted → 忽略、无 turn、不阻塞）；C（`m.reaction` → 忽略）；D（自身 sender → 只 dedup）；E（msgtype 不支持 → 不生成 turn）。
@@ -1314,7 +1314,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **Verdict / 状态**：`NOT_RUN`。
 - **父级组合验证交接**：`PK-T08`。
 
-#### 14.2.5 `VRC-MATRIX-005` · media ACL 与字节预算
+**14.2.5 `VRC-MATRIX-005` · media ACL 与字节预算**
 
 - **覆盖 Function / Rule / Constraint / Interface**：`F-MATRIX-MEDIA`、`R-MATRIX-MEDIA`、`IF-MX-MEDIA-DOWN/UP`。
 - **Case / 正常、边界与失败输入**：A（合法 → staging 一致）；B（声明超限 → 拒绝无文件）；C（实际 content-type 不符 → 拒绝、`.tmp` 清理）；D（ACL 失败 → `DiscussionAccessLost`）；E（路径穿越输入 → 归一在 `staging_root/<run>` 内）。
@@ -1326,7 +1326,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ## 15. 风险、未决问题与引用
 
-#### 15.ISD · 实现规格采用方式
+**15.ISD · 实现规格采用方式**
 
 - **采用模式**：separate。
 - **模块对象 ID**：`M008`。
@@ -1334,7 +1334,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **metadata 覆盖映射入口**：`implementation_specification.mode="separate"`，`document_id="piko-matrix-adapter-impl"`，十项 `coverage_mapping` 指向 ISD 锚点（`scope`→`isd-scope`、`structure`→`isd-structure`、`data`→`isd-data`、`functions`→`isd-functions`、`algorithms`→`isd-algorithms`、`lifecycle`→`isd-lifecycle`、`resources`→`isd-resources`、`security`→`isd-security`、`verification`→`isd-verification`；`persistence` 为 `not_applicable`，`decision_ref = system-design#m003-ddl-authority`）。
 - **理由 / 决定引用**：本文已固定行为、接口、状态、失败语义与验证规格；私有类型表示、函数步骤、调用/清理步骤、装配与测试入口改由独立 ISD 细化，避免模块设计兼作后过于庞大与重复维护。
 
-#### 15.1 `RISK-MATRIX-001` · 本地 Synapse 与生产 homeserver 行为差异
+**15.1 `RISK-MATRIX-001` · 本地 Synapse 与生产 homeserver 行为差异**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-MATRIX-IDENTITY/CURSOR/BACKFILL`、限流/权限/E2EE 行为。
 - **事实缺口 / 触发条件**：dev/test 用本地 Synapse，生产为客户 homeserver（限流/权限/E2EE 可能不同）。
@@ -1343,7 +1343,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **选项 / 推荐 / 下一步取证**：与真实 homeserver 联调并记录 429/403/E2EE 差异；推荐保留退避与 unique-result 规则不变。
 - **关闭条件 / 决定或当前状态**：Open（沿用 `piko-matrix.md` §16 `RISK-MX-001`）。
 
-#### 15.2 `RISK-MATRIX-002` · v0.3 不支持 E2EE 房间
+**15.2 `RISK-MATRIX-002` · v0.3 不支持 E2EE 房间**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `R-MATRIX-IDENTITY`、`F-MATRIX-VERIFY`。
 - **事实缺口 / 触发条件**：若生产 discussion 房间加密，起点为 `m.room.encrypted` → 拒绝受理，discussion 不可用。
@@ -1352,7 +1352,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **选项 / 推荐 / 下一步取证**：明确生产房间非加密或引入 E2EE（后者超 v0.3 范围）；推荐记录并交项目决策。
 - **关闭条件 / 决定或当前状态**：Open（沿用 `piko-matrix.md` §16 `RISK-MX-002`）。
 
-#### 15.3 `RISK-MATRIX-003` · `matrix-js-sdk` 版本变化
+**15.3 `RISK-MATRIX-003` · `matrix-js-sdk` 版本变化**
 
 - **类型 / 影响的规则、接口、流程或约束**：Risk；影响 `IF-MX-HTTP-*` 消费面与 `isPermanentMatrixError` 分类。
 - **事实缺口 / 触发条件**：`matrix-js-sdk` 升级改变 API/错误对象/长轮询行为。
@@ -1361,7 +1361,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **选项 / 推荐 / 下一步取证**：锁版本；升级前复审 §9.2 消费面与 §6.8.2 映射；推荐保留 lockfile。
 - **关闭条件 / 决定或当前状态**：Open。
 
-#### 15.4 `OQ-MATRIX-001` · `IF-MX-STORE` 未冻结
+**15.4 `OQ-MATRIX-001` · `IF-MX-STORE` 未冻结**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 §9.2.5、§4.2、ISD `port.ts`。
 - **事实缺口 / 触发条件**：`piko-task-repository-design.md` 未编写，matrix 原语签名未由 M003 采纳。
@@ -1370,7 +1370,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **选项 / 推荐 / 下一步取证**：请 M003 采纳 `IF-MX-STORE` 或给出超集；推荐保持 `src/store.ts:59`–`:73` 语义不变。
 - **关闭条件 / 决定或当前状态**：Open。
 
-#### 15.5 `OQ-MATRIX-002` · `M_NOT_FOUND` 受理/运行两态区分
+**15.5 `OQ-MATRIX-002` · `M_NOT_FOUND` 受理/运行两态区分**
 
 - **类型 / 影响的规则、接口、流程或约束**：Open Question；影响 §6.8.2 映射、`isPermanentMatrixError`。
 - **事实缺口 / 触发条件**：当前实现对 `M_NOT_FOUND`（404）不加区分；而 `piko-matrix.md` §4.8.2 要求受理侧映射 `InvalidDiscussionContext`、运行侧忽略。
@@ -1381,7 +1381,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 
 ## 附录 A. 机制承接表
 
-#### A.1 `piko-matrix` / `M-MX-DI-001` · matrix-adapter 固定输入
+**A.1 `piko-matrix` / `M-MX-DI-001` · matrix-adapter 固定输入**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`M-MX-DI-001`（`matrix-js-sdk` + config homeserver/identity/token）；`CON-MX-001`。
 - **本模块必须负责的行为与保证**：Client-Server v3 封装、whoami 身份核对、sync 去重与 cursor、稳定 txn、media ACL；无 E2EE、无 AS。
@@ -1391,7 +1391,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **允许自行决定的范围**：封装实现、退避策略、私有数据结构、media staging 实现。
 - **本地验证 / 组合验证交接**：`VRC-MATRIX-001..005`；组合 `PK-T08`。
 
-#### A.2 `piko-run` / `M-RUN-004`（`IF-RUN-DI-004` 邻接）· discussion Run 的 Matrix 侧事实
+**A.2 `piko-run` / `M-RUN-004`（`IF-RUN-DI-004` 邻接）· discussion Run 的 Matrix 侧事实**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`piko-run.md` §3.1 `CON-RUN-001`（PK-01）与 §14.4 下级输入（M008 作为 discussion 消费者）；MECH-MATRIX 由 M005 跨机制消费。
 - **本模块必须负责的行为与保证**：为 discussion Run 提供起点校验与 turn 落盘事实；不改变 Run/Result 语义。
@@ -1401,7 +1401,7 @@ matrix-adapter 的信任边界有三处：入站 Matrix 事件（来自外部、
 - **允许自行决定的范围**：turn 附着判定实现、去重实现。
 - **本地验证 / 组合验证交接**：`VRC-MATRIX-002/004`；组合 `PK-T01`/`PK-T08`（经 M005 驱动）。
 
-#### A.3 `piko-startup` / `M-ST-DI-004` · S7 whoami 身份事实
+**A.3 `piko-startup` / `M-ST-DI-004` · S7 whoami 身份事实**
 
 - **来源 Capability / Step / Constraint / 接口成员**：`M-ST-DI-004`（homeserver）；`CON-ST-001`（PK-12）；`IF-ST-MATRIX`。
 - **本模块必须负责的行为与保证**：S7 提供 `whoami` 身份一致事实；不一致 → F1。

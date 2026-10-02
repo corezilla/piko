@@ -90,7 +90,7 @@ flowchart LR
 | Pi upstream | 进程内 SDK | 锁定 commit | 同域 | fingerprint 校验 |
 | LLMTier / Matrix | 外部 HTTPS | config + preflight | 独立网络故障域 | 不可达 → F1 |
 
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | 启动方式 | 依赖 | 用途 |
 |---|---|---|---|
@@ -107,7 +107,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `StartupStage`
+**4.1.1 `StartupStage`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`S1..S8` + `READY` + `F1`。来源 M000 ISD §4.1。
 - **逐值含义**：S1 parse / S2 schema / S3 bind / S4 paths / S5 store / S6 pi / S7 preflight / S8 listen；READY 为终态；F1 为失败出口。不允许跳级。
@@ -116,7 +116,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `PreflightReport`
+**4.2.1 `PreflightReport`**
 
 - **定义与来源**：`{store_writable, pi_fingerprint_match, llmtier_models_ok, matrix_whoami_ok}`。来源 M000 ISD §4.2。
 - **字段与约束**：各字段 bool；全 true 才允许 S8。
@@ -136,7 +136,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `instance_meta`
+**4.6.1 `instance_meta`**
 
 - **定义与来源**：`{key, value_json}` 记 schema_generation / instance_id / boot_id。来源 M003 ISD §4.7.1。
 - **约束**：S5 写；重启读。
@@ -172,7 +172,7 @@ flowchart LR
 
 进程内启动函数是本机制 API。
 
-#### `preflight() -> PreflightReport`（IF-ST-PREFLIGHT）
+**`preflight() -> PreflightReport`（IF-ST-PREFLIGHT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-ST-PREFLIGHT`；M000 提供。
 - **唯一契约、版本与状态**：M000 ISD §5.1；Proposed。
@@ -182,7 +182,7 @@ flowchart LR
 - **交互与生命周期**：启动时同步。
 - **代表调用与验证**：PK-T12。
 
-#### `openStore() -> Store`（IF-ST-STORE）
+**`openStore() -> Store`（IF-ST-STORE）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-ST-STORE`；M003 提供。
 - **输入与前提**：`storage.sqlite_path`；instance lock。
@@ -190,7 +190,7 @@ flowchart LR
 - **错误**：不可写 / migration 失败 → F1。
 - **代表调用与验证**：PK-T12。
 
-#### `verifyPiUpstream() -> bool`（IF-ST-PI）
+**`verifyPiUpstream() -> bool`（IF-ST-PI）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-ST-PI`；M006 提供。
 - **输入与前提**：`pi.upstream_commit` + patch manifest。
@@ -198,7 +198,7 @@ flowchart LR
 - **错误**：不匹配 → F1。
 - **代表调用与验证**：PK-T04。
 
-#### `matrixWhoami() -> Identity`（IF-ST-MATRIX）
+**`matrixWhoami() -> Identity`（IF-ST-MATRIX）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-ST-MATRIX`；M008 提供。
 - **成功输出**：user_id 与 config 一致。
@@ -252,7 +252,7 @@ flowchart TD
 - 重启：旧进程退出确认后才启动新进程（P-CONFIG）。
 - 无热更新：配置变更需重启。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 **q1 成功启动** → S1-S8 全过 → READY：
 
@@ -266,7 +266,7 @@ S1 parse ok; S2 schema ok; S3 bind ok; S4 paths ok; S5 store ok; S6 pi ok; S7 pr
 
 **q4 LLMTier 不可达** → F1（`preflight-fail`）。
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Operator）已知 | 完整输入 | 接收方校验 | 实际动作/确认 | 下一步 |
 |---|---|---|---|---|---|
@@ -276,7 +276,7 @@ S1 parse ok; S2 schema ok; S3 bind ok; S4 paths ok; S5 store ok; S6 pi ok; S7 pr
 
 **关键事实如何产生**：READY 事实=S8 完成（M000）；失败阶段=F1 记录；fingerprint 事实=S6 比对（M006）。
 
-#### 6.1.3 关键保证与可中断阶段
+**6.1.3 关键保证与可中断阶段**
 
 | 保证 | 可中断阶段 | 权威可见点 | 推进条件 | 重复进入处理 |
 |---|---|---|---|---|
@@ -340,7 +340,7 @@ stateDiagram-v2
 | Pi 不匹配 | S6 | 不 READY | F1 |
 | 依赖不可达 | S7 | 不 READY | F1 |
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -447,7 +447,7 @@ stateDiagram-v2
 
 独立判据=**外部可观察的端口绑定 + 退出码**（不只自身日志/READY 自述）+ Run 受理能力；Run 状态 NOT_RUN。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

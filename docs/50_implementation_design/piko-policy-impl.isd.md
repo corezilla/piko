@@ -20,7 +20,7 @@
 
 <a id="isd-scope"></a>
 
-本 ISD 实现 M002 `policy` 的**进程内无状态判定**：向 M000 `bootstrap` 提供 `bindToolProfile`（启动 S3），向 M001 `task-api` 提供 `validateSubmission`（每次受理），并提供路径服务 `canonicalizePath`。本次实现范围是 §5 的三个对外函数与其内部组成（提交校验器、路径策略、工具绑定器）及 Brownfield 抽出（§2）；**非目标**是持久化与事务（M003）、HTTP 路由与 bearer principal 校验（M001）、工具执行与预算 CAS（M006）、Run 状态机（M003/M005）、Secret 解析（M000）、discussion membership 验证（M008）。模块行为、接口语义、拒绝码与验证规格由模块设计唯一维护，本层只细化文件/symbol、私有表示、校验/归一化步骤与测试入口。
+本 ISD 实现 M002 `policy` 的**进程内无状态判定**：向 M000 `bootstrap` 提供 `bindToolProfile`（启动 S3），向 M001 `task-api` 提供 `validateSubmission`（每次受理），并提供路径服务 `canonicalizePath`。本次实现范围是 §5 的三个对外函数与其内部组成（提交校验器、路径策略、工具绑定器）及 Brownfield 抽出（§2）；**非目标**是持久化与事务（M003）、HTTP 路由与 bearer principal 校验（M001）、工具执行（M006）、Run 状态机（M003/M005）、Secret 解析（M000）、discussion membership 验证（M008）。模块行为、接口语义、拒绝码与验证规格由模块设计唯一维护，本层只细化文件/symbol、私有表示、校验/归一化步骤与测试入口。
 
 ### 1.1 实现对象
 
@@ -30,7 +30,7 @@
 
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-policy` / `0.1.1` / `docs/40_module_design/piko-policy-design.md`。摘要：policy 无状态；启动把 ToolProfile+registry 绑定为 `BoundToolProfile`，受理把 `AgentTaskRequest` 校验并规范化为 `ValidatedTaskSubmission`（路径 realpath 边界、权限交集、归一化），不落库。
 
-- **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-RUN-003`（PK-03）、`CON-CFG-001`（PK-12，经 MECH-CONFIG）、`CON-ST-001`（PK-12，经 MECH-STARTUP）；机制输入 `M-RUN-DI-002`（`piko-run` §14.4）、`M-CFG-DI-002`（`piko-config` §14.4）、`IF-CFG-BIND`（`piko-config` §5.1）。
+- **需求与 Constraint ID**：`CON-RUN-002`（PK-02）、`CON-RUN-003`（PK-04 · 本版撤销）、`CON-CFG-001`（PK-12，经 MECH-CONFIG）、`CON-ST-001`（PK-12，经 MECH-STARTUP）；机制输入 `M-RUN-DI-002`（`piko-run` §14.4）、`M-CFG-DI-002`（`piko-config` §14.4）、`IF-CFG-BIND`（`piko-config` §5.1）。
 
 - **实现范围 / 非目标**：范围：`src/policy/` 五个文件 + 对 `src/config.ts`/`src/workspace.ts`/`src/task-equality.ts` 的最小改动。非目标：不新建 DB 表/迁移（M003）、不持状态、不发网络、不解析 Secret、不定义 HTTP 状态。
 
@@ -54,9 +54,9 @@
 
 ### 1.2.2 `H-POLICY-VALIDATE` · 受理校验与规范化
 
-- **上游信息项 / 规则 ID**：`F-POLICY-VALIDATE`、`R-POLICY-NORMALIZE`、`R-POLICY-PERMISSION`、`R-POLICY-DEADLINE`、`R-POLICY-BUDGET`、`IF-RUN-VALIDATE`、`CON-RUN-002`、`CON-RUN-003`。
+- **上游信息项 / 规则 ID**：`F-POLICY-VALIDATE`、`R-POLICY-NORMALIZE`、`R-POLICY-PERMISSION`、`IF-RUN-VALIDATE`、`CON-RUN-002`。
 
-- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.2/§8.1/§8.4/§8.5/§8.6/§9.1.2（v0.1.1）；`PolicyViolation`（§6.8.1）。
+- **固定来源 / 版本 / 锚点 / 摘要**：`piko-policy` §2.2/§8.1/§8.4/§8.6/§9.1.2（v0.1.1）；`PolicyViolation`（§6.8.1）。
 
 - **ISD 细化内容 / 章节**：§5.1.2 `PolicyService.validateSubmission`；§3.2 `submission.ts`；§4.2.2 `ValidatedTaskSubmission`；§6.2 `P-POLICY-VALIDATE`。
 
@@ -311,7 +311,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `BoundToolProfile`
+**4.2.1 `BoundToolProfile`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型 `BoundToolProfile`（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.1（并对应 `piko-config` §4.2.1）。
 
@@ -338,7 +338,7 @@ flowchart LR
 
 - **验证**：`VRC-POLICY-001`；`NOT_RUN`。
 
-#### 4.2.2 `ValidatedTaskSubmission`
+**4.2.2 `ValidatedTaskSubmission`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.2（对应 `piko-run` §4.2.1）。
 
@@ -386,7 +386,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构
 
-#### 4.8.1 `PolicyViolation`
+**4.8.1 `PolicyViolation`**
 
 - **完整定义 / 来源**：私有错误类；语义来源 = 模块设计 §6.8.1；契约错误码权威 `interfaces/error-codes/error-blocker-catalog-v0.3.json`。
 
@@ -403,7 +403,7 @@ flowchart LR
 
 - **验证**：`VRC-POLICY-002/003/004/005`；`NOT_RUN`。
 
-#### 4.8.2 `ToolBindFailure`
+**4.8.2 `ToolBindFailure`**
 
 - **完整定义 / 来源**：```ts
   class ToolBindFailure extends Error { readonly code: "tool-bind-fail"; readonly detail: string; }
@@ -513,7 +513,7 @@ policy 的对外接口是 §5.1 的三个函数；被消费的注入接口在同
 
 - **状态与副作用影响 / 验证项**：无 DB 副作用；无状态。`VRC-POLICY-002/004/005`。
 
-- **不可改变的规则 / Constraint ID**：`R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET`；`CON-RUN-002/003`；拒绝码语义。
+- **不可改变的规则 / Constraint ID**：`R-POLICY-NORMALIZE/PERMISSION`；`CON-RUN-002`；拒绝码语义。
 
 - **实现自由度**：校验顺序（在固定语义内）、归一化实现、detail 文案。
 
@@ -763,7 +763,7 @@ flowchart TD
 
 - **代表输入与中间值**：见 §9.1.2 Case A–E。
 
-- **规则 / 接口 / 验证引用**：§5.1.2；`R-POLICY-NORMALIZE/PERMISSION/DEADLINE/BUDGET`；`VRC-POLICY-002/004/005`。
+- **规则 / 接口 / 验证引用**：§5.1.2；`R-POLICY-NORMALIZE/PERMISSION`；`VRC-POLICY-002/004/005`。
 
 ### 6.3 `P-POLICY-PATH` · 路径规范化（伪代码）
 
@@ -808,7 +808,7 @@ flowchart TD
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-POLICY-01` · 并发受理校验独立
+**7.1.1 `C-POLICY-01` · 并发受理校验独立**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环；多个 `validateSubmission` 交错。
 - **已产生或可能产生的副作用**：无（只读 FS 探测）。
@@ -818,7 +818,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：replay=再次调用（幂等）；无 takeover。
 - **验证项**：`VRC-POLICY-006`（Case A/B）。
 
-#### 7.1.2 `C-POLICY-02` · 启动绑定失败
+**7.1.2 `C-POLICY-02` · 启动绑定失败**
 
 - **参与线程 / 回调 / 事务**：启动 S3。
 - **已产生或可能产生的副作用**：无持久副作用。
@@ -828,7 +828,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：修 registry 后重启；不热修。
 - **验证项**：`VRC-POLICY-001`。
 
-#### 7.1.3 `C-POLICY-03` · 路径 TOCTOU
+**7.1.3 `C-POLICY-03` · 路径 TOCTOU**
 
 - **参与线程 / 回调 / 事务**：`canonicalizePath` 判定 vs 外部 symlink 变更。
 - **已产生或可能产生的副作用**：无（policy 不写文件）。
@@ -838,7 +838,7 @@ flowchart TD
 - **允许的 query / replay / takeover / retry**：重新受理重试。
 - **验证项**：`VRC-POLICY-003`（Case C）。
 
-#### 7.1.4 `C-POLICY-04` · 配置变更与在途请求
+**7.1.4 `C-POLICY-04` · 配置变更与在途请求**
 
 - **参与线程 / 回调 / 事务**：Operator 改 config vs 在途判定。
 - **已产生或可能产生的副作用**：无。
@@ -862,7 +862,7 @@ flowchart TD
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-POLICY-AUTHZ` · 授权判定与输入信任
+**7.3.1 `SEC-POLICY-AUTHZ` · 授权判定与输入信任**
 
 - **原规则**：模块设计 §11；`piko-run` §13 授权点（`bindToolProfile` 启动 + `validateSubmission` 受理）。
 - **可信输入 / 敏感字段 / 检查对象**：`principal` 由 M001 认证后传入（policy 不认证）；检查 `workspace_ref`、path、`tool_profile_ref`。
@@ -872,7 +872,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：`info`（绑定成功）、`warn`（拒绝 code 类别）、`error`（绑定失败）；指标经 M009 采集（redacted）。
 - **验证项**：`VRC-POLICY-002/003/005`。
 
-#### 7.3.2 `SEC-POLICY-NOSECRET` · 不接触 Secret
+**7.3.2 `SEC-POLICY-NOSECRET` · 不接触 Secret**
 
 - **原规则**：模块设计 §11；`system-design` §13 secret boundary。
 - **可信输入 / 敏感字段 / 检查对象**：policy 输入不含 credential/token（Secret 解析属 M000/provider）。
@@ -882,7 +882,7 @@ flowchart TD
 - **日志 / 指标 / trace 口径及触发**：日志不含 secret；由审查核对。
 - **验证项**：`VRC-POLICY-002`（日志审查）。
 
-#### 7.3.3 `SEC-POLICY-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-POLICY-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003）。** policy 不直接打开文件/DB；本地持久化安全（文件权限/umask/磁盘耗尽等）由 M003 ISD §7.3 承接。本层交接事实 = 经 `ValidatedTaskSubmission` 传递规范化路径集合，不含凭据。
 
@@ -1077,7 +1077,7 @@ flowchart TD
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-POLICY-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-POLICY-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-policy` §2/§6.2/§8/§9（v0.1.1）声明三功能、数据结构、拒绝码与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。

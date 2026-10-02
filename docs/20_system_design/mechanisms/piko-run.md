@@ -133,8 +133,7 @@ flowchart LR
 | LLMTier endpoint | HTTPS | config `llmtier.base_url` + preflight | 独立故障域（网络） | 不可达 → `ModelUnavailable`；不静默切 |
 | Matrix homeserver | HTTPS | config `matrix.homeserver` + whoami | 独立故障域 | 不可达 → `DiscussionAccessLost` |
 
-
-#### 3.3.1 运行环境
+**3.3.1 运行环境**
 
 | 环境 | 进程拓扑 | 外部依赖 | 持久层 | 用途 |
 |---|---|---|---|---|
@@ -155,14 +154,14 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `TaskState`
+**4.1.1 `TaskState`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled"`。来源：`system-design` §3 + contract §6 + M003 ISD §4.1.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`Queued`＝已受理未取 slot；`Running`＝已取 slot 并 accept Pi；`Cancelling`＝取消意图落盘；`Completed`/`Failed`/`Cancelled`＝终态。未知值拒绝。
 - **生产/修改、所有权、可见点、寿命及失败出口**：唯一写者 M003；可见点 `runs.state`；寿命 = Run 寿命；终态不可回退。
 - **合法与拒绝实例、V/Case 与证据状态**：合法转移见 §8；非法转移返回内部 `FencedWrite`。Case M003/M005 ISD §9.1（NOT_RUN）。
 
-#### 4.1.2 `RunGeneration`
+**4.1.2 `RunGeneration`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：单调正整数，随每次 fenced write 递增。来源 M003 ISD §4.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`generation >= 1`；`WHERE task_id=? AND generation=?` 影响行数必须为 1。
@@ -171,14 +170,14 @@ MECH-RUN 拥有或交换的数据对象。字段全集的唯一权威在机器�
 
 ### 4.2 业务与操作数据结构（适用时）
 
-#### 4.2.1 `ValidatedTaskSubmission`
+**4.2.1 `ValidatedTaskSubmission`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：M002 输出的已验证任务；字段来自 `TaskSubmitRequest`。来源 M002 ISD §5.1。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`（非空、全局唯一）、`task`（不可变定义）、`workspace`（RelPath 在 root 内）、`permissions`（read/write/tool 集合）、`output_paths`（RelPath 集合）、`discussion?`。path 字段按集合比较，时间按 UTC instant。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M002 生产，M003 消费；请求寿命；校验失败返回 typed error。
 - **合法与拒绝实例、V/Case 与证据状态**：绝对路径/`..`/symlink 越界拒绝。Case PK-T03（NOT_RUN）。
 
-#### 4.2.2 `AgentResult`
+**4.2.2 `AgentResult`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：M005 发布的稳定结果；机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json`。来源 contract §3。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`task_id`、`state`（终态）、`partial`（bool）、`summary`（string）、`outputs[]`、`known_actions[]`、`usage: UsageSnapshot`、`failure: Failure | null`。`Completed` 强制 `partial=false/failure=null`；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。
@@ -205,7 +204,7 @@ flowchart LR
 
 ### 4.4 通信报文结构（适用时）
 
-#### 4.4.1 外部 HTTP 报文
+**4.4.1 外部 HTTP 报文**
 
 | 报文 | 方向 | 关键字段 | 机器权威 |
 |---|---|---|---|
@@ -216,7 +215,7 @@ flowchart LR
 | `AgentResult` | Piko → Slinky | `{task_id, state, partial, summary, outputs[], known_actions[], usage, failure}` | `interfaces/schemas/agent-runtime-v0.3.schema.json` |
 | `Error` | Piko → Slinky | `{code, message?, detail?}` | `interfaces/error-codes/agent-runtime-v0.3.yaml` |
 
-#### 4.4.2 内部协作报文
+**4.4.2 内部协作报文**
 
 | 报文 | 方向 | 关键字段 | 权威 |
 |---|---|---|---|
@@ -234,14 +233,14 @@ flowchart LR
 
 ### 4.6 运行状态数据结构（适用时）
 
-#### 4.6.1 `RunSessionRecord`
+**4.6.1 `RunSessionRecord`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`{task_id, pi_session_id=task_id, lane_name="main", active_operation_id, last_operation_id, observed_tip_id, lease_epoch}`。来源 M003 ISD §4.6。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`lease_epoch >= 1`；`pi_session_id` 唯一且确定性派生。
 - **生产/修改、所有权、可见点、寿命及失败出口**：M003 写；可见点 `run_sessions`；Run 寿命。
 - **合法与拒绝实例、V/Case 与证据状态**：session 不可跨 Run 复用。Case PK-T01（NOT_RUN）。
 
-#### 4.6.2 `Lease`
+**4.6.2 `Lease`**
 
 - **完整定义、Data/Type/Error ID 与唯一来源**：`{owner_id, boot_id, epoch, acquired_at, heartbeat_at}`。来源 M004 ISD §4.6。
 - **逐字段/逐值类型、范围、含义与跨字段约束**：`epoch` 唯一 fencing；heartbeat 仅检测。
@@ -254,7 +253,7 @@ flowchart LR
 
 ### 4.8 错误码与错误结构（适用时）
 
-#### 4.8.1 外部 typed error 逐码
+**4.8.1 外部 typed error 逐码**
 
 | Error ID | 触发事实 | HTTP | 结果状态 | 调用方合法下一步 |
 |---|---|---|---|---|
@@ -276,7 +275,7 @@ flowchart LR
 | `CancelledByRequest` | 取消且已停 | Result failure | Cancelled | — |
 | `InternalError` | Piko 内部错误 | Result failure | Failed | 交 operator |
 
-#### 4.8.2 `Failure` 结构（Result 内嵌）
+**4.8.2 `Failure` 结构（Result 内嵌）**
 
 `{code, cause_class, detail?, observed_at, run_generation}`；`Failed` 必须 non-null，`Completed` 强制 null，`Cancelled` 映射 `CancelledByRequest`/`Cancellation`。逐码定义在 `interfaces/error-codes/agent-runtime-v0.3.yaml`。
 
@@ -300,7 +299,7 @@ flowchart LR
 
 MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯一维护）；进程内模块交接也是 API，本节固定其共同契约。
 
-#### `POST /tasks`（createTask，外部 HTTP）
+**`POST /tasks`（createTask，外部 HTTP）**
 
 - **Interface/Member ID、用途与提供责任**：`createTask`；M001 `task-api` 提供。
 - **唯一契约、版本与状态**：`interfaces/openapi/agent-runtime-openapi-v0.3.yaml`；`0.3.0-simplified.6`。
@@ -309,7 +308,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **错误与合法下一步**：422/401/409 `TaskConflict`/410 `Gone`/429 `QueueFull`/503；同 ID 同内容返回原 Run。
 - **代表调用与验证**：§6.1.1 q1/q4；PK-T03/PK-T15。
 
-#### `GET /tasks/{task_id}`（getTask，外部 HTTP）
+**`GET /tasks/{task_id}`（getTask，外部 HTTP）**
 
 - **Interface/Member ID、用途与提供责任**：`getTask`；M001 提供。
 - **输入与前提**：`task_id`；同一 principal。
@@ -317,7 +316,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **错误与合法下一步**：401/404/410。
 - **代表调用与验证**：§6.1.1 q2；PK-T03。
 
-#### `POST /tasks/{task_id}:cancel`（cancelTask，外部 HTTP）
+**`POST /tasks/{task_id}:cancel`（cancelTask，外部 HTTP）**
 
 - **Interface/Member ID、用途与提供责任**：`cancelTask`；M001 提供。
 - **输入与前提**：`task_id`；同一 principal。
@@ -325,7 +324,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **错误与合法下一步**：401/404/410。
 - **代表调用与验证**：MECH-CANCEL §6.1.1；PK-T05。
 
-#### `GET /tasks/{task_id}/result`（getTaskResult，外部 HTTP）
+**`GET /tasks/{task_id}/result`（getTaskResult，外部 HTTP）**
 
 - **Interface/Member ID、用途与提供责任**：`getTaskResult`；M001 提供。
 - **输入与前提**：`task_id`；同一 principal。
@@ -333,7 +332,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **错误与合法下一步**：409 `TaskNotTerminal`/401/404/410/500 `ResultUnavailable`。
 - **代表调用与验证**：§6.1.1 q3；PK-T16。
 
-#### `createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`（IF-RUN-CREATE）
+**`createOrGetRun(input: ValidatedTaskSubmission) -> CreateRunOutcome`（IF-RUN-CREATE）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-CREATE`；M003 `task-repository` 提供；M001 消费。
 - **唯一契约、版本与状态**：M003 ISD §5.1；Proposed（模块 ISD 待建）。
@@ -343,7 +342,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`；busy → busy_timeout 后失败。
 - **代表调用与验证**：§6.1.1 q1/q4；PK-T03/PK-T15。
 
-#### `acquireSlot(ownerId: string) -> Lease | null`（IF-RUN-SLOT）
+**`acquireSlot(ownerId: string) -> Lease | null`（IF-RUN-SLOT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-SLOT`；M004 `scheduler` 提供；M003 持久化。
 - **唯一契约、版本与状态**：M004 ISD §5.1；Proposed。
@@ -353,7 +352,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **交互与生命周期**：同步；单 `BEGIN IMMEDIATE`。
 - **代表调用与验证**：PK-T01/PK-T13。
 
-#### `accept(handle: PiRunHandle, operationId: string, messages: AgentMessage[]) -> void`（IF-RUN-ACCEPT）
+**`accept(handle: PiRunHandle, operationId: string, messages: AgentMessage[]) -> void`（IF-RUN-ACCEPT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-ACCEPT`；M006 `pi-adapter` 提供；M005 消费。
 - **唯一契约、版本与状态**：M006 ISD §5.1；固定 Pi `0.85.1` @ commit `9767ba...`。
@@ -363,7 +362,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **交互与生命周期**：异步；结果经 `drive` 拉取。
 - **代表调用与验证**：PK-T04/PK-T09。
 
-#### `snapshot(runId: string) -> UsageSnapshot` + `validateBeforePublish(result, contractVersion) -> SemanticCheck`（IF-RUN-SNAPSHOT）
+**`snapshot(runId: string) -> UsageSnapshot` + `validateBeforePublish(result, contractVersion) -> SemanticCheck`（IF-RUN-SNAPSHOT）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-SNAPSHOT`；M007 `usage` 提供；M005 消费。
 - **唯一契约、版本与状态**：M007 ISD §5.1；契约 `0.3.0-simplified.6`。
@@ -373,7 +372,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **交互与生命周期**：与 publish 同事务前置；无独立超时。
 - **代表调用与验证**：PK-T10/PK-T16。
 
-#### `publishResult(command: FencedPublishResult) -> ResultRecord`（IF-RUN-PUBLISH）
+**`publishResult(command: FencedPublishResult) -> ResultRecord`（IF-RUN-PUBLISH）**
 
 - **Interface/Member ID、用途与提供责任**：`IF-RUN-PUBLISH`；M003 `task-repository` 提供；M005 消费。
 - **唯一契约、版本与状态**：M003 ISD §5.1；Proposed。
@@ -390,7 +389,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 | IF-RUN-DRIVE | M006 → M005 | `PiOperationOutcome` stream | operation id | M006 ISD §5.1 |
 | IF-RUN-RAWUSAGE | M006 → M007 | raw usage 事件 | attempt identity | M006 ISD §5.1 |
 
-#### `PiOperationOutcome` stream（IF-RUN-DRIVE）
+**`PiOperationOutcome` stream（IF-RUN-DRIVE）**
 
 - **输入/关联**：`operation_id`、`task_id`；stream events ordered。
 - **确认/结果**：stream 结束后 Pi commit operation result；非 SSE 由 Harness 形成 recoverable operation。
@@ -398,7 +397,7 @@ MECH-RUN 的对外 API 是四项 HTTP operation（由 `system-design` §8.1 唯�
 - **错误**：Harness fault → typed error（见 §9）。
 - **代表调用与验证**：PK-T09/PK-T10 + LLMTier 联调。
 
-#### raw usage 事件（IF-RUN-RAWUSAGE）
+**raw usage 事件（IF-RUN-RAWUSAGE）**
 
 - **输入/关联**：`(pi_operation_id, step_id, attempt)` + 字段存在性。
 - **确认/结果**：写 `model_attempts`；迟到以 record_version 替换。
@@ -484,7 +483,7 @@ flowchart TD
 - discussion Run 可在 Open intake 期间接收多个 `DiscussionTurn`（由 MECH-MATRIX 承接）；MECH-RUN 只负责触发 accept 与终态。
 - Run 终态后 tombstone 永久保留；保留期到后正文清理但 `{task_id, Gone}` 保留。
 
-#### 6.1.1 完整调用实例（JSON）
+**6.1.1 完整调用实例（JSON）**
 
 代表 Run `task-042` / `task-042`，逐步调用并校验响应后再执行下一步。
 
@@ -542,7 +541,7 @@ flowchart TD
 
 图 M-RUN-8 · 条件依赖图（取消与回退）/ Target / NOT_BUILT。箭头=前置依赖；stop 不等待正常路径完成；release 依赖已选终态。不存在 stop 等 Release、Release 等 stop 的循环。
 
-#### 6.1.2 双方调用演练（调用方知道什么 → 下一步）
+**6.1.2 双方调用演练（调用方知道什么 → 下一步）**
 
 | 步 | 调用方（Slinky）已知 | 完整输入 | 接收方定位/校验 | 实际动作/确认 | 调用方下一步 |
 |---|---|---|---|---|---|
@@ -555,7 +554,7 @@ flowchart TD
 
 **关键事实如何产生**：受理事实=`tasks`+`runs` 行 commit（M003）；完成事实=`results` generation 写成功（M005+M003）；停止事实=`runs.state=Cancelled` + Harness operation 已停（M006 确认）。各条件不靠"已确认"字样，而靠可定位的持久记录。
 
-#### 6.1.3 关键保证与可中断阶段
+**6.1.3 关键保证与可中断阶段**
 
 | 保证 | 可中断阶段 | 权威可见点 | 推进条件 | 重复进入处理 |
 |---|---|---|---|---|
@@ -576,7 +575,7 @@ flowchart TD
 | Running 取消 | 用户取消运行中任务 | stop intent → abort → 对账 → 终态 | `StopRequested` → `CancelledByRequest` |
 | 工具无 outcome | `replay:"never"` 无结果 | 合成 interrupted result | `UnsafeRetryBlocked`/`ExecutionStateUnknown` |
 
-#### 7.1 每个异常的五轴判定
+**7.1 每个异常的五轴判定**
 
 按 STD 机制指南 §7：每个异常核对五轴，不合并成单个 failed。
 
@@ -652,7 +651,7 @@ flowchart TD
 
 图 M-RUN-5 · 异常处置图 / Target / NOT_BUILT。已知/未知结果：provider 失败有 Harness 事实（已知）；orphaned effect 只能合成中断（部分未知）；`never` 无 outcome 是未知副作用（fail-closed）。权威核对：SQLite + Pi session。
 
-#### 9.1 跨重启恢复窗口
+**9.1 跨重启恢复窗口**
 
 | 崩溃窗口 | 中断前最后持久事实 | 重启后查询身份与位置 | 查询结果 → 合法动作 |
 |---|---|---|---|
@@ -796,7 +795,6 @@ flowchart TD
 | `M-RUN-DI-006` | `pi-adapter` | Pi 0.85.1 commit | PK-04/05/06 | hook 实现 |
 | `M-RUN-DI-007` | `usage` | contract `0.3.0-simplified.6` | PK-09/10 | 聚合实现（不改 generation） |
 
-
 ## 15. 验证、上线与回滚
 
 ### 15.1 输入构造、故障控制与独立判据
@@ -806,7 +804,7 @@ flowchart TD
 - 故障：SIGKILL worker（两步间）、Harness fault、`replay:"never"` 无 outcome、响应丢失、late usage。
 - 独立判据：`validate_v03_contract.py` + JSON Schema + semantic invariants，不拿被测实现自身返回成功当 oracle。
 
-#### 15.1.1 每项核心保证的正常向量 + 故障向量
+**15.1.1 每项核心保证的正常向量 + 故障向量**
 
 | 保证 | 正常向量 | 最可能破坏的故障向量 | 注入/命中 | 独立 Oracle |
 |---|---|---|---|---|

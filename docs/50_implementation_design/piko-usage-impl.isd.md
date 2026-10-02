@@ -383,7 +383,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举
 
-#### 4.1.1 `TokenField` / `TOKEN_FIELDS`
+**4.1.1 `TokenField` / `TOKEN_FIELDS`**
 
 - **代码式声明、Data/Type ID 与唯一来源**：```ts
   type TokenField = "input_tokens" | "output_tokens" | "total_tokens"
@@ -422,7 +422,7 @@ flowchart LR
 
 - **合法及拒绝实例、V/Case 与证据状态**：合法 `{input:1200, output:340, totalTokens:1540, cacheRead:100, cacheWrite:0, reasoning:50}`；拒绝把缺失 `reasoning` 填 0。`VRC-USAGE-001`；`NOT_RUN`。
 
-#### 4.2.2 `ModelAttemptView` / `AttemptSet`
+**4.2.2 `ModelAttemptView` / `AttemptSet`**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   interface ModelAttemptView {
@@ -477,7 +477,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `UsageDerivedState`（内存派生）
+**4.6.1 `UsageDerivedState`（内存派生）**
 
 - **代码式声明、Data/Type ID 与固定来源**：```ts
   type UsageDerivedState = "Live" | "Frozen";
@@ -521,7 +521,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 ### 5.1 API（适用时）
 
-#### 5.1.1 `UsageAggregator.snapshot(runId: string): UsageSnapshot`
+**5.1.1 `UsageAggregator.snapshot(runId: string): UsageSnapshot`**
 
 - **Interface/Member ID、用途**：`IF-USAGE-SNAPSHOT`；逐字段聚合生成唯一 `UsageSnapshot`。
 
@@ -575,7 +575,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **装配、合法及拒绝实例**：装配：§3.7。合法：3 attempt（完整/缺 reasoning/完整）→ `Partial` 快照。拒绝：无（输入 `runId` 空为编程错误）。Oracle = 手工期望值 + contract 不变量。`NOT_RUN`。
 
-#### 5.1.2 `ResultValidator.validateBeforePublish(result: AgentResult, contractVersion: string): SemanticCheck`
+**5.1.2 `ResultValidator.validateBeforePublish(result: AgentResult, contractVersion: string): SemanticCheck`**
 
 - **Interface/Member ID、用途**：`IF-USAGE-VALIDATE`；Result 发布前语义校验（fail closed）。
 
@@ -629,7 +629,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **装配、合法及拒绝实例**：合法：合法 `Partial` → `ok:true`。拒绝：`total != input+output` → `ok:false`。Oracle = 契约语义不变量反例。`NOT_RUN`。
 
-#### 5.1.3 `FieldReducer.reduce(attempts: number, rows: RawAttemptUsage[]): UsageSnapshot`（内部纯函数）
+**5.1.3 `FieldReducer.reduce(attempts: number, rows: RawAttemptUsage[]): UsageSnapshot`（内部纯函数）**
 
 - **Interface/Member ID、用途**：私有；`R-USAGE-SUMFIELD/QUALITY/MISSING` 的实现。
 
@@ -683,7 +683,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **装配、合法及拒绝实例**：合法：`reduce(3, [3 行完整]) ` → `Complete`。拒绝：无。`NOT_RUN`。
 
-#### 5.1.4 `SemanticRules.check(usage: UsageSnapshot, contractVersion: string): SemanticCheck`（内部纯函数）
+**5.1.4 `SemanticRules.check(usage: UsageSnapshot, contractVersion: string): SemanticCheck`（内部纯函数）**
 
 - **Interface/Member ID、用途**：私有；`R-USAGE-VALIDATE` 的实现。
 
@@ -737,7 +737,7 @@ usage 的对外接口是 §5.1 的两个函数；被消费的 M003 读端口在�
 
 - **装配、合法及拒绝实例**：合法：`check(partial,"0.3.0-simplified.6")` → `ok:true`。拒绝：`check(badTotal,...)` → `ok:false`。`NOT_RUN`。
 
-#### 5.1.5 `M003AttemptStore.readAttempts(runId: string): AttemptSet`（消费端口）
+**5.1.5 `M003AttemptStore.readAttempts(runId: string): AttemptSet`（消费端口）**
 
 - **Interface/Member ID、用途**：`IF-USAGE-STORE`（Proposed）；只读返回该 Run 的 attempt 计数与带 usage 的行投影。
 

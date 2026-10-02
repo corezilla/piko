@@ -30,7 +30,7 @@
 
 - **模块设计 Document ID / 版本 / 路径 / 摘要**：`piko-worker` / `0.1.1` / `docs/40_module_design/piko-worker-design.md`。摘要：worker 持有 lease 并协调一个 Run；Result 走两步提交（`results` generation N 与 `runs` 终态 generation N+1 不可合并）；取消按 state 分流；崩溃后按 R1-R7 只补第二步；不镜像 Pi loop。
 
-- **需求与 Constraint ID**：`CON-RUN-001`（PK-01，边界）、`CON-RUN-003`（PK-03）、`CON-RUN-004`（PK-07）、`CON-USAGE-001/002`（PK-09/10）、`CON-MX-001`（PK-08）、`CON-REC-001`（PK-12）、`CON-CX-001`（PK-03）；机制输入 `M-RUN-DI-005`、`M-MX-DI-002`、`M-REC-DI-002`、`M-CX-DI-003`。
+- **需求与 Constraint ID**：`CON-RUN-001`（PK-01，边界）、`CON-RUN-003`（PK-04 · 本版撤销）、`CON-RUN-004`（PK-07）、`CON-USAGE-001/002`（PK-09/10）、`CON-MX-001`（PK-08）、`CON-REC-001`（PK-12）、`CON-CX-001`（PK-03）；机制输入 `M-RUN-DI-005`、`M-MX-DI-002`、`M-REC-DI-002`、`M-CX-DI-003`。
 
 - **实现范围 / 非目标**：范围：`src/worker/` 七个文件 + 对 `src/worker.ts`/`src/store.ts`/`src/main.ts` 的最小改动。非目标：不新建 DB 表/迁移（M003）、不改 Pi Harness 行为（M006）、不实现 usage 算法（M007）、不引入并行/优先级。
 
@@ -397,7 +397,7 @@ flowchart LR
 
 ### 4.1 公共基础类型与枚举（适用时）
 
-#### 4.1.1 `CancelOutcome`
+**4.1.1 `CancelOutcome`**
 
 - **完整定义、Data/Type ID 与唯一来源**：`type CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal"`。公共语义来源 = 模块设计 §6.1.1（并对应 contract §1 `CancelReceipt.outcome`）。
 
@@ -407,7 +407,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-002`；`NOT_RUN`。
 
-#### 4.1.2 `RecoveryOutcome`
+**4.1.2 `RecoveryOutcome`**
 
 - **完整定义、Data/Type ID 与唯一来源**：`type RecoveryOutcome = "PatchedTerminal" | "ResumedOperation" | "Fenced" | "InternalError"`。公共语义来源 = 模块设计 §6.1.2（并对应 `piko-recovery` §4.1.1）。
 
@@ -419,7 +419,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `AgentResult`
+**4.2.1 `AgentResult`**
 
 - **完整定义、Data/Type ID 与唯一来源**：机器权威 `interfaces/schemas/agent-runtime-v0.3.schema.json` `$defs.AgentResult`；本层由 `result.ts` 构造。
 
@@ -439,7 +439,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-001/004`；`NOT_RUN`。
 
-#### 4.2.2 `FencedPublishResult`
+**4.2.2 `FencedPublishResult`**
 
 - **完整定义、Data/Type ID 与唯一来源**：`interface FencedPublishResult { task_id: string; generation: number; result_json: string; result_sha256: string }`；语义来源 = 模块设计 §6.2.3 + `piko-run` §4.4.2。
 
@@ -449,7 +449,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-001`；`NOT_RUN`。
 
-#### 4.2.3 `WorkerRunPlan`
+**4.2.3 `WorkerRunPlan`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型 `interface WorkerRunPlan { task_id: string; lease_epoch: number; workspace: ResolvedWorkspace; instruction: string; discussion?: DiscussionContext }`；来源 = 模块设计 §6.2.4，字段引自契约 `AgentTaskRequest`。
 
@@ -465,7 +465,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `WorkerRunPhase`
+**4.6.1 `WorkerRunPhase`**
 
 - **完整定义 / 来源**：私有派生枚举：
 
@@ -481,7 +481,7 @@ flowchart LR
 
 - **验证**：`VRC-WORKER-001/002/006/007`；`NOT_RUN`。
 
-#### 4.6.2 `RecoveryProbe`
+**4.6.2 `RecoveryProbe`**
 
 - **完整定义 / 来源**：```ts
   interface RecoveryProbe { task_id: string; result_generation: number | null; run_state: TaskState; lease_epoch: number; pi_session: { session_id: string; exists: boolean; open_operations: string[]; operation_result?: unknown }; }
@@ -583,7 +583,7 @@ worker 的对外接口是 §5.1 的进程内函数；被消费的跨模块端口
 
 - **状态与副作用影响 / 验证项**：副作用 = 创建 `run_sessions`、提交 operation；`VRC-WORKER-001/007`。
 
-- **不可改变的规则 / Constraint ID**：`R-WORKER-TWOSTEP`/`R-WORKER-DEADLINE`；`CON-RUN-001/003/004`。
+- **不可改变的规则 / Constraint ID**：`R-WORKER-TWOSTEP`；`CON-RUN-001/004`。
 
 - **实现自由度**：drive poll 实现、对账顺序、私有表示。
 
@@ -951,7 +951,7 @@ sequenceDiagram
 
 - **代表输入与中间值**：见 §9.1.1 Case A：`Lease{task_id:"task-042", epoch:3}` → `DRIVING` → operation result。
 
-- **规则 / 接口 / 验证引用**：§5.1.1/§5.2.3/§5.2.4；`R-WORKER-TWOSTEP/DEADLINE`；`VRC-WORKER-001/007`。
+- **规则 / 接口 / 验证引用**：§5.1.1/§5.2.3/§5.2.4；`R-WORKER-TWOSTEP`；`VRC-WORKER-001/007`。
 
 ### 6.2 `P-WORKER-PUBLISH` · Result 两步发布
 
@@ -1061,7 +1061,7 @@ sequenceDiagram
 
 ### 7.1 并发、交错与失败收口
 
-#### 7.1.1 `C-WORKER-01` · 两步提交窗口崩溃
+**7.1.1 `C-WORKER-01` · 两步提交窗口崩溃**
 
 - **参与线程 / 回调 / 事务**：`publishResult` 事务已提交 vs `finishTerminal` 未提交；进程崩溃。
 - **已产生或可能产生的副作用**：`results` 已写入（不可变）。
@@ -1071,7 +1071,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：query=`result`/`getTask`；takeover=恢复；无重跑 Pi。
 - **验证项**：`VRC-WORKER-006`（Case A）。
 
-#### 7.1.2 `C-WORKER-02` · 取消与终态发布竞态
+**7.1.2 `C-WORKER-02` · 取消与终态发布竞态**
 
 - **参与线程 / 回调 / 事务**：`cancelTaskning` 与 operation 自然结束并发；`LeaseLost` 与 slot 释放。
 - **已产生或可能产生的副作用**：`cancel_requested`/`state=Cancelling` 或终态。
@@ -1081,7 +1081,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：重复取消幂等；`StopRequested` 后轮询。
 - **验证项**：`VRC-WORKER-002/007`。
 
-#### 7.1.3 `C-WORKER-03` · 恢复与正常领取顺序
+**7.1.3 `C-WORKER-03` · 恢复与正常领取顺序**
 
 - **参与线程 / 回调 / 事务**：恢复编排 vs M004 正常领取（恢复门）。
 - **已产生或可能产生的副作用**：恢复补写/resume。
@@ -1091,11 +1091,11 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：takeover=恢复。
 - **验证项**：`VRC-WORKER-006`（Case D）。
 
-#### 7.1.4 `C-WORKER-04` · 截止与取消同时 · N/A
+**7.1.4 `C-WORKER-04` · 截止与取消同时 · N/A**
 
 **N/A · 本版撤销**：`PK-04` 撤销。
 
-#### 7.1.5 `C-WORKER-05` · 语义校验失败
+**7.1.5 `C-WORKER-05` · 语义校验失败**
 
 - **参与线程 / 回调 / 事务**：`validateBeforePublish` 返回 not ok。
 - **已产生或可能产生的副作用**：无（未进入第一步）。
@@ -1105,7 +1105,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：交 operator；不重跑 Pi。
 - **验证项**：`VRC-WORKER-004`（Case B）。
 
-#### 7.1.6 `C-WORKER-06` · intake CAS 与新 turn 竞态
+**7.1.6 `C-WORKER-06` · intake CAS 与新 turn 竞态**
 
 - **参与线程 / 回调 / 事务**：`casIntake` vs M008 sync 写新 turn。
 - **已产生或可能产生的副作用**：新 `Pending` turn 已提交。
@@ -1115,7 +1115,7 @@ sequenceDiagram
 - **允许的 query / replay / takeover / retry**：重放=重新 CAS。
 - **验证项**：`VRC-WORKER-005`（Case C）。
 
-#### 7.1.7 `C-WORKER-07` · drive 定时器延迟/丢失
+**7.1.7 `C-WORKER-07` · drive 定时器延迟/丢失**
 
 - **参与线程 / 回调 / 事务**：宿主事件循环繁忙。
 - **已产生或可能产生的副作用**：无（仅 poll 晚）。
@@ -1135,7 +1135,7 @@ sequenceDiagram
 
 ### 7.3 安全、权限与可观测性
 
-#### 7.3.1 `SEC-WORKER-NOSECRET` · 无鉴权与不记录敏感数据
+**7.3.1 `SEC-WORKER-NOSECRET` · 无鉴权与不记录敏感数据**
 
 - **原规则**：模块设计 §11；worker 无外部输入、无身份/授权分支。
 - **可信输入 / 敏感字段 / 检查对象**：无外部输入；不接触 credential/绝对路径/模型 instruction 正文。
@@ -1145,7 +1145,7 @@ sequenceDiagram
 - **日志 / 指标 / trace 口径及触发**：`info`（started/publish/cancel）、`warn`（`LeaseLost`/依赖错误）、`error`（`InternalError`）；脱敏后输出。
 - **验证项**：`VRC-WORKER-001`（日志不含敏感字段由审查核对）。
 
-#### 7.3.2 `SEC-WORKER-METRIC` · 指标写入点
+**7.3.2 `SEC-WORKER-METRIC` · 指标写入点**
 
 - **原规则**：`system-design` §12 / `piko-run` §12.1；模块设计 §11。
 - **可信输入 / 敏感字段 / 检查对象**：指标 `event.run.{started,terminated}` 与 `piko.recovery.outcomes.*`。
@@ -1155,7 +1155,7 @@ sequenceDiagram
 - **日志 / 指标 / trace 口径及触发**：单位=事件/计数；关联 `task_id`+`generation`；重置=进程世代。
 - **验证项**：`VRC-WORKER-001/006`。
 
-#### 7.3.3 `SEC-WORKER-LOCALSTORE` · 本地持久化安全
+**7.3.3 `SEC-WORKER-LOCALSTORE` · 本地持久化安全**
 
 **not_applicable（交接给 M003）。** worker 不直接打开文件/DB；本地持久化安全（文件权限/umask/symlink/磁盘耗尽等）由 M003 ISD 承接。本层交接事实 = 经端口传递 mutation 命令与 `(task_id, generation, epoch)` 身份，不含路径/凭据。
 
@@ -1391,7 +1391,7 @@ sequenceDiagram
 
 <a id="isd-status"></a>
 
-#### 10.2.1 `SC-WORKER-01` · 模块设计 ↔ ISD 承接一致
+**10.2.1 `SC-WORKER-01` · 模块设计 ↔ ISD 承接一致**
 
 - **上游承接状态 / 固定来源**：`piko-worker` §2/§6.6/§8/§9（v0.1.1）声明七功能、`WorkerRunPhase` 状态模型、失败语义与验证规格。
 - **本层派生状态 / 事实依据**：本 ISD 依据文件/symbol/构建事实派生——当前全部 `PLANNED`，无运行证据。

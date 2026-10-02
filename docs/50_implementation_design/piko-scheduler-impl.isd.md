@@ -350,7 +350,7 @@ flowchart LR
 
 ### 4.2 业务与操作数据结构
 
-#### 4.2.1 `Lease`
+**4.2.1 `Lease`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型 `Lease`（本 ISD `types.ts`）；公共语义来源 = 模块设计 §6.2.1（并对应 MECH-RUN §5.1，其中 `task_id` 为共享合同扩展 → `OQ-SCHED-004`）。
 
@@ -373,7 +373,7 @@ flowchart LR
 
 - **验证**：`VRC-SCHED-001/003`；`NOT_RUN`。
 
-#### 4.2.2 `SlotRow` / `SlotClaimResult` / `FenceResult`
+**4.2.2 `SlotRow` / `SlotClaimResult` / `FenceResult`**
 
 - **完整定义、Data/Type ID 与唯一来源**：私有类型；语义来源 = 模块设计 §6.2.2/§9.2.1。
 
@@ -412,7 +412,7 @@ flowchart LR
 
 ### 4.6 运行状态数据结构
 
-#### 4.6.1 `ExecutionSlotState`（内存投影）
+**4.6.1 `ExecutionSlotState`（内存投影）**
 
 - **完整定义 / 来源**：私有**派生**枚举，非持久 authority（持久事实在 `execution_slot`，属 M003）：
 
@@ -428,7 +428,7 @@ flowchart LR
 
 - **验证**：`VRC-SCHED-001/003`；`NOT_RUN`。
 
-#### 4.6.2 `LeaseKeeperState`（看护内存态）
+**4.6.2 `LeaseKeeperState`（看护内存态）**
 
 - **完整定义 / 来源**：```ts
   interface LeaseKeeperState { lease: Lease; timer: NodeJS.Timeout | null; consecutiveFailures: number; stopped: boolean }
@@ -476,7 +476,7 @@ flowchart LR
 
 - **验证**：`VRC-SCHED-006`；`NOT_RUN`。
 
-#### 4.8.3 `SlotInvariantViolation`
+**4.8.3 `SlotInvariantViolation`**
 
 - **完整定义 / 来源**：```ts
   class SlotInvariantViolation extends Error { readonly invariant_id: string; }
