@@ -1,0 +1,33 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "unit-test-scheme",
+  "document_type": "tests.unit-test-scheme",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko unit-test-scheme",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode",
+    "corezilla"
+  ],
+  "template_id": "tests.unit-test-scheme",
+  "template_version": "0.6.1",
+  "template_sha256": "6a199d8afe1c050601b3cd8edcde9b70d968fc9ae5441677d5f3f61eec3507e7",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/unit/unit-test-scheme.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-design",
+  "supersedes": null,
+  "created_at": "2026-10-03",
+  "last_modified_at": "2026-10-03",
+  "design_object_id": null
+}

@@ -1,31 +1,4 @@
-<!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko 场景测试规格（PTS-01..PTS-10）
-
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
-
-| 文档字段 | 值 |
-|---|---|
-| Document ID | `piko-scenario-e2e-test-specification-v0.1` |
-| Document Version | `0.7.0` |
-| Status | `Approved` |
-| Project | `piko` |
-| Authority | `piko` |
-| Document Owner | corezilla |
-| Authors | corezilla, opencode |
-| Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-25` |
-| Template ID | `assurance.test-specification` |
-| Template Version | `0.2.1` |
-| Template Conformance | `native` |
-| Tailoring Reference | none |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/70_verification/specifications/piko-scenario-e2e-test-specification-v0.1.md` |
-| Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
-<!-- STD_DOCUMENT_COVER_END -->
+> 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 ## 1. 目标、范围与被测对象
 

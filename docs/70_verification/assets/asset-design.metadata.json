@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "asset-design",
+  "document_type": "tests.asset-design",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko asset-design",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode",
+    "corezilla"
+  ],
+  "template_id": "tests.asset-design",
+  "template_version": "0.2.2",
+  "template_sha256": "e973954d2dedbc99746102c0dff3dda225ec9c51686324cc79b89ab84d375d39",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "cross-level",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/assets/asset-design.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-design",
+  "supersedes": null,
+  "created_at": "2026-10-03",
+  "last_modified_at": "2026-10-03"
+}

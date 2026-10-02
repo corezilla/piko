@@ -1,31 +1,4 @@
-<!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko ↔ LLMTier 联调计划
-
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
-
-| 文档字段 | 值 |
-|---|---|
-| Document ID | `piko-llmtier-joint-test-plan-v0.1` |
-| Document Version | `0.1.0-draft.12` |
-| Status | `Draft` |
-| Project | `piko` |
-| Authority | `piko` |
-| Document Owner | corezilla |
-| Authors | corezilla, opencode |
-| Created Date | `2026-09-21` |
-| Last Modified Date | `2026-09-25` |
-| Template ID | `assurance.test-plan` |
-| Template Version | `0.2.0` |
-| Template Conformance | `native` |
-| Tailoring Reference | none |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/70_verification/plans/piko-llmtier-joint-test-plan-v0.1.md` |
-| Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
-<!-- STD_DOCUMENT_COVER_END -->
+> 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 > 本计划依据联调方案 `piko-llmtier-joint-test-specification-v0.1`（下称「规格」）制定，覆盖
 > **从开始到结束**的全过程：启动检查 → 17 个 case 按序逐步执行 → 收敛 → 联合多维度测试 → 输出成果归档。
