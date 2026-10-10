@@ -7,6 +7,7 @@ import type { TaskRequest, RuntimeConfig } from "./types.js";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { BearerAuth } from "./auth.js";
+import type { Observability } from "./observability.js";
 
 async function body(req: IncomingMessage, max = 2 * 1024 * 1024) {
   let size = 0;
@@ -41,11 +42,12 @@ export class ApiServer {
     private store: TaskStore,
     private auth: BearerAuth,
     private onCancel?: (taskId: string, outcome: string) => void,
+    private obs?: Observability,
   ) {
     this.server = createServer((req, res) => void this.route(req, res));
   }
-  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth, onCancel?: (taskId: string, outcome: string) => void) {
-    const x = new ApiServer(config, store, auth, onCancel);
+  static async create(config: RuntimeConfig, store: TaskStore, auth: BearerAuth, onCancel?: (taskId: string, outcome: string) => void, obs?: Observability) {
+    const x = new ApiServer(config, store, auth, onCancel, obs);
     const schema = JSON.parse(await readFile(new URL("../interfaces/schemas/agent-runtime-v0.3.schema.json", import.meta.url), "utf8"));
     const AjvCtor: any = (Ajv as any).default ?? Ajv;
     const formats: any = (addFormats as any).default ?? addFormats;
@@ -88,6 +90,14 @@ export class ApiServer {
       if (req.method === "GET" && result) return send(res, 200, this.store.result(decodeURIComponent(result[1]!)));
       const get = url.pathname.match(/^\/tasks\/([^/]+)$/);
       if (req.method === "GET" && get) return send(res, 200, this.store.getRun(decodeURIComponent(get[1]!)));
+
+      // M009 `observability` — authenticated, read-only, redacted operator snapshot.
+      // It never mutates business state and never gates the four task operations.
+      if (req.method === "GET" && url.pathname === "/diagnostics") {
+        if (!this.obs) throw new PikoError("NotFound", 404, "route not found");
+        this.obs.metric("diagnostics.served", "inc");
+        return send(res, 200, this.obs.snapshot());
+      }
 
       throw new PikoError("NotFound", 404, "route not found");
     } catch (error) {
