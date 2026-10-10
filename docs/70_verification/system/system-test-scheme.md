@@ -27,7 +27,7 @@
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
 
-> **编写建议**：本模板是系统测试方案，与 design.software-system（系统设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.system-case）；黑盒边界纪律、真实系统 Oracle 分层、对接前检与工具资产化方法见系统测试指南（STD `docs/ai-guides/system-testing.md`，见锁定的 `docs/std.lock.json` 所指 STD 版本），不在本模板重复。
+> **编写建议**：本模板是系统测试方案，与 design.software-system（系统设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.system-case）；黑盒边界纪律、真实系统 Oracle 分层、对接前检与工具资产化方法见[系统测试指南](../../docs/ai-guides/system-testing.md)，不在本模板重复。
 
 > **格式说明**：`> ` 引用块为编写建议（指导如何填写，生成实例后保留，项目可按标签整体裁除）；```example 围栏为虚构教学示例（以源文本呈现成品形态，`new-design` 实例化时整块剥离，不得当作项目事实）；`⟨angle⟩` 为待填槽，反引号为照抄的短建议/示例值。
 
@@ -90,13 +90,13 @@
 >
 > **完成条件**：每个 §6 登记行的家族能命中本节一条记录。
 
-#### 2.1.1 Family · ⟨名称⟩
+#### 2.1.1 Family · normal（基础家族）
 
-**测试设计技术**：`选用技术与具体注入内容（值/序列/交错）`
+**测试设计技术**：`等价类划分 + 状态转换（四项操作状态流）`
 
-**环境类型引用**：`类型名（详见 §4）`
+**环境类型引用**：`ENV-LOOPBACK`
 
-**自动化与判定规则**：`批量策略、一次判定/采样统计、INVALID 条件`
+**自动化与判定规则**：`tests/integration/http-api.test.ts`；按响应码与 `TaskView`/`AgentResult` 字段判定；缺字段即 INVALID
 
 
 ### 2.2 测试设计技术选型记录（按 Case 家族）
@@ -340,13 +340,13 @@ kill/磁盘满/上游断
 >
 > **完成条件**：每个 §6 Case 行能指出替身类型与契约文档 ID；替身矩阵与 asset-design 一一对应；反模式逐项被排除并有理由。
 
-#### 3.1 替身 · ⟨名称⟩
+#### 3.1 替身 · LLMTier
 
-**替身形态**：`mock/fake/stub/spy`
+**替身形态**：`fake`
 
-**替身契约文档（tests.asset-design）**：`对照本节"必须写清楚"填一条实际事实`
+**替身契约文档（tests.asset-design）**：`FAKE-LLM`
 
-**决策理由**：`为何不能真实；不 mock 不拥有的对象`
+**决策理由**：`必须验证真实请求/响应形状，故用真协议 fake；不 mock 传输层`
 
 
 ## 4. 测试环境类型（方案定义）
@@ -358,21 +358,14 @@ kill/磁盘满/上游断
 >
 > **完成条件**：每个 §6 Case 行能指出所用环境类型；类型与 asset-design 契约对应；无未声明的环境依赖。
 
-#### 4.1 环境类型 · ⟨名称⟩
+#### 4.1 环境类型 · ENV-LOOPBACK
 
-**行为/真伪**：`真实性与行为边界`
+**行为/真伪**：`真 Piko 组件 + 本机 fake LLMTier + 真 SQLite`
 
-**契约文档**：`tests.asset-design ID；真实编译类写"—"`
+**契约文档**：`asset-design §3.1 / §3.4`
 
-**在本层用例中的角色**：`用于哪类 Case；重置/推进/断言时点`
+**在本层用例中的角色**：`默认环境；协议、控制面、数据面密闭校验`
 
-
-
-
-
-
-
-![system层测试环境拓扑](../diagrams/tests/system-env-topology.svg)
 
 ## 5. 测试分类体系
 
@@ -402,23 +395,383 @@ kill/磁盘满/上游断
 >
 > **完成条件**：每个适用来源 ID 有 Case 或缺口；每个 Case ID 可追到（或计划有）case-design 文档。
 
-#### 6.1 Case · ⟨名称⟩
+#### 6.1.1 Case · ST-APP-001
 
-**来源 ID / 固定版本**：`设计来源行＋固定版本`
+**来源 ID / 固定版本**：`system-design` §8.1 `POST /tasks`
 
-**设计验证项 ID**：`设计文档 VRC ID`
+**设计验证项 ID**：`VRC-ST-001`
 
-**Case ID**：`覆盖本项的 Case ID（多个用/）`
+**Case ID**：`ST-APP-001`
 
-**分类**：`对照本节"必须写清楚"填一条实际事实`
+**分类**：`normal`
 
-**优先级**：`P0-P2`
+**优先级**：`P0`
 
-**责任摘要（要测什么）**：`一句说清测什么、到哪停；不写输入与 Oracle`
+**责任摘要（要测什么）**：提交受理返回 202 与 `TaskView`（`Queued`），不证明执行已开始
 
-**设计状态**：``Designed` / `Gap（编号／Owner／Gate）` / `Tailored-N/A`（§7 裁决）`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`对照本节"必须写清楚"填一条实际事实`
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.2 Case · ST-APP-002
+
+**来源 ID / 固定版本**：`system-design` §8.1 `GET /tasks/{task_id}`
+
+**设计验证项 ID**：`VRC-ST-002`
+
+**Case ID**：`ST-APP-002`
+
+**分类**：`normal`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：轮询返回权威状态与 `progress`，执行期间持续可答
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.3 Case · ST-APP-003
+
+**来源 ID / 固定版本**：`system-design` §8.1 `POST …:cancel`
+
+**设计验证项 ID**：`VRC-ST-003`
+
+**Case ID**：`ST-APP-003`
+
+**分类**：`normal`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：取消受理返回 `CancelReceipt`；`StopRequested` 不等于已停
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.4 Case · ST-APP-004
+
+**来源 ID / 固定版本**：`system-design` §8.1 `GET …/result`
+
+**设计验证项 ID**：`VRC-ST-004`
+
+**Case ID**：`ST-APP-004`
+
+**分类**：`normal`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：终态返回冻结 Result；非终态返回 `TaskNotTerminal`
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.5 Case · ST-APP-005
+
+**来源 ID / 固定版本**：需求 PK-15 / contract §1
+
+**设计验证项 ID**：`VRC-ST-005`
+
+**Case ID**：`ST-APP-005`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：同 `task_id` 幂等；异内容 `TaskConflict`；tombstone `Gone`
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.6 Case · ST-APP-006
+
+**来源 ID / 固定版本**：需求 PK-19 / `system-design` §7.11
+
+**设计验证项 ID**：`VRC-ST-006`
+
+**Case ID**：`ST-APP-006`
+
+**分类**：`negative`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：保留期后仅留 `{task_id, Gone}`，`task_id` 永不复用
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.7 Case · ST-SEC-001
+
+**来源 ID / 固定版本**：需求 PK-18 / `system-design` §8.1
+
+**设计验证项 ID**：`VRC-ST-007`
+
+**Case ID**：`ST-SEC-001`
+
+**分类**：`security`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：鉴权失败与内部错误收口，不外泄 fence 码
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.8 Case · ST-DATA-001
+
+**来源 ID / 固定版本**：需求 PK-21 / `system-design` §6.5
+
+**设计验证项 ID**：`VRC-ST-008`
+
+**Case ID**：`ST-DATA-001`
+
+**分类**：`normal`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：输入预备 `pending→ready` 后才竞争 slot
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.9 Case · ST-DATA-002
+
+**来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-001`
+
+**设计验证项 ID**：`VRC-ST-009`
+
+**Case ID**：`ST-DATA-002`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：拉取失败 / `sha256` 不符 → 零调用 `Failed(InputFetchFailed)`，从不领 slot
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.10 Case · ST-DATA-003
+
+**来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-002`
+
+**设计验证项 ID**：`VRC-ST-010`
+
+**Case ID**：`ST-DATA-003`
+
+**分类**：`data-plane`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.11 Case · ST-DATA-004
+
+**来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-003`
+
+**设计验证项 ID**：`VRC-ST-011`
+
+**Case ID**：`ST-DATA-004`
+
+**分类**：`data-plane`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：投递失败不改终态，`artifact_delivery=failed` 可见且幂等
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.12 Case · ST-DATA-005
+
+**来源 ID / 固定版本**：需求 PK-21 / `system-design` §13.1
+
+**设计验证项 ID**：`VRC-ST-012`
+
+**Case ID**：`ST-DATA-005`
+
+**分类**：`security`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：白名单外、路径逃逸、`known_hosts` 缺失均拒绝
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.13 Case · ST-PROC-001
+
+**来源 ID / 固定版本**：需求 PK-22 / `system-design` §5.1
+
+**设计验证项 ID**：`VRC-ST-013`
+
+**Case ID**：`ST-PROC-001`
+
+**分类**：`concurrency`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：P1 阻塞 / 崩溃时 P0 仍应答轮询与取消
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.14 Case · ST-PROC-002
+
+**来源 ID / 固定版本**：需求 PK-22 / `system-design` §8.2
+
+**设计验证项 ID**：`VRC-ST-014`
+
+**Case ID**：`ST-PROC-002`
+
+**分类**：`concurrency`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：取消经 P0→P1 `abort` 命令生效
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.15 Case · ST-EXEC-001
+
+**来源 ID / 固定版本**：需求 PK-16 / MECH-RUN
+
+**设计验证项 ID**：`VRC-ST-015`
+
+**Case ID**：`ST-EXEC-001`
+
+**分类**：`normal`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：端到端：提交→执行→产出→终态 Result
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.16 Case · ST-REC-001
+
+**来源 ID / 固定版本**：需求 PK-12 / MECH-RECOVERY
+
+**设计验证项 ID**：`VRC-ST-016`
+
+**Case ID**：`ST-REC-001`
+
+**分类**：`recovery`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：崩溃后不重跑 Pi，Result generation 冻结
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.17 Case · ST-LLM-001
+
+**来源 ID / 固定版本**：需求 PK-09 / MECH-USAGE
+
+**设计验证项 ID**：`VRC-ST-017`
+
+**Case ID**：`ST-LLM-001`
+
+**分类**：`integration-llm`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：与 LLMTier 的请求 / 响应契约与 usage
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.18 Case · ST-LLM-002
+
+**来源 ID / 固定版本**：需求 PK-03 / MECH-RUN
+
+**设计验证项 ID**：`VRC-ST-018`
+
+**Case ID**：`ST-LLM-002`
+
+**分类**：`integration-llm`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：真实模型端到端：工具写文件→产出收集→`Completed`
+
+**设计状态**：`Gap（G-ENV-001）`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.19 Case · ST-MX-001
+
+**来源 ID / 固定版本**：需求 PK-08 / MECH-MATRIX
+
+**设计验证项 ID**：`VRC-ST-019`
+
+**Case ID**：`ST-MX-001`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：讨论事件进入 session 并可回发；membership 丢失→`DiscussionAccessLost`
+
+**设计状态**：`Gap（G-MATRIX-001）`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.20 Case · ST-OBS-001
+
+**来源 ID / 固定版本**：需求 PK-11 / MECH-STARTUP
+
+**设计验证项 ID**：`VRC-ST-020`
+
+**Case ID**：`ST-OBS-001`
+
+**分类**：`normal`
+
+**优先级**：`P2`
+
+**责任摘要（要测什么）**：结构化事件、指标与审计可被诊断端点读取
+
+**设计状态**：`Gap（G-OBS-001）`
+
+**上级组合验证入口**：`system-design` §12.5
+
+#### 6.1.21 Case · ST-OPS-001
+
+**来源 ID / 固定版本**：`CAP-PURGE` / `system-design` §8.1
+
+**设计验证项 ID**：`VRC-ST-021`
+
+**Case ID**：`ST-OPS-001`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：运维 purge 清大对象、保留 tombstone、写审计
+
+**设计状态**：`Designed`
+
+**上级组合验证入口**：`system-design` §12.5
 
 
 ### 6.1 暴露面与交互面清单（有交互面的产品必填）
@@ -433,13 +786,14 @@ kill/磁盘满/上游断
 
 每个暴露面一条记录：
 
-#### 6.1.1 暴露面 · ⟨selector / 命令 / 端点+参数⟩
+#### 6.1.1 暴露面 · Piko HTTP 操作面（Piko 无 UI）
 
-**动作与权限**：`谁经哪个公开入口触发什么；权限引用访问矩阵行`
+**动作与权限**：Slinky principal 经 `POST /tasks` 提交（`ST-APP-001`）；经 `GET /tasks/{task_id}` 轮询（`ST-APP-002`）；经 `POST /tasks/{task_id}:cancel` 取消（`ST-APP-003`）；经 `GET /tasks/{task_id}/result` 取结果（`ST-APP-004`）；operator 经 `Operator Purge` 清理（`ST-OPS-001`）
 
-**期望可观察结果**：`外部可观察事实（响应/状态/权威存储）`
+**期望可观察结果**：202 + `TaskView{Queued}`；`TaskView{state,generation,progress,artifact_delivery}`；`CancelReceipt{outcome}`；`AgentResult` 或 409 `TaskNotTerminal`；`PurgeReceipt` 且 tombstone 保留
 
-**Case / 缺口 · 状态**：``ST-…` 或 `Gap（编号／Owner／Gate）`；`登记/覆盖/关闭``
+**Case / 缺口 · 状态**：`ST-APP-001..004`、`ST-OPS-001`；登记/覆盖/已设计
+
 
 ### 6.2 展示数据项分母
 
@@ -453,11 +807,12 @@ kill/磁盘满/上游断
 
 每格（数据项×行类别×呈现变体）一条记录：
 
-#### 6.2.1 数据格 · ⟨数据项 ID / 行类别 / 呈现变体⟩
+#### 6.2.1 数据格 · 对外响应数据项（数据项 × 行类别 × 呈现变体）
 
-**展示位置与来源契约字段**：`页面/导出位置 ← 契约字段 ID（design §3.N 清单行）`
+**展示位置与来源契约字段**：HTTP 响应体 ← schema `$defs`：`TaskView.state`、`TaskView.generation`、`TaskView.progress`、`TaskView.input_staging`、`TaskView.artifact_delivery`、`TaskView.result_available`、`AgentResult.state`、`AgentResult.outputs[]`、`AgentResult.stats`、`AgentResult.usage`、`AgentResult.failure`、`AgentResult.known_actions[]`
 
-**断言方式 · Case / 缺口**：``自动断言/截图复核`；`ST-…` 或 `Gap（编号／Owner／Gate）``
+**断言方式 · Case / 缺口**：全部自动断言（JSON 字段级）；`ST-APP-001/002/004`、`ST-DATA-001..004`、`ST-EXEC-001`、`ST-LLM-001`
+
 
 ## 7. 不适用与缺口裁决
 
@@ -469,11 +824,55 @@ kill/磁盘满/上游断
 >
 > **完成条件**：每条裁决有事实或 Owner；无“顺手 N/A”。
 
-#### 7.1 裁决 · ⟨名称⟩
+#### 7.1 裁决 · 不适用与缺口（登记矩阵）
 
-**裁决（Tailored-N/A 或 Gap）**：`对照本节"必须写清楚"填一条实际事实`
+#### 7.1.1 裁决 · 控件面
 
-**Owner / 恢复条件**：`对照本节"必须写清楚"填一条实际事实`
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 为无 UI 服务（`system-design` §3.6）；公开面仅 HTTP + operator
+
+**Owner / 恢复条件**：—（若引入 UI 需重开 §6.1）
+
+#### 7.1.2 裁决 · 成本护栏（Cost）
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— contract §3 明确无 Cost，无外部计费系统
+
+**Owner / 恢复条件**：—
+
+#### 7.1.3 裁决 · 性能预算
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— `system-design` §11.1 未声明系统性能预算
+
+**Owner / 恢复条件**：—
+
+#### 7.1.4 裁决 · 长稳 endurance
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— `system-design` 未声明 endurance 目标
+
+**Owner / 恢复条件**：—
+
+#### 7.1.5 裁决 · `ST-LLM-002` 真模型端到端
+
+**裁决（Tailored-N/A 或 Gap）**：Gap —— 本机 LLMTier 可达但无自动化入口
+
+**Owner / 恢复条件**：测试工程 / 补 opt-in live 入口
+
+#### 7.1.6 裁决 · `ST-MX-001` Matrix 讨论
+
+**裁决（Tailored-N/A 或 Gap）**：Gap —— 需本地 Synapse 与房间准备脚本
+
+**Owner / 恢复条件**：测试工程 / 复用 `scenario-env.sh`
+
+#### 7.1.7 裁决 · `ST-OBS-001` 观测与审计
+
+**裁决（Tailored-N/A 或 Gap）**：Gap —— 诊断端点尚无稳定可测出口
+
+**Owner / 恢复条件**：Owner M009
+
+#### 7.1.8 裁决 · 升级兼容
+
+**裁决（Tailored-N/A 或 Gap）**：Gap —— 存量 Task Store 的 schema 升级路径未定案
+
+**Owner / 恢复条件**：Owner M003 / 设计评审
 
 
 ## 8. 文档联动与清单变更规则
@@ -504,12 +903,61 @@ kill/磁盘满/上游断
 >
 > **完成条件**：本附录 VRC 集合与设计文档一致；每个 VRC 在 §6 清单有 Case 或缺口。
 
-#### A.1 VRC · ⟨名称⟩
+#### A.1 VRC · 本层设计验证项汇集
 
-**要验证什么（名称/责任）**：`对照本节"必须写清楚"填一条实际事实`
+#### A.1.1 VRC · `VRC-ST-001..004`
 
-**设计来源**：`对照本节"必须写清楚"填一条实际事实`
+**要验证什么（名称/责任）**：四项操作对外行为
 
-**§6 Case 覆盖**：`对照本节"必须写清楚"填一条实际事实`
+**设计来源**：`system-design` §8.1
 
+**§6 Case 覆盖**：`ST-APP-001..004`
+
+#### A.1.2 VRC · `VRC-ST-005/006`
+
+**要验证什么（名称/责任）**：身份幂等与 tombstone 保留
+
+**设计来源**：需求 PK-15/PK-19、contract §1
+
+**§6 Case 覆盖**：`ST-APP-005/006`
+
+#### A.1.3 VRC · `VRC-ST-007`
+
+**要验证什么（名称/责任）**：鉴权与错误收口
+
+**设计来源**：需求 PK-18
+
+**§6 Case 覆盖**：`ST-SEC-001`
+
+#### A.1.4 VRC · `VRC-ST-008..012`
+
+**要验证什么（名称/责任）**：数据面搬运（准备/失败/投递/解耦/边界）
+
+**设计来源**：需求 PK-21、`CON-XFER-001..003`
+
+**§6 Case 覆盖**：`ST-DATA-001..005`
+
+#### A.1.5 VRC · `VRC-ST-013/014`
+
+**要验证什么（名称/责任）**：控制面与执行面隔离
+
+**设计来源**：需求 PK-22、`system-design` §5.1/§8.2
+
+**§6 Case 覆盖**：`ST-PROC-001/002`
+
+#### A.1.6 VRC · `VRC-ST-015..018`
+
+**要验证什么（名称/责任）**：执行闭环、恢复、模型契约、真实模型
+
+**设计来源**：需求 PK-16/PK-12/PK-09/PK-03
+
+**§6 Case 覆盖**：`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001/002`
+
+#### A.1.7 VRC · `VRC-ST-019..021`
+
+**要验证什么（名称/责任）**：讨论链路、观测、运维清理
+
+**设计来源**：需求 PK-08/PK-11、`CAP-PURGE`
+
+**§6 Case 覆盖**：`ST-MX-001`、`ST-OBS-001`、`ST-OPS-001`
 
