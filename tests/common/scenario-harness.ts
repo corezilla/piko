@@ -445,6 +445,48 @@ export interface MatrixEvent {
   type: string;
   content: Record<string, unknown>;
 }
+/** Wait until Piko's bot account has posted at least one message mentioning `marker`. */
+export async function waitMatrixReply(room: string, botToken: string, marker: string, timeoutMs = 120_000): Promise<MatrixEvent[]> {
+  const start = Date.now();
+  for (;;) {
+    const events = await matrixMessages(botToken, room, 60).catch(() => [] as MatrixEvent[]);
+    const hits = events.filter((e) => JSON.stringify(e.content ?? {}).includes(marker) && e.sender !== botToken);
+    if (hits.length > 0) return hits;
+    if (Date.now() - start > timeoutMs) throw new Error(`no Piko reply containing "${marker}" within ${timeoutMs}ms`);
+    await sleep(2_000);
+  }
+}
+
+/** Wait until Piko recorded a discussion access loss for `room` (fail-closed signal). */
+export async function waitDiscussionAccessLoss(room: string, timeoutMs = 90_000): Promise<string[]> {
+  const start = Date.now();
+  for (;;) {
+    const rows = await sqliteScalar(
+      `SELECT count(*) FROM discussion_access_loss WHERE room_id='${room.replace(/'/g, "''")}';`,
+    );
+    if (Number(rows) > 0) {
+      const all = await sqliteScalar(
+        `SELECT group_concat(task_id) FROM discussion_access_loss WHERE room_id='${room.replace(/'/g, "''")}';`,
+      );
+      return (all || "").split(",").filter(Boolean);
+    }
+    if (Date.now() - start > timeoutMs) throw new Error(`no discussion_access_loss recorded for ${room} within ${timeoutMs}ms`);
+    await sleep(2_000);
+  }
+}
+
+/** Open discussion-bound tasks currently registered for `room`. */
+export async function openDiscussionTasks(room: string): Promise<string[]> {
+  const rows = await sqliteScalar(
+    `SELECT count(*) FROM discussion_access_loss WHERE room_id='${room.replace(/'/g, "''")}';`,
+  );
+  if (Number(rows) === 0) return [];
+  const list = await sqliteScalar(
+    `SELECT group_concat(task_id) FROM discussion_access_loss WHERE room_id='${room.replace(/'/g, "''")}';`,
+  );
+  return (list || "").split(",").filter(Boolean);
+}
+
 export async function matrixMessages(token: string, room: string, limit = 40): Promise<MatrixEvent[]> {
   const res = await fetch(
     `${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/messages?dir=b&limit=${limit}`,

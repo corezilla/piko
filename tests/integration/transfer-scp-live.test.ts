@@ -32,8 +32,10 @@ const HOME = join(root, "home");
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe.skipIf(!READY)("data plane over real scp (live remote)", () => {
-  const hostOnly = REMOTE!.replace(/:$/, "");
-  const host = hostOnly.includes("@") ? hostOnly.split("@")[1]! : hostOnly;
+  // describe.skipIf still evaluates this callback body at collection time, so
+  // REMOTE may be undefined here; derive the host defensively.
+  const hostOnly = (REMOTE ?? "").replace(/:$/, "");
+  const host = hostOnly.includes("@") ? (hostOnly.split("@")[1] ?? hostOnly) : hostOnly;
   function env() {
     mkdirSync(join(HOME, ".ssh"), { recursive: true });
     const known = join(HOME, ".ssh", "known_hosts");
