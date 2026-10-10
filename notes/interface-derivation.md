@@ -212,9 +212,16 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 校验：`validate-writing-format --mode document` → **61 文件 0 error**；
 `validate-design` → 仅既有 `.review-materials` 噪声。
 
-**未做**（已登记为 Gap）：
-- `tests/{unit,module,system}/cases/*.md`：逐 Case 文档尚未撰写（`G-CASE-002` system /
-  `G-CASE-003` module+unit）——当前 scheme 按"模块级一条 Case"粒度登记。
-- `tests/{unit,module,system}/reports/*-test-report.md` 与 Run 证据目录：待首次按 plan 执行后产出。
-- `FAKE-CLOCK` 受控时钟尚未独立成资产（`G-ASSET-001`）。
+已补齐：
+- **逐 Case 文档（系统层）**：`docs/70_verification/system/cases/` 共 14 份，覆盖所有
+  `Designed` 且已实现/可验证的 `ST-*`（`ST-APP-001..004`、`ST-SEC-001`、`ST-DATA-002/003/005`、
+  `ST-PROC-001/002`、`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001`、`ST-OPS-001`）。
+- **`FAKE-CLK` 受控时钟资产**：`src/clock.ts`（`Clock`/`systemClock`/`ManualClock`）+ 
+  `tests/unit/clock.test.ts`（`CHK-CLK-01`），P0 supervisor 与 P1 worker 心跳改用注入时钟；`G-ASSET-001` 关闭。
+
+**仍为 Gap**：
+- 模块层 / 单元层逐 Case 文档（`G-CASE-003`）：scheme 按"每模块一条 Case"登记，拆分后同步 plan §9。
+- `tests/{unit,module,system}/reports/*-test-report.md` 与 Run 证据目录：待按 plan 首跑后产出。
+- `ST-EXEC-001` 真实 LLMTier 自动化入口（`G-ENV-001`）、Matrix 讨论端到端（`G-MATRIX-001`）、
+  观测端点（`G-OBS-001`）。
 

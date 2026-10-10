@@ -1,6 +1,7 @@
 import { fork, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { attachChildToHandler, type Command, type FactHandler } from "./ipc.js";
+import { systemClock, type Clock } from "./clock.js";
 
 /**
  * Key decision 7 — P0 control process supervises a P1 execution process.
@@ -20,19 +21,20 @@ export class ExecutionProcessSupervisor {
     private readonly env: NodeJS.ProcessEnv,
     private readonly onExit: (code: number | null, signal: NodeJS.Signals | null) => void,
     private readonly facts?: FactHandler,
+    private readonly clock: Clock = systemClock,
   ) {}
 
   spawn() {
     if (this.stopped) return;
     const entry = fileURLToPath(new URL("./exec-process.ts", import.meta.url));
     this.child = fork(entry, [], { env: this.env, stdio: ["ignore", "inherit", "inherit", "ipc"] });
-    this.lastHeartbeat = Date.now();
+    this.lastHeartbeat = this.clock.now();
     if (this.facts) {
       this.channel = attachChildToHandler(this.child as any, this.facts);
     }
     this.child.on("message", (msg: any) => {
       if (msg?.type === "heartbeat" || msg?.fact?.kind === "heartbeat") {
-        this.lastHeartbeat = Date.now();
+        this.lastHeartbeat = this.clock.now();
         return;
       }
       if (msg?.type === "ready" || msg?.fact?.kind === "ready") this.restartDelay = 250;
@@ -76,7 +78,7 @@ export class ExecutionProcessSupervisor {
 
   /** True if P1 has not reported a heartbeat within the window. */
   unhealthy(windowMs = 30000): boolean {
-    return this.child !== null && Date.now() - this.lastHeartbeat > windowMs;
+    return this.child !== null && this.clock.now() - this.lastHeartbeat > windowMs;
   }
 
   alive(): boolean {

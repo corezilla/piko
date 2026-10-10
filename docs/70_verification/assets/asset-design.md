@@ -82,9 +82,9 @@
 
 |---|---|---|---|
 | `FAKE-LLM` | `tests/common/mock-llmtier.ts` | 真 OpenAI-compatible Responses 协议 fake；按脚本返回事件流与 usage；不经真实网络 | `CHK-LLM-01` |
-| `FAKE-CLOCK` | 单调/UTC 可注入时钟 | 提供 `monotonic()` 与 UTC instant；可注入偏移 | `CHK-CLK-01` |
+| `FAKE-CLOCK` | `src/clock.ts`（`ManualClock`） | 墙钟与单调轴独立可控；`now()`/`monotonic()`/`iso()`；测试注入，生产 `systemClock` | `CHK-CLK-01` |
 | `FAKE-MATRIX` | 本地 Synapse + `scripts/scenario-env.sh` | 真 Client-Server 行为（membership / txn 幂等） | `CHK-MTX-01` |
-| `FAKE-SCP` | `scripts/datanode-env.sh` + 真 sshd/远端 | 出站 `scp`；临时 HOME + 固定 `known_hosts`；不触碰 `~/.ssh` | `CHK-SCP-01` |
+| `FAKE-SCP` | `scripts/datanode-env.sh` + 真 sshd/远端 | 出站 `scp`；临时 HOME + 固定 `known_hosts`；不触碰 `~/.ssh` | `CHK-SCP-01`（opt-in） |
 | `SEEDS` | `scripts/scenario-seeds.sh` | 幂等重建场景种子到 `var/scenario-seeds/` | `CHK-SEED-01` |
 
 **边界**：资产自检 PASS **不等于**产品 PASS；只保证替身行为可复现。
@@ -125,7 +125,7 @@
 
 **资产版本**：`v0.1.0`（对应 system-design v0.12.0-draft.1 / 契约 `0.3.0-simplified.6`）。
 
-**状态**：`FAKE-LLM`、`FAKE-CLOCK`、`SEEDS` = `Verified`；`FAKE-MATRIX`、`FAKE-SCP` = `Verified`（opt-in 外部依赖）。
+**状态**：`FAKE-LLM`、`FAKE-CLK`、`SEEDS` = `Verified`；`FAKE-MATRIX`、`FAKE-SCP` = `Verified`（外部依赖，opt-in）。
 
 
 ## 7. 未决项
@@ -140,5 +140,5 @@
 
 #### 7.1 未决 · ⟨条目；无未决项时写经核对的“无”⟩
 
-- `G-ASSET-001`：受控时钟尚未独立成资产（当前依赖可注入时钟）；落地后补 `FAKE-CLOCK` 自检。
+- 无未决项（经核对）：`FAKE-CLOCK` 已落地为 `src/clock.ts` + `tests/unit/clock.test.ts`，`G-ASSET-001` 已关闭。
 

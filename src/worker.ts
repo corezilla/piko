@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { systemClock, type Clock } from "./clock.js";
 import type { AgentResult, RuntimeConfig, TaskRequest, TokenUsage } from "./types.js";
 import { PikoError } from "./types.js";
 import type { TaskStore, TaskStoreReader } from "./store.js";
@@ -30,6 +31,7 @@ export class RunWorker {
     private matrix: MatrixRuntime,
     private transfer: Transfer,
     private channel: Channel,
+    private clock: Clock = systemClock,
   ) {}
 
   /** Report a fact to P0; a fact that could not be committed must not be treated as applied. */
@@ -144,7 +146,7 @@ export class RunWorker {
     try {
       const workspace = await resolveWorkspace(task.workspace_ref, this.config.workspace.roots);
       await ensureTaskDirs(workspace, task);
-      timer = setInterval(() => void this.report({ kind: "heartbeat", at: Date.now() }).catch(() => {}), 1000);
+      timer = setInterval(() => void this.report({ kind: "heartbeat", at: this.clock.now() }).catch(() => {}), 1000);
       if (accessLost()) throw Object.assign(new Error(accessLostFailure.message), { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
 
       const outcome = await this.pi.execute(taskId, epoch, task, workspace, () => this.isAborted(taskId) || accessLost(), task.discussion

@@ -885,10 +885,10 @@ kill/磁盘满/上游断
 >
 > **完成条件**：清单与 case-design 文档一一对应；计划只引用不复制。
 
-- **方案冻结与变更规则**：
+- **方案冻结与变更规则**：Case 清单随 `system-design` 版本冻结；设计新增/删除保证时先改 §6 清单再改 case 文档；已执行 Case 编号不复用。
 
 
-- **与 case-design / 计划的同步规则**：
+- **与 case-design / 计划的同步规则**：`设计状态=Designed` 的 Case 必须有同名 `tests.system-case` 文档（Document ID = Case ID）；`Gap` 可暂无文档；`tests.system-test-plan` §9 只引用 Case ID，不复制判据。
 
 
 > **交付自查**：每个适用来源 ID 是否都有 Case 或具名缺口；清单里的每个 Case ID 是否都有（或计划有）对应 case-design 文档；方案里是否混入了输入构造或 Oracle 细节？
