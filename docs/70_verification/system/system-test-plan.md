@@ -74,7 +74,7 @@
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
-**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.system-case` 文档尚未撰写——`docs/70_verification/system/` 下当前只有方案与本计划；具名缺口 `G-CASE-002`（方案 §7.1.5 裁决，Owner＝测试工程）。
+**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.system-case` 文档已撰写于 `docs/70_verification/system/cases/`（14 份 `.md`，另含 21 条清单行的其余分母见 §10.1）。原缺口 `G-CASE-003` 的"未撰写"部分已关闭。
 
 **覆盖责任摘要**：本轮以模块级 Case 粒度组织执行：§9.4 中每条 `ST-*` Case 各占一条作业行，直接引用方案 §6 的责任摘要与 §2.1 的判定规则作为执行判据；逐 Case 文档补齐后按同一 Case ID 追溯，已产生的 Run 不改判。
 
@@ -140,11 +140,11 @@
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.system-case` 文档不存在（缺口 `G-CASE-002`）；可执行实现位于 `tests/integration/*.test.ts`（8 个文件，其中 `scenario-e2e.test.ts`、`matrix-acceptance.test.ts` 由 `vitest.config.ts` 排除、走 `vitest.live.config.ts`）与 `tests/unit/*.test.ts`；方案 §2.1 把 `tests/integration/http-api.test.ts` 指定为 `normal` 家族的自动化入口。
+**判定事实**：`tests.system-case` 文档已存在（`docs/70_verification/system/cases/`，14 份）；可执行实现位于 `tests/integration/*.test.ts`（8 个文件，其中 `scenario-e2e.test.ts`、`matrix-acceptance.test.ts` 由 `vitest.config.ts` 排除、走 `vitest.live.config.ts`）与 `tests/unit/*.test.ts`；方案 §2.1 把 `tests/integration/http-api.test.ts` 指定为 `normal` 家族的自动化入口。
 
 **通过条件**：本轮要执行的每条 Case 都能指向一个可执行入口（文件路径 ＋ 命令／vitest 选择器），且该入口在 Run 记录中出现；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
-**不满足时**：该 Case 记 `Blocked` 并关联 `G-CASE-002`（Owner 测试工程）；本轮改以模块级 Case 粒度继续，拆分义务写入 §10.1，不在无入口的情况下声称已覆盖。
+**不满足时**：该 Case 记 `Blocked` 并关联 `G-CASE-003`（Owner 测试工程）；本轮改以模块级 Case 粒度继续，拆分义务写入 §10.1，不在无入口的情况下声称已覆盖。
 
 #### 3.3 前检项 · 环境与工具（引用 tests.asset-design 的 Verified 状态）
 
@@ -292,7 +292,7 @@
 
 ---
 
-**时间窗 / 最晚 Gate**：风险"逐 Case 文档缺失（`G-CASE-002`）"——§9 阶段门 1 之前；最晚 Gate＝本轮报告产出前。
+**时间窗 / 最晚 Gate**：风险"逐 Case 文档缺失"已关闭（14 份已撰写）；残余为清单中未建 Case 文档的分母，最晚 Gate＝模块层首跑前。
 
 **冲突或缓解出口**：21 条 Case 无 `tests.system-case` 作业指令，执行者须临场解释责任边界。缓解：执行判据只取方案 §6 责任摘要 ＋ §2.1 判定规则 ＋ §2.2 家族技术选型，计划不复制也不改写；Run 记录须标出所用入口文件与选择器，拆分完成后按同一 `ST-*` ID 同步 §9.4 与 §1.2 构成表。
 
@@ -439,9 +439,9 @@
 >
 > **完成条件**：未决项全部有主有期限。
 
-#### 10.1 未决 · G-CASE-002 / G-ASSET-001 / G-ENV-001 / G-MATRIX-001 / G-OBS-001
+#### 10.1 未决 · G-CASE-003 / G-ASSET-001 / G-ENV-001 / G-MATRIX-001 / G-OBS-001
 
-**Owner / 最晚 Gate**：`G-CASE-002`（逐 Case `tests.system-case` 文档未撰写）——测试工程；最晚 Gate＝§9 阶段门 1 之前完成首轮拆分，报告产出前完成全部 21 条。
+**Owner / 最晚 Gate**：`G-CASE-003`（逐 Case 文档未撰写部分）——已关闭：系统层 14 份已撰写；清单中其余分母的 Case 文档由测试工程在模块层首跑前补齐。
 
 **关闭所需事实或决定**：`docs/70_verification/system/` 下出现与方案 §6 一一对应的 `tests.system-case` 文档（Document ID ＝ Case ID），每条含 §2 黑盒三清单（布景入口、观察点、禁读内部状态自查）与替身选择。关闭前本计划按模块级 Case 粒度编排（§9.4），拆分完成后须同步 §1.2 构成表与 §9.4 的作业行。
 

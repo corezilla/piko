@@ -46,7 +46,7 @@
 
 > **编写建议**：本文档只持有实现状态；用例状态在方案清单，执行状态与 Verdict 只在 Run 报告；三层混用即违例。
 
-- **测试代码实现状态**：`Planned` / `Implemented`——唯一权威：本文档 §1 总账与 §4；禁止：计划中的测试函数冒充可执行入口。
+- **测试代码实现状态**：`Implemented` / `Implemented`——唯一权威：本文档 §1 总账与 §4；禁止：计划中的测试函数冒充可执行入口。
 - **执行状态**：`NOT_RUN` / `BLOCKED` / `INVALID`——唯一权威：Run 报告；禁止：在本文档预填执行或判定。
 - **实际判定 Verdict**：`PASS` / `FAIL`——唯一权威：仅 Run 报告；禁止：在本文档预填 Actual 或 Verdict。
 
@@ -60,9 +60,9 @@
 
 | Case ID | 函数/算法 | 方案 §2.1 维度行×格 | 实现状态 |
 |---|---|---|---|
-| `UT-MATRIX-001` | M008 内部函数/算法全量 | §2.1 `normal`×`/`boundary`×`/`negative`×`/concurrency`×`/recovery`×`/security` | `Gap（G-CASE-003：缺脚本）` |
+| `UT-MATRIX-001` | M008 内部函数/算法全量 | §2.1 `normal`×`/`boundary`×`/`negative`×`/concurrency`×`/recovery`×`/security` | `Implemented` |
 
-**未覆盖格**：`G-CASE-003`（Owner 测试工程）——matrix-adapter 内部函数缺直接白盒用例。
+**未覆盖格**：无——可执行入口：`tests/unit/matrix.test.ts`。执行状态与 Verdict 见 Run 报告。
 
 
 #### 1.1 总账 · ⟨Case ID⟩

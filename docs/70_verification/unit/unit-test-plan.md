@@ -74,7 +74,7 @@
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
-**文档 / 入口（Document ID 或缺口）**：模块用例集 `tests.unit-case`（§1 总账 ＋ §3 逐 Case 八字段段落）尚未撰写——`docs/70_verification/unit/` 下当前只有方案与本计划；具名缺口 `G-CASE-003`（方案 §6 与 §7.1.5 裁决，Owner＝测试工程）。
+**文档 / 入口（Document ID 或缺口）**：用例集 `tests.unit-case`（§1 总账 ＋ §3 逐 Case 段落）已撰写于 `docs/70_verification/unit/cases/`（11 份 `.md`），实现状态统一为 `Implemented`。
 
 **覆盖责任摘要**：本轮以"一条 `UT-*-001` ＝ 一个 ISD 模块的 `tests/unit/<file>.test.ts`"为粒度组织执行：§9.4 中每个模块组一条作业行，执行判据取方案 §2.1 的 `unit-contract` 家族规则（直接调用 ＋ 冻结向量 ＋ 替身注入；断言返回值与抛错码；替身为严格 fake；缺断言即 `INVALID`）。用例集补齐后按同一 Case ID 追溯，已产生的 Run 不改判。
 
@@ -140,7 +140,7 @@
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.unit-case` 用例集不存在（缺口 `G-CASE-003`）。单元层唯一可执行实现为 `tests/unit/` 下 15 个文件，已核对的模块↔文件映射：`UT-BOOT-001` ← `config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`UT-TAPI-001` ← `server.test.ts`；`UT-POLICY-001` ← `workspace.test.ts`；`UT-REPO-001` ← `store.test.ts`；`UT-SCHED-001` ← `p-input.test.ts`（P-INPUT pre-slot gating 段）；`UT-WORKER-001` ← `worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`UT-PI-001` ← `pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`UT-USAGE-001` ← `worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`UT-MATRIX-001` ← `matrix.test.ts`；`UT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`UT-OBS-001` 没有专属函数级入口**——`tests/unit/` 无 observability 文件。另一处结构性偏差：现有文件按 describe 块编排（模块级 describe），未按 `UT-*-001` Case ID 或函数级 Case 段落编排，故"分母 ↔ 脚本"目前无法逐条对账。
+**判定事实**：`tests.unit-case` 用例集已存在（`docs/70_verification/unit/cases/`，11 份）。单元层可执行实现为 `tests/unit/` 下 16 个文件，已核对的模块↔文件映射：`UT-BOOT-001` ← `config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`UT-TAPI-001` ← `server.test.ts`；`UT-POLICY-001` ← `workspace.test.ts`；`UT-REPO-001` ← `store.test.ts`；`UT-SCHED-001` ← `p-input.test.ts`（P-INPUT pre-slot gating 段）；`UT-WORKER-001` ← `worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`UT-PI-001` ← `pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`UT-USAGE-001` ← `worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`UT-MATRIX-001` ← `matrix.test.ts`；`UT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`UT-OBS-001` 已有专属函数级入口**——新增 `tests/unit/observability.test.ts`（9 例）。另一处结构性偏差：现有文件按 describe 块编排（模块级 describe），未按 `UT-*-001` Case ID 或函数级 Case 段落编排，故"分母 ↔ 脚本"目前无法逐条对账。
 
 **通过条件**：本轮要执行的每条 Case 都能指向至少一个可执行入口（文件路径 ＋ vitest 选择器），该入口在本轮 Run 记录中出现，且 Run 记录写明所覆盖的 Case ID；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 

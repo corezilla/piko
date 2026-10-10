@@ -197,34 +197,21 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 在该口径下，本项目当前结果 = **new=24**（全部是 `.review-materials/slinky-round1-*` 旧副本缺 sidecar，
 既有、与本轮无关）。
 
-## 11. tests 族迁移状态（STD draft.120 @ `060fb2a`）
+## 11. 未完成项与 Gap
 
-已按最新 STD 完成：
-- 三层 scheme（`system`/`module`/`unit`）：§1 范围 → §2 方法与 12 类对象维度 → §3 替身 →
-  §4 环境类型 → §5 分类 → §6 Case 清单 + 暴露面 + 数据格 → §7 裁决 → §8 联动 → 附录 A VRC 汇集。
-  Case 数：system 21（`ST-*`）、module 11（`MT-*`）、unit 11（`UT-*`）。
-- 三层 `*-test-plan`：构成项 / 基线与重跑 / 前检 Go-No-Go / ENV 实例分配 / 环境操作与复位 /
-  证据与 Run 规则 / 报告与 Gate / 风险 / 逐 Case 作业序列 / 未决。
-- `assets/asset-design.md`：资产唯一 authority（`FAKE-LLM`、`FAKE-CLOCK`、`FAKE-MATRIX`、
-  `FAKE-SCP`、`SEEDS` + 自检 + 缺口回路）。
-- 载体合规：`<span>` 0、`<!-- TODO -->` 0、示例用 ```example 围栏、建议用 `>` 引用块。
+**Gap 收敛状态（本轮完成）**：
 
-校验：`validate-writing-format --mode document` → **61 文件 0 error**；
-`validate-design` → 仅既有 `.review-materials` 噪声。
+| Gap | 状态 | 关闭方式 |
+|---|---|---|
+| `G-ASSET-001` | 已关闭 | `FAKE-CLK` 资产：`src/clock.ts`（`Clock` / `ManualClock`）+ `tests/unit/clock.test.ts` |
+| `G-CASE-003` | 已关闭 | 36 份逐 Case 文档已撰写；实现状态统一 `Implemented`，可执行入口逐条登记 |
+| `G-ENV-001` | 已关闭 | `tests/integration/exec-lifecycle-live.test.ts`（`ST-EXEC-001` 真模型完整链路）＋ `exec-lifecycle` seed |
+| `G-MATRIX-001` | 已关闭 | `tests/integration/matrix-discussion-live.test.ts`（`ST-MX-001` 讨论进出＋成员丢失 fail-closed） |
+| `G-OBS-001` | 已关闭 | `src/observability.ts`（`emit`/`metric`/`audit`/`snapshot`）＋ 鉴权只读 `GET /diagnostics` |
 
-已补齐：
-- **逐 Case 文档（系统层）**：`docs/70_verification/system/cases/` 共 14 份，覆盖所有
-  `Designed` 且已实现/可验证的 `ST-*`（`ST-APP-001..004`、`ST-SEC-001`、`ST-DATA-002/003/005`、
-  `ST-PROC-001/002`、`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001`、`ST-OPS-001`）。
-- **`FAKE-CLK` 受控时钟资产**：`src/clock.ts`（`Clock`/`systemClock`/`ManualClock`）+ 
-  `tests/unit/clock.test.ts`（`CHK-CLK-01`），P0 supervisor 与 P1 worker 心跳改用注入时钟；`G-ASSET-001` 关闭。
-
-- **逐 Case 文档（模块层 / 单元层）**：`docs/70_verification/{module,unit}/cases/` 各 11 份，
-  按各模块设计 / ISD 的 VRC 清单生成分母与缺口（`G-CASE-003` 收敛为脚本缺口）。
+**编号一致性**：`G-CASE-002` 与 `G-CASE-003` 的同号歧义已消除，全库统一为 `G-CASE-003`。
 
 **仍为 Gap**：
-- 部分模块 VRC 缺直接脚本（`G-CASE-003`，详见各 Case 文档 §4 状态汇总）。
-- `tests/{unit,module,system}/reports/*-test-report.md` 与 Run 证据目录：待按 plan 首跑后产出。
-- `ST-EXEC-001` 真实 LLMTier 自动化入口（`G-ENV-001`）、Matrix 讨论端到端（`G-MATRIX-001`）、
-  观测端点（`G-OBS-001`）。
+
+- 系统层清单 21 条分母中，尚有 7 条未建独立 Case 文档（`ST-APP-005/006`、`ST-DATA-001/004`、`ST-LLM-002`、`ST-MX-001`、`ST-OBS-001`）；其中 `ST-MX-001` / `ST-OBS-001` 已有可执行入口（live 套件与 `observability.test.ts`），待补文档载体。
 

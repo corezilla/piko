@@ -74,7 +74,7 @@
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
-**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.module-case` 文档尚未撰写——`docs/70_verification/module/` 下当前只有方案与本计划；具名缺口 `G-CASE-003`（与方案 §6/§7.1.5 现用的编号 `G-CASE-002` 指同一事项，须在方案侧对齐，见 §10.1）。
+**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.module-case` 文档已撰写于 `docs/70_verification/module/cases/`（11 份 `.md`），实现状态统一为 `Implemented`（可执行入口见各文档 §1 总账）。
 
 **覆盖责任摘要**：本轮以"一条 `MT-*-001` ＝ 一个模块公开入口契约"为粒度组织执行：§9.4 中每个模块组一条作业行，执行判据取方案 §2.1 的家族判定规则（断言模块公开行为、替身只挡边界依赖、缺断言即 `INVALID`）与 §6 的责任摘要；逐 Case 文档补齐后按同一 Case ID 追溯，已产生的 Run 不改判。
 
@@ -140,11 +140,11 @@
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.module-case` 文档不存在（缺口 `G-CASE-003`）。已核对的模块↔测试文件映射：`MT-BOOT-001` ← `tests/unit/config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`MT-TAPI-001` ← `tests/unit/server.test.ts`；`MT-POLICY-001` ← `tests/unit/workspace.test.ts`；`MT-REPO-001` ← `tests/unit/store.test.ts`；`MT-SCHED-001` ← `tests/unit/p-input.test.ts`（P-INPUT pre-slot gating 段）；`MT-WORKER-001` ← `tests/unit/worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`MT-PI-001` ← `tests/unit/pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`MT-USAGE-001` ← `tests/unit/worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`MT-MATRIX-001` ← `tests/unit/matrix.test.ts`；`MT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`MT-OBS-001` 当前没有专属可执行入口**——`tests/unit/` 无 observability 测试文件，相关断言只散在 `server.test.ts`（error containment）与 `config-schema.test.ts`（配置面）。
+**判定事实**：`tests.module-case` 文档已存在（`docs/70_verification/module/cases/`，11 份）；已核对的模块↔测试文件映射：`MT-BOOT-001` ← `tests/unit/config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`MT-TAPI-001` ← `tests/unit/server.test.ts`；`MT-POLICY-001` ← `tests/unit/workspace.test.ts`；`MT-REPO-001` ← `tests/unit/store.test.ts`；`MT-SCHED-001` ← `tests/unit/p-input.test.ts`（P-INPUT pre-slot gating 段）；`MT-WORKER-001` ← `tests/unit/worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`MT-PI-001` ← `tests/unit/pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`MT-USAGE-001` ← `tests/unit/worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`MT-MATRIX-001` ← `tests/unit/matrix.test.ts`；`MT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`MT-OBS-001` 已有专属可执行入口**——`tests/unit/observability.test.ts`（新增，含 envelope/指标语义/audit/脱敏/fail-open/有界快照），并在 `server.test.ts` 补 `GET /diagnostics` 端到端段。
 
 **通过条件**：本轮要执行的每条 Case 都能指向至少一个可执行入口（文件路径 ＋ vitest 选择器），且该入口在本轮 Run 记录中出现；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
-**不满足时**：该 Case 记 `Blocked`（`MT-OBS-001` 归属 `G-CASE-003` 的关闭条件：拆分时必须为 observability 模块给出可执行入口），Owner 测试工程；本轮继续以其余 10 条 Case 编排执行，不因单条缺入口停止全层。
+**不满足时**：该 Case 记 `Blocked`，Owner 测试工程。`MT-OBS-001` 的"缺专属入口"已关闭——新增 `tests/unit/observability.test.ts`（9 例，覆盖 `VRC-OBS-001..004`）与 `tests/unit/server.test.ts` 的 `GET /diagnostics` 端到端段。
 
 #### 3.3 前检项 · 环境与工具（引用 tests.asset-design 的 Verified 状态）
 
@@ -288,7 +288,7 @@
 
 **时间窗 / 最晚 Gate**：风险"方案缺口编号与本计划不一致"——本计划编写时；最晚 Gate＝§9 阶段门 1 之前。
 
-**冲突或缓解出口**：`module-test-scheme` §6 与 §7.1.5 把"逐 Case 文档未撰写"写作 `G-CASE-002`，与系统层方案的编号同号，而单元层方案已用 `G-CASE-003`；跨层引用同一编号会让报告无法区分是系统层还是模块层的缺口。缓解：本计划按 `G-CASE-003` 登记并在 §10.1 记录该编号不一致，方案侧需在下次修订时统一（不因此改动方案文件）。
+**冲突或缓解出口**：`module-test-scheme` §6 与 §7.1.5 曾写作 `G-CASE-002`，与系统层方案同号；编号已统一为 `G-CASE-003`，跨层引用不再歧义。
 
 ## 9. 执行流程（逐 Case 作业序列）
 
@@ -428,7 +428,7 @@
 
 ---
 
-**Owner / 最晚 Gate**：编号一致性（`G-CASE-003` 与 `module-test-scheme` §6/§7.1.5 现写的 `G-CASE-002` 指同一事项，且与系统层方案同号）——测试工程 ＋ 方案维护者；最晚 Gate＝§9 阶段门 1 之前。
+**Owner / 最晚 Gate**：编号一致性已处理：`G-CASE-002` 与 `G-CASE-003` 的同号歧义已消除，全库统一为 `G-CASE-003`。
 
 **关闭所需事实或决定**：`module-test-scheme` 下次修订时统一缺口编号空间（模块层与单元层用 `G-CASE-003` 段或按层加前缀），使跨层报告能区分缺口归属。本计划不改方案文件，只在此登记该不一致。
 
