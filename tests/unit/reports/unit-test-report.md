@@ -54,7 +54,7 @@
 ## 1. 执行摘要与结论
 
 - **Run ID**：`run-20261011-01`（单元层；同 Run 含 integration 与契约校验产物）
-- **结论**：单元层 `vitest` 全量 **104 例，PASS 103、FAIL 0、跳过 1；integration 子集 **36 例，PASS 35、FAIL 0；契约校验 PASS。
+- **结论**：单元层 `vitest` 全量 **104 例**（PASS 103、FAIL 0、跳过 1）；integration 子集 **36 例**（PASS 35、FAIL 0）；契约校验 **PASS**。
 - **边界**：本 Run 只覆盖可自动化层；`ENV-REMOTE-SCP`、`ENV-LIVE-LLM`、`ENV-MATRIX` 的 Case 未在本 Run 执行（记 `NOT_RUN`，见 §3）。
 
 ## 2. 被测基线与实际环境
@@ -69,25 +69,25 @@
 
 | Case ID | 脚本 | Verdict |
 |---|---|---|
-| `ST 系（`ST-APP-001..004`、`ST-SEC-001`）` | `tests/integration/http-api.test.ts` | PASS（本 Run integration 子集含 http-api） |
-| ``ST-DATA-002`（输入失败零调用）` | `tests/unit/p-input.test.ts` | PASS（本 Run 单元层含 p-input） |
-| ``ST-PROC-002`（abort 通道）` | `tests/unit/p-input.test.ts` | PASS |
-| ``ST-TRANSFER` 数据面不变量` | `tests/integration/transfer-scp.test.ts` | PASS（本 Run integration 含 transfer-scp） |
-| ``ST-DATA-003` 投递→Result 引用` | `tests/unit/p-input.test.ts` | PASS |
-| ``ST-OPS-001` purge 保留 tombstone` | `tests/unit/store.test.ts` | PASS（本 Run 含 store） |
-| ``ST-REC-001` 崩溃/Result 冻结` | `tests/unit/worker-runtime.test.ts` / `store.test.ts` | PASS |
-| ``ST-LLM-001` LLMTier 契约` | `tests/integration/llmtier-contract.test.ts` | PASS（mock） |
-| ``ST-DATA-005` 白名单/逃逸/known_hosts` | `tests/integration/transfer-scp.test.ts` | PASS |
-| ``ST-MX-001` Matrix 讨论端到端` | — | NOT_RUN（无 homeserver） |
-| ``ST-OBS-001` 观测/审计端点` | — | NOT_RUN（无诊断端点） |
-| ``ST-EXEC-001` 真实模型端到端` | — | NOT_RUN（`ENV-LIVE-LLM` 不可用） |
-| ``ST-DATA-005` 真 scp 对端（opt-in）` | — | NOT_RUN（`PIKO_SCP_REMOTE` 未设） |
+| `ST-APP-001..004`、`ST-SEC-001` | `tests/integration/http-api.test.ts` | PASS（本 Run integration 子集含 http-api） |
+| `ST-DATA-002`（输入失败零调用） | `tests/unit/p-input.test.ts` | PASS（本 Run 单元层含 p-input） |
+| `ST-PROC-002`（abort 通道） | `tests/unit/p-input.test.ts` | PASS |
+| `ST-DATA-005` 数据面边界 | `tests/integration/transfer-scp.test.ts` | PASS（本 Run integration 含 transfer-scp） |
+| `ST-DATA-003` 投递→Result 引用 | `tests/unit/p-input.test.ts` | PASS |
+| `ST-OPS-001` purge 保留 tombstone | `tests/unit/store.test.ts` | PASS（本 Run 含 store） |
+| `ST-REC-001` 崩溃/Result 冻结 | `tests/unit/worker-runtime.test.ts` / `store.test.ts` | PASS |
+| `ST-LLM-001` LLMTier 契约 | `tests/integration/llmtier-contract.test.ts` | PASS（mock） |
+| `ST-DATA-005` 白名单/逃逸/known_hosts | `tests/integration/transfer-scp.test.ts` | PASS |
+| `ST-MX-001` Matrix 讨论端到端 | — | NOT_RUN（无 homeserver） |
+| `ST-OBS-001` 观测/审计端点 | — | NOT_RUN（无诊断端点） |
+| `ST-EXEC-001` 真实模型端到端 | — | NOT_RUN（`ENV-LIVE-LLM` 不可用） |
+| `ST-DATA-005` 真 scp 对端（opt-in） | — | NOT_RUN（`PIKO_SCP_REMOTE` 未设） |
 
 ## 4. 偏差、无效执行与重跑
 
 - **INVALID**：无。全部执行均为确定性运行，无无效判定。
-- **重跑**：无失败 Case，无需重跑；证据为单次 Run 的  / 。
-- **偏差**：本 Run 未执行  /  /  相关 Case（外部依赖不可用），按计划记  而非 。
+- **重跑**：无失败 Case，无需重跑；证据为单次 Run 的 `results.json` / `integration.json`。
+- **偏差**：本 Run 未执行 `ENV-REMOTE-SCP` / `ENV-LIVE-LLM` / `ENV-MATRIX` 相关 Case（外部依赖不可用），按计划记 `NOT_RUN` 而非 `PASS`。
 
 #### 4.1 偏差 · ⟨项⟩
 
@@ -100,9 +100,9 @@
 
 ## 5. 覆盖复算（对照方案分母）
 
-- **方案分母**： §6 登记 11 条 （覆盖 69 条实现层 VRC）。
-- **本 Run 覆盖**：上述 Case 所在脚本全部执行且通过；逐 Case 的 VRC 覆盖明细见各  文档 §1 总账。
-- **覆盖率**：11/11 集合 Case 通过；VRC 级覆盖 = 各模块文档标注为  的部分（未实现部分已登记 ）。
+- **方案分母**：`unit-test-scheme` §6 登记 11 条 `UT-*-001`（覆盖 69 条实现层 VRC）。
+- **本 Run 覆盖**：上述 Case 所在脚本全部执行且通过；逐 Case 的 VRC 覆盖明细见各 `UT-*-001` 文档 §1 总账。
+- **覆盖率**：11/11 集合 Case 通过；VRC 级覆盖 = 各模块文档标注为 `Implemented` 的部分（未实现部分已登记 `G-CASE-003`）。
 
 #### 5.1 复算 · ⟨方案来源 ID⟩
 
@@ -118,18 +118,17 @@
 ## 6. 缺陷与残余风险
 
 - **本 Run 缺陷**：0 FAIL。
-- **残余风险**：、、 及真 scp 端到端 Case 未覆盖（）；观测与 Matrix 讨论端到端仍缺自动化入口（//）。
+- **残余风险**：`ST-MX-001`、`ST-OBS-001`、`ST-EXEC-001` 及真 scp 端到端 Case 未覆盖（`NOT_RUN`）；观测与 Matrix 讨论端到端仍缺自动化入口（`G-MATRIX-001` / `G-OBS-001` / `G-ENV-001`）。
 
 ## 7. Gate 结论与建议
 
-- **Gate 建议**：**建议通过（单元层）**。理由：本 Run 全部已执行 Case 为 PASS，无 FAIL，无未关闭的 Gate 级缺口；
-  未执行的外部依赖 Case 已按计划记  并登记 Owner/Gate，不掩盖。
-- **附带条件**：系统层/模块层 Gate 待其各自首跑后单独出具报告，不在本报告范围内。
+- **Gate 建议**：**建议通过（单元层）**。理由：本 Run 全部已执行 Case 为 PASS，无 FAIL，无未关闭的 Gate 级缺口。
+- **附带条件**：未执行的外部依赖 Case 已按计划记 `NOT_RUN` 并登记 Owner / Gate，不掩盖；系统层与模块层 Gate 待各自首跑后单独出具报告。
 
 ## 8. 未决项
 
-- ：部分模块 VRC 缺直接单测（各  §4 已列）。
--  /  / ：Matrix、观测、真模型端到端自动化入口待建。
+- `G-CASE-003`：部分模块 VRC 缺直接单测（各 `UT-*-001` §4 已列）。
+- `G-MATRIX-001` / `G-OBS-001` / `G-ENV-001`：Matrix、观测、真模型端到端的自动化入口待建。
 
 #### 8.1 未决 · ⟨条目；无未决项时写经核对的“无”⟩
 
