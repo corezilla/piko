@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     include: [
       "tests/integration/scenario-e2e.test.ts",
+      "tests/integration/exec-lifecycle-live.test.ts",
       "tests/integration/matrix-acceptance.test.ts",
     ],
     fileParallelism: false,

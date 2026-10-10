@@ -450,6 +450,20 @@ w pts-10/instruction.txt <<'EOF'
 Reply briefly: ack. Do not call any tools.
 EOF
 
+# ST-EXEC-001 (ENV-LIVE-LLM): the minimal complete chain --
+# read one known file, write exactly one declared output, stop.
+mk exec-lifecycle/inputs exec-lifecycle/outputs
+w exec-lifecycle/inputs/README.md <<'EOF'
+# Piko Demo Project
+
+Piko is an agent runtime. It accepts a task, runs it against a model in a
+sandboxed workspace, and returns a terminal Result with declared artifacts.
+EOF
+w exec-lifecycle/instruction.txt <<'EOF'
+Read var/scenario-seeds/exec-lifecycle/inputs/README.md and write exactly one line describing the project into var/scenario-seeds/exec-lifecycle/outputs/summary.md. Do not read or write anything else.
+EOF
+p exec-lifecycle '{"case":"ST-EXEC-001","read":["var/scenario-seeds/exec-lifecycle/inputs","var/scenario-seeds/exec-lifecycle/outputs"],"write":["var/scenario-seeds/exec-lifecycle/outputs"],"output":["var/scenario-seeds/exec-lifecycle/outputs/summary.md"]}'
+
 # Safety net: every write_paths directory must exist before a run starts,
 # otherwise the write tool fails with ENOENT before the permission check.
 REPO="$(cd "$ROOT/../.." && pwd)"
