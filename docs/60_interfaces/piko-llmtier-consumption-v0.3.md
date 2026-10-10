@@ -15,7 +15,7 @@
 | Created Date | `2026-09-16` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `interfaces.control` |
-| Template Version | `0.4.0` |
+| Template Version | `0.4.2` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

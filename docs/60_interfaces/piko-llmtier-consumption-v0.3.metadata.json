@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "interfaces.control",
-  "template_version": "0.4.0",
-  "template_sha256": "e40a498750760254f75ebfea103d145e79412c162b21edcef23f9750f7619083",
+  "template_version": "0.4.2",
+  "template_sha256": "89ce45fbd7b5dba24751e5ed2ccfb1dd2c93700f5e37a26c4a42e5d51ae2fe0b",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

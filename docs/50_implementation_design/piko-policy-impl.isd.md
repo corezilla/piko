@@ -12,7 +12,7 @@
 | Document Owner | Piko Implementation Owner |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
-| Template Version | `1.2.2` |
+| Template Version | `1.3.0` |
 
 <!-- STD_DOCUMENT_COVER_END -->
 

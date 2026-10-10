@@ -10,7 +10,7 @@
     "corezilla"
   ],
   "template_id": "review.packet",
-  "template_version": "0.2.0",
+  "template_version": "0.2.3",
   "template_sha256": "6f5fb6b1b27e69aa31c9ee9dfcf909898b91726d7edd0ba9c9746426a2bdd2af",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",

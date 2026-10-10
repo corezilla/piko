@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "requirements.traceability",
-  "template_version": "0.2.0",
-  "template_sha256": "5bd72b321a07d2a452b483a91f36405be9cc421ea83d143ddf0072207521ba54",
+  "template_version": "0.2.2",
+  "template_sha256": "0f7428267ebb361a8a60fa6ea0a25db52f1490175bc2fec8bde1cd5d302c1f49",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

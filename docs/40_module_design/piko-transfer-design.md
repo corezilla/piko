@@ -12,7 +12,7 @@
 | Document Owner | Piko Implementation |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
-| Template Version | `3.4.3` |
+| Template Version | `3.5.0` |
 
 | 项目 | 内容 |
 |---|---|

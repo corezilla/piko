@@ -12,7 +12,7 @@
   ],
   "template_id": "design.system-mechanism",
   "template_version": "3.3.1",
-  "template_sha256": "88157a8e01b20a8c356ad9fcca3b197e3185d96113ef730433a64ab1adf3cfd1",
+  "template_sha256": "21e4851a04e35b37d813043413c16820fad8c29df899c935ec56a3488cffc7c3",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
