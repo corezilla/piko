@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "unit-test-report",
+  "document_type": "tests.unit-test-report",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko unit-test-report",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.unit-test-report",
+  "template_version": "0.3.13",
+  "template_sha256": "9d21901c35cae3daa3bddcec492abd1abd80240edea4e7d0b9565ce01ae5001d",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "tests/unit/reports/unit-test-report.md",
+  "reviewed_commit": null,
+  "parent_document_id": "unit-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-10-11",
+  "last_modified_at": "2026-10-11",
+  "design_object_id": null
+}
