@@ -219,8 +219,11 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 - **`FAKE-CLK` 受控时钟资产**：`src/clock.ts`（`Clock`/`systemClock`/`ManualClock`）+ 
   `tests/unit/clock.test.ts`（`CHK-CLK-01`），P0 supervisor 与 P1 worker 心跳改用注入时钟；`G-ASSET-001` 关闭。
 
+- **逐 Case 文档（模块层 / 单元层）**：`docs/70_verification/{module,unit}/cases/` 各 11 份，
+  按各模块设计 / ISD 的 VRC 清单生成分母与缺口（`G-CASE-003` 收敛为脚本缺口）。
+
 **仍为 Gap**：
-- 模块层 / 单元层逐 Case 文档（`G-CASE-003`）：scheme 按"每模块一条 Case"登记，拆分后同步 plan §9。
+- 部分模块 VRC 缺直接脚本（`G-CASE-003`，详见各 Case 文档 §4 状态汇总）。
 - `tests/{unit,module,system}/reports/*-test-report.md` 与 Run 证据目录：待按 plan 首跑后产出。
 - `ST-EXEC-001` 真实 LLMTier 自动化入口（`G-ENV-001`）、Matrix 讨论端到端（`G-MATRIX-001`）、
   观测端点（`G-OBS-001`）。
