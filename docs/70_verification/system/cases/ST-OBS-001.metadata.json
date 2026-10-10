@@ -1,0 +1,31 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "ST-OBS-001",
+  "document_type": "tests.system-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko Case ST-OBS-001",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.system-case",
+  "template_version": "2.4.15",
+  "template_sha256": "583a3e910796fb7bd8ef5e2bdb02f0a64f56ac883fe843c6fb2748b11b5c1e2b",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/system/cases/ST-OBS-001.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-10-11",
+  "last_modified_at": "2026-10-11"
+}

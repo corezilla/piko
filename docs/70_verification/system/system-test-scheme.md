@@ -715,7 +715,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：真实模型端到端：工具写文件→产出收集→`Completed`
 
-**设计状态**：`Gap（G-ENV-001）`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -733,7 +733,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：讨论事件进入 session 并可回发；membership 丢失→`DiscussionAccessLost`
 
-**设计状态**：`Gap（G-MATRIX-001）`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -751,7 +751,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：结构化事件、指标与审计可被诊断端点读取
 
-**设计状态**：`Gap（G-OBS-001）`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
