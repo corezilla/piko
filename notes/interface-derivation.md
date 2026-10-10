@@ -197,20 +197,24 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 在该口径下，本项目当前结果 = **new=24**（全部是 `.review-materials/slinky-round1-*` 旧副本缺 sidecar，
 既有、与本轮无关）。
 
-## 11. tests 族迁移状态（STD draft.72）
+## 11. tests 族迁移状态（STD draft.120 @ `060fb2a`）
 
-已迁移：
-- `docs/70_verification/system/system-test-scheme.md`：系统层方案（测试方法/替身/环境类型/分类/
-  22 个 ST Case 清单/缺口裁决/联动/附录 A VRC 汇集）——**已填**。
-- 三份环境拓扑图（system/module/unit）。
-- 12 份旧 `assurance.*` 文档与报告：迁移后移出受控文档集，存 `notes/archive/assurance-v0.3/`
-  （已去 STD 封面，仅作追溯）。
+已按最新 STD 完成：
+- 三层 scheme（`system`/`module`/`unit`）：§1 范围 → §2 方法与 12 类对象维度 → §3 替身 →
+  §4 环境类型 → §5 分类 → §6 Case 清单 + 暴露面 + 数据格 → §7 裁决 → §8 联动 → 附录 A VRC 汇集。
+  Case 数：system 21（`ST-*`）、module 11（`MT-*`）、unit 11（`UT-*`）。
+- 三层 `*-test-plan`：构成项 / 基线与重跑 / 前检 Go-No-Go / ENV 实例分配 / 环境操作与复位 /
+  证据与 Run 规则 / 报告与 Gate / 风险 / 逐 Case 作业序列 / 未决。
+- `assets/asset-design.md`：资产唯一 authority（`FAKE-LLM`、`FAKE-CLOCK`、`FAKE-MATRIX`、
+  `FAKE-SCP`、`SEEDS` + 自检 + 缺口回路）。
+- 载体合规：`<span>` 0、`<!-- TODO -->` 0、示例用 ```example 围栏、建议用 `>` 引用块。
 
-待填（已按新模板生成、仍是 TODO 槽）：
-- `docs/70_verification/module/module-test-scheme.md`（分母 = 11 模块设计的 68 条 `VRC-*`）
-- `docs/70_verification/unit/unit-test-scheme.md`（分母 = ISD 的 `VRC-*`）
-- 三层 `*-test-plan.md`、`assets/asset-design.md`
-- `tests/{unit,module,system}/cases/` 下的 `*-case` 文档（`ST-APP-001` 等）
-- `tests/{unit,module,system}/reports/` 下的 `*-test-report.md`
+校验：`validate-writing-format --mode document` → **61 文件 0 error**；
+`validate-design` → 仅既有 `.review-materials` 噪声。
 
-注：Piko 无子系统层，`tests.subsystem-*` 不适用（层级退化为 UT→MT→ST，见 `test-standard.md` §2）。
+**未做**（已登记为 Gap）：
+- `tests/{unit,module,system}/cases/*.md`：逐 Case 文档尚未撰写（`G-CASE-002` system /
+  `G-CASE-003` module+unit）——当前 scheme 按"模块级一条 Case"粒度登记。
+- `tests/{unit,module,system}/reports/*-test-report.md` 与 Run 证据目录：待首次按 plan 执行后产出。
+- `FAKE-CLOCK` 受控时钟尚未独立成资产（`G-ASSET-001`）。
+
