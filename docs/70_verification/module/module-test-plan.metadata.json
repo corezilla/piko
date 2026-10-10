@@ -11,8 +11,8 @@
     "corezilla"
   ],
   "template_id": "tests.module-test-plan",
-  "template_version": "0.9.2",
-  "template_sha256": "512b89575ea7b160287b0c317cfea8cbdb23cd55475c9be83fd5f027b5cb9a5e",
+  "template_version": "0.10.9",
+  "template_sha256": "b0c58c9f9815ea21cee78ebdf012764da5688b27ffe80b542dfaccb401ea91f8",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
@@ -27,7 +27,7 @@
   "reviewed_commit": null,
   "parent_document_id": "system-design",
   "supersedes": null,
-  "created_at": "2026-10-03",
-  "last_modified_at": "2026-10-03",
+  "created_at": "2026-10-10",
+  "last_modified_at": "2026-10-10",
   "design_object_id": null
 }
