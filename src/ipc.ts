@@ -91,6 +91,9 @@ export class FactHandler {
           return { ok: true, value: task_id ? { task_id } : null };
         }
         case "claim": {
+          // Fail closed first: tasks that lost discussion access get a terminal
+          // Failed(DiscussionAccessLost) instead of occupying the slot forever.
+          this.store.failAccessLostTasks();
           const grant = this.store.tryClaimSlot(fact.owner, fact.boot);
           if (grant === "slot_busy") return { ok: true, value: null };
           return { ok: true, value: grant };

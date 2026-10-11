@@ -213,7 +213,9 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
         );
       if (task.discussion) {
         this.db
-          .prepare("INSERT INTO discussion_turns VALUES(?,?,1,'Pending',?,NULL,NULL)")
+          // OR IGNORE: Matrix re-delivers events on sync reconnect, so the same
+          // trigger must not violate the (task_id, event_id) uniqueness fence.
+          .prepare("INSERT OR IGNORE INTO discussion_turns VALUES(?,?,1,'Pending',?,NULL,NULL)")
           .run(task.task_id, task.discussion.trigger_event_id, triggerContent ?? "");
       }
       return { kind: "created", task_id: task.task_id, generation: 1, state: "Queued" };
@@ -300,7 +302,9 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
       if (slot.task_id) return "slot_busy";
       const r = this.db
         .prepare(
-          "SELECT task_id FROM runs r WHERE state='Queued' AND json_extract(r.input_staging_json,'$.state') IN ('none','ready') ORDER BY accepted_at,task_id LIMIT 1",
+          // Fail closed: a task whose discussion access was lost must never
+          // occupy the execution slot again.
+          "SELECT task_id FROM runs r WHERE state='Queued' AND json_extract(r.input_staging_json,'$.state') IN ('none','ready') AND NOT EXISTS(SELECT 1 FROM discussion_access_loss d WHERE d.task_id=r.task_id) ORDER BY accepted_at,task_id LIMIT 1",
         )
         .get() as any;
       if (!r) return "slot_busy";
@@ -320,6 +324,44 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
   }
 
   /** MECH-RECOVERY — reclaim an orphaned non-terminal Run after boot. */
+  /**
+   * Fail closed on tasks that lost discussion access: they must not sit in
+   * Queued forever once their discussion is unreachable.
+   */
+  failAccessLostTasks(): string[] {
+    return this.tx(() => {
+      const rows = this.db
+        .prepare(
+          "SELECT r.task_id FROM runs r JOIN discussion_access_loss d ON d.task_id=r.task_id WHERE r.state IN('Queued','Running','Cancelling') ORDER BY r.task_id",
+        )
+        .all() as any[];
+      const at = now();
+      for (const row of rows) {
+        const result = {
+          task_id: row.task_id,
+          generation: (this.db.prepare("SELECT generation FROM runs WHERE task_id=?").get(row.task_id) as any)?.generation ?? 1,
+          state: "Failed",
+          partial: false,
+          summary: "Discussion access was lost before the task could run.",
+          outputs: [],
+          failure: {
+            code: "DiscussionAccessLost",
+            cause_class: "Authorization",
+            message: "Piko lost access to the discussion room.",
+          },
+        } as unknown as AgentResult;
+        const json = JSON.stringify(result);
+        this.db
+          .prepare("INSERT OR IGNORE INTO results(task_id,generation,result_json,result_sha256,published_at) VALUES(?,?,?,?,?)")
+          .run(result.task_id, result.generation, json, createHash("sha256").update(json).digest("hex"), at);
+        this.db.prepare("UPDATE runs SET state='Failed',finished_at=?,last_activity_at=? WHERE task_id=?").run(at, at, row.task_id);
+        this.db.prepare("UPDATE discussion_turns SET status='Abandoned' WHERE task_id=? AND status IN('Pending','QueuedInPi')").run(row.task_id);
+        this.db.prepare("UPDATE execution_slot SET task_id=NULL,owner_id=NULL,boot_id=NULL,heartbeat_at=NULL WHERE slot_id=1 AND task_id=?").run(row.task_id);
+      }
+      return rows.map((r) => r.task_id as string);
+    });
+  }
+
   recoverOrphaned(owner: string, boot: string): SlotGrant | null {
     return this.tx(() => {
       const slot = this.db.prepare("SELECT * FROM execution_slot WHERE slot_id=1").get() as any;
@@ -471,7 +513,10 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
         const r = this.db.prepare("SELECT discussion_intake_state FROM runs WHERE task_id=?").get(turn.task) as any;
         if (r?.discussion_intake_state !== "Open") continue;
         const seq = (this.db.prepare("SELECT coalesce(max(turn_seq),0)+1 n FROM discussion_turns WHERE task_id=?").get(turn.task) as any).n;
-        this.db.prepare("INSERT INTO discussion_turns VALUES(?,?,?,'Pending',?,NULL,NULL)").run(turn.task, event, seq, turn.visible);
+        // Same redelivery guard as task admission: a replayed room event is a no-op.
+        this.db
+          .prepare("INSERT OR IGNORE INTO discussion_turns VALUES(?,?,?,'Pending',?,NULL,NULL)")
+          .run(turn.task, event, seq, turn.visible);
       }
       return true;
     });
@@ -488,13 +533,33 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
           const r = this.db.prepare("SELECT discussion_intake_state FROM runs WHERE task_id=?").get(turn.task) as any;
           if (r?.discussion_intake_state !== "Open") continue;
           const seq = (this.db.prepare("SELECT coalesce(max(turn_seq),0)+1 n FROM discussion_turns WHERE task_id=?").get(turn.task) as any).n;
-          this.db.prepare("INSERT INTO discussion_turns VALUES(?,?,?,'Pending',?,NULL,NULL)").run(turn.task, item.event, seq, turn.visible);
+          // Idempotent on redelivery, same as the other two insert sites.
+          this.db
+            .prepare("INSERT OR IGNORE INTO discussion_turns VALUES(?,?,?,'Pending',?,NULL,NULL)")
+            .run(turn.task, item.event, seq, turn.visible);
         }
       }
       this.db.prepare("UPDATE matrix_state SET sync_cursor=? WHERE singleton=1").run(cursor);
       return events.length;
     });
   }
+  /** Rooms currently referenced by a non-terminal, actively-identitied task. */
+  discussionRoomsInUse(): string[] {
+    return (this.db
+      .prepare(
+        "SELECT t.task_json FROM runs r JOIN tasks t USING(task_id) WHERE r.discussion_intake_state='Open' AND r.state IN('Queued','Running','Cancelling') AND t.identity_state='Active'",
+      )
+      .all() as any[])
+      .map((x) => {
+        try {
+          return JSON.parse(x.task_json)?.discussion?.room_id as string | undefined;
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((room): room is string => typeof room === "string" && room.length > 0);
+  }
+
   openDiscussionRuns(room: string): string[] {
     return (this.db
       .prepare("SELECT r.task_id,t.task_json FROM runs r JOIN tasks t USING(task_id) WHERE r.discussion_intake_state='Open' AND t.identity_state='Active'")

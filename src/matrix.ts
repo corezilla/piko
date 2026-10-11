@@ -21,6 +21,8 @@ export class MatrixRuntime {
     let readyResolve!:()=>void,readyReject!:(error:unknown)=>void;const ready=new Promise<void>((resolve,reject)=>{readyResolve=resolve;readyReject=reject});let readySettled=false;
     this.client.on(ClientEvent.Sync,(state)=>{if(state!=="PREPARED"&&state!=="SYNCING")return;const next=this.client?.getSyncStateData()?.nextSyncToken;if(!next)return;const batch=this.pendingEvents.splice(0);this.syncWork=this.syncWork.then(()=>this.processBatch(batch,next));this.syncWork.then(()=>{if(!readySettled){readySettled=true;readyResolve()}},error=>{console.error("Matrix sync batch rejected",error);const permanent=isPermanentMatrixError(error);if(!readySettled||permanent){this.client?.stopClient()}if(!readySettled){readySettled=true;readyReject(error)}})});
     await this.client.startClient({initialSyncLimit:20,pollTimeout:this.config.matrix.sync_timeout_ms??30000});
+    // Periodic membership audit: independent of the event stream.
+    this.membershipTimer = setInterval(() => void this.auditMembership(), 10_000);
     const timer=setTimeout(()=>{if(!readySettled){readySettled=true;readyReject(new Error("Matrix initial sync timeout"))}},60000);try{await ready}finally{clearTimeout(timer)}
     this.started=true;
   }
@@ -38,6 +40,26 @@ export class MatrixRuntime {
     }
     return {room,event:id,sender,txn,turns};
   }
+  /**
+   * Membership drift must be detected WITHOUT waiting for a room event: once
+   * Piko is removed it stops receiving that room's events, so an event-driven
+   * check alone would never notice. Polling joined_rooms closes that hole.
+   */
+  private async auditMembership() {
+    try {
+      const joined = new Set((await this.client!.getJoinedRooms()).joined_rooms);
+      for (const room of this.store.discussionRoomsInUse()) {
+        if (!joined.has(room)) {
+          this.store.markDiscussionAccessLost(room);
+          this.store.failAccessLostTasks();
+        }
+      }
+    } catch {
+      /* transient homeserver errors must not crash the runtime */
+    }
+  }
+
+  private membershipTimer:NodeJS.Timeout|undefined;
   private async processBatch(events:MatrixEvent[],cursor:string){
     const rooms=new Set(events.map(event=>event.getRoomId()).filter((room):room is string=>!!room&&this.store.openDiscussionRuns(room).length>0));
     if(rooms.size){const joined=new Set((await this.client!.getJoinedRooms()).joined_rooms);for(const room of rooms)if(!joined.has(room)){this.store.markDiscussionAccessLost(room);throw new Error(`Piko is no longer joined to discussion room ${room}`)}}

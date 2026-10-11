@@ -38,44 +38,59 @@ d("ST-MX-001 discussion events enter the session and membership loss fails close
 
     // Piko republishes into the same room: its own reply becomes visible.
     const replies = await H.waitMatrixReply(room, tokens.pikoBot, marker, 120_000);
+    const botMxid = await H.matrixWhoAmI(tokens.pikoBot);
     expect(replies.length).toBeGreaterThan(0);
-    expect(replies.some((e) => e.sender === tokens.pikoBot)).toBe(true);
+    expect(replies.every((e) => e.sender === botMxid)).toBe(true);
   });
 
   it("C2 negative: losing room membership is recorded as DiscussionAccessLost, not silently ignored", async () => {
     const tokens = H.loadMatrixTokens();
     const room = tokens.roomId;
 
-    // A task bound to this discussion must exist for access loss to be attributable.
+    // A task bound to this discussion must exist for access loss to be
+    // attributable. DiscussionContext requires a REAL trigger event id.
     const caseName = "exec-lifecycle";
     H.resetSeeds();
     const params = H.readParams(caseName);
     const taskId = `st-mx-001-kick-${Date.now()}`;
+    const trigger = await H.matrixSend(tokens.ben, room, `trigger for ${taskId}`);
     const created = await H.postRun({
       task_id: taskId,
       instruction: "Reply briefly: ack.",
       workspace_ref: "piko",
-      discussion: { room_id: room, trigger: "Message" },
+      discussion: { room_id: room, trigger_event_id: trigger },
       permissions: { read_paths: params.read, write_paths: params.write, tool_profile_ref: "workspace-exec" },
       output_paths: params.output,
     });
     expect(created.status).toBe(202);
-    await H.waitMatrixEventIngested(`seed-${taskId}`, 5_000).catch(() => undefined);
 
     // Piko is removed from the room; the runtime must detect and record the loss.
-    await H.matrixKick(tokens.ben, room, tokens.pikoBot);
+    const botMxid = await H.matrixWhoAmI(tokens.pikoBot);
+    await H.matrixKick(tokens.ben, room, botMxid);
     try {
-      const affected = await H.waitDiscussionAccessLoss(room, 90_000);
-      expect(affected.length).toBeGreaterThan(0);
+      // Wait for THIS task to be marked lost (a stale row for an earlier task
+      // in the same room would otherwise pass the check spuriously).
+      const lost = await H.waitTaskAccessLost(taskId, 90_000);
+      expect(lost).toBe(true);
 
-      // Fail-closed: an access-lost task is never dispatched again.
-      const stuck: string = await H.sqliteScalar(
-        `SELECT state FROM runs WHERE task_id='${taskId}';`,
+      // Fail-closed: the task must reach a terminal Failed state rather than
+      // sitting in Queued or occupying the slot again.
+      const deadline = Date.now() + 30_000;
+      let state = "";
+      for (;;) {
+        state = await H.sqliteScalar(`SELECT state FROM runs WHERE task_id='${taskId}';`);
+        if (["Queued", "Running", "Cancelling"].includes(state) === false) break;
+        if (Date.now() > deadline) break;
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+      expect(state).toBe("Failed");
+      const failure: string = await H.sqliteScalar(
+        `SELECT json_extract(result_json,'$.failure.code') FROM results WHERE task_id='${taskId}';`,
       );
-      expect(["Queued", "Running"]).not.toContain(stuck);
+      expect(failure).toBe("DiscussionAccessLost");
     } finally {
       // Restore the room so later suites are not poisoned.
-      await H.matrixInvite(tokens.ben, room, tokens.pikoBot).catch(() => undefined);
+      await H.matrixInvite(tokens.ben, room, botMxid).catch(() => undefined);
       await H.matrixJoin(tokens.pikoBot, room).catch(() => undefined);
     }
   });

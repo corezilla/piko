@@ -376,6 +376,12 @@ export interface MatrixTokens {
   roomId: string;
 }
 
+/** Matrix APIs require a fully-qualified MXID (@user:server). */
+export function mxid(user: string): string {
+  const name = user.startsWith("@") ? user : `@${user}`;
+  return name.includes(":") ? name : `${name}:piko.local`;
+}
+
 export function loadMatrixTokens(): MatrixTokens {
   const users = JSON.parse(safeRead(join(HOMESERVER_DIR, "users.json")) || "{}") as Record<
     string,
@@ -412,11 +418,20 @@ export async function matrixSend(token: string, room: string, body: string): Pro
   return ((await res.json()) as { event_id: string }).event_id;
 }
 
+/** Resolve an access token to its MXID. Room APIs need MXIDs, not tokens. */
+export async function matrixWhoAmI(token: string): Promise<string> {
+  const r = await fetch(`${MATRIX_BASE}/_matrix/client/v3/account/whoami`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (r.status !== 200) throw new Error(`whoami -> ${r.status}: ${await r.text()}`);
+  return ((await r.json()) as { user_id: string }).user_id;
+}
+
 export async function matrixKick(token: string, room: string, userId: string): Promise<void> {
   const res = await fetch(`${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/kick`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: userId, reason: "scenario test" }),
+    body: JSON.stringify({ user_id: mxid(userId), reason: "scenario test" }),
   });
   if (res.status !== 200) throw new Error(`matrix kick -> ${res.status}: ${await res.text()}`);
 }
@@ -434,7 +449,7 @@ export async function matrixInvite(token: string, room: string, userId: string):
   const res = await fetch(`${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/invite`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify({ user_id: mxid(userId) }),
   });
   if (res.status !== 200) throw new Error(`matrix invite -> ${res.status}: ${await res.text()}`);
 }
@@ -449,10 +464,23 @@ export interface MatrixEvent {
 export async function waitMatrixReply(room: string, botToken: string, marker: string, timeoutMs = 120_000): Promise<MatrixEvent[]> {
   const start = Date.now();
   for (;;) {
+    // Room events carry MXIDs as senders, never access tokens.
+    const botMxid = await matrixWhoAmI(botToken).catch(() => "");
     const events = await matrixMessages(botToken, room, 60).catch(() => [] as MatrixEvent[]);
-    const hits = events.filter((e) => JSON.stringify(e.content ?? {}).includes(marker) && e.sender !== botToken);
+    const hits = events.filter((e) => botMxid !== "" && e.sender === botMxid);
     if (hits.length > 0) return hits;
-    if (Date.now() - start > timeoutMs) throw new Error(`no Piko reply containing "${marker}" within ${timeoutMs}ms`);
+    if (Date.now() - start > timeoutMs) throw new Error(`no Piko reply in room ${room} within ${timeoutMs}ms (marker ${marker})`);
+    await sleep(2_000);
+  }
+}
+
+/** Wait until a SPECIFIC task is marked access-lost (not a stale earlier row). */
+export async function waitTaskAccessLost(taskId: string, timeoutMs = 90_000): Promise<boolean> {
+  const start = Date.now();
+  for (;;) {
+    const n = await sqliteScalar(`SELECT count(*) FROM discussion_access_loss WHERE task_id='${taskId.replace(/'/g, "''")}';`);
+    if (Number(n) > 0) return true;
+    if (Date.now() - start > timeoutMs) return false;
     await sleep(2_000);
   }
 }
