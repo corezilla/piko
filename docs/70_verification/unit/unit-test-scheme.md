@@ -363,216 +363,797 @@
 >
 > **完成条件**：与用例集 §1 总账逐条互证。
 
-#### 6.1.1 Case · 模块内部函数（登记矩阵）
+#### 6.1 Case · UT-BOOT-001
 
-#### 6.1.2 Case · UT-REPO-001
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-001`（冷启动 READY）；只测该条设计验证项，不测模块整体行为
 
-**来源 ID / 固定版本**：`piko-task-repository-impl.isd.md`（`design.implementation`）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-001`
 
-**设计验证项 ID**：`VRC-REPO-001..009`（9 条，本 Case 分担）
-
-**Case ID**：`UT-REPO-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：task-repository 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-001.md`
 
-#### 6.1.3 Case · UT-WORKER-001
+#### 6.1 Case · UT-BOOT-002
 
-**来源 ID / 固定版本**：`piko-worker-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-002`（无效 config→F1）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-WORKER-001..007`（7 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-002`
 
-**Case ID**：`UT-WORKER-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：worker 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-002.md`
 
-#### 6.1.4 Case · UT-PI-001
+#### 6.1 Case · UT-BOOT-003
 
-**来源 ID / 固定版本**：`piko-pi-adapter-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-003`（tool ref 未注册 / Secret 解析失败→F1）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-PI-001..008`（8 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-003`
 
-**Case ID**：`UT-PI-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：pi-adapter 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-003.md`
 
-#### 6.1.5 Case · UT-USAGE-001
+#### 6.1 Case · UT-BOOT-004
 
-**来源 ID / 固定版本**：`piko-usage-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-004`（store 不可写→F1）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-USAGE-001..006`（6 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-004`
 
-**Case ID**：`UT-USAGE-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：usage 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-004.md`
 
-#### 6.1.6 Case · UT-POLICY-001
+#### 6.1 Case · UT-BOOT-005
 
-**来源 ID / 固定版本**：`piko-policy-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-005`（Pi upstream 不匹配 → F1）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-POLICY-001..006`（6 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-005`
 
-**Case ID**：`UT-POLICY-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：policy 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-005.md`
 
-#### 6.1.7 Case · UT-TAPI-001
+#### 6.1 Case · UT-BOOT-006
 
-**来源 ID / 固定版本**：`piko-task-api-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-006`（preflight 失败→F1，端口未绑定）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-TAPI-001..006`（6 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-006`
 
-**Case ID**：`UT-TAPI-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：task-api 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-006.md`
 
-#### 6.1.8 Case · UT-SCHED-001
+#### 6.1 Case · UT-BOOT-007
 
-**来源 ID / 固定版本**：`piko-scheduler-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-007`（未 READY 分支）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-SCHED-001..006`（6 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-007`
 
-**Case ID**：`UT-SCHED-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：scheduler 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-007.md`
 
-#### 6.1.9 Case · UT-BOOT-001
+#### 6.1 Case · UT-BOOT-008
 
-**来源 ID / 固定版本**：`piko-bootstrap-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-008`（重启后快照重读）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-BOOT-001..008`（8 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-008`
 
-**Case ID**：`UT-BOOT-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：bootstrap 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-008.md`
 
-#### 6.1.10 Case · UT-MATRIX-001
+#### 6.1 Case · UT-MATRIX-001
 
-**来源 ID / 固定版本**：`piko-matrix-adapter-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-001`（清理）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-MATRIX-001..005`（5 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-001`
 
-**Case ID**：`UT-MATRIX-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：matrix-adapter 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-001.md`
 
-#### 6.1.11 Case · UT-OBS-001
+#### 6.1 Case · UT-MATRIX-002
 
-**来源 ID / 固定版本**：`piko-observability-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-002`（去重）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-OBS-001..006`（6 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-002`
 
-**Case ID**：`UT-OBS-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：observability 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-002.md`
 
-#### 6.1.12 Case · UT-TRANSFER-001
+#### 6.1 Case · UT-MATRIX-003
 
-**来源 ID / 固定版本**：`piko-transfer-impl.isd.md`（`design.implementation`）
+**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-003`（`NOT_RUN`，Oracle = `matrix_sends` 行 + homeserver event）；只测该条设计验证项，不测模块整体行为
 
-**设计验证项 ID**：`VRC-TRANSFER-001..002`（2 条，本 Case 分担）
+**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-003`
 
-**Case ID**：`UT-TRANSFER-001`
-
-**分类**：`normal`
-
-**优先级**：`P1`
-
-**责任摘要（要测什么）**：transfer 内部函数/算法的正常、边界与错误路径；不测模块整体行为
+**分类 · 优先级**：`normal` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口**：`module-test-scheme`
+**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-003.md`
 
+#### 6.1 Case · UT-MATRIX-004
 
-### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
+**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-004`（E2EE/类型）；只测该条设计验证项，不测模块整体行为
 
-> **本节目的**：展示 §6 登记行在用例集中展开成的固定格式段落，供作者预判对应关系。
->
-> **必须写清楚**：与用例集 §3 骨架一致：#### ⟨Case ID⟩ 标题＋八字段段落；本小节灰示例，实例化剥离。
->
-> **抽象示例**：新增 Case 先入 §6 登记，再入用例集建段落；计划引用本方案版本。
->
-> **完成条件**：登记行与集合段落可互相定位。
+**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-004.md`
+
+#### 6.1 Case · UT-MATRIX-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-005`（`NOT_RUN`，Oracle = staging 文件 mime/size）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-005.md`
+
+#### 6.1 Case · UT-OBS-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-001`（deny-list 表驱动）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-001.md`
+
+#### 6.1 Case · UT-OBS-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-002`（envelope 完整性与事件名校验）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-002.md`
+
+#### 6.1 Case · UT-OBS-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-003`（fail-open：sink 抛错不改变被测业务调用结果）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-003.md`
+
+#### 6.1 Case · UT-OBS-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-004`（`metrics_enabled=false` 时 metric 端点降级但日志仍工作）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-004.md`
+
+#### 6.1 Case · UT-OBS-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-005`（audit 经 M003 原子落盘且失败可判定）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-005.md`
+
+#### 6.1 Case · UT-OBS-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-OBS-006`（有界 ring、快照脱敏与静态扫描）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-006.md`
+
+#### 6.1 Case · UT-PI-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-001`（session 身份确定性）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-001.md`
+
+#### 6.1 Case · UT-PI-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-002`（accept/drive 结局与身份）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-002.md`
+
+#### 6.1 Case · UT-PI-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-003`（streamOptions 固定）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-003.md`
+
+#### 6.1 Case · UT-PI-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-004`（attempt 身份）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-004.md`
+
+#### 6.1 Case · UT-PI-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-005`（工具 CAS）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-005.md`
+
+#### 6.1 Case · UT-PI-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-006`（存在性保留）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-006.md`
+
+#### 6.1 Case · UT-PI-007
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-007`（inspect 三态与不重发）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-007`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-007.md`
+
+#### 6.1 Case · UT-PI-008
+
+**责任摘要（要测什么／边界在哪）**：`VRC-PI-008`（fingerprint 匹配/不匹配）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-008`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-008.md`
+
+#### 6.1 Case · UT-POLICY-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-001`（绑定通过/未注册 ref/不一致）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-001.md`
+
+#### 6.1 Case · UT-POLICY-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-002`（规范化）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-002.md`
+
+#### 6.1 Case · UT-POLICY-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-003`（Case C）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-003.md`
+
+#### 6.1 Case · UT-POLICY-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-005`（权限/工具绑定）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-005.md`
+
+#### 6.1 Case · UT-POLICY-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-006`（无状态与并发独立）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-006.md`
+
+#### 6.1 Case · UT-REPO-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-001`（任务身份与 tombstone 比较）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-001.md`
+
+#### 6.1 Case · UT-REPO-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-002`（Result 两步提交与恢复）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-002.md`
+
+#### 6.1 Case · UT-REPO-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-003`（slot CAS/epoch/fence）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-003.md`
+
+#### 6.1 Case · UT-REPO-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-004`（fenced write）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-004.md`
+
+#### 6.1 Case · UT-REPO-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-005`（迁移失败与配置边界）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-005.md`
+
+#### 6.1 Case · UT-REPO-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-006`（ledger/turn CAS）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-006.md`
+
+#### 6.1 Case · UT-REPO-007
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-007`（容量）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-007`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-007.md`
+
+#### 6.1 Case · UT-REPO-008
+
+**责任摘要（要测什么／边界在哪）**：`VRC-REPO-008`（恢复扫描与补终态）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-008`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-008.md`
+
+#### 6.1 Case · UT-SCHED-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-001`（并发领取唯一性）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-001.md`
+
+#### 6.1 Case · UT-SCHED-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-002`（续租 CAS 与 `LeaseLost`）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-002.md`
+
+#### 6.1 Case · UT-SCHED-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-003`（崩溃后 fence：epoch 推进且旧 epoch 写入被拒）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-003.md`
+
+#### 6.1 Case · UT-SCHED-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-004`（选择）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-004.md`
+
+#### 6.1 Case · UT-SCHED-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-005`（恢复门：恢复完成前不领取）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-005.md`
+
+#### 6.1 Case · UT-SCHED-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-006`（退避常量不可热改，进程内固定）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-006.md`
+
+#### 6.1 Case · UT-TAPI-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-001`（受理与幂等）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-001.md`
+
+#### 6.1 Case · UT-TAPI-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-002`（错误映射）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-002.md`
+
+#### 6.1 Case · UT-TAPI-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-003`（状态查询）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-003.md`
+
+#### 6.1 Case · UT-TAPI-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-004`（三种 outcome 与状态码）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-004.md`
+
+#### 6.1 Case · UT-TAPI-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-005`（结果读取）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-005.md`
+
+#### 6.1 Case · UT-TAPI-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-006`（路由歧义）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-006.md`
+
+#### 6.1 Case · UT-TRANSFER-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TRANSFER-001`（输入源不可达 / `sha256` 不符 → 零调用 `Failed`、从未领 slot（PK-T41））；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-impl.isd.md` · `VRC-TRANSFER-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TRANSFER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TRANSFER-001.md`
+
+#### 6.1 Case · UT-TRANSFER-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-TRANSFER-002`（目标拒绝 / 部分失败 → 终态不变、`failed/partial`、重试幂等（PK-T42））；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-impl.isd.md` · `VRC-TRANSFER-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-TRANSFER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TRANSFER-002.md`
+
+#### 6.1 Case · UT-USAGE-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-001`（逐字段 sum/null 与三态）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-001.md`
+
+#### 6.1 Case · UT-USAGE-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-002`（missing_fields 一致性）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-002.md`
+
+#### 6.1 Case · UT-USAGE-003
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-003`（发布后迟到不改 Result）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-003`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-003.md`
+
+#### 6.1 Case · UT-USAGE-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-004`（validator fail closed 不写 Result）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-004.md`
+
+#### 6.1 Case · UT-USAGE-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-005`（校验通过后正常发布）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-005.md`
+
+#### 6.1 Case · UT-USAGE-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-006`（依赖故障与重算一致性）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-006.md`
+
+#### 6.1 Case · UT-WORKER-001
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-001`（执行与两步发布）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-001`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-001.md`
+
+#### 6.1 Case · UT-WORKER-002
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-002`（取消分流）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-002`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-002.md`
+
+#### 6.1 Case · UT-WORKER-004
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-004`（Usage 快照与语义校验 fail closed）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-004`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-004.md`
+
+#### 6.1 Case · UT-WORKER-005
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-005`（Discussion intake CAS 与 turn）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-005`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-005.md`
+
+#### 6.1 Case · UT-WORKER-006
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-006`（集成）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-006`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-006.md`
+
+#### 6.1 Case · UT-WORKER-007
+
+**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-007`（`LeaseLost` 停止驱动不写终态）；只测该条设计验证项，不测模块整体行为
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-007`
+
+**分类 · 优先级**：`normal` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-007.md`
 
 
 ## 7. 不适用与缺口裁决

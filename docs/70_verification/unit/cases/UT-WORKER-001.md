@@ -60,20 +60,19 @@
 
 | Case ID | 函数/算法 | 方案 §2.1 维度行×格 | 实现状态 |
 |---|---|---|---|
-| `UT-WORKER-001` | M005 内部函数/算法全量 | §2.1 `normal`×`/`boundary`×`/`negative`×`/concurrency`×`/recovery`×`/security` | `Implemented` |
+| `UT-WORKER-001` | `VRC-WORKER-001` 执行与两步发布 | §2.1 `normal` | `Implemented` |
 
 **未覆盖格**：无——可执行入口：`tests/unit/worker.test.ts` · `tests/unit/worker-runtime.test.ts` · `tests/unit/tool-recovery.test.ts`。执行状态与 Verdict 见 Run 报告。
 
 
-#### 1.1 总账 · ⟨Case ID⟩
+#### 1.1 总账 · UT-WORKER-001
 
-对象函数：
+对象函数：`VRC-WORKER-001`（执行与两步发布）
 
-维度格（方案 §2.3 行×格）：
+维度格（方案 §2.3 行×格）：`normal`
 
-实现状态：
+实现状态：`Implemented`
 
-`Implemented` / `Planned` / `Gap（编号／Owner／最晚关闭 Gate）`
 
 
 ## 2. 公共前提与替身矩阵
@@ -98,6 +97,24 @@
 
 ## 3. 用例（固定段落块，按对象分组）
 
+#### 3.1 UT-WORKER-001 · 执行与两步发布
+
+**责任 / 明确不测**：验证 VRC-WORKER-001（执行与两步发布）；只测本条设计验证项声明的判据，不测同模块其他验证项、不测模块整体行为。
+
+**维度坐标（方案 §2.3 行×格）**：`normal` × 本条 `UT` 对象分组。
+
+**输入构造**：按 `VRC-WORKER-001` 的适用条件构造最小输入；非法与边界取值取设计判据列出的端点；替身边界见 §2。
+
+**步骤与观察点**：建立 `ENV-UNIT` → 直接调用被测函数 → 观察返回值、typed 错误码与持久化副作用。
+
+**Oracle 与预期**：以 `VRC-WORKER-001` 为唯一权威（`docs/40_module_design/` 对应模块设计 §14 / ISD §14）；本段只细化执行断言，冲突回溯设计修订。
+
+**错误路径 / 清理**：非法输入必须抛 typed 码且不吞错；内存库与替身每例重置；临时 workspace 用后删除。
+
+**脚本 / 实现状态**：`tests/unit/worker.test.ts` · `tests/unit/worker-runtime.test.ts` · `tests/unit/tool-recovery.test.ts` · `Implemented`
+
+
+
 ### 3.1 M005 内部函数/算法
 
 #### 3.1.1 `UT-WORKER-001` · M005 内部函数在正常/边界/错误路径下的行为
@@ -119,4 +136,4 @@ Oracle 与预期：对 ISD 的 VRC 判据；期望值独立来自 schema/设计�
 ## 4. 集合状态汇总与缺口
 
 - **覆盖**：7 条实现层 VRC 由本集 `UT-WORKER-001` 分担。
-- **缺口**：无——`G-CASE-003`（逐 Case 文档与可执行入口）已关闭；本集覆盖M005 内部函数/算法。
+- **缺口**：无——本集按 `VRC-WORKER-001` 一条 Case 登记，分母与设计 VRC 清单逐条对账。
