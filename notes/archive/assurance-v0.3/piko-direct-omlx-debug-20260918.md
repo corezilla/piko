@@ -1,3 +1,5 @@
+# [ARCHIVED] piko-direct-omlx-debug-20260918
+
 > 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 ## Scope

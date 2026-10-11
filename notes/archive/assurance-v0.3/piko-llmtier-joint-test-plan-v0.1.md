@@ -1,3 +1,5 @@
+# [ARCHIVED] piko-llmtier-joint-test-plan-v0.1
+
 > 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 > 本计划依据联调方案 `piko-llmtier-joint-test-specification-v0.1`（下称「规格」）制定，覆盖

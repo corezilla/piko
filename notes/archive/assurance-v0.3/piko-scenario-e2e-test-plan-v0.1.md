@@ -1,3 +1,5 @@
+# [ARCHIVED] piko-scenario-e2e-test-plan-v0.1
+
 > 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 ## 1. 目标、范围与测试层级

@@ -1,3 +1,5 @@
+# [ARCHIVED] piko-llmtier-joint-test-specification-v0.1
+
 > 归档说明：本文为 STD `assurance.*` 时代（模板已退役）的历史材料，仅作追溯参考，不是当前受控文档。
 
 > 0.2.0 重构说明（Owner review 结论）：联调必须具备**节点级可观测性设计**，而非事后补短板。

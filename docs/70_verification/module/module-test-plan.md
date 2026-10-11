@@ -66,11 +66,11 @@
 
 #### 1.1 构成项 · 模块方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`module-test-scheme` v0.1.0-draft.1（`docs/70_verification/module/module-test-scheme.md`），覆盖 Piko 11 个直属模块（M000–M010）；方案 §6 登记 11 条 `MT-*-001` Case：`MT-BOOT-001`、`MT-TAPI-001`、`MT-POLICY-001`、`MT-REPO-001`、`MT-SCHED-001`、`MT-WORKER-001`、`MT-PI-001`、`MT-USAGE-001`、`MT-MATRIX-001`、`MT-OBS-001`、`MT-TRANSFER-001`；环境类型 `ENV-UNIT`（方案 §4.1）。
+**文档 / 入口（Document ID 或缺口）**：`module-test-scheme` v0.1.0-draft.1（`docs/70_verification/module/module-test-scheme.md`）；§1.1 登记 11 个模块 ＋ 共享 IPC 的公开面，§6 登记 **47 条 `MT-<模块>-NNN` Case**（模块公开面 × STD §2.3 对象类型，只取实际适用类型）；环境类型 `ENV-UNIT`（方案 §4.1）。
 
-**覆盖责任摘要**：模块层 Case 清单与设计状态的唯一登记处；每条 Case 的来源是同名模块设计文档（`docs/40_module_design/piko-*-design.md`，`design.definition`）与其 VRC 集合。已核对的方案事实：11 条 Case 的设计状态全部为 `Gap`，原因统一为"逐 Case 文档未撰写"（方案 §7.1.5 裁决，Owner＝测试工程）。
+**覆盖责任摘要**：模块层以**模块公开接口**为被测对象，按 STD 规定的 9 类接口类型（写型端点/读型端点/流式SSE/外部依赖失败/准入队列/配置热变更/组装并发/资源清理/热路径基线）展开；不适用的类型按 §7 裁决为 N/A，不凑数。模块分布：BOOT 3、IPC 4、MATRIX 5、OBS 5、PI 3、POLICY 3、REPO 6、SCHED 3、TAPI 4、TRANSFER 5、USAGE 2、WORKER 4。
 
-**条目状态**：`Planned` —— 方案已生成并固定版本；因全部分母条目为 `Gap`，本计划按模块级 Case 粒度、以真实测试文件为执行依据编排（见 §10.1 的 `G-CASE-003`）。
+**条目状态**：`Planned` —— 方案已生成并固定版本；因全部分母条目为 `Gap`，本计划按模块级 Case 粒度、以真实测试文件为执行依据编排（见 §10.1 的 `G-EXEC-MT`）。
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
@@ -132,19 +132,19 @@
 
 #### 3.1 前检项 · 方案就绪度
 
-**判定事实**：`module-test-scheme` v0.1.0-draft.1 §6 为 11 条 `MT-*-001` 逐条登记了来源 ID、VRC 集合、分类、优先级与设计状态；§2.1 给出 `module-contract` 家族的判定规则，§4.1 给出环境类型 `ENV-UNIT`，§7 给出 `Tailored-N/A` 与 `Gap` 裁决及 Owner。已核对：11 条 Case 的设计状态全部为 `Gap`（逐 Case 文档未撰写），无未登记缺口。
+**判定事实**：`module-test-scheme` §6 已逐条登记 47 条 Case（来源模块设计、对象类型、维度格、分类、优先级与设计状态）；§1.1 完成模块公开面绑定登记；§2.3 使用 STD 模块层 9 类接口类型（此前误用单元层类型，已修正）；§7 给出 N/A 与 Gap 裁决。
 
-**通过条件**：方案版本已固定（v0.1.0-draft.1）且与 §2 基线一致；11 条 Case 全部有设计状态与来源 ID；每条 `Gap` 在方案 §7 有具名 Owner 与恢复条件。分母条目为 `Gap` 不阻塞本轮"按模块级粒度"的执行编排，但必须在 §10.1 有主有期限。
+**通过条件**：方案版本已固定；§1.1 绑定登记齐备；每条 Case 在 §6 有设计状态且在用例集有同名文档；每个适用对象类型的全部维度格在所属 Case 中有展开项。
 
 **不满足时**：记 `Blocked`，把新增缺口按 `G-*` 编号登记到 §10.1 并通知测试工程；方案升版本后必须同步本计划 §1.1 与 §4 分配再重走本前检，不在旧版本上继续。
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.module-case` 文档已存在（`docs/70_verification/module/cases/`，11 份）；已核对的模块↔测试文件映射：`MT-BOOT-001` ← `tests/unit/config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`MT-TAPI-001` ← `tests/unit/server.test.ts`；`MT-POLICY-001` ← `tests/unit/workspace.test.ts`；`MT-REPO-001` ← `tests/unit/store.test.ts`；`MT-SCHED-001` ← `tests/unit/p-input.test.ts`（P-INPUT pre-slot gating 段）；`MT-WORKER-001` ← `tests/unit/worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`MT-PI-001` ← `tests/unit/pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`MT-USAGE-001` ← `tests/unit/worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`MT-MATRIX-001` ← `tests/unit/matrix.test.ts`；`MT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`MT-OBS-001` 已有专属可执行入口**——`tests/unit/observability.test.ts`（新增，含 envelope/指标语义/audit/脱敏/fail-open/有界快照），并在 `server.test.ts` 补 `GET /diagnostics` 端到端段。
+**判定事实**：`tests.module-case` 用例集已存在（`docs/70_verification/module/cases/`，47 份 `.md` ＋ 同名 metadata），每份含 §1.1 总账（接口/路径＋对象类型＋实现状态）与 §3 逐 Case 八字段段落。模块↔测试文件映射：`BOOT` ← config-schema / config / core / clock；`TAPI` ← server / auth；`POLICY` ← policy-paths / workspace；`REPO` ← store-state / store-matrix / store / scheduler；`SCHED` ← scheduler / p-input；`WORKER` ← worker / worker-runtime / tool-recovery；`PI` ← pi-runtime / provider-preflight / responses-replay；`USAGE` ← usage / worker；`MATRIX` ← matrix / matrix-membership；`TRANSFER` ← transfer-paths / transfer-guards / p-input；`OBS` ← observability / server；`IPC` ← ipc。
 
 **通过条件**：本轮要执行的每条 Case 都能指向至少一个可执行入口（文件路径 ＋ vitest 选择器），且该入口在本轮 Run 记录中出现；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
-**不满足时**：该 Case 记 `Blocked`，Owner 测试工程。`MT-OBS-001` 的"缺专属入口"已关闭——新增 `tests/unit/observability.test.ts`（9 例，覆盖 `VRC-OBS-001..004`）与 `tests/unit/server.test.ts` 的 `GET /diagnostics` 端到端段。
+**不满足时**：对应 Case 记 `Blocked`，Owner 测试工程；不得因个别 Case 缺入口而缩减分母或标记为已覆盖。
 
 #### 3.3 前检项 · 环境与工具（引用 tests.asset-design 的 Verified 状态）
 
@@ -181,7 +181,7 @@
 
 **Owner**：测试工程
 
-**分配给哪些 Case**：`MT-BOOT-001`、`MT-TAPI-001`、`MT-POLICY-001`、`MT-REPO-001`、`MT-SCHED-001`、`MT-WORKER-001`、`MT-PI-001`、`MT-USAGE-001`、`MT-OBS-001`、`MT-TRANSFER-001`
+**分配给哪些 Case**：`MT-BOOT` 3 条；`MT-IPC` 4 条；`MT-MATRIX` 5 条；`MT-OBS` 5 条；`MT-PI` 3 条；`MT-POLICY` 3 条；`MT-REPO` 6 条；`MT-SCHED` 3 条；`MT-TAPI` 4 条；`MT-TRANSFER` 5 条；`MT-USAGE` 2 条；`MT-WORKER` 4 条（合计 47 条）。单实例串行占用。
 
 **准备时限**：§9 阶段门 1 进入前
 
@@ -252,7 +252,7 @@
 >
 > **完成条件**：报告的生成时机、模板与 Gate 规则确定。
 
-- **报告生成时机与模板**：全部 11 条 Case 走完（或按出口准则提前结束）后生成 `module-test-report` 实例（`docs/70_verification/reports/module-test-report.md`，模板 `tests.module-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
+- **报告生成时机与模板**：全部 47 条 Case 走完（或按出口准则提前结束）后生成 `module-test-report` 实例（`tests/module/reports/module-test-report.md`，模板 `tests.module-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
 
 - **Gate 建议规则**：Gate ＝ 全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出——既不计入 pass 也不隐藏，且每条 `BLOCKED` 必须对应 §10.1 中有主有期限的缺口。方案 §6 中 11 条 `Gap` 状态的设计条目（逐 Case 文档缺失）不参与 pass 判定，但其关闭进度须在报告单列。报告只按本规则给建议，不越权批准。
 
@@ -268,7 +268,7 @@
 
 #### 8.1 风险 · 11 条 MT Case 全为 Gap，执行判据无 Oracle 权威
 
-**时间窗 / 最晚 Gate**：§9 阶段门 1 之前须确认判据来源；最晚 Gate＝本轮 `module-test-report` 产出前完成首轮 `G-CASE-003` 拆分。
+**时间窗 / 最晚 Gate**：§9 阶段门 1 之前须确认判据来源；最晚 Gate＝本轮 `module-test-report` 产出前完成首轮 `G-EXEC-MT` 拆分。
 
 **冲突或缓解出口**：触发条件＝方案 §6 的 11 条 Case 设计状态全为 `Gap`，本层没有任何 `Designed` 条目——执行者面对"模块公开入口"这一责任摘要时缺少统一的 Oracle 与断言点来源，容易各写各的判据、导致 Run 之间不可比。缓解：执行判据只取方案 §2.1 的 `module-contract` 家族规则（公开入口黑盒 ＋ 边界替身 ＋ 状态转换/错误路径驱动 ＋ 缺断言即 `INVALID`）与 §2.2 的家族选型（boundary/negative/concurrency/recovery/security 各有技术），Run 记录必须逐条写明所用测试文件与断言点；拆分完成后按同一 `MT-*-001` ID 同步 §9.4 与 §1.2 构成表。
 
@@ -276,7 +276,7 @@
 
 **时间窗 / 最晚 Gate**：风险"`MT-OBS-001`（MM009 observability）无可执行入口"——§9 阶段门 3 之前；最晚 Gate＝本轮报告产出前。
 
-**冲突或缓解出口**：`tests/unit/` 没有 observability 专属测试文件，若用 `server.test.ts` 的 error containment 段冒充观测覆盖，会把"错误收口"误报为"结构化事件/指标/审计可诊断"。缓解：`MT-OBS-001` 记 `NOT_RUN` 并在 Run 记录中写明"无专属入口"；该缺口并入 `G-CASE-003` 的关闭条件——拆分时必须为 observability 模块给出可执行入口，或按方案 §7 记为具名 Gap。
+**冲突或缓解出口**：`tests/unit/` 没有 observability 专属测试文件，若用 `server.test.ts` 的 error containment 段冒充观测覆盖，会把"错误收口"误报为"结构化事件/指标/审计可诊断"。缓解：`MT-OBS-001` 记 `NOT_RUN` 并在 Run 记录中写明"无专属入口"；该缺口并入 `G-EXEC-MT` 的关闭条件——拆分时必须为 observability 模块给出可执行入口，或按方案 §7 记为具名 Gap。
 
 ---
 
@@ -288,7 +288,7 @@
 
 **时间窗 / 最晚 Gate**：风险"方案缺口编号与本计划不一致"——本计划编写时；最晚 Gate＝§9 阶段门 1 之前。
 
-**冲突或缓解出口**：`module-test-scheme` §6 与 §7.1.5 曾写作 `G-CASE-002`，与系统层方案同号；编号已统一为 `G-CASE-003`，跨层引用不再歧义。
+**冲突或缓解出口**：`module-test-scheme` §6 与 §7.1.5 曾写作 `G-CASE-002`，与系统层方案同号；编号已统一为 `G-EXEC-MT`，跨层引用不再歧义。
 
 ## 9. 执行流程（逐 Case 作业序列）
 
@@ -379,7 +379,7 @@
 
 **输入 / 依据**：本计划 §7（生成时机、模板与 Gate 规则）＋ §6 的全部 Run 记录
 
-**产出**：`module-test-report` 实例（`docs/70_verification/reports/module-test-report.md`）——逐 Case Verdict、`BLOCKED`/`NOT_RUN` 单列、Gate 建议结论；报告只给建议，不越权批准
+**产出**：`module-test-report` 实例（`tests/module/reports/module-test-report.md`）——逐 Case Verdict、`BLOCKED`/`NOT_RUN` 单列、Gate 建议结论；报告只给建议，不越权批准
 
 #### 9.7 阶段门 · 1 最小真实链
 
@@ -424,8 +424,8 @@
 
 **已关闭项**：
 
-- `G-CASE-003`（模块用例集未撰写）：**已关闭**。`docs/70_verification/module/cases/` 下 11 份 `tests.module-case` 文档全部撰写完成，方案 §6 的 11 条 Case 状态已由 `Gap` 转为 `Implemented`。
-- `G-CASE-002`（编号与系统层同号歧义）：**已关闭**。全库统一为 `G-CASE-003`，跨层引用不再歧义。
+- `G-EXEC-MT`（模块用例集未撰写）：**已关闭**。`docs/70_verification/module/cases/` 下 11 份 `tests.module-case` 文档全部撰写完成，方案 §6 的 11 条 Case 状态已由 `Gap` 转为 `Implemented`。
+- `G-CASE-002`（编号与系统层同号歧义）：**已关闭**。全库统一为 `G-EXEC-MT`，跨层引用不再歧义。
 - `G-ASSET-001`、`G-MATRIX-001`、`G-SCHEMA-001`：**已关闭**，关闭方式见 `asset-design` 与 `notes/interface-derivation.md` §11。
 - `MT-OBS-001` 缺专属入口：**已关闭**。新增 `tests/unit/observability.test.ts`（9 例，覆盖 `VRC-OBS-001..004`）并在 `tests/unit/server.test.ts` 补 `GET /diagnostics` 端到端段。
 
