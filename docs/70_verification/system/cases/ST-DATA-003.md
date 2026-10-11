@@ -139,7 +139,7 @@
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/unit/p-input.test.ts`、`tests/integration/transfer-scp.test.ts``
+**脚本**：`tests/unit/p-input.test.ts`
 
 **实现状态**：`Implemented`
 

@@ -139,7 +139,7 @@
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/integration/llmtier-contract.test.ts``
+**脚本**：`tests/integration/llmtier-contract.test.ts`
 
 **实现状态**：`Implemented`
 

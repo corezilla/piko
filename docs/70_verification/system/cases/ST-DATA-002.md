@@ -139,7 +139,7 @@ staging 目录被清理；同 `task_id` 重发返回同一 Failed（内容级重
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/unit/p-input.test.ts``
+**脚本**：`tests/unit/p-input.test.ts`
 
 **实现状态**：`Implemented`
 

@@ -139,7 +139,7 @@
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/integration/llmtier-contract.test.ts`（mock）+ 实机手工验证`
+**脚本**：`tests/integration/llmtier-contract.test.ts`
 
 **实现状态**：`Gap（G-ENV-001：真实 LLMTier 无自动化入口）`
 

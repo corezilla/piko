@@ -139,7 +139,7 @@ purge **不得**删除 tombstone；未授权 → 403；不触碰其他 `task_id`
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/unit/store.test.ts``
+**脚本**：`tests/unit/store.test.ts`
 
 **实现状态**：`Implemented`
 

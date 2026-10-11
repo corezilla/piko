@@ -139,7 +139,7 @@
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/unit/worker-runtime.test.ts``
+**脚本**：`tests/unit/worker-runtime.test.ts`
 
 **实现状态**：`Implemented`
 

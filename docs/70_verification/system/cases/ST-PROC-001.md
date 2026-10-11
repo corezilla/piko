@@ -139,7 +139,7 @@ P0 不得因 P1 退出而退出；P1 恢复须走既定恢复顺序
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/unit/p-input.test.ts` + 双进程实机验证`
+**脚本**：`tests/unit/p-input.test.ts`
 
 **实现状态**：`Implemented`
 

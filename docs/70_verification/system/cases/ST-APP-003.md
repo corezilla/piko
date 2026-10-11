@@ -139,7 +139,7 @@ Running → 202 且 `outcome="StopRequested"`（**不表示已停止**）；Queu
 
 ## 7. 自动化位置与状态
 
-**脚本**：``tests/integration/http-api.test.ts`、`tests/unit/p-input.test.ts``
+**脚本**：`tests/integration/http-api.test.ts`
 
 **实现状态**：`Implemented`
 

@@ -256,6 +256,10 @@
 >
 > **完成条件**：可从本文档定位测试代码与命令。
 
+
+**脚本**：`tests/integration/module-assembly.test.ts`
+**实现状态**：`Implemented`
+
 - ****测试文件 / 测试函数****：
 
 - ****单 Case 执行命令****：

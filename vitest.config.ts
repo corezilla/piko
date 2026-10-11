@@ -14,7 +14,7 @@ export default defineConfig({
     "typebox": resolve("upstream/pi/node_modules/typebox")
   }},
   test: {
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "tests/fault/**/*.test.ts"],
+    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "tests/fault/**/*.test.ts", "tests/system/**/*.test.ts"],
     // Live E2E suites live in vitest.live.config.ts (npm run test:live): they
     // need a reachable Piko/oMLX/Synapse and must run serially.
     exclude: [
