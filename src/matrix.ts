@@ -59,11 +59,33 @@ export class MatrixRuntime {
     }
   }
 
+  /** Is Piko still joined to `room`? Transient errors answer "yes" (keep trying). */
+  async isJoined(room: string): Promise<boolean> {
+    try {
+      const joined = await this.client!.getJoinedRooms();
+      return joined.joined_rooms.includes(room);
+    } catch {
+      return true;
+    }
+  }
+
+  /** Record a confirmed discussion access loss for `room` (fail-closed). */
+  recordDiscussionAccessLost(room: string): void {
+    this.store.markDiscussionAccessLost(room);
+    this.store.failAccessLostTasks();
+  }
+
   private membershipTimer:NodeJS.Timeout|undefined;
   private async processBatch(events:MatrixEvent[],cursor:string){
     const rooms=new Set(events.map(event=>event.getRoomId()).filter((room):room is string=>!!room&&this.store.openDiscussionRuns(room).length>0));
-    if(rooms.size){const joined=new Set((await this.client!.getJoinedRooms()).joined_rooms);for(const room of rooms)if(!joined.has(room)){this.store.markDiscussionAccessLost(room);throw new Error(`Piko is no longer joined to discussion room ${room}`)}}
-    const prepared=[];for(const event of events){const item=await this.prepareEvent(event);if(item)prepared.push(item)}
+    // Rooms we are no longer a member of are dropped from THIS batch, not
+    // raised: throwing here makes matrix-js-sdk stop the client permanently,
+    // so a single lost membership would silently kill discussion intake for
+    // every other room too. The loss is recorded instead, and the independent
+    // membership audit keeps enforcing fail-closed.
+    if(rooms.size){const joined=new Set((await this.client!.getJoinedRooms()).joined_rooms);for(const room of rooms)if(!joined.has(room)){this.store.markDiscussionAccessLost(room);this.store.failAccessLostTasks();rooms.delete(room)}}
+    const allowed=new Set<string>(rooms);
+    const prepared=[];for(const event of events){const room=event.getRoomId();if(!room||!allowed.has(room))continue;const item=await this.prepareEvent(event);if(item)prepared.push(item)}
     this.store.ingestMatrixBatch(prepared,cursor);
   }
   private async downloadMedia(run:string,event:string,content:any){

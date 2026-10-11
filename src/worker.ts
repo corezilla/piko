@@ -282,9 +282,26 @@ async function sendDiscussionReplyWithRetry(matrix: MatrixRuntime, taskId: strin
   let lastError: unknown;
   for (let attempt = 0; attempt <= DISCUSSION_RETRY_DELAYS_MS.length; attempt++) {
     try {
+      // Check membership BEFORE sending: once Piko is removed from the room the
+      // send fails with a raw M_FORBIDDEN, which used to surface as InternalError
+      // and left no DiscussionAccessLost record at all.
+      if (!(await matrix.isJoined(roomId))) {
+        matrix.recordDiscussionAccessLost(roomId);
+        const lost = new Error("Piko lost access to the discussion room.");
+        Object.assign(lost, { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
+        throw lost;
+      }
       await matrix.sendDiscussionReply(taskId, roomId, eventId, turn, body);
       return;
     } catch (error) {
+      // A 403 from the homeserver is itself proof that membership was lost.
+      if (/M_FORBIDDEN|not in room|not joined/i.test(String((error as Error)?.message ?? error))) {
+        matrix.recordDiscussionAccessLost(roomId);
+        const lost = new Error("Piko lost access to the discussion room.");
+        Object.assign(lost, { pikoCode: "DiscussionAccessLost", cause: "Authorization" });
+        lastError = lost;
+        break;
+      }
       lastError = error;
       if (isPermanentMatrixError(error)) break;
       if (error instanceof Error) {

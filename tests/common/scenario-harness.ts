@@ -405,52 +405,117 @@ export function createScenarioRoom(): string {
   return room.room_id;
 }
 
+/**
+ * A homeserver answers 429 when a client bursts past its rate limit. Retrying
+ * immediately just deepens the penalty (Synapse can answer retry_after_ms in
+ * minutes), so honour the advertised delay before the next call.
+ */
+async function throttle(res: Response): Promise<void> {
+  if (res.status !== 429) return;
+  const retryAfterMs = Number(res.headers.get("retry-after-ms") ?? 0);
+  const retryAfter = Number(res.headers.get("retry-after") ?? 0) * 1000;
+  const wait = retryAfterMs || retryAfter || 5_000;
+  process.stderr.write(`[matrix] rate limited, waiting ${wait}ms\n`);
+  await sleep(wait + 250);
+}
+
+/**
+ * Run a Matrix call that may be rate limited, waiting out the penalty and
+ * retrying. A single 429 must not fail a case: the homeserver, not Piko, is
+ * throttling the test client.
+ */
+async function matrixCall(
+  method: string,
+  path: string,
+  opts: { token?: string; body?: unknown } = {},
+  attempts = 4,
+): Promise<Response> {
+  let res!: Response;
+  for (let i = 0; i < attempts; i += 1) {
+    res = await fetch(`${MATRIX_BASE}${path}`, {
+      method,
+      headers: {
+        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+        ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
+    });
+    if (res.status !== 429) return res;
+    await throttle(res);
+  }
+  return res;
+}
+
 export async function matrixSend(token: string, room: string, body: string): Promise<string> {
-  const res = await fetch(
-    `${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/send/m.room.message/${Date.now()}-${Math.random()}`,
-    {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ msgtype: "m.text", body }),
-    },
+  const res = await matrixCall(
+    "PUT",
+    `/_matrix/client/v3/rooms/${encodeURIComponent(room)}/send/m.room.message/${Date.now()}-${Math.random()}`,
+    { token, body: { msgtype: "m.text", body } },
   );
+  await throttle(res);
   if (res.status !== 200) throw new Error(`matrix send -> ${res.status}: ${await res.text()}`);
   return ((await res.json()) as { event_id: string }).event_id;
 }
 
 /** Resolve an access token to its MXID. Room APIs need MXIDs, not tokens. */
 export async function matrixWhoAmI(token: string): Promise<string> {
-  const r = await fetch(`${MATRIX_BASE}/_matrix/client/v3/account/whoami`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const r = await matrixCall("GET", "/_matrix/client/v3/account/whoami", { token });
   if (r.status !== 200) throw new Error(`whoami -> ${r.status}: ${await r.text()}`);
   return ((await r.json()) as { user_id: string }).user_id;
 }
 
 export async function matrixKick(token: string, room: string, userId: string): Promise<void> {
-  const res = await fetch(`${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/kick`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: mxid(userId), reason: "scenario test" }),
+  const res = await matrixCall("POST", `/_matrix/client/v3/rooms/${encodeURIComponent(room)}/kick`, {
+    token,
+    body: { user_id: mxid(userId), reason: "scenario test" },
   });
+  await throttle(res);
   if (res.status !== 200) throw new Error(`matrix kick -> ${res.status}: ${await res.text()}`);
 }
 
 export async function matrixJoin(token: string, room: string): Promise<void> {
-  const res = await fetch(`${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/join`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: "{}",
+  const res = await matrixCall("POST", `/_matrix/client/v3/rooms/${encodeURIComponent(room)}/join`, {
+    token,
+    body: {},
   });
+  await throttle(res);
   if (res.status !== 200) throw new Error(`matrix join -> ${res.status}: ${await res.text()}`);
 }
 
+/**
+ * Re-join after a kick and confirm it took. Synapse rejects the old token a few
+ * moments after a kick, so a single join attempt can fail transiently and leave
+ * the homeserver poisoned for every later suite.
+ */
+export async function matrixEnsureJoined(token: string, room: string, timeoutMs = 45_000): Promise<void> {
+  const start = Date.now();
+  let last = "";
+  for (;;) {
+    try {
+      await matrixJoin(token, room);
+      const joined = await matrixWhoAmI(token);
+      if (joined) {
+        const probe = await fetch(`${MATRIX_BASE}/_matrix/client/v3/joined_rooms`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const body = (await probe.json()) as { joined_rooms?: string[] };
+        if (body.joined_rooms?.includes(room)) return;
+        last = `room absent from joined_rooms`;
+      }
+    } catch (error) {
+      last = String(error).slice(0, 160);
+    }
+    if (Date.now() - start > timeoutMs) throw new Error(`could not re-join ${room}: ${last}`);
+    await sleep(2_000);
+  }
+}
+
 export async function matrixInvite(token: string, room: string, userId: string): Promise<void> {
-  const res = await fetch(`${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/invite`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: mxid(userId) }),
+  const res = await matrixCall("POST", `/_matrix/client/v3/rooms/${encodeURIComponent(room)}/invite`, {
+    token,
+    body: { user_id: mxid(userId) },
   });
+  await throttle(res);
   if (res.status !== 200) throw new Error(`matrix invite -> ${res.status}: ${await res.text()}`);
 }
 
@@ -516,10 +581,10 @@ export async function openDiscussionTasks(room: string): Promise<string[]> {
 }
 
 export async function matrixMessages(token: string, room: string, limit = 40): Promise<MatrixEvent[]> {
-  const res = await fetch(
-    `${MATRIX_BASE}/_matrix/client/v3/rooms/${encodeURIComponent(room)}/messages?dir=b&limit=${limit}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
+  const res = await matrixCall("GET", `/_matrix/client/v3/rooms/${encodeURIComponent(room)}/messages?dir=b&limit=${limit}`, {
+    token,
+  });
+  await throttle(res);
   if (res.status !== 200) throw new Error(`matrix messages -> ${res.status}: ${await res.text()}`);
   return ((await res.json()) as { chunk: MatrixEvent[] }).chunk;
 }

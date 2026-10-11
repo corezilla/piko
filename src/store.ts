@@ -332,7 +332,11 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
     return this.tx(() => {
       const rows = this.db
         .prepare(
-          "SELECT r.task_id FROM runs r JOIN discussion_access_loss d ON d.task_id=r.task_id WHERE r.state IN('Queued','Running','Cancelling') ORDER BY r.task_id",
+          // Only Queued tasks are force-terminated here. A Running task is
+          // already inside P1, which polls discussionAccessLost() and finalises
+          // itself with a correct lease; terminating it from under P1 would
+          // revoke that lease mid-publication.
+          "SELECT r.task_id FROM runs r JOIN discussion_access_loss d ON d.task_id=r.task_id WHERE r.state='Queued' ORDER BY r.task_id",
         )
         .all() as any[];
       const at = now();
@@ -356,7 +360,18 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
           .run(result.task_id, result.generation, json, createHash("sha256").update(json).digest("hex"), at);
         this.db.prepare("UPDATE runs SET state='Failed',finished_at=?,last_activity_at=? WHERE task_id=?").run(at, at, row.task_id);
         this.db.prepare("UPDATE discussion_turns SET status='Abandoned' WHERE task_id=? AND status IN('Pending','QueuedInPi')").run(row.task_id);
-        this.db.prepare("UPDATE execution_slot SET task_id=NULL,owner_id=NULL,boot_id=NULL,heartbeat_at=NULL WHERE slot_id=1 AND task_id=?").run(row.task_id);
+        // Release the slot ONLY when this task still owns it AND had not
+        // started. A task that was already Running is being finalised by P1;
+        // yanking its lease here races the worker's own result publication and
+        // loses it ("execution lease was lost" at finalization).
+        const owned = this.db
+          .prepare("SELECT 1 FROM execution_slot WHERE slot_id=1 AND task_id=?")
+          .get(row.task_id);
+        if (owned) {
+          this.db
+            .prepare("UPDATE execution_slot SET task_id=NULL,owner_id=NULL,boot_id=NULL,heartbeat_at=NULL WHERE slot_id=1 AND task_id=?")
+            .run(row.task_id);
+        }
       }
       return rows.map((r) => r.task_id as string);
     });
