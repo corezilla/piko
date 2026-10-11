@@ -438,11 +438,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `advance`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-001.md`
 
@@ -450,11 +450,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `iso`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-002.md`
 
@@ -462,11 +462,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `loadConfig`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-003.md`
 
@@ -474,11 +474,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `main`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-004.md`
 
@@ -486,11 +486,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `monotonic`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-005.md`
 
@@ -498,11 +498,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `now`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-006.md`
 
@@ -510,11 +510,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `resolveSecret`（BOOT）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-007.md`
 
@@ -522,11 +522,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `runControlProcess`（BOOT）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-008.md`
 
@@ -534,11 +534,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `systemClock`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-009.md`
 
@@ -546,11 +546,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `validateToolRegistry`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-010.md`
 
@@ -558,11 +558,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `apply`（IPC）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-001.md`
 
@@ -570,11 +570,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `attachChildToHandler`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-002.md`
 
@@ -582,11 +582,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `kill`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-003.md`
 
@@ -594,11 +594,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `report`（IPC）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-004.md`
 
@@ -606,11 +606,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `runExecutionProcess`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-005.md`
 
@@ -618,11 +618,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `send`（IPC）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-006.md`
 
@@ -630,11 +630,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `spawn`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-007.md`
 
@@ -642,11 +642,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `startWatchdog`（IPC）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-008.md`
 
@@ -654,11 +654,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `stop`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-009.md`
 
@@ -666,11 +666,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `unhealthy`（IPC）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-bootstrap-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-010.md`
 
@@ -678,11 +678,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `auditMembership`（MATRIX）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-001.md`
 
@@ -690,11 +690,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `downloadMedia`（MATRIX）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`数值/长度上限参数` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-002.md`
 
@@ -702,11 +702,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `isJoined`（MATRIX）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-003.md`
 
@@ -714,11 +714,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `isPermanentMatrixError`（MATRIX）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-004.md`
 
@@ -726,11 +726,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `prepareEvent`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-005.md`
 
@@ -738,11 +738,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `processBatch`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-006.md`
 
@@ -750,11 +750,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `recordDiscussionAccessLost`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-007.md`
 
@@ -762,11 +762,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `send`（MATRIX）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-008.md`
 
@@ -774,11 +774,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `sendDiscussionReply`（MATRIX）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-009.md`
 
@@ -786,11 +786,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `start`（MATRIX）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-010.md`
 
@@ -798,11 +798,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `verifyDiscussion`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-matrix-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-011.md`
 
@@ -810,11 +810,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `audit`（OBS）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-001.md`
 
@@ -822,11 +822,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `bump`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-002.md`
 
@@ -834,11 +834,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `emit`（OBS）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-003.md`
 
@@ -846,11 +846,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `keep`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-004.md`
 
@@ -858,11 +858,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `metric`（OBS）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`数值/长度上限参数` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-005.md`
 
@@ -870,11 +870,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `redact`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-006.md`
 
@@ -882,11 +882,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `snapshot`（OBS）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-observability-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`数值/长度上限参数` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-007.md`
 
@@ -894,11 +894,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `discussionMessage`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-001.md`
 
@@ -906,11 +906,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `execute`（PI）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-002.md`
 
@@ -918,11 +918,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `initialPrompt`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-003.md`
 
@@ -930,11 +930,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `isProviderUnavailableMessage`（PI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-004.md`
 
@@ -942,11 +942,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `model`（PI）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-005.md`
 
@@ -954,11 +954,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `normalizeRawUsage`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-006.md`
 
@@ -966,11 +966,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `preflightModelProvider`（PI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-pi-adapter-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-007.md`
 
@@ -978,11 +978,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `authorizePath`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-001.md`
 
@@ -990,11 +990,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `canonicalize`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-002.md`
 
@@ -1002,11 +1002,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `collectOutputs`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-003.md`
 
@@ -1014,11 +1014,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-004.md`
 
@@ -1026,11 +1026,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `ensureTaskDirs`（POLICY）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-005.md`
 
@@ -1038,11 +1038,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `normalizedTask`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-006.md`
 
@@ -1050,11 +1050,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `resolveWorkspace`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-007.md`
 
@@ -1062,11 +1062,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `sameTask`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-008.md`
 
@@ -1074,11 +1074,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `validate`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-009.md`
 
@@ -1086,11 +1086,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `validateResult`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-010.md`
 
@@ -1098,11 +1098,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-policy-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-011.md`
 
@@ -1110,11 +1110,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `asReader`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-001.md`
 
@@ -1122,11 +1122,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `cancel`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-002.md`
 
@@ -1134,11 +1134,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `cancelRequested`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-003.md`
 
@@ -1146,11 +1146,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `createOrGet`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-004.md`
 
@@ -1158,11 +1158,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `discussionAccessLost`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-005.md`
 
@@ -1170,11 +1170,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `discussionRoomsInUse`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-006.md`
 
@@ -1182,11 +1182,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `failAccessLostTasks`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-007.md`
 
@@ -1194,11 +1194,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `finish`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-008.md`
 
@@ -1206,11 +1206,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `finishMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-009.md`
 
@@ -1218,11 +1218,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `finishQueued`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-010.md`
 
@@ -1230,11 +1230,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `generation`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-011.md`
 
@@ -1242,11 +1242,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `getRun`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-012.md`
 
@@ -1254,11 +1254,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `getTask`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-013.md`
 
@@ -1266,11 +1266,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `hasMatrixEvent`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-014.md`
 
@@ -1278,11 +1278,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixBatch`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-015.md`
 
@@ -1290,11 +1290,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-016.md`
 
@@ -1302,11 +1302,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `inputStaging`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-017.md`
 
@@ -1314,11 +1314,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `insertResult`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-018.md`
 
@@ -1326,11 +1326,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `knownActions`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-019.md`
 
@@ -1338,11 +1338,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `markDiscussionAccessLost`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-020.md`
 
@@ -1350,11 +1350,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `markTurn`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-021.md`
 
@@ -1362,11 +1362,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `matrixCursor`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-022.md`
 
@@ -1374,11 +1374,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `migrate`（REPO）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-023.md`
 
@@ -1386,11 +1386,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `mutateRun`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-024.md`
 
@@ -1398,11 +1398,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `nextNeedingStaging`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-025.md`
 
@@ -1410,11 +1410,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `observeUsage`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-026.md`
 
@@ -1422,11 +1422,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `openDiscussionRuns`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-027.md`
 
@@ -1434,11 +1434,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `pendingTurns`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-028.md`
 
@@ -1446,11 +1446,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `prepareMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-029.md`
 
@@ -1458,11 +1458,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `publishResult`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-030.md`
 
@@ -1470,11 +1470,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `purge`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-031.md`
 
@@ -1482,11 +1482,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `purgeExpired`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-032.md`
 
@@ -1494,11 +1494,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `rawUsage`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-033.md`
 
@@ -1506,11 +1506,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `readSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-034.md`
 
@@ -1518,11 +1518,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `recordMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-035.md`
 
@@ -1530,11 +1530,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `recordProviderCall`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-036.md`
 
@@ -1542,11 +1542,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `recoverOrphaned`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-037.md`
 
@@ -1554,11 +1554,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `releaseSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-038.md`
 
@@ -1566,11 +1566,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `renewSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-039.md`
 
@@ -1578,11 +1578,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `reserveModel`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-040.md`
 
@@ -1590,11 +1590,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `reserveTool`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-041.md`
 
@@ -1602,11 +1602,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `scanNonTerminal`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-042.md`
 
@@ -1614,11 +1614,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `setArtifactDelivery`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-043.md`
 
@@ -1626,11 +1626,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `setInputStaging`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-044.md`
 
@@ -1638,11 +1638,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `setMatrixCursor`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-045.md`
 
@@ -1650,11 +1650,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `terminalModel`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-046.md`
 
@@ -1662,11 +1662,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `terminalTool`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-047.md`
 
@@ -1674,11 +1674,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `tryClaimSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-048.md`
 
@@ -1686,11 +1686,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `tryCloseIntake`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-049.md`
 
@@ -1698,11 +1698,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `unknownMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-050.md`
 
@@ -1710,11 +1710,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `usageSoFar`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-repository-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`持久化/序列化` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-051.md`
 
@@ -1722,11 +1722,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `acquire`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-scheduler-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-001.md`
 
@@ -1734,11 +1734,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `read`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-scheduler-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-002.md`
 
@@ -1746,11 +1746,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `recover`（SCHED）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-scheduler-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-003.md`
 
@@ -1758,11 +1758,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `release`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-scheduler-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-004.md`
 
@@ -1770,11 +1770,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `renew`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-scheduler-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-005.md`
 
@@ -1782,11 +1782,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `create`（TAPI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-api-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-001.md`
 
@@ -1794,11 +1794,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `listen`（TAPI）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-api-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-002.md`
 
@@ -1806,11 +1806,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `route`（TAPI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-api-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-003.md`
 
@@ -1818,11 +1818,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `assertAllowed`（TRANSFER）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-001.md`
 
@@ -1830,11 +1830,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `clearStaging`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-002.md`
 
@@ -1842,11 +1842,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `deliverArtifacts`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-003.md`
 
@@ -1854,11 +1854,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `fetchInputs`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-004.md`
 
@@ -1866,11 +1866,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `safeJoin`（TRANSFER）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-005.md`
 
@@ -1878,11 +1878,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `scpArgs`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-006.md`
 
@@ -1890,11 +1890,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `scpKeyPath`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-007.md`
 
@@ -1902,11 +1902,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `sync`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-transfer-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-008.md`
 
@@ -1914,11 +1914,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（USAGE）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-usage-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-usage-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-001.md`
 
@@ -1926,11 +1926,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（USAGE）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-usage-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-usage-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-002.md`
 
@@ -1938,11 +1938,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `aggregateUsage`（WORKER）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-001.md`
 
@@ -1950,11 +1950,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `applyToolRecoveryPolicy`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-002.md`
 
@@ -1962,11 +1962,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `claimNext`（WORKER）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-003.md`
 
@@ -1974,11 +1974,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `isAborted`（WORKER）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`纯函数/无副作用` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-004.md`
 
@@ -1986,11 +1986,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `loop`（WORKER）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`时间域行为` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-005.md`
 
@@ -1998,11 +1998,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `report`（WORKER）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`并发/可重入` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-006.md`
 
@@ -2010,11 +2010,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `reportPreconditionFailure`（WORKER）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`错误路径` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-007.md`
 
@@ -2022,11 +2022,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `requestAbort`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-008.md`
 
@@ -2034,11 +2034,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `run`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-009.md`
 
@@ -2046,11 +2046,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `stageInputs`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`状态分支` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-010.md`
 
@@ -2058,11 +2058,11 @@
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `start`（WORKER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
 
-**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-worker-design.md` · 对应 `VRC`
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
 **分类 · 优先级**：`资源获取/释放` · P1
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-011.md`
 

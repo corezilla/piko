@@ -409,9 +409,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：提交受理返回 202 与 `TaskView`（`Queued`），不证明执行已开始
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-001.md`
 
 #### 6.1.2 Case · ST-APP-002
 
@@ -427,9 +427,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：轮询返回权威状态与 `progress`，执行期间持续可答
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-002.md`
 
 #### 6.1.3 Case · ST-APP-003
 
@@ -445,9 +445,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：取消受理返回 `CancelReceipt`；`StopRequested` 不等于已停
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-003.md`
 
 #### 6.1.4 Case · ST-APP-004
 
@@ -463,9 +463,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：终态返回冻结 Result；非终态返回 `TaskNotTerminal`
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-004.md`
 
 #### 6.1.5 Case · ST-APP-005
 
@@ -481,9 +481,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：同 `task_id` 幂等；异内容 `TaskConflict`；tombstone `Gone`
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-005.md`
 
 #### 6.1.6 Case · ST-APP-006
 
@@ -499,9 +499,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：保留期后仅留 `{task_id, Gone}`，`task_id` 永不复用
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-006.md`
 
 #### 6.1.7 Case · ST-SEC-001
 
@@ -517,9 +517,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：鉴权失败与内部错误收口，不外泄 fence 码
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-001.md`
 
 #### 6.1.8 Case · ST-DATA-001
 
@@ -535,9 +535,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：输入预备 `pending→ready` 后才竞争 slot
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-001.md`
 
 #### 6.1.9 Case · ST-DATA-002
 
@@ -553,9 +553,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：拉取失败 / `sha256` 不符 → 零调用 `Failed(InputFetchFailed)`，从不领 slot
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-002.md`
 
 #### 6.1.10 Case · ST-DATA-003
 
@@ -571,9 +571,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-003.md`
 
 #### 6.1.11 Case · ST-DATA-004
 
@@ -589,9 +589,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：投递失败不改终态，`artifact_delivery=failed` 可见且幂等
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-004.md`
 
 #### 6.1.12 Case · ST-DATA-005
 
@@ -607,9 +607,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：白名单外、路径逃逸、`known_hosts` 缺失均拒绝
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-005.md`
 
 #### 6.1.13 Case · ST-PROC-001
 
@@ -625,9 +625,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：P1 阻塞 / 崩溃时 P0 仍应答轮询与取消
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-PROC-001.md`
 
 #### 6.1.14 Case · ST-PROC-002
 
@@ -643,9 +643,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：取消经 P0→P1 `abort` 命令生效
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-PROC-002.md`
 
 #### 6.1.15 Case · ST-EXEC-001
 
@@ -661,9 +661,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：端到端：提交→执行→产出→终态 Result
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-EXEC-001.md`
 
 #### 6.1.16 Case · ST-REC-001
 
@@ -679,9 +679,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：崩溃后不重跑 Pi，Result generation 冻结
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-REC-001.md`
 
 #### 6.1.17 Case · ST-LLM-001
 
@@ -697,9 +697,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：与 LLMTier 的请求 / 响应契约与 usage
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-LLM-001.md`
 
 #### 6.1.18 Case · ST-LLM-002
 
@@ -715,9 +715,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：真实模型端到端：工具写文件→产出收集→`Completed`
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-LLM-002.md`
 
 #### 6.1.19 Case · ST-MX-001
 
@@ -733,9 +733,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：讨论事件进入 session 并可回发；membership 丢失→`DiscussionAccessLost`
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-MX-001.md`
 
 #### 6.1.20 Case · ST-OBS-001
 
@@ -751,9 +751,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：结构化事件、指标与审计可被诊断端点读取
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-OBS-001.md`
 
 #### 6.1.21 Case · ST-OPS-001
 
@@ -769,9 +769,9 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：运维 purge 清大对象、保留 tombstone、写审计
 
-**设计状态**：`Implemented`
+**设计状态**：`Designed`
 
-**上级组合验证入口**：`system-design` §12.5
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-OPS-001.md`
 
 
 ### 6.1 暴露面与交互面清单（有交互面的产品必填）

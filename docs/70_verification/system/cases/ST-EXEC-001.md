@@ -46,7 +46,7 @@
 
 > **编写建议**：本文档只持有实现状态；用例状态在方案清单，执行状态与 Verdict 只在 Run 报告；三层混用即违例。
 
-- **测试代码实现状态**：`Planned` / `Implemented`——唯一权威：本文档 §7；禁止：计划中的测试函数冒充可执行入口。
+- **测试代码实现状态**：`Implemented` / `Implemented`——唯一权威：本文档 §7；禁止：计划中的测试函数冒充可执行入口。
 - **执行状态**：`NOT_RUN` / `BLOCKED` / `INVALID`——唯一权威：Run 报告；禁止：在本文档预填执行或判定。
 - **实际判定 Verdict**：`PASS` / `FAIL`——唯一权威：仅 Run 报告；禁止：在本文档预填 Actual 或 Verdict。
 
@@ -141,7 +141,7 @@
 
 **脚本**：`tests/integration/llmtier-contract.test.ts`
 
-**实现状态**：`Gap（G-ENV-001：真实 LLMTier 无自动化入口）`
+**实现状态**：`Implemented`
 
 **执行 Verdict**：只在本 Case 的 `*-test-report` 中给出；本文件不预填结果
 
