@@ -7,8 +7,7 @@
   "title": "Piko Case UT-PI-001",
   "document_owner": "Piko QA",
   "authors": [
-    "opencode",
-    "corezilla"
+    "opencode"
   ],
   "template_id": "tests.unit-case",
   "template_version": "3.0.9",

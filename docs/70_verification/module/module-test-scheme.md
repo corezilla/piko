@@ -155,86 +155,95 @@
 >
 > **完成条件**：每个公开接口至少命中一行且该行全格有 Case 或缺口。
 
-#### 2.3.1 对象类型 · E2E 业务流
+#### 2.3.1 对象类型 · 写型端点/命令
 
-**本阶段适用性**：Tailored-N/A
+**被测对象（模块/函数归属）**：`POST /tasks`、`POST /tasks/{id}:cancel`、M010 投递与 M008 回发
 
-**裁剪依据**：模块层不承担跨模块端到端
+**必测维度（展开规则）**：每个写端点：合法请求×1 ＋ 未知字段/非法值×1 ＋ 重复提交幂等×1 ＋ 目标缺失×1
 
-**覆盖 Case / 缺口**：—
+**判定要点**：写入要么全成功要么全回滚；重复写不产生第二份业务事实
 
+**覆盖 Case / 缺口**：`MT-TAPI-00x`、`MT-TRANSFER-00x`、`MT-MATRIX-00x`
 
-#### 2.3.2 对象类型 · 控件面（§6.1 网格）
+#### 2.3.2 对象类型 · 读型端点
 
-**本阶段适用性**：Tailored-N/A
+**被测对象（模块/函数归属）**：`GET /tasks/{id}`、`GET /tasks/{id}/result`、`GET /diagnostics`
 
-**裁剪依据**：Piko 无 UI 控件面（`system-design` §3.6）
+**必测维度（展开规则）**：存在×1 ＋ 不存在×1 ＋ 终态/非终态各×1 ＋ 鉴权缺失×1
 
-**覆盖 Case / 缺口**：—
+**判定要点**：读取不得改变任何业务状态；非终态 Result 不得提前披露
 
+**覆盖 Case / 缺口**：`MT-TAPI-00x`、`MT-OBS-00x`
 
-#### 2.3.3 对象类型 · 数据面（§6.2 网格）
+#### 2.3.3 对象类型 · 流式/SSE
 
-**本阶段适用性**：适用
+**被测对象（模块/函数归属）**：Tailored-N/A
 
-**裁剪依据**：M010 `transfer` 的拉取/投递/校验/幂等
+**必测维度（展开规则）**：—
 
-**覆盖 Case / 缺口**：MT-TRANSFER-001/002
-
-
-#### 2.3.4 对象类型 · 权限矩阵
-
-**本阶段适用性**：适用
-
-**裁剪依据**：M002 `policy` 路径与授权判定
-
-**覆盖 Case / 缺口**：MT-POLICY-001/002
-
-
-#### 2.3.5 对象类型 · 真实通道
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：真实通道属系统层；模块层用替身
+**判定要点**：Piko 的对外接口均为请求-响应，无 SSE/长连接读端点（`system-design` §3.6）
 
 **覆盖 Case / 缺口**：—
 
+#### 2.3.4 对象类型 · 外部依赖失败（边界替身）
 
-#### 2.3.6 对象类型 · 系统机制锚点
+**被测对象（模块/函数归属）**：LLMTier、Matrix homeserver、scp 远端、MCP 工具
 
-**本阶段适用性**：适用
+**必测维度（展开规则）**：每依赖：不可达×1 ＋ 认证失败×1 ＋ 限流/超时×1 ＋ 部分失败×1
 
-**裁剪依据**：模块承担的机制保证（如 MECH-RUN/MECH-XFER）
+**判定要点**：外部失败必须 typed 化并只降级自身，绝不反向控制业务或伪造成功
 
-**覆盖 Case / 缺口**：MT-WORKER-001、MT-REPO-001
+**覆盖 Case / 缺口**：`MT-PI-00x`、`MT-MATRIX-00x`、`MT-TRANSFER-00x`、`MT-WORKER-00x`
 
+#### 2.3.5 对象类型 · 准入/队列
 
-#### 2.3.7 对象类型 · 性能预算
+**被测对象（模块/函数归属）**：M004 `scheduler` slot 准入与队列容量
 
-**本阶段适用性**：Tailored-N/A
+**必测维度（展开规则）**：容量 N−1×1 ＋ N×1 ＋ N+1×1 ＋ 并发领取唯一性×1 ＋ 退避×1
 
-**裁剪依据**：`system-design` §11.1 无系统预算
+**判定要点**：同一时刻至多一个任务持 slot；超容量显式拒绝而非排队丢失
+
+**覆盖 Case / 缺口**：`MT-SCHED-00x`、`MT-TAPI-00x`
+
+#### 2.3.6 对象类型 · 配置热变更
+
+**被测对象（模块/函数归属）**：`transfer.port`、`observability.metrics_enabled`、`matrix.enabled`
+
+**必测维度（展开规则）**：变更生效×1 ＋ 变更后旧状态不被破坏×1 ＋ 非法值×1
+
+**判定要点**：热变更不得使已进入运行的任务状态回退或撕裂
+
+**覆盖 Case / 缺口**：`MT-BOOT-00x`、`MT-TRANSFER-00x`、`MT-OBS-00x`
+
+#### 2.3.7 对象类型 · 组装并发
+
+**被测对象（模块/函数归属）**：P0/P1 组装、`claim`/`stagingClaim` 通道
+
+**必测维度（展开规则）**：并发领取×1 ＋ 租约续期 CAS×1 ＋ epoch 推进后旧 epoch 写入被拒×1
+
+**判定要点**：并发下唯一写者不被打破；陈旧租约的写入必须被 fence 拒绝
+
+**覆盖 Case / 缺口**：`MT-SCHED-00x`、`MT-REPO-00x`
+
+#### 2.3.8 对象类型 · 资源清理
+
+**被测对象（模块/函数归属）**：staging 目录、临时密钥文件、P1 子进程、Matrix 媒体
+
+**必测维度（展开规则）**：正常释放×1 ＋ 异常中途释放×1 ＋ 重复清理幂等×1
+
+**判定要点**：清理失败不得静默吞错；临时私钥必须落在 0600 文件且不进入 ~/.ssh
+
+**覆盖 Case / 缺口**：`MT-TRANSFER-00x`、`MT-BOOT-00x`、`MT-MATRIX-00x`
+
+#### 2.3.9 对象类型 · 热路径基线（optional：设计有预算口径时）
+
+**被测对象（模块/函数归属）**：Tailored-N/A（无预算口径）
+
+**必测维度（展开规则）**：—
+
+**判定要点**：设计未声明热路径预算，按 STD §7 裁决不适用，不以覆盖率为由强造
 
 **覆盖 Case / 缺口**：—
-
-
-#### 2.3.8 对象类型 · 成本护栏
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：contract §3 无 Cost
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.9 对象类型 · 恢复/灾备
-
-**本阶段适用性**：适用
-
-**裁剪依据**：M003/M005 恢复语义
-
-**覆盖 Case / 缺口**：MT-REPO-004、MT-WORKER-002
-
 
 ## 3. 替身使用策略与边界
 
@@ -301,799 +310,1085 @@
 >
 > **完成条件**：每个适用来源 ID 有 Case 或缺口；全部 Case 段落与模块用例集 §1 总账表零差集；每个 Case ID 可追到（或计划有）case-design 文档。
 
-#### 6.1 Case · 模块契约（登记矩阵）
-
 #### 6.1 Case · MT-BOOT-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「启动装配写配置与工具注册表」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-001.md`
 
 #### 6.1 Case · MT-BOOT-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「端口绑定与 READY 发布」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-002.md`
 
 #### 6.1 Case · MT-BOOT-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「config 无效」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-003.md`
 
 #### 6.1 Case · MT-BOOT-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「tool ref 未注册」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-004.md`
 
 #### 6.1 Case · MT-BOOT-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「Secret 解析失败」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-005.md`
 
 #### 6.1 Case · MT-BOOT-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `BOOT` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「store 不可写」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-BOOT-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-006.md`
+
+#### 6.1 Case · MT-BOOT-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「Pi upstream 不匹配」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-007.md`
+
+#### 6.1 Case · MT-BOOT-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「preflight 失败（端口未绑定）」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-008.md`
+
+#### 6.1 Case · MT-BOOT-009
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `配置热变更` 的「非法配置值被显式拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`配置热变更` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-009.md`
+
+#### 6.1 Case · MT-BOOT-010
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `配置热变更` 的「合法配置产出预期初态」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`配置热变更` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-010.md`
+
+#### 6.1 Case · MT-BOOT-011
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「启动失败回滚已分配资源」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-011.md`
+
+#### 6.1 Case · MT-BOOT-012
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「正常关闭释放句柄」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-BOOT-012.md`
 
 #### 6.1 Case · MT-MATRIX-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「讨论回发（幂等发送）」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-001.md`
 
 #### 6.1 Case · MT-MATRIX-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「房间事件摄入」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-002.md`
 
 #### 6.1 Case · MT-MATRIX-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「成员关系丢失 fail-closed」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-003.md`
 
 #### 6.1 Case · MT-MATRIX-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「同步错误隔离」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-004.md`
 
 #### 6.1 Case · MT-MATRIX-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「媒体大小/MIME 校验」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-005.md`
 
 #### 6.1 Case · MT-MATRIX-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `MATRIX` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「临时附件清理」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`资源清理` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-MATRIX-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-006.md`
+
+#### 6.1 Case · MT-MATRIX-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「事件去重」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`持久化` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-007.md`
+
+#### 6.1 Case · MT-MATRIX-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「matrix_sends 落库」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`持久化` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-MATRIX-008.md`
 
 #### 6.1 Case · MT-OBS-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「结构化事件发送」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-001.md`
 
 #### 6.1 Case · MT-OBS-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「指标记录」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-002.md`
 
 #### 6.1 Case · MT-OBS-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「审计追加」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-003.md`
 
 #### 6.1 Case · MT-OBS-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「诊断快照读取」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-004.md`
 
 #### 6.1 Case · MT-OBS-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「sink 抛错 fail-open」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-005.md`
 
 #### 6.1 Case · MT-OBS-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `OBS` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `配置热变更` 的「metrics_enabled=false 时指标降级但日志仍工作」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`配置热变更` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-OBS-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-006.md`
+
+#### 6.1 Case · MT-OBS-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「快照环形缓冲有界」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-007.md`
 
 #### 6.1 Case · MT-PI-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「session 创建与驱动」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-001.md`
 
 #### 6.1 Case · MT-PI-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「工具 CAS 调用」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-002.md`
 
 #### 6.1 Case · MT-PI-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「provider 预检失败」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-003.md`
 
 #### 6.1 Case · MT-PI-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「inspect 三态」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-004.md`
 
 #### 6.1 Case · MT-PI-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「响应重放」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-005.md`
 
 #### 6.1 Case · MT-PI-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `PI` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「session 身份确定性」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`准入/队列` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-PI-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-006.md`
 
 #### 6.1 Case · MT-POLICY-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「未注册 workspace_ref」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-POLICY-001.md`
 
 #### 6.1 Case · MT-POLICY-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「未注册 tool_profile_ref」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-POLICY-002.md`
 
 #### 6.1 Case · MT-POLICY-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「权限绑定通过/拒绝」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-003.md`
-
-#### 6.1 Case · MT-POLICY-004
-
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `concurrency` 维度；只测该维度，不测其他维度
-
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
-
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`准入/队列` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-004.md`
-
-#### 6.1 Case · MT-POLICY-005
-
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `recovery` 维度；只测该维度，不测其他维度
-
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
-
-**分类 · 优先级**：`recovery` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-005.md`
-
-#### 6.1 Case · MT-POLICY-006
-
-**责任摘要（要测什么／边界在哪）**：模块 `POLICY` 的 `security` 维度；只测该维度，不测其他维度
-
-**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该模块全部 VRC
-
-**分类 · 优先级**：`security` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-POLICY-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-POLICY-003.md`
 
 #### 6.1 Case · MT-REPO-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「任务受理落库」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-001.md`
 
 #### 6.1 Case · MT-REPO-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「取消写 stop intent」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-002.md`
 
 #### 6.1 Case · MT-REPO-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「purge 清除大对象保留 tombstone」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-003.md`
 
 #### 6.1 Case · MT-REPO-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「按 task_id 读取」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-004.md`
 
 #### 6.1 Case · MT-REPO-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「Result 读取与冻结」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-005.md`
 
 #### 6.1 Case · MT-REPO-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `REPO` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「迁移失败」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-REPO-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-006.md`
+
+#### 6.1 Case · MT-REPO-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「写冲突」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-007.md`
+
+#### 6.1 Case · MT-REPO-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「slot 容量与 CAS」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`准入/队列` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-008.md`
+
+#### 6.1 Case · MT-REPO-009
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「并发领取唯一性」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`组装并发` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-009.md`
+
+#### 6.1 Case · MT-REPO-010
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「epoch fence」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`组装并发` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-010.md`
+
+#### 6.1 Case · MT-REPO-011
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「ledger/turn CAS」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`组装并发` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-011.md`
+
+#### 6.1 Case · MT-REPO-012
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「purge 后大对象已清」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-012.md`
+
+#### 6.1 Case · MT-REPO-013
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「任务身份与 tombstone 比较」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`持久化` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-013.md`
+
+#### 6.1 Case · MT-REPO-014
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「Result 两步提交」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`持久化` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-014.md`
 
 #### 6.1 Case · MT-SCHED-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「slot 获取与释放」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-001.md`
 
 #### 6.1 Case · MT-SCHED-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「slot 状态读取」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-002.md`
 
 #### 6.1 Case · MT-SCHED-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「P-INPUT pre-slot gating」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`准入/队列` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-003.md`
 
 #### 6.1 Case · MT-SCHED-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「退避常量进程内固定」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`准入/队列` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-004.md`
 
 #### 6.1 Case · MT-SCHED-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「恢复完成前不领取」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`准入/队列` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-005.md`
 
 #### 6.1 Case · MT-SCHED-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `SCHED` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「并发领取唯一性」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`组装并发` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-SCHED-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-006.md`
+
+#### 6.1 Case · MT-SCHED-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「续租 CAS 与 LeaseLost」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`组装并发` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-007.md`
+
+#### 6.1 Case · MT-SCHED-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `组装并发` 的「崩溃后 epoch 推进」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`组装并发` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-008.md`
 
 #### 6.1 Case · MT-TAPI-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「POST /tasks 受理」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-001.md`
 
 #### 6.1 Case · MT-TAPI-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「POST /tasks/{id}:cancel 取消」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-002.md`
 
 #### 6.1 Case · MT-TAPI-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「GET /tasks/{id}」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-003.md`
 
 #### 6.1 Case · MT-TAPI-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「GET /tasks/{id}/result」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-004.md`
 
 #### 6.1 Case · MT-TAPI-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「非终态 Result 不披露」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-005.md`
 
 #### 6.1 Case · MT-TAPI-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `TAPI` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `读型端点` 的「不存在任务」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`读型端点` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TAPI-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-006.md`
+
+#### 6.1 Case · MT-TAPI-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「鉴权失败」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-007.md`
+
+#### 6.1 Case · MT-TAPI-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「schema 校验失败」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-008.md`
+
+#### 6.1 Case · MT-TAPI-009
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「队列满」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-009.md`
+
+#### 6.1 Case · MT-TAPI-010
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「内部 fence 不外泄」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-010.md`
+
+#### 6.1 Case · MT-TAPI-011
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `准入/队列` 的「受理容量 N−1/N/N+1」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`准入/队列` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-011.md`
 
 #### 6.1 Case · MT-TRANSFER-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「输入拉取」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-001.md`
 
 #### 6.1 Case · MT-TRANSFER-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「产出投递」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-002.md`
 
 #### 6.1 Case · MT-TRANSFER-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「输入源不可达」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-003.md`
 
 #### 6.1 Case · MT-TRANSFER-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「sha256 不符」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-004.md`
 
 #### 6.1 Case · MT-TRANSFER-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「目标拒绝」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-005.md`
 
 #### 6.1 Case · MT-TRANSFER-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `TRANSFER` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「部分失败重试幂等」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-TRANSFER-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-006.md`
+
+#### 6.1 Case · MT-TRANSFER-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `配置热变更` 的「非标 SSH 端口生效」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`配置热变更` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-007.md`
+
+#### 6.1 Case · MT-TRANSFER-008
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「临时私钥物化与清理」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-008.md`
+
+#### 6.1 Case · MT-TRANSFER-009
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「staging 目录清理」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-009.md`
 
 #### 6.1 Case · MT-USAGE-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「usage 聚合与发布」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-USAGE-001.md`
 
 #### 6.1 Case · MT-USAGE-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「validator fail closed」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-USAGE-002.md`
 
 #### 6.1 Case · MT-USAGE-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「发布后迟到不改 Result」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-USAGE-003.md`
 
 #### 6.1 Case · MT-USAGE-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「逐字段 sum/null 与三态」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`持久化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-USAGE-004.md`
 
 #### 6.1 Case · MT-USAGE-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「missing_fields 一致性」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-005.md`
-
-#### 6.1 Case · MT-USAGE-006
-
-**责任摘要（要测什么／边界在哪）**：模块 `USAGE` 的 `security` 维度；只测该维度，不测其他维度
-
-**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该模块全部 VRC
-
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`持久化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-USAGE-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-USAGE-005.md`
 
 #### 6.1 Case · MT-WORKER-001
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `normal` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「执行与两步发布」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-001.md`
 
 #### 6.1 Case · MT-WORKER-002
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `boundary` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `写型端点/命令` 的「取消分流」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`boundary` · P1
+**分类 · 优先级**：`写型端点/命令` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-002.md`
 
 #### 6.1 Case · MT-WORKER-003
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `negative` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「工具失败恢复」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`negative` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-003.md`
 
 #### 6.1 Case · MT-WORKER-004
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `concurrency` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `外部依赖失败（边界替身）` 的「LeaseLost 停止驱动」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`concurrency` · P1
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-004.md`
 
 #### 6.1 Case · MT-WORKER-005
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `recovery` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源清理` 的「异常中途释放 workspace 与句柄」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`recovery` · P1
+**分类 · 优先级**：`资源清理` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-005.md`
 
 #### 6.1 Case · MT-WORKER-006
 
-**责任摘要（要测什么／边界在哪）**：模块 `WORKER` 的 `security` 维度；只测该维度，不测其他维度
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化` 的「Result 发布冻结」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该模块全部 VRC
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`security` · P1
+**分类 · 优先级**：`持久化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：系统层 `ST` 同族 Case；集合总账 `docs/70_verification/module/cases/MT-WORKER-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-006.md`
+
+#### 6.1 Case · MT-WORKER-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `时间域行为` 的「心跳与退避」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`时间域行为` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-007.md`
 
 
 ## 7. 不适用与缺口裁决

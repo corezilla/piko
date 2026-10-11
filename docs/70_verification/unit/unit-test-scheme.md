@@ -153,95 +153,105 @@
 >
 > **完成条件**：每个 ISD 函数至少命中一个类型记录，且该记录维度全格有 Case 或缺口。
 
-#### 2.3.1 对象类型 · E2E 业务流
+#### 2.3.1 对象类型 · 纯函数/无副作用
 
-**本阶段适用性**：Tailored-N/A
+**被测对象（模块/函数归属）**：规范化、相等性比较、脱敏、路径归一
 
-**裁剪依据**：单元层不跨模块
+**必测维度（展开规则）**：每等价类合法值×1 ＋ 边界（上/下/零/空/满）×1 ＋ 非法值×1
+
+**判定要点**：输入→输出逐值比较，不跑真实时间
+
+**覆盖 Case / 缺口**：`UT-POLICY-00x`、`UT-REPO-00x`、`UT-OBS-00x`
+
+#### 2.3.2 对象类型 · 数值/长度上限参数
+
+**被测对象（模块/函数归属）**：`max_input_bytes`、`max_media_bytes`、`queue.capacity`、`max_tokens`
+
+**必测维度（展开规则）**：每上限三点：恰好通过、+1 拒绝、−1 通过；多上限各自成套
+
+**判定要点**：超限行为按设计定义（拒绝），不得崩溃或走未定义分支
+
+**覆盖 Case / 缺口**：`UT-TRANSFER-00x`、`UT-MATRIX-00x`、`UT-SCHED-00x`
+
+#### 2.3.3 对象类型 · 字符串/路径/枚举输入
+
+**被测对象（模块/函数归属）**：`task_id`、`workspace_ref`、`tool_profile_ref`、文件路径
+
+**必测维度（展开规则）**：空、超长、注入字符、未知枚举、路径穿越各×1
+
+**判定要点**：未知枚举→显式拒绝，禁默认值吞掉；路径按输入校验规则
+
+**覆盖 Case / 缺口**：`UT-POLICY-00x`、`UT-TAPI-00x`、`UT-REPO-00x`
+
+#### 2.3.4 对象类型 · 错误路径
+
+**被测对象（模块/函数归属）**：typed 错误码全集（`PikoError.code`）
+
+**必测维度（展开规则）**：设计错误表的每个返回码×1
+
+**判定要点**：错误类型保真传播，不丢失不改写；内部 fence 不得外泄为客户端码
+
+**覆盖 Case / 缺口**：`UT-TAPI-00x`、`UT-REPO-00x`、`UT-WORKER-00x`
+
+#### 2.3.5 对象类型 · 资源获取/释放
+
+**被测对象（模块/函数归属）**：密钥物化、staging 目录、SQLite 句柄、子进程
+
+**必测维度（展开规则）**：获取失败路径 ＋ 正常释放 ＋ 异常中途释放
+
+**判定要点**：获取失败必须 typed 化；释放覆盖所有获取路径，无泄漏
+
+**覆盖 Case / 缺口**：`UT-TRANSFER-00x`、`UT-BOOT-00x`、`UT-REPO-00x`
+
+#### 2.3.6 对象类型 · 并发/可重入
+
+**被测对象（模块/函数归属）**：`tryClaimSlot`、`renewSlot`、幂等发送、`failAccessLostTasks`
+
+**必测维度（展开规则）**：线程对偶＋交错枚举（容量 N−1/N/N+1）
+
+**判定要点**：并发下不出现双写；可重入操作保持幂等
+
+**覆盖 Case / 缺口**：`UT-SCHED-00x`、`UT-REPO-00x`、`UT-MATRIX-00x`
+
+#### 2.3.7 对象类型 · 状态分支
+
+**被测对象（模块/函数归属）**：Run 状态机（Queued/Running/Cancelling/终态）、讨论 intake 状态
+
+**必测维度（展开规则）**：合法迁移×1 ＋ 每个非法迁移拒绝×1
+
+**判定要点**：非法迁移显式拒绝，不静默改写状态
+
+**覆盖 Case / 缺口**：`UT-REPO-00x`、`UT-WORKER-00x`、`UT-MATRIX-00x`
+
+#### 2.3.8 对象类型 · 时间域行为
+
+**被测对象（模块/函数归属）**：租约心跳、drain 退避、sync 超时
+
+**必测维度（展开规则）**：超时边界 ±1 tick；定时器触发序
+
+**判定要点**：用受控时钟（`FAKE-CLK`）判定，不依赖真实 sleep
+
+**覆盖 Case / 缺口**：`UT-SCHED-00x`、`UT-MATRIX-00x`、`UT-WORKER-00x`
+
+#### 2.3.9 对象类型 · 持久化/序列化
+
+**被测对象（模块/函数归属）**：SQLite 写入、Result 冻结、usage 聚合
+
+**必测维度（展开规则）**：round-trip ＋ 截断/损坏文件 ＋ 版本不符
+
+**判定要点**：持久化内容与内存权威一致；冻结 Result 不被后续写改写
+
+**覆盖 Case / 缺口**：`UT-REPO-00x`、`UT-USAGE-00x`、`UT-WORKER-00x`
+
+#### 2.3.10 对象类型 · 性能微基线（optional：ISD 有预算声明时）
+
+**被测对象（模块/函数归属）**：Tailored-N/A（ISD 无预算声明）
+
+**必测维度（展开规则）**：—
+
+**判定要点**：ISD 未声明微基线预算，按 STD §7 裁决不适用
 
 **覆盖 Case / 缺口**：—
-
-
-#### 2.3.2 对象类型 · 控件面
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：无 UI
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.3 对象类型 · 数据面
-
-**本阶段适用性**：适用
-
-**裁剪依据**：M010 输入校验/幂等函数
-
-**覆盖 Case / 缺口**：UT-TRANSFER-001/002
-
-
-#### 2.3.4 对象类型 · 权限矩阵
-
-**本阶段适用性**：适用
-
-**裁剪依据**：M002 路径判定
-
-**覆盖 Case / 缺口**：UT-POLICY-001
-
-
-#### 2.3.5 对象类型 · 真实通道
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：真实通道属系统层
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.6 对象类型 · 系统机制锚点
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：机制保证属模块/系统层
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.7 对象类型 · 性能预算
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：无预算分母
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.8 对象类型 · 成本护栏
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：无 Cost
-
-**覆盖 Case / 缺口**：—
-
-
-#### 2.3.9 对象类型 · 恢复/灾备
-
-**本阶段适用性**：适用
-
-**裁剪依据**：恢复扫描/补写函数
-
-**覆盖 Case / 缺口**：UT-REPO-004、UT-WORKER-003
-
-
-#### 2.3.1 对象类型 · E2E 业务流
-
-**本阶段适用性**：Tailored-N/A
-
-**裁剪依据**：单元层不跨模块
-
-**覆盖 Case / 缺口**：—
-
 
 ## 3. 替身使用策略与边界
 
@@ -365,795 +375,843 @@
 
 #### 6.1 Case · UT-BOOT-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-001`（冷启动 READY）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「配置解析与归一」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-001`
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-001.md`
 
 #### 6.1 Case · UT-BOOT-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-002`（无效 config→F1）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「工具注册表加载」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-002`
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-002.md`
 
 #### 6.1 Case · UT-BOOT-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-003`（tool ref 未注册 / Secret 解析失败→F1）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「每个 typed 错误码保真传播」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-003`
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-003.md`
 
 #### 6.1 Case · UT-BOOT-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-004`（store 不可写→F1）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源获取/释放` 的「Secret 解析句柄释放」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-004`
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`资源获取/释放` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-004.md`
 
 #### 6.1 Case · UT-BOOT-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-005`（Pi upstream 不匹配 → F1）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「配置路径穿越拒绝」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-005`
+**来源 ID / 固定版本 · VRC**：`piko-boot-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-005.md`
-
-#### 6.1 Case · UT-BOOT-006
-
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-006`（preflight 失败→F1，端口未绑定）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-006`
-
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-006.md`
-
-#### 6.1 Case · UT-BOOT-007
-
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-007`（未 READY 分支）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-007`
-
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-007.md`
-
-#### 6.1 Case · UT-BOOT-008
-
-**责任摘要（要测什么／边界在哪）**：`VRC-BOOT-008`（重启后快照重读）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-boot-impl.isd.md` · `VRC-BOOT-008`
-
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-BOOT` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-BOOT-008.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-BOOT-005.md`
 
 #### 6.1 Case · UT-MATRIX-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-001`（清理）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「幂等发送可重入」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-001`
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-001.md`
 
 #### 6.1 Case · UT-MATRIX-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-002`（去重）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「事件去重」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-002`
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-002.md`
 
 #### 6.1 Case · UT-MATRIX-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-003`（`NOT_RUN`，Oracle = `matrix_sends` 行 + homeserver event）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `数值/长度上限参数` 的「媒体大小上限」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-003`
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`数值/长度上限参数` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-003.md`
 
 #### 6.1 Case · UT-MATRIX-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-004`（E2EE/类型）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `数值/长度上限参数` 的「MIME 白名单」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-004`
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`数值/长度上限参数` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-004.md`
 
 #### 6.1 Case · UT-MATRIX-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-MATRIX-005`（`NOT_RUN`，Oracle = staging 文件 mime/size）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「成员丢失 typed 化」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-matrix-impl.isd.md` · `VRC-MATRIX-005`
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-MATRIX` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-MATRIX-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-005.md`
+
+#### 6.1 Case · UT-MATRIX-006
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「matrix_sends round-trip」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-matrix-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`持久化/序列化` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-006.md`
 
 #### 6.1 Case · UT-OBS-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-001`（deny-list 表驱动）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「脱敏 deny-list」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-001`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-001.md`
 
 #### 6.1 Case · UT-OBS-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-002`（envelope 完整性与事件名校验）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「envelope 构造」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-002`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-002.md`
 
 #### 6.1 Case · UT-OBS-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-003`（fail-open：sink 抛错不改变被测业务调用结果）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `数值/长度上限参数` 的「环形缓冲上限」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-003`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`数值/长度上限参数` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-003.md`
 
 #### 6.1 Case · UT-OBS-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-004`（`metrics_enabled=false` 时 metric 端点降级但日志仍工作）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「敏感字段名匹配」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-004`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-004.md`
 
 #### 6.1 Case · UT-OBS-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-005`（audit 经 M003 原子落盘且失败可判定）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「sink 抛错 fail-open」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-005`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-005.md`
 
 #### 6.1 Case · UT-OBS-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-OBS-006`（有界 ring、快照脱敏与静态扫描）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「emit 可重入」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-obs-impl.isd.md` · `VRC-OBS-006`
+**来源 ID / 固定版本 · VRC**：`piko-obs-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-OBS` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-OBS-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-006.md`
 
 #### 6.1 Case · UT-PI-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-001`（session 身份确定性）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「streamOptions 构造」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-001`
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-001.md`
 
 #### 6.1 Case · UT-PI-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-002`（accept/drive 结局与身份）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「attempt 身份构造」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-002`
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-002.md`
 
 #### 6.1 Case · UT-PI-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-003`（streamOptions 固定）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「provider 预检错误」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-003`
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-003.md`
 
 #### 6.1 Case · UT-PI-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-004`（attempt 身份）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「fingerprint 匹配/不匹配」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-004`
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-004.md`
 
 #### 6.1 Case · UT-PI-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-005`（工具 CAS）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「inspect 三态」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-005`
+**来源 ID / 固定版本 · VRC**：`piko-pi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-005.md`
-
-#### 6.1 Case · UT-PI-006
-
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-006`（存在性保留）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-006`
-
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`状态分支` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-006.md`
-
-#### 6.1 Case · UT-PI-007
-
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-007`（inspect 三态与不重发）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-007`
-
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-007.md`
-
-#### 6.1 Case · UT-PI-008
-
-**责任摘要（要测什么／边界在哪）**：`VRC-PI-008`（fingerprint 匹配/不匹配）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-pi-impl.isd.md` · `VRC-PI-008`
-
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-PI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-PI-008.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-005.md`
 
 #### 6.1 Case · UT-POLICY-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-001`（绑定通过/未注册 ref/不一致）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「路径归一」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-001`
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-001.md`
 
 #### 6.1 Case · UT-POLICY-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-002`（规范化）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「权限匹配」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-002`
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-002.md`
 
 #### 6.1 Case · UT-POLICY-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-003`（Case C）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「路径穿越拒绝」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-003`
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-003.md`
+
+#### 6.1 Case · UT-POLICY-004
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「未知枚举显式拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-004.md`
 
 #### 6.1 Case · UT-POLICY-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-005`（权限/工具绑定）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `边界` 的「路径前缀边界」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-005`
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`边界` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-005.md`
 
 #### 6.1 Case · UT-POLICY-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-POLICY-006`（无状态与并发独立）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「越权 typed 码」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-policy-impl.isd.md` · `VRC-POLICY-006`
+**来源 ID / 固定版本 · VRC**：`piko-policy-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-POLICY` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-POLICY-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-POLICY-006.md`
 
 #### 6.1 Case · UT-REPO-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-001`（任务身份与 tombstone 比较）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「任务身份比较」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-001`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-001.md`
 
 #### 6.1 Case · UT-REPO-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-002`（Result 两步提交与恢复）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「tombstone 比较」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-002`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-002.md`
 
 #### 6.1 Case · UT-REPO-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-003`（slot CAS/epoch/fence）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「round-trip」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-003`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`持久化/序列化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-003.md`
 
 #### 6.1 Case · UT-REPO-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-004`（fenced write）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「版本不符」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-004`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`持久化/序列化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-004.md`
 
 #### 6.1 Case · UT-REPO-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-005`（迁移失败与配置边界）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「冻结 Result 不被改写」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-005`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`持久化/序列化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-005.md`
 
 #### 6.1 Case · UT-REPO-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-006`（ledger/turn CAS）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「tryClaimSlot 并发唯一」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-006`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-006.md`
 
 #### 6.1 Case · UT-REPO-007
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-007`（容量）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「renewSlot CAS」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-007`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-007.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-007.md`
 
 #### 6.1 Case · UT-REPO-008
 
-**责任摘要（要测什么／边界在哪）**：`VRC-REPO-008`（恢复扫描与补终态）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「合法迁移」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-repo-impl.isd.md` · `VRC-REPO-008`
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`状态分支` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-REPO` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-REPO-008.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-008.md`
+
+#### 6.1 Case · UT-REPO-009
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「非法迁移拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`状态分支` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-009.md`
+
+#### 6.1 Case · UT-REPO-010
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「task_id 注入拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-010.md`
+
+#### 6.1 Case · UT-REPO-011
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「fence 错误保真」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-repo-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`错误路径` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-REPO-011.md`
 
 #### 6.1 Case · UT-SCHED-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-001`（并发领取唯一性）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「退避常量计算」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-001`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-001.md`
 
 #### 6.1 Case · UT-SCHED-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-002`（续租 CAS 与 `LeaseLost`）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `时间域行为` 的「超时边界 ±1 tick」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-002`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`时间域行为` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-002.md`
 
 #### 6.1 Case · UT-SCHED-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-003`（崩溃后 fence：epoch 推进且旧 epoch 写入被拒）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `时间域行为` 的「心跳触发序」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-003`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`时间域行为` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-003.md`
 
 #### 6.1 Case · UT-SCHED-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-004`（选择）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「领取唯一性」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-004`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-004.md`
 
 #### 6.1 Case · UT-SCHED-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-005`（恢复门：恢复完成前不领取）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「续租 CAS」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-005`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-005.md`
 
 #### 6.1 Case · UT-SCHED-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-SCHED-006`（退避常量不可热改，进程内固定）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「epoch fence」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-sched-impl.isd.md` · `VRC-SCHED-006`
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-SCHED` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-SCHED-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-006.md`
+
+#### 6.1 Case · UT-SCHED-007
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「恢复门判定」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-sched-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`状态分支` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-SCHED-007.md`
 
 #### 6.1 Case · UT-TAPI-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-001`（受理与幂等）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「请求规范化」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-001`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-001.md`
 
 #### 6.1 Case · UT-TAPI-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-002`（错误映射）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「响应组装」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-002`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-002.md`
 
 #### 6.1 Case · UT-TAPI-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-003`（状态查询）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「错误码→HTTP 状态映射」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-003`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-003.md`
 
 #### 6.1 Case · UT-TAPI-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-004`（三种 outcome 与状态码）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「task_id 编码/非法值」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-004`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-004.md`
 
 #### 6.1 Case · UT-TAPI-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-005`（结果读取）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「未知字段拒绝」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-005`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-005.md`
 
 #### 6.1 Case · UT-TAPI-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TAPI-006`（路由歧义）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「Run 状态分支判定」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-tapi-impl.isd.md` · `VRC-TAPI-006`
+**来源 ID / 固定版本 · VRC**：`piko-tapi-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`状态分支` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TAPI` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TAPI-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-006.md`
 
 #### 6.1 Case · UT-TRANSFER-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TRANSFER-001`（输入源不可达 / `sha256` 不符 → 零调用 `Failed`、从未领 slot（PK-T41））；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「路径安全拼接」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-impl.isd.md` · `VRC-TRANSFER-001`
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TRANSFER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TRANSFER-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-001.md`
 
 #### 6.1 Case · UT-TRANSFER-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-TRANSFER-002`（目标拒绝 / 部分失败 → 终态不变、`failed/partial`、重试幂等（PK-T42））；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `数值/长度上限参数` 的「max_input_bytes ±1」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-transfer-impl.isd.md` · `VRC-TRANSFER-002`
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`数值/长度上限参数` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-TRANSFER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-TRANSFER-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-002.md`
+
+#### 6.1 Case · UT-TRANSFER-003
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「路径穿越拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-003.md`
+
+#### 6.1 Case · UT-TRANSFER-004
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `字符串/路径/枚举输入` 的「method 未知枚举拒绝」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-004.md`
+
+#### 6.1 Case · UT-TRANSFER-005
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `资源获取/释放` 的「密钥物化与清理」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`资源获取/释放` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-005.md`
+
+#### 6.1 Case · UT-TRANSFER-006
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「typed 化错误传播」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-transfer-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`错误路径` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-006.md`
 
 #### 6.1 Case · UT-USAGE-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-001`（逐字段 sum/null 与三态）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「逐字段 sum」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-001`
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-001.md`
 
 #### 6.1 Case · UT-USAGE-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-002`（missing_fields 一致性）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「null 语义」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-002`
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-002.md`
 
 #### 6.1 Case · UT-USAGE-003
 
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-003`（发布后迟到不改 Result）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `纯函数/无副作用` 的「三态判定」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-003`
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`纯函数/无副作用` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-003.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-003.md`
 
 #### 6.1 Case · UT-USAGE-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-004`（validator fail closed 不写 Result）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「missing_fields 一致性 round-trip」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-004`
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`持久化/序列化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-004.md`
 
 #### 6.1 Case · UT-USAGE-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-005`（校验通过后正常发布）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `边界` 的「token 边界」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-005`
+**来源 ID / 固定版本 · VRC**：`piko-usage-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
-
-**设计状态**：`Implemented`
-
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-005.md`
-
-#### 6.1 Case · UT-USAGE-006
-
-**责任摘要（要测什么／边界在哪）**：`VRC-USAGE-006`（依赖故障与重算一致性）；只测该条设计验证项，不测模块整体行为
-
-**来源 ID / 固定版本 · VRC**：`piko-usage-impl.isd.md` · `VRC-USAGE-006`
-
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`边界` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-USAGE` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-USAGE-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-USAGE-005.md`
 
 #### 6.1 Case · UT-WORKER-001
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-001`（执行与两步发布）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「取消分流」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-001`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`状态分支` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-001.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-001.md`
 
 #### 6.1 Case · UT-WORKER-002
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-002`（取消分流）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `状态分支` 的「终态判定」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-002`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`状态分支` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-002.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-002.md`
+
+#### 6.1 Case · UT-WORKER-003
+
+**责任摘要（要测什么／边界在哪）**：对象类型 `时间域行为` 的「心跳与 drain 退避」；只测该维度格
+
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
+
+**分类 · 优先级**：`时间域行为` · P1
+
+**设计状态**：`Implemented`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-003.md`
 
 #### 6.1 Case · UT-WORKER-004
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-004`（Usage 快照与语义校验 fail closed）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「工具失败 typed 化」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-004`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-004.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-004.md`
 
 #### 6.1 Case · UT-WORKER-005
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-005`（Discussion intake CAS 与 turn）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `错误路径` 的「LeaseLost 停止驱动」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-005`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`错误路径` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-005.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-005.md`
 
 #### 6.1 Case · UT-WORKER-006
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-006`（集成）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `持久化/序列化` 的「usage 聚合 round-trip」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-006`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`持久化/序列化` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-006.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-006.md`
 
 #### 6.1 Case · UT-WORKER-007
 
-**责任摘要（要测什么／边界在哪）**：`VRC-WORKER-007`（`LeaseLost` 停止驱动不写终态）；只测该条设计验证项，不测模块整体行为
+**责任摘要（要测什么／边界在哪）**：对象类型 `并发/可重入` 的「abort 可重入」；只测该维度格
 
-**来源 ID / 固定版本 · VRC**：`piko-worker-impl.isd.md` · `VRC-WORKER-007`
+**来源 ID / 固定版本 · VRC**：`piko-worker-design.md` · 该类型全部 VRC
 
-**分类 · 优先级**：`normal` · P1
+**分类 · 优先级**：`并发/可重入` · P1
 
 **设计状态**：`Implemented`
 
-**上级组合验证入口 · 集合总账**：`MT-WORKER` 同模块维度 Case；集合总账 `docs/70_verification/unit/cases/UT-WORKER-007.md`
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-007.md`
 
 
 ## 7. 不适用与缺口裁决

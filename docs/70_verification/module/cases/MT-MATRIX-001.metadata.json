@@ -7,8 +7,7 @@
   "title": "Piko Case MT-MATRIX-001",
   "document_owner": "Piko QA",
   "authors": [
-    "opencode",
-    "corezilla"
+    "opencode"
   ],
   "template_id": "tests.module-case",
   "template_version": "3.0.8",
