@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { existsSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import {
   resolveWorkspace,
   authorizePath,
@@ -86,10 +86,22 @@ describe("UT-POLICY-002 · authorizePath", () => {
     await expect(authorizePath(base, "out/../../etc/passwd", ["out"], true)).rejects.toThrow();
   });
 
-  it("rejects a sibling prefix that merely starts with the same characters", async () => {
+  it("rejects a sibling directory whose name starts with a declared path", async () => {
     const base = await wsBase();
-    // "outbox" must not pass a declaration of "out".
+    await mkdir(join(base, "outbox"), { recursive: true });
+    // A naive `path.startsWith(root)` containment check would let "outbox"
+    // pass a declaration of "out"; containment must be path-segment based.
     await expect(authorizePath(base, "outbox/x", ["out"], true)).rejects.toThrow();
+  });
+
+  it("rejects a workspace sibling reached via .. that shares a name prefix", async () => {
+    const base = await wsBase();
+    await mkdir(join(dirname(base), `${basename(base)}-evil`), { recursive: true });
+    try {
+      await expect(authorizePath(base, `../${basename(base)}-evil/x`, ["."], true)).rejects.toThrow();
+    } finally {
+      await rm(join(dirname(base), `${basename(base)}-evil`), { recursive: true, force: true });
+    }
   });
 
   it("allows a read against a read-only declaration", async () => {
