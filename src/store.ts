@@ -286,10 +286,15 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
   }
 
   setInputStaging(taskId: string, staging: InputStaging) {
-    this.db.prepare("UPDATE runs SET input_staging_json=? WHERE task_id=?").run(JSON.stringify(staging), taskId);
+    // Fail closed: SQLite UPDATE reports success even when no row matches, so an
+    // update for an unknown task would be silently acknowledged to P1 as
+    // committed. Check the row count and surface a typed error instead.
+    const r = this.db.prepare("UPDATE runs SET input_staging_json=? WHERE task_id=?").run(JSON.stringify(staging), taskId);
+    if (r.changes === 0) throw new PikoError("TaskNotFound", 404, `staging reported for unknown task ${taskId}`);
   }
   setArtifactDelivery(taskId: string, delivery: ArtifactDelivery) {
-    this.db.prepare("UPDATE runs SET artifact_delivery_json=? WHERE task_id=?").run(JSON.stringify(delivery), taskId);
+    const r = this.db.prepare("UPDATE runs SET artifact_delivery_json=? WHERE task_id=?").run(JSON.stringify(delivery), taskId);
+    if (r.changes === 0) throw new PikoError("TaskNotFound", 404, `delivery reported for unknown task ${taskId}`);
   }
   inputStaging(taskId: string): InputStaging {
     return JSON.parse((this.db.prepare("SELECT input_staging_json FROM runs WHERE task_id=?").get(taskId) as any).input_staging_json);
