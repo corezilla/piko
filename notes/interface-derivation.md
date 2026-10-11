@@ -199,19 +199,25 @@ git -C /Users/ben/work/STD worktree remove /tmp/std-locked --force
 
 ## 11. 未完成项与 Gap
 
-**Gap 收敛状态（本轮完成）**：
+**Gap 收敛状态**：全部已关闭，且均取得实机 Verdict（`run-20261011-03`）。
 
-| Gap | 状态 | 关闭方式 |
+| Gap | 关闭方式 | 实机验证 |
 |---|---|---|
-| `G-ASSET-001` | 已关闭 | `FAKE-CLK` 资产：`src/clock.ts`（`Clock` / `ManualClock`）+ `tests/unit/clock.test.ts` |
-| `G-CASE-003` | 已关闭 | 36 份逐 Case 文档已撰写；实现状态统一 `Implemented`，可执行入口逐条登记 |
-| `G-ENV-001` | 已关闭 | `tests/integration/exec-lifecycle-live.test.ts`（`ST-EXEC-001` 真模型完整链路）＋ `exec-lifecycle` seed |
-| `G-MATRIX-001` | 已关闭 | `tests/integration/matrix-discussion-live.test.ts`（`ST-MX-001` 讨论进出＋成员丢失 fail-closed） |
-| `G-OBS-001` | 已关闭 | `src/observability.ts`（`emit`/`metric`/`audit`/`snapshot`）＋ 鉴权只读 `GET /diagnostics` |
+| `G-ASSET-001` | `FAKE-CLK`：`src/clock.ts` + `tests/unit/clock.test.ts` | PASS |
+| `G-CASE-003` | 43 份逐 Case 文档实现状态收敛 `Implemented`；编号统一 | PASS |
+| `G-ENV-001` | `exec-lifecycle-live.test.ts` + `exec-lifecycle` seed | **真模型 PASS**（oMLX `Qwen3.8-27B-4bit`） |
+| `G-MATRIX-001` | `matrix-discussion-live.test.ts` | **真 Synapse PASS**（讨论进出 + fail-closed） |
+| `G-OBS-001` | `src/observability.ts` + 鉴权只读 `GET /diagnostics` | PASS |
+| `ST-DATA-005` 真远端段 | `transfer-scp-live.test.ts` | **真 sshd PASS** |
 
 **编号一致性**：`G-CASE-002` 与 `G-CASE-003` 的同号歧义已消除，全库统一为 `G-CASE-003`。
 
-**仍为 Gap**：
+**本轮实机暴露的真实缺陷（单测替身无法发现）**：
 
-- 系统层清单 21 条分母中，尚有 7 条未建独立 Case 文档（`ST-APP-005/006`、`ST-DATA-001/004`、`ST-LLM-002`、`ST-MX-001`、`ST-OBS-001`）；其中 `ST-MX-001` / `ST-OBS-001` 已有可执行入口（live 套件与 `observability.test.ts`），待补文档载体。
+1. `tasks` 表 `INSERT INTO tasks VALUES(?)` 只给 6 个值而表有 7 列 —— **所有任务创建返回 503**。单测复用旧 sqlite 文件掩盖了它。
+2. scp `credential_ref` 解析出密钥**内容**，而 `scp -i` 需要**路径** —— 真实传输必然失败。
+3. Matrix 重投事件违反 `discussion_turns(task_id,event_id)` 唯一约束 —— 同步批次被拒并击穿 P1。
+4. 房间成员关系丢失只能从事件流察觉，而被踢出后事件流随之消失 —— fail-closed 永不触发。已补独立成员巡检。
+
+**结论**：无未决项。
 

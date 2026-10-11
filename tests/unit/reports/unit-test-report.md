@@ -53,15 +53,15 @@
 
 ## 1. 执行摘要与结论
 
-- **Run ID**：`run-20261011-01`（单元层；同 Run 含 integration 与契约校验产物）
-- **结论**：单元层 `vitest` 全量 **104 例**（PASS 103、FAIL 0、跳过 1）；integration 子集 **36 例**（PASS 35、FAIL 0）；契约校验 **PASS**。
-- **边界**：本 Run 只覆盖可自动化层；`ENV-REMOTE-SCP`、`ENV-LIVE-LLM`、`ENV-MATRIX` 的 Case 未在本 Run 执行（记 `NOT_RUN`，见 §3）。
+- **Run ID**：`run-20261011-03`（单元层；含 integration 与契约校验产物）
+- **结论**：全量 `vitest` **119 例**（PASS 118、FAIL 0、跳过 1）；契约校验 **PASS**。
+- **边界**：本 Run 为可自动化层；真机 Case 的 Verdict 见 `system-test-report`。
 
 ## 2. 被测基线与实际环境
 
-- **源码基线**：`docs/piko-system-design-std26`（未 push 本地提交集除外）；契约 `0.3.0-simplified.6`；Pi `9767ba27`。
-- **运行环境**：Node 22.19 / pnpm 11.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。单元层 ENV：`ENV-UNIT`。
-- **外部依赖**：本 Run 未接 LLMTier 真端点 / Matrix / 真 scp 对端（mock 与替身生效）。
+- **源码基线**：`main` @ `35ddd24`；契约 `0.3.0-simplified.6`；STD `draft.120`。
+- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。
+- **证据**：`tests/unit/reports/run-20261011-03/artifacts/`。
 
 ## 3. 逐 Case 执行记录
 

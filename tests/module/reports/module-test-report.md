@@ -53,16 +53,15 @@
 
 ## 1. 执行摘要与结论
 
-- **Run ID**：`run-20261011-02`（模块层；灰盒组装层）
-- **结论**：`vitest run tests/unit` 全量 **81 例**，PASS 81、FAIL 0、跳过 0。
-- **边界**：本层按模块级 Case 粒度编排；纯黑盒系统层用例不在本报告范围（见 `system-test-report`）。
+- **Run ID**：`run-20261011-03`（模块层；灰盒组装层）
+- **结论**：`vitest run tests/unit` **82 例**，PASS 82、FAIL 0。11/11 模块级 Case 分母全部执行且通过。
+- **边界**：纯黑盒系统层用例不在本报告范围（见 `system-test-report`）。
 
 ## 2. 被测基线与实际环境
 
-- **源码基线**：`main` @ `ef34847`；契约 `0.3.0-simplified.6`；STD `draft.120`。
-- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。环境实例：`ENV-UNIT`。
-- **证据**：`tests/module/reports/run-20261011-02/artifacts/module.json`（机器可读执行结果）。
-- **外部依赖**：本 Run 未依赖 LLMTier 真端点、Matrix 或真 scp 对端（替身与 hermetic 环境生效）。
+- **源码基线**：`main` @ `35ddd24`；契约 `0.3.0-simplified.6`；STD `draft.120`。
+- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。
+- **证据**：`tests/module/reports/run-20261011-03/artifacts/module.json`。
 
 ## 3. 逐 Case 执行记录
 

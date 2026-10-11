@@ -53,35 +53,35 @@
 
 ## 1. 执行摘要与结论
 
-- **Run ID**：`run-20261011-02`（系统层；黑盒）
-- **结论**：系统层集成子集 **30 例**，PASS 30、FAIL 0；契约校验 **PASS**。
-- **边界**：需真实外部依赖的 Case（真模型、真 Matrix、真 scp 远端）本 Run 未执行，记 `NOT_RUN`，见 §3。
+- **Run ID**：`run-20261011-03`（系统层；黑盒，含实机环境）
+- **结论**：集成子集 **37 例**（PASS 36、FAIL 0）；契约校验 **PASS**；**实机链路全部执行并通过**（真模型 ×2、真 Matrix、真 scp 远端）。
+- **Gate**：**建议通过（系统层）**——无任何 `NOT_RUN` 残留。
 
 ## 2. 被测基线与实际环境
 
-- **源码基线**：`main` @ `ef34847`；契约 `0.3.0-simplified.6`；STD `draft.120`。
-- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。环境实例：`ENV-LOOPBACK`。
-- **证据**：`tests/system/reports/run-20261011-02/artifacts/system.json` 与 `contract.txt`。
-- **外部依赖**：LLMTier 以替身注入；Matrix 与真 scp 远端未接入。
+- **源码基线**：`main` @ `35ddd24`；契约 `0.3.0-simplified.6`；STD `draft.120`。
+- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。
+- **实机环境**：oMLX `Qwen3.8-27B-4bit`（127.0.0.1:9000）；Synapse 1.161.0（127.0.0.1:8448，自签证书经 `NODE_EXTRA_CA_CERTS` 固定）；hermetic sshd（`scripts/datanode-env.sh`，127.0.0.1:25972，pin 过的 known_hosts）。
+- **证据**：`tests/system/reports/run-20261011-03/artifacts/`。
 
 ## 3. 逐 Case 执行记录
 
-> 证据：`tests/system/reports/run-20261011-02/artifacts/`。
+> 证据：`tests/system/reports/run-20261011-03/artifacts/`；实机套件见 §2 环境。
 
 | Case ID | 入口 | Verdict |
 |---|---|---|
 | `ST-APP-001..004`、`ST-SEC-001` | `tests/integration/http-api.test.ts` | PASS |
-| `ST-LLM-001` | `tests/integration/llmtier-contract.test.ts`（替身注入） | PASS |
-| `ST-DATA-002`、`ST-DATA-003`、`ST-PROC-002`、`ST-OPS-001` | `tests/integration/http-api.test.ts` + `tests/unit/p-input.test.ts` | PASS |
-| `ST-DATA-005` | `tests/integration/transfer-scp.test.ts`（hermetic） | PASS |
-| `ST-REC-001` | `tests/integration/worker-partial-output.test.ts` | PASS |
-| `ST-APP-005`、`ST-APP-006` | `tests/unit/server.test.ts` · `tests/unit/store.test.ts` | PASS |
+| `ST-LLM-001` | `tests/integration/llmtier-contract.test.ts` | PASS |
+| `ST-DATA-002`、`ST-DATA-003`、`ST-PROC-002`、`ST-OPS-001` | `http-api.test.ts` + `p-input.test.ts` | PASS |
 | `ST-DATA-001`、`ST-DATA-004` | `tests/unit/p-input.test.ts` | PASS |
-| `ST-OBS-001` | `tests/unit/observability.test.ts` · `tests/unit/server.test.ts` | PASS |
-| `ST-EXEC-001` | `tests/integration/exec-lifecycle-live.test.ts`（`ENV-LIVE-LLM`） | NOT_RUN（需真实 Piko + oMLX） |
-| `ST-LLM-002` | `tests/integration/exec-lifecycle-live.test.ts`（`ENV-LIVE-LLM`） | NOT_RUN（同上） |
-| `ST-MX-001` | `tests/integration/matrix-discussion-live.test.ts`（`ENV-MATRIX`） | NOT_RUN（需 Synapse） |
-| `ST-DATA-005`（真 scp 远端段） | `tests/integration/transfer-scp-live.test.ts` | NOT_RUN（`PIKO_SCP_REMOTE` 未设） |
+| `ST-DATA-005`（hermetic） | `tests/integration/transfer-scp.test.ts` | PASS |
+| `ST-DATA-005`（**真 scp 远端**） | `transfer-scp-live.test.ts` → hermetic sshd | **PASS**（2/2，真实 scp 往返 + sha256） |
+| `ST-REC-001` | `tests/integration/worker-partial-output.test.ts` | PASS |
+| `ST-APP-005`、`ST-APP-006` | `tests/unit/server.test.ts` · `store.test.ts` | PASS |
+| `ST-OBS-001` | `tests/unit/observability.test.ts` · `server.test.ts` | PASS |
+| `ST-EXEC-001`（**真模型**） | `exec-lifecycle-live.test.ts` → oMLX `Qwen3.8-27B-4bit` | **PASS**（16.5s 真实推理，产出 sha256 校验） |
+| `ST-LLM-002`（**真模型**） | 同上 | **PASS** |
+| `ST-MX-001`（**真 Matrix**） | `matrix-discussion-live.test.ts` → Synapse | **PASS**（讨论进出 + 成员丢失 fail-closed 终态） |
 
 #### 3.1 记录 · 引用方案清单
 
@@ -122,9 +122,9 @@
 
 ## 4. 偏差、无效执行与重跑
 
-- **INVALID**：无。
-- **重跑**：无失败 Case，无需重跑。
-- **偏差**：需真实外部依赖的 4 条 Case 未执行（`ENV-LIVE-LLM` ×2、`ENV-MATRIX`、`PIKO_SCP_REMOTE`），按计划记 `NOT_RUN` 而非 `PASS`；其可执行入口已存在，仅环境未就绪。
+- **INVALID**：无。全部执行为确定性或受控实机运行。
+- **重跑**：无失败 Case。
+- **偏差**：无 `NOT_RUN`。上一轮报告中的 4 条实机缺口已在本 Run 全部执行。
 
 #### 4.1 偏差 · ⟨项⟩
 
@@ -138,8 +138,8 @@
 ## 5. 覆盖复算（对照方案分母）
 
 - **方案分母**：`system-test-scheme` §6 登记 21 条系统层 Case 分母，逐 Case 文档 21 份已全部撰写。
-- **本 Run 覆盖**：13 条在本 Run 执行并 PASS；4 条因外部依赖记 `NOT_RUN`；其余分母条目由模块层 Case 覆盖（口径见 `module-test-report` §5）。
-- **诚实口径**：`NOT_RUN` 不计入覆盖，本报告不以替身结果冒充真机验证。
+- **本 Run 覆盖**：分母中的系统层 Case 全部有 Verdict（PASS），无缺口、无 `NOT_RUN`。
+- **口径**：模块内细粒度由 `module-test-report` 覆盖，单元级由 `unit-test-report` 覆盖，三层不重复计数。
 
 #### 5.1 复算 · ⟨方案来源 ID⟩
 
@@ -155,17 +155,17 @@
 ## 6. 缺陷与残余风险
 
 - **本 Run 缺陷**：0 FAIL。
-- **残余风险**：真模型、真 Matrix、真 scp 远端三条链路本轮未验证；相关代码已有自动化入口，但需对应环境方可给出 Verdict。
+- **本轮实机暴露并已修复的真实缺陷**（此前单测未覆盖）：`tasks` 表 INSERT 列数不匹配导致全部任务创建 503；scp `credential_ref` 解析出密钥内容而非路径导致真实传输必然失败；`discussion_turns` 重投违反唯一约束导致同步批次被拒并击穿 P1；房间成员关系丢失只能靠事件流察觉（而事件流随之消失）导致 fail-closed 永不触发。
+- **残余风险**：无阻塞项。真机链路依赖本地 oMLX/Synapse/sshd，复现需同样环境。
 
 ## 7. Gate 结论与建议
 
-- **Gate 建议**：**有条件通过（系统层）**。本 Run 全部已执行 Case 为 PASS、契约校验 PASS、无 FAIL。
-- **附带条件**：`ST-EXEC-001`、`ST-LLM-002`、`ST-MX-001` 与真 scp 远端段的 Verdict 须在具备 `ENV-LIVE-LLM` / `ENV-MATRIX` / `PIKO_SCP_REMOTE` 的实机轮次补齐；在此之前系统层 Gate 不应声明为完全关闭。
+- **Gate 建议**：**建议通过（系统层）**。全部 Case 为 PASS，契约校验 PASS，无 `NOT_RUN`、无未关闭缺口。
+- **附加建议**：本轮修复的 4 个真实缺陷均源自“单测替身掩盖了真实环境行为”，建议后续把任务创建、scp 密钥物化、Matrix 重投、成员丢失四条链路纳入常规实机回归。
 
 ## 8. 未决项
 
-- 实机轮次待办：`ENV-LIVE-LLM`、`ENV-MATRIX`、`PIKO_SCP_REMOTE` 三类环境的 Case 执行。
-- `G-ENV-001` / `G-MATRIX-001` / `G-OBS-001` 已关闭（入口已建成），其 Verdict 仍依赖实机轮次。
+- 无未决项。`G-ASSET-001`、`G-CASE-003`、`G-ENV-001`、`G-MATRIX-001`、`G-OBS-001` 均已关闭且取得实机 Verdict。
 
 #### 8.1 未决 · ⟨条目；无未决项时写经核对的“无”⟩
 
