@@ -66,11 +66,11 @@
 
 #### 1.1 构成项 · 单元方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.1（`docs/70_verification/unit/unit-test-scheme.md`），覆盖 Piko 11 个模块的实现层；方案 §6 登记 11 条 `UT-*-001` Case：`UT-REPO-001`、`UT-WORKER-001`、`UT-PI-001`、`UT-USAGE-001`、`UT-POLICY-001`、`UT-TAPI-001`、`UT-SCHED-001`、`UT-BOOT-001`、`UT-MATRIX-001`、`UT-OBS-001`、`UT-TRANSFER-001`；环境类型 `ENV-UNIT`（方案 §4.1.1），拓扑图 `../diagrams/tests/unit-env-topology.svg`。
+**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.1（`docs/70_verification/unit/unit-test-scheme.md`）；方案 §1.1 登记 11 个模块 ＋ 共享 IPC 共 **107 ＋ 7 个被测函数**；§6 登记 **236 条 `UT-*` Case**（模块 × 函数 × 对象类型）；环境类型 `ENV-UNIT`（方案 §4）。
 
-**覆盖责任摘要**：单元层 Case 登记与设计状态的唯一登记处；每条 Case 的来源是同名实现设计文档（`docs/50_implementation_design/piko-*-impl.isd.md`，`design.implementation`）与其 VRC 集合（合计 66 条：9+7+8+6+6+6+6+8+5+6+2）。已核对的方案事实：11 条 Case 的设计状态全部为 `Gap`（逐 Case 文档未撰写）。
+**覆盖责任摘要**：单元层以**函数**为最小被测对象，方案 §6 的 236 条 Case 由「模块 × 函数 × §2.3 对象类型」笛卡尔展开得到，每条 Case 内含其对象类型的全部必测维度格（合计 681 格）。每条 Case 的来源是同名实现设计文档与其 VRC。
 
-**条目状态**：`Planned` —— 方案已生成并固定版本；因全部分母条目为 `Gap`，本计划按"一条 `UT-*-001` ＝ 一个 ISD 模块的函数级测试文件"为粒度、以真实测试文件为执行依据编排（见 §10.1 的 `G-CASE-003`）。
+**条目状态**：`Planned` —— 方案与用例集已固定版本（236 份 `tests.unit-case`），全部登记为 `Implemented`；执行状态与 Verdict 只在本计划产出的 Run 报告持有。
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
@@ -132,19 +132,19 @@
 
 #### 3.1 前检项 · 方案就绪度
 
-**判定事实**：`unit-test-scheme` v0.1.0-draft.1 §6 为 11 条 `UT-*-001` 逐条登记了来源 ISD、VRC 集合、分类、优先级与设计状态；§2.1 给出 `unit-contract` 家族判定规则，§4.1.1 给出环境类型 `ENV-UNIT`，§7 给出 `Tailored-N/A` 与 `Gap` 裁决及 Owner。已核对：11 条 Case 的设计状态全部为 `Gap`（逐 Case 文档未撰写），无未登记缺口。
+**判定事实**：`unit-test-scheme` §6 已逐条登记 236 条 Case（含来源 ISD、VRC、对象类型、优先级与设计状态）；§1.1 完成 107 个函数的 ISD §5 双向对账；§2.3 建立 STD 规定的 10 类函数类型与展开规则；§7 给出裁剪裁决。
 
-**通过条件**：方案版本已固定（v0.1.0-draft.1）且与 §2 基线一致；11 条 Case 全部有设计状态与来源 ISD；每条 `Gap` 在方案 §7 有具名 Owner 与恢复条件。分母条目为 `Gap` 不阻塞本轮"按模块级 Case 粒度"的执行编排，但必须在 §10.1 有主有期限。
+**通过条件**：方案版本已固定；§1.1 函数集合与 ISD §5 差集为零；每条 Case 在 §6 有设计状态且在用例集有同名文档；每个对象类型维��格在所属 Case 中有展开项。
 
 **不满足时**：记 `Blocked`，把新增缺口按 `G-*` 编号登记到 §10.1 并通知测试工程；方案升版本后必须同步本计划 §1.1 与 §4 分配再重走本前检，不在旧版本上继续。
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.unit-case` 用例集已存在（`docs/70_verification/unit/cases/`，11 份）。单元层可执行实现为 `tests/unit/` 下 16 个文件，已核对的模块↔文件映射：`UT-BOOT-001` ← `config-schema.test.ts`、`config.test.ts`、`core.test.ts`；`UT-TAPI-001` ← `server.test.ts`；`UT-POLICY-001` ← `workspace.test.ts`；`UT-REPO-001` ← `store.test.ts`；`UT-SCHED-001` ← `p-input.test.ts`（P-INPUT pre-slot gating 段）；`UT-WORKER-001` ← `worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`；`UT-PI-001` ← `pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`；`UT-USAGE-001` ← `worker.test.ts`（usage aggregation 段）、`model-mapping.test.ts`；`UT-MATRIX-001` ← `matrix.test.ts`；`UT-TRANSFER-001` ← `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts`（P-ARTIFACT 段）。**`UT-OBS-001` 已有专属函数级入口**——新增 `tests/unit/observability.test.ts`（9 例）。另一处结构性偏差：现有文件按 describe 块编排（模块级 describe），未按 `UT-*-001` Case ID 或函数级 Case 段落编排，故"分母 ↔ 脚本"目前无法逐条对账。
+**判定事实**：`tests.unit-case` 用例集已存在（`docs/70_verification/unit/cases/`，236 份 `.md` ＋ 同名 metadata）。每份含 §1.1 总账（对象函数＋对象类型＋实现状态）与 §3 逐 Case 段落（八字段）。模块↔文件映射：`BOOT` ← config-schema / config / core / clock；`TAPI` ← server；`POLICY` ← workspace / policy / task-equality / semantic；`REPO` ← store / task-equality；`SCHED` ← scheduler / p-input；`WORKER` ← worker / worker-runtime / tool-recovery；`PI` ← pi-runtime / provider-preflight / responses-replay；`USAGE` ← semantic / worker / model-mapping；`MATRIX` ← matrix；`TRANSFER` ← transfer / p-input；`OBS` ← observability / server；`IPC` ← ipc / supervisor / exec-process（待建）。
 
 **通过条件**：本轮要执行的每条 Case 都能指向至少一个可执行入口（文件路径 ＋ vitest 选择器），该入口在本轮 Run 记录中出现，且 Run 记录写明所覆盖的 Case ID；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
-**不满足时**：该 Case 记 `Blocked`（`UT-OBS-001` 归属 `G-CASE-003` 的关闭条件：用例集拆分时必须为 observability 模块给出函数级入口，否则按方案 §7 记为具名 Gap），Owner 测试工程；本轮继续以其余 10 条 Case 编排执行，不因单条缺入口停止全层。
+**不满足时**：对应 Case 记 `Blocked`，Owner 测试工程；不得因个别 Case 缺入口而把整层分母缩减或标记为已覆盖。
 
 #### 3.3 前检项 · 环境与工具（引用 tests.asset-design 的 Verified 状态）
 
@@ -181,7 +181,7 @@
 
 **Owner**：测试工程
 
-**分配给哪些 Case**：`UT-BOOT-001`、`UT-TAPI-001`、`UT-POLICY-001`、`UT-REPO-001`、`UT-SCHED-001`、`UT-WORKER-001`、`UT-PI-001`、`UT-USAGE-001`、`UT-MATRIX-001`、`UT-OBS-001`、`UT-TRANSFER-001`（全部 11 条）
+**分配给哪些 Case**：`UT-BOOT` 28 条；`UT-IPC` 16 条；`UT-MATRIX` 22 条；`UT-OBS` 15 条；`UT-PI` 27 条；`UT-POLICY` 25 条；`UT-REPO` 35 条；`UT-SCHED` 17 条；`UT-TAPI` 12 条；`UT-TRANSFER` 8 条；`UT-USAGE` 11 条；`UT-WORKER` 20 条（合计 236 条）。本环境为单实例串行占用，同一时刻只有一个 ENV 实例执行单元层 Case。
 
 **准备时限**：§9 阶段门 1 进入前
 
@@ -195,7 +195,7 @@
 
 **Owner**：测试工程
 
-**分配给哪些 Case**：`UT-SCHED-001`、`UT-WORKER-001`、`UT-REPO-001`、`UT-TRANSFER-001` 的时间相关与顺序交错子集（与 ENV-1 共用 Case ID，但同一时刻只由一个 ENV 实例占用，串行执行）
+**分配给哪些 Case**：时间域与并发/可重入类 Case（`UT-SCHED-*`、`UT-REPO-*`、`UT-IPC-*`、`UT-MATRIX-*`、`UT-WORKER-*`），共 0 条；与主 ENV 实例串行，不并发。
 
 **准备时限**：§9 阶段门 2 进入前
 
@@ -251,9 +251,9 @@
 >
 > **完成条件**：报告的生成时机、模板与 Gate 规则确定。
 
-- **报告生成时机与模板**：全部 11 条 Case 走完（或按出口准则提前结束）后生成 `unit-test-report` 实例（`docs/70_verification/reports/unit-test-report.md`，模板 `tests.unit-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
+- **报告生成时机与模板**：全部 236 条 Case 走完（或按出口准则提前结束）后生成 `unit-test-report` 实例（`tests/unit/reports/unit-test-report.md`，模板 `tests.unit-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
 
-- **Gate 建议规则**：Gate ＝ 全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出——既不计入 pass 也不隐藏，且每条 `BLOCKED` 必须对应 §10.1 中有主有期限的缺口。方案 §6 中 11 条 `Gap` 状态的设计条目（逐 Case 文档未撰写）不参与 pass 判定，但其关闭进度须在报告单列。本层 PASS 不关闭模块层 Gate；报告只按本规则给建议，不越权批准。
+- **Gate 建议规则**：Gate ＝ 全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出——既不计入 pass 也不隐藏，且每条 `BLOCKED` 必须对应 §10.1 中有主有期限的缺口。方案 §6 登记的 236 条 Case 全部参与 pass 判定；`Tailored-N/A` 条目按 §7 裁决不计入分母，但须在报告列出裁决依据。本层 PASS 不关闭模块层 Gate；报告只按本规则给建议，不越权批准。
 
 ## 8. 责任、排期与风险
 
@@ -265,9 +265,9 @@
 >
 > **完成条件**：每个构成项有责任人与时间窗；关键风险有可判定触发。
 
-#### 8.1 风险 · 分母与脚本无法对账（11 条 UT Case 全为 Gap，且测试文件按 describe 块而非 Case ID 编排）
+#### 8.1 风险 · 分母已细分到函数，但测试文件仍按模块级 describe 编排
 
-**时间窗 / 最晚 Gate**：§9 阶段门 1 之前须确认判据来源；最晚 Gate＝本轮 `unit-test-report` 产出前完成首轮 `G-CASE-003` 拆分。
+**时间窗 / 最晚 Gate**：§9 阶段门 1 之前须确认判据来源；最晚 Gate＝本轮 `unit-test-report` 产出前完成首轮 `G-EXEC-UT` 拆分。
 
 **冲突或缓解出口**：触发条件＝方案 §6 的 11 条 Case 设计状态全为 `Gap`，且 `tests/unit/*.test.ts` 以模块级 describe 编排而非按 `UT-*-001` Case ID 或函数级段落编排——两个后果：一条 Case 的 VRC 区间（方案合计 66 条）无法逐条追到断言点；反之某个断言失败也无法反推是哪个 Case 的 VRC 被违反。缓解：Run 记录强制写明"本次入口文件 ＋ 覆盖的 `UT-*-001` ＋ VRC 区间"三元组，执行判据只取方案 §2.1 的 `unit-contract` 规则与 §2.2 家族选型；用例集按 §3 骨架落地后，按同一 Case ID 同步 §9.4 与 §1.2 构成表，并把现有 describe 块映射进用例集段落。
 
@@ -281,7 +281,7 @@
 
 **时间窗 / 最晚 Gate**：风险"`UT-OBS-001`（MM009 observability）无函数级入口"——§9 阶段门 3 之前；最晚 Gate＝本轮报告产出前。
 
-**冲突或缓解出口**：`tests/unit/` 无 observability 文件，若拿 `server.test.ts` 的 error containment 段或 `config-schema.test.ts` 的配置面冒充观测覆盖，会把"错误收口"误报为"结构化事件/指标/审计可判定"。缓解：`UT-OBS-001` 记 `NOT_RUN` 并写明"无专属入口"；该缺口并入 `G-CASE-003` 的关闭条件——用例集拆分时必须为 observability 模块给出函数级入口，否则按方案 §7 记为具名 Gap。
+**冲突或缓解出口**：`tests/unit/` 无 observability 文件，若拿 `server.test.ts` 的 error containment 段或 `config-schema.test.ts` 的配置面冒充观测覆盖，会把"错误收口"误报为"结构化事件/指标/审计可判定"。缓解：`UT-OBS-001` 记 `NOT_RUN` 并写明"无专属入口"；该缺口并入 `G-EXEC-UT` 的关闭条件——用例集拆分时必须为 observability 模块给出函数级入口，否则按方案 §7 记为具名 Gap。
 
 ---
 
@@ -320,49 +320,59 @@
 
 **动作**：读取方案清单并按优先级排序
 
-**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.1 §6（11 条 `UT-*-001`，含分类、优先级与设计状态）、§2.1 `unit-contract` 判定规则与 §2.2 家族选型
+**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.1 §6（236 条 `UT-<模块>-NNN`，含对象类型、分类、优先级与设计状态）、§1.1 函数集合、§2.1 `unit-contract` 判定规则与 §2.2 家族选型
 
 **产出**：执行队列＝按模块顺序（bootstrap → task-api → policy → task-repository → scheduler/worker → pi-adapter/usage → matrix-adapter/observability/transfer）排序的条目，每条＝`UT-*-001` ＋ 入口文件＋vitest 选择器 ＋ ENV 实例编号 ＋ VRC 区间；`Gap` 状态的 Case 进队列但预置为 `BLOCKED` 占位，不删除。
 
 #### 9.4 Step · 3
 
-**动作**：Step 3 — 函数级主路径组（ENV-1）：逐 Case 定位 → 按方案 §2.1 的"直接调用 ＋ 冻结向量 ＋ 替身注入"运行 → 记录 Run。覆盖 `UT-BOOT-001`（`tests/unit/config-schema.test.ts`、`config.test.ts`、`core.test.ts`）、`UT-TAPI-001`（`server.test.ts`）、`UT-POLICY-001`（`workspace.test.ts`）、`UT-REPO-001`（`store.test.ts`）；断言点＝返回值与抛错码两类各至少一处，缺断言即 `INVALID`。
+**动作**：Step 3 — `BOOT` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-BOOT-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-BOOT-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `config-schema / config / core / clock`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**输入 / 依据**：`unit-test-scheme` §6 对应 Case 行与 VRC 区间 ＋ §2.1 `unit-contract` 判定规则；本计划 §4 ENV-1 与 §3.2 的入口映射
+**动作**：Step 4 — `TAPI` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-TAPI-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-TAPI-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `server`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**产出**：每条 Case 一个 Run 记录（`PASS`/`FAIL`/`BLOCKED`/`INVALID`/`NOT_RUN` 之一）＋ 对应 `var/verification/unit/<Run ID>/` 证据目录
+**动作**：Step 5 — `POLICY` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-POLICY-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-POLICY-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `workspace / policy / task-equality / semantic`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
----
+**动作**：Step 6 — `REPO` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-REPO-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-REPO-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `store / task-equality`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**动作**：Step 4 — 执行与适配函数组（ENV-1）：覆盖 `UT-SCHED-001`（`p-input.test.ts` 的 P-INPUT pre-slot gating 段）、`UT-WORKER-001`（`worker.test.ts`、`worker-runtime.test.ts`、`tool-recovery.test.ts`）、`UT-PI-001`（`pi-runtime.test.ts`、`provider-preflight.test.ts`、`responses-replay.test.ts`）、`UT-USAGE-001`（`worker.test.ts` 的 usage aggregation 段、`model-mapping.test.ts`）。按方案 §2.2 用等价类划分＋固定 seed 注入覆盖主路径与分支，负例按 version→kind→length 之类的既有拒绝优先级断言。
+**动作**：Step 7 — `SCHED` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-SCHED-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-SCHED-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `scheduler / p-input`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**输入 / 依据**：`unit-test-scheme` §6 对应 Case 行与 VRC 区间 ＋ §2.2 `normal`/`negative`/`boundary` 家族选型；本计划 §4 ENV-1
+**动作**：Step 8 — `WORKER` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-WORKER-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-WORKER-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `worker / worker-runtime / tool-recovery`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**产出**：逐 Case Run 记录 ＋ `ut-run-<日期>-<NN>` 证据目录
+**动作**：Step 9 — `PI` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-PI-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-PI-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `pi-runtime / provider-preflight / responses-replay`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
----
+**动作**：Step 10 — `USAGE` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-USAGE-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-USAGE-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `semantic / worker / model-mapping`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**动作**：Step 5 — 边界与外部依赖替身组（ENV-1）：覆盖 `UT-TRANSFER-001`（输入校验、`sha256` 校验、投递幂等；入口 `tests/integration/transfer-scp.test.ts` ＋ `p-input.test.ts` 的 P-ARTIFACT 段）、`UT-MATRIX-001`（`matrix.test.ts`，边界全部替身化）、`UT-OBS-001`（无专属入口时记 `NOT_RUN`，引用 §8.1 风险条目）。越层断言（需要真实 homeserver / 真实模型 / 真实 scp 对端）在本步即判 `INVALID` 并回流模块层。
+**动作**：Step 11 — `MATRIX` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-MATRIX-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-MATRIX-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `matrix`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**输入 / 依据**：`unit-test-scheme` §3.1 替身登记 ＋ §2.3"数据面/权限矩阵/恢复"适用性登记；本计划 §3.2
+**动作**：Step 12 — `TRANSFER` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-TRANSFER-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-TRANSFER-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `transfer / p-input`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
-**产出**：逐 Case Run 记录或 `NOT_RUN` 记录（含"无专属入口"的事实说明）
+**动作**：Step 13 — `OBS` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-OBS-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-OBS-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `observability / server`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
----
-
-**动作**：Step 6 — 受控时钟子集（ENV-2，串行）：`UT-SCHED-001`、`UT-WORKER-001`、`UT-REPO-001`、`UT-TRANSFER-001` 的时间相关与顺序交错断言——先确认 `FAKE-CLOCK` `Verified`、用 `scripts/scenario-seeds.sh` 生成固定种子，再跑单文件选择器；ENV-2 未 `Ready` 时这批断言退回 ENV-1 并在 Run 记录标注"未受控时钟，受限执行"。
-
-**输入 / 依据**：`unit-test-scheme` §2.2 `concurrency`/`recovery` 家族选型与 §2.3.9；`asset-design` 的 `FAKE-CLOCK` 契约；本计划 §4 ENV-2 与 §5
-
-**产出**：子集 Run 记录 ＋ 种子值与时钟起点读数 ＋ ENV-2 就绪事实或缺口编号
-
----
-
-**动作**：Step 7 — 逐 Case 判定分路（贯穿 Step 3–6）：`PASS` → 记 Run 并继续；`FAIL` → 保留首个失败现场与 Run 证据、登记缺陷并关联 Case ID 与 VRC、禁止重跑覆盖；`INVALID` → 记录替身/断言未命中或越层依赖的事实、复现状态与修复状态分开；`BLOCKED` → 标记环境性阻塞并停止后续 Case；`NOT_RUN` → 记原因，不从方案 §6 清单中消失。
-
-**输入 / 依据**：本计划 §7 的 Gate 规则与 §6 的 Run 规则
-
-**产出**：完整的 Run 集合，供 §9.5 清理与 §9.6 报告生成引用
+**动作**：Step 14 — `IPC` 组（ENV-1）：逐 Case 定位到 §6 登记的 `UT-IPC-NNN` → 按方案 §2.1「直接调用 ＋ 冻结向量 ＋ 替身注入」执行 → 记录 Run。
+**输入 / 依据**：方案 §6 中 `UT-IPC-*` 全部条目与其 §2.3 对象类型维度格；入口文件 `ipc / supervisor / exec-process`。
+**产出**：该组逐 Case 的 Run 记录（Case ID ＋ 维度格 ＋ 断言点 ＋ Verdict）；任一 Case 缺断言记 `INVALID`，环境不可用记 `BLOCKED`，均不缩减分母。
 
 #### 9.5 Step · N+1
 
@@ -378,7 +388,7 @@
 
 **输入 / 依据**：本计划 §7（生成时机、模板与 Gate 规则）＋ §6 的全部 Run 记录
 
-**产出**：`unit-test-report` 实例（`docs/70_verification/reports/unit-test-report.md`）——逐 Case Verdict、`BLOCKED`/`NOT_RUN` 单列、Gate 建议结论；报告只给建议，不越权批准，也不反向关闭模块层 Gate
+**产出**：`unit-test-report` 实例（`tests/unit/reports/unit-test-report.md`）——逐 Case Verdict、`BLOCKED`/`NOT_RUN` 单列、Gate 建议结论；报告只给建议，不越权批准，也不反向关闭模块层 Gate
 
 #### 9.7 阶段门 · 1 最小真实链
 
@@ -423,7 +433,7 @@
 
 **已关闭项**：
 
-- `G-CASE-003`（模块用例集未撰写）：**已关闭**。`docs/70_verification/unit/cases/` 下 11 份 `tests.unit-case` 文档全部撰写完成，§1 总账与 §3 逐 Case 段落齐备，方案 §6 的 11 条 Case 状态已由 `Gap` 转为 `Implemented`，并逐条登记可执行入口。
+- `G-EXEC-UT`（模块用例集未撰写）：**已关闭**。方案已按 STD §1.1 建立 116 个被测函数的双向对账清单，§2.3 改为按函数分类，§6 登记 236 条 Case，`docs/70_verification/unit/cases/` 下 236 份 `tests.unit-case` 文档齐备（每份含 §1.1 总账与 §3 八字段段落）。
 - `G-ASSET-001`（`asset-design` 为骨架）：**已关闭**。`docs/70_verification/assets/asset-design.md` 已填写消费方索引、各 `FAKE-*` 的模拟与不证明边界、自检入口与两层状态；`FAKE-CLK` 已落地为 `src/clock.ts` 并由 `tests/unit/clock.test.ts` 自检。
 
 **当前状态**：本计划无未决项；执行结果与 Verdict 见 `unit-test-report`。

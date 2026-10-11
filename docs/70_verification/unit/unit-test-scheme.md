@@ -3364,7 +3364,7 @@
 
 **设计来源**：`piko-task-repository-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-REPO-001`
+**§6 Case 覆盖**：`UT-REPO-*`
 
 #### A.1.2 VRC · `VRC-WORKER-001..007`
 
@@ -3372,7 +3372,7 @@
 
 **设计来源**：`piko-worker-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-WORKER-001`
+**§6 Case 覆盖**：`UT-WORKER-*`
 
 #### A.1.3 VRC · `VRC-PI-001..008`
 
@@ -3380,7 +3380,7 @@
 
 **设计来源**：`piko-pi-adapter-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-PI-001`
+**§6 Case 覆盖**：`UT-PI-*`
 
 #### A.1.4 VRC · `VRC-USAGE-001..006`
 
@@ -3388,7 +3388,7 @@
 
 **设计来源**：`piko-usage-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-USAGE-001`
+**§6 Case 覆盖**：`UT-USAGE-*`
 
 #### A.1.5 VRC · `VRC-POLICY-001..006`
 
@@ -3396,7 +3396,7 @@
 
 **设计来源**：`piko-policy-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-POLICY-001`
+**§6 Case 覆盖**：`UT-POLICY-*`
 
 #### A.1.6 VRC · `VRC-TAPI-001..006`
 
@@ -3404,7 +3404,7 @@
 
 **设计来源**：`piko-task-api-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-TAPI-001`
+**§6 Case 覆盖**：`UT-TAPI-*`
 
 #### A.1.7 VRC · `VRC-SCHED-001..006`
 
@@ -3412,7 +3412,7 @@
 
 **设计来源**：`piko-scheduler-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-SCHED-001`
+**§6 Case 覆盖**：`UT-SCHED-*`
 
 #### A.1.8 VRC · `VRC-BOOT-001..008`
 
@@ -3420,7 +3420,7 @@
 
 **设计来源**：`piko-bootstrap-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-BOOT-001`
+**§6 Case 覆盖**：`UT-BOOT-*`
 
 #### A.1.9 VRC · `VRC-MATRIX-001..005`
 
@@ -3428,7 +3428,7 @@
 
 **设计来源**：`piko-matrix-adapter-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-MATRIX-001`
+**§6 Case 覆盖**：`UT-MATRIX-*`
 
 #### A.1.10 VRC · `VRC-OBS-001..006`
 
@@ -3436,7 +3436,7 @@
 
 **设计来源**：`piko-observability-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-OBS-001`
+**§6 Case 覆盖**：`UT-OBS-*`
 
 #### A.1.11 VRC · `VRC-TRANSFER-001..002`
 
@@ -3444,5 +3444,5 @@
 
 **设计来源**：`piko-transfer-impl.isd.md`
 
-**§6 Case 覆盖**：`UT-TRANSFER-001`
+**§6 Case 覆盖**：`UT-TRANSFER-*`
 
