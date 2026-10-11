@@ -109,7 +109,7 @@
 
 **错误路径 / 清理**：失败必须 typed 化；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。
 
-**脚本 / 实现状态**：`tests/unit/store.test.ts` · `Implemented`
+**脚本 / 实现状态**：`tests/unit/store / store-state / store-matrix.test.ts` · `Implemented`
 
 
 
