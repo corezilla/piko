@@ -68,13 +68,13 @@
 
 **文档 / 入口（Document ID 或缺口）**：`system-test-scheme` v0.1.0-draft.1（`docs/70_verification/system/system-test-scheme.md`），绑定父设计 `system-design` v0.12.0-draft.1；方案 §6 登记 21 条 `ST-*` Case（`ST-APP-001..006`、`ST-SEC-001`、`ST-DATA-001..005`、`ST-PROC-001/002`、`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001/002`、`ST-MX-001`、`ST-OBS-001`、`ST-OPS-001`）。
 
-**覆盖责任摘要**：系统层 Case 清单与设计状态（`Designed` / `Gap`）的唯一登记处；本计划只引用方案版本与 Case ID，不复制清单与 Case 细节。已核对的方案事实：21 条中 18 条 `Designed`、3 条 `Gap`（`ST-LLM-002` / `ST-MX-001` / `ST-OBS-001`），三条 Gap 均在方案 §7 有具名 Owner。
+**覆盖责任摘要**：系统层 Case 清单与设计状态的唯一登记处；本计划只引用方案版本与 Case ID。已核对的方案事实：21 条 Case 全部为 `Implemented`，逐 Case 文档齐备（`docs/70_verification/system/cases/` 21 份），每份含 STD 要求的 §1 五字段与 §1.1 逐维度对账表。
 
 **条目状态**：`Planned` —— 方案已生成并固定版本，待评审；本计划按该版本编排执行队列。
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
-**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.system-case` 文档已撰写于 `docs/70_verification/system/cases/`（14 份 `.md`，另含 21 条清单行的其余分母见 §10.1）。原缺口 `G-CASE-003` 的"未撰写"部分已关闭。
+**文档 / 入口（Document ID 或缺口）**：逐 Case 的 `tests.system-case` 文档已撰写于 `docs/70_verification/system/cases/`（21 份 `.md` ＋ 21 份同名 metadata），与方案 §6 登记差集为零。
 
 **覆盖责任摘要**：本轮以模块级 Case 粒度组织执行：§9.4 中每条 `ST-*` Case 各占一条作业行，直接引用方案 §6 的责任摘要与 §2.1 的判定规则作为执行判据；逐 Case 文档补齐后按同一 Case ID 追溯，已产生的 Run 不改判。
 
@@ -132,9 +132,9 @@
 
 #### 3.1 前检项 · 方案就绪度
 
-**判定事实**：`system-test-scheme` v0.1.0-draft.1 §6 逐条登记 21 条 `ST-*` Case 的设计状态（18 条 `Designed`、3 条 `Gap`），§7 为 3 条 Gap 登记了 Owner 与恢复条件，§6.1 暴露面清单与 §6.2 数据格均已指向 Case ID；来源为 `system-design` v0.12.0-draft.1 的 §6.5 / §7 / §8.1 / §8.2 / §13.1 与 VRC-ST-001..021。
+**判定事实**：`system-test-scheme` §6 逐条登记 21 条 `ST-*` Case 的设计状态（全部 `Implemented`），§7 保留 N/A 与缺口裁决；§1 已固定被测对象、设计基线、黑盒纪律与不证明项；§2.3 使用 STD 系统层 12 类对象类型；来源为 `system-design` v0.12.0-draft.1 与 VRC-ST-001..021。
 
-**通过条件**：方案版本已固定且与 §2 基线一致；21 条 Case 全部有设计状态；每条 `Gap` 在方案 §7 有具名 Owner 与恢复条件；暴露面与数据格对账差集为 0。
+**通过条件**：方案版本已固定且与 §2 基线一致；21 条 Case 全部有设计状态且用例集同名文档齐备；每条 Case 的 §1.1 对账表无空白格，缺口与 §7 登记一一对应；布景入口只用公开接口或外部控制面。
 
 **不满足时**：记 `Blocked`，把新增缺口按 `G-*` 编号登记到 §10.1 并通知测试工程；不得静默裁剪 Case 或把 `Gap` 当作不测。
 
@@ -144,7 +144,7 @@
 
 **通过条件**：本轮要执行的每条 Case 都能指向一个可执行入口（文件路径 ＋ 命令／vitest 选择器），且该入口在 Run 记录中出现；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
-**不满足时**：该 Case 记 `Blocked` 并关联 `G-CASE-003`（Owner 测试工程）；本轮改以模块级 Case 粒度继续，拆分义务写入 §10.1，不在无入口的情况下声称已覆盖。
+**不满足时**：该 Case 记 `Blocked` 并关联 `G-EXEC-ST`（Owner 测试工程）；本轮改以模块级 Case 粒度继续，拆分义务写入 §10.1，不在无入口的情况下声称已覆盖。
 
 #### 3.3 前检项 · 环境与工具（引用 tests.asset-design 的 Verified 状态）
 
@@ -443,7 +443,7 @@
 
 **已关闭项**：
 
-- `G-CASE-003`（逐 Case 文档未撰写）：**已关闭**。`docs/70_verification/system/cases/` 下 21 份 `tests.system-case` 文档全部撰写完成，方案 §6 的 21 条 Case 状态已统一为 `Implemented`。
+- `G-EXEC-ST`（逐 Case 文档未撰写）：**已关闭**。`docs/70_verification/system/cases/` 下 21 份 `tests.system-case` 文档全部撰写完成，方案 §6 的 21 条 Case 状态已统一为 `Implemented`。
 - `G-ASSET-001`、`G-ENV-001`、`G-MATRIX-001`、`G-OBS-001`：**已关闭**，且均取得实机 Verdict（见 `system-test-report` §3）。
 - `ST-EXEC-001` / `ST-LLM-002` / `ST-MX-001` / 真 scp 远端段：**已实机执行并通过**（oMLX 真模型、Synapse 真 homeserver、真实 sshd）。
 

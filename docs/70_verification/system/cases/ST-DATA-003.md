@@ -62,6 +62,16 @@
 
 **来源**：`system-test-scheme` §6（system-test-scheme §6.2.1（`artifact_delivery`/`outputs`））
 
+**设计验证项**：`VRC-ST-010`
+
+**维度坐标**：`数据面（§6.2 网格）` × `本 Case：产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size`；本类型全维度格＝`正常投递`、`边界值`、`部分失败`、`幂等重投`
+
+**要测什么**：产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size
+
+**明确不测什么**：不测模块内部算法（归 `unit-test-scheme`）、不测模块组装细节（归 `module-test-scheme`）、不测本 Case 所属 `数据面（§6.2 网格）` 之外的其他对象类型。
+
+**失败含义**：本 Case 失败意味着「产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size」这一系统级保证被破坏，对应系统设计条目不满足。
+
 
 ### 1.1 维度对账（本 Case 在对象类型全维度中的位置）
 
@@ -73,13 +83,16 @@
 >
 > **完成条件**：所属类型行每个维度归属明确、无空白格；"缺口"格与方案 §6 登记一一对应。
 
-#### 1.1.1 对账 · ⟨维度行×格⟩
+#### 1.1.1 对账 · 对象类型维度格
 
-**必测/optional**：`按方案 §2.3 该格标注`
+**必测/optional**：`数据面（§6.2 网格）` 的必测格逐格对账；optional 类型（成本护栏/升级兼容）按 §7 裁决，不在本 Case 展开。
 
-**归属**：`本 Case / 兄弟 Case（写 ID）/ 不适用（仅 optional，给理由）/ 缺口（登记 §6）`
-
-**说明**：`一句话`
+| 维度格 | 归属 | 说明 |
+|---|---|---|
+| `正常投递` | 本 Case | 产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size |
+| `边界值` | 兄弟 Case `ST-DATA-002` | 由同对象类型的兄弟 Case 承担 |
+| `部分失败` | 兄弟 Case `ST-DATA-004` | 由同对象类型的兄弟 Case 承担 |
+| `幂等重投` | 兄弟 Case `ST-DATA-005` | 由同对象类型的兄弟 Case 承担 |
 
 
 ## 2. 被测入口与前置
