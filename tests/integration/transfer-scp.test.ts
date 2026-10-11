@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -49,6 +51,24 @@ describe("data plane (design invariants, hermetic)", () => {
     const r = await tf.fetchInputs("t", [{ source: "user@example:/x" }]);
     expect(r.state).toBe("failed");
     expect(r.failed[0]!.error).toMatch(/known_hosts is required/);
+  });
+
+  it("materializes the credential to a 0600 temp file and removes it on close", async () => {
+    const { tf, root, key } = await fixture();
+    const r = await tf.fetchInputs("t", [{ source: "user@example:/x" }]);
+    // The transfer fails (fake host), but the key must have been materialized
+    // as a PATH, not passed as key material -- that was a real bug.
+    expect(r.state).toBe("failed");
+    const dir = join(root, "staging", ".keys");
+    const files = existsSync(dir) ? readdirSync(dir) : [];
+    expect(files).toHaveLength(1);
+    const materialized = join(dir, files[0]!);
+    expect(readFileSync(materialized, "utf8")).toBe(readFileSync(key, "utf8"));
+    expect(statSync(materialized).mode & 0o777).toBe(0o600);
+    // Not inside ~/.ssh, and gone once the transfer is closed.
+    expect(materialized.includes(".ssh")).toBe(false);
+    tf.close();
+    expect(existsSync(materialized)).toBe(false);
   });
 
   it("fails closed when the credential reference cannot be resolved", async () => {

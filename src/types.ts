@@ -143,6 +143,8 @@ export type RuntimeConfig = {
   transfer: {
     method: "scp" | "mount" | "object_store";
     credential_ref?: string;
+    /** Non-default SSH port for scp. Omit for 22. */
+    port?: number;
     target_allowlist: string[];
     known_hosts?: string;
     max_input_bytes: number;

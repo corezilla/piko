@@ -44,7 +44,8 @@ CFG
   sleep 1
   ssh-keyscan -p "$port" -t ed25519 127.0.0.1 > "$DN/known_hosts" 2>/dev/null
   # route the alias through the temp port without touching the real ssh config
-  printf 'Host dn-test\n  HostName 127.0.0.1\n  Port %s\n  User %s\n' "$port" "$USER_NAME" > "$HOME_DIR/.ssh/config"
+  printf 'Host dn-test\n  HostName 127.0.0.1\n  Port %s\n  User %s\n  IdentityFile %s\n  UserKnownHostsFile %s\n  StrictHostKeyChecking yes\n' \
+    "$port" "$USER_NAME" "$HOME_DIR/.ssh/id_test" "$DN/known_hosts" > "$HOME_DIR/.ssh/config"
   {
     echo "DN_PORT=$port"
     echo "DN_HOME=$HOME_DIR"

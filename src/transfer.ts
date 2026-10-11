@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdirSync, rmSync, readFileSync, statSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { mkdirSync, rmSync, readFileSync, statSync, writeFileSync, chmodSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { execFile } from "node:child_process";
 import type { ArtifactDelivery, ArtifactTarget, InputRef, InputStaging, OutputArtifact, RuntimeConfig } from "./types.js";
@@ -38,16 +38,46 @@ export function safeJoin(stagingRoot: string, taskId: string, rel: string): stri
 
 export class Transfer {
   private keyPath?: string;
+  private tempKey?: string;
   constructor(private readonly config: RuntimeConfig) {}
 
   /** Resolve the scp identity file from the credential reference (e.g. `env:PIKO_SCP_KEY`). */
+  /**
+   * Materialize the scp private key to a 0600 temp file and return its path.
+   *
+   * `credential_ref` resolves to secret *material*, but `scp -i` needs a file
+   * *path* — passing the key contents as a path silently fails. The key is
+   * therefore written to a private temp file that never lives in ~/.ssh, and
+   * removed by close().
+   */
   private async scpKeyPath(): Promise<string | undefined> {
     const ref = this.config.transfer.credential_ref;
     if (!ref) return undefined;
     if (this.keyPath) return this.keyPath;
     const { resolveSecret } = await import("./config.js");
-    this.keyPath = await resolveSecret(ref);
-    return this.keyPath;
+    const material = await resolveSecret(ref);
+    if (!material) throw new PikoError("InputFetchFailed", 422, "transfer credential resolved to empty material");
+    const dir = join(this.stagingRoot, ".keys");
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const file = join(dir, `id_${process.pid}_${randomBytes(6).toString("hex")}`);
+    writeFileSync(file, material.endsWith("\n") ? material : `${material}\n`, { mode: 0o600 });
+    try {
+      chmodSync(file, 0o600);
+    } catch {
+      /* best effort on filesystems without POSIX modes */
+    }
+    this.tempKey = file;
+    this.keyPath = file;
+    return file;
+  }
+
+  /** Remove the materialized private key. Safe to call more than once. */
+  close(): void {
+    if (this.tempKey) {
+      rmSync(this.tempKey, { force: true });
+      this.tempKey = undefined;
+      this.keyPath = undefined;
+    }
   }
 
   private get stagingRoot() {
@@ -77,6 +107,8 @@ export class Transfer {
       "-o", `UserKnownHostsFile=${knownHosts}`,
       "-i", key,
     ];
+    // Non-default SSH port for scp (-P); host keys stay pinned via known_hosts.
+    if (this.config.transfer.port) args.push("-P", String(this.config.transfer.port));
     if (direction === "pull") args.push("--", remote, local);
     else args.push("--", local, remote);
     return args;
