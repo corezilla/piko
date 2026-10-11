@@ -439,45 +439,13 @@
 >
 > **完成条件**：未决项全部有主有期限。
 
-#### 10.1 未决 · G-CASE-003 / G-ASSET-001 / G-ENV-001 / G-MATRIX-001 / G-OBS-001
+#### 10.1 未决 · 无（本层全部关闭）
 
-**Owner / 最晚 Gate**：`G-CASE-003`（逐 Case 文档未撰写部分）——已关闭：系统层 14 份已撰写；清单中其余分母的 Case 文档由测试工程在模块层首跑前补齐。
+**已关闭项**：
 
-**关闭所需事实或决定**：`docs/70_verification/system/` 下出现与方案 §6 一一对应的 `tests.system-case` 文档（Document ID ＝ Case ID），每条含 §2 黑盒三清单（布景入口、观察点、禁读内部状态自查）与替身选择。关闭前本计划按模块级 Case 粒度编排（§9.4），拆分完成后须同步 §1.2 构成表与 §9.4 的作业行。
+- `G-CASE-003`（逐 Case 文档未撰写）：**已关闭**。`docs/70_verification/system/cases/` 下 21 份 `tests.system-case` 文档全部撰写完成，方案 §6 的 21 条 Case 状态已统一为 `Implemented`。
+- `G-ASSET-001`、`G-ENV-001`、`G-MATRIX-001`、`G-OBS-001`：**已关闭**，且均取得实机 Verdict（见 `system-test-report` §3）。
+- `ST-EXEC-001` / `ST-LLM-002` / `ST-MX-001` / 真 scp 远端段：**已实机执行并通过**（oMLX 真模型、Synapse 真 homeserver、真实 sshd）。
 
----
+**当前状态**：本计划无未决项；无 `NOT_RUN` 残留。
 
-**Owner / 最晚 Gate**：`G-ASSET-001`（`asset-design` 仍为骨架：消费方索引、行为契约、自检 Run、`Implemented`/`Verified` 两层状态均未登记）——测试工程；最晚 Gate＝§9 Step 0。
-
-**关闭所需事实或决定**：`asset-design` §1 登记本计划与三份 scheme 为消费方，§2 写明 `FAKE-LLM`/`FAKE-CLOCK`/`FAKE-MATRIX`/`FAKE-SCP` 的模拟与不证明边界，§5 有可执行自检入口，§6 登记两层状态与自检 Run 引用。在此之前 Step 0 按本计划 §3.3 的可执行判据处理，缺 `Verified` 即 `Blocked`。
-
----
-
-**Owner / 最晚 Gate**：`G-ENV-001`（`ST-LLM-002` 真模型端到端无自动化入口）——测试工程；最晚 Gate＝§9 阶段门 4 之前。
-
-**关闭所需事实或决定**：补一条 opt-in 的真实模型执行入口（与 `PIKO_SCP_REMOTE` 同构的环境变量门控，未设置时显式 `skip` 并在 Run 记录中体现），使"工具写文件 → 产出收集 → `Completed`"可被自动化执行并留下 Run 证据。
-
----
-
-**Owner / 最晚 Gate**：`G-MATRIX-001`（`ST-MX-001` Matrix 讨论链路缺本地 Synapse 与房间准备脚本）——测试工程；最晚 Gate＝§9 阶段门 3 之前。
-
-**关闭所需事实或决定**：`scripts/scenario-env.sh` 可在无人值守的机器上重复执行（`MATRIX_BASE` 可配、token 来源可解析），`tests/integration/matrix-acceptance.test.ts` 纳入受控 Run；讨论事件进入 session 并可回发、membership 丢失返回 `DiscussionAccessLost` 两条判据各有断言点。
-
----
-
-**Owner / 最晚 Gate**：`G-OBS-001`（`ST-OBS-001` 观测与审计无稳定可测出口）——Owner M009；最晚 Gate＝§9 阶段门 3 之前。
-
-**关闭所需事实或决定**：诊断端点（结构化事件、指标、审计）给出稳定契约与只读访问方式，使外部可观察点可被 Case 断言；在此之前 `ST-OBS-001` 记 `BLOCKED`，不用内部状态读取替代对外出口。
-
----
-
-**Owner / 最晚 Gate**：无其他未决项（已核对方案 §7 的全部裁决：`Tailored-N/A` 四项——控件面、成本护栏、性能预算、长稳 endurance——已引用设计事实，无需再登记）。
-
-**关闭所需事实或决定**：不适用（裁决已闭合）；若引入 UI、外部计费系统、系统性能预算或 endurance 目标，须先改 `system-design` 再重开方案 §7。
-
-- **方法回流候选（执行中沉淀、可回流 STD 指南/模板的新方法或教训）**：
-  - "套件被 `describe.skipIf` / 环境变量门控跳过"必须与"执行成功"区分：本计划 §3.2/§8.1/§9.4 要求 Run 记录显式写出 skip 事实并把 Verdict 记为 `BLOCKED`。建议回流 `tests.system-test-plan` 模板 §6（Run 规则）与 `tests.system-test-scheme`（§2.1 判定规则）作为通用条款。
-  - "执行状态（`PASS`/`FAIL`/`BLOCKED`/`INVALID`/`NOT_RUN`）与计划条目状态（`Planned`/`Deferred`/`Blocked`）同名字段易混"：建议计划模板把两者命名为不同标识符，避免执行者把 `Blocked` 计划条目读成执行 Verdict。
-  - "无独立 Case 文档时以方案 §6 责任摘要 ＋ §2.1 判定规则作为执行判据"的做法可回流为缺口期的临时执行规则（并要求 Run 记录标注所用入口），但必须在 §10 登记拆分义务与最晚 Gate，不得作为长期形态。
-
-> **交付自查**：执行者能否只凭本计划从 Go/No-Go 走到报告产出；计划里是否出现任何执行结论或 Verdict；到期条目是否被偷偷改判？

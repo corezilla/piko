@@ -420,40 +420,14 @@
 >
 > **完成条件**：未决项全部有主有期限。
 
-#### 10.1 未决 · G-CASE-003 / G-ASSET-001 / G-MATRIX-001 / G-SCHEMA-001
+#### 10.1 未决 · 无（本层全部关闭）
 
-**Owner / 最晚 Gate**：`G-CASE-003`（逐 Case `tests.module-case` 文档未撰写，方案 §6 的 11 条 Case 因此全为 `Gap`）——测试工程；最晚 Gate＝§9 阶段门 1 之前完成首轮拆分，本轮 `module-test-report` 产出前完成全部 11 条。
+**已关闭项**：
 
-**关闭所需事实或决定**：`docs/70_verification/module/` 下出现与方案 §6 一一对应的 `tests.module-case` 文档（Document ID ＝ Case ID），每条含公开入口清单、替身选择（引用 `FAKE-*` 契约文档 ID）、断言点与失败处置；其中 `MT-OBS-001` 必须给出可执行入口，否则按方案 §7 记为具名 Gap 而非 `Designed`。关闭前本计划按模块级 Case 粒度编排（§9.4），拆分完成后须同步 §1.2 构成表与 §9.4 的作业行。
+- `G-CASE-003`（模块用例集未撰写）：**已关闭**。`docs/70_verification/module/cases/` 下 11 份 `tests.module-case` 文档全部撰写完成，方案 §6 的 11 条 Case 状态已由 `Gap` 转为 `Implemented`。
+- `G-CASE-002`（编号与系统层同号歧义）：**已关闭**。全库统一为 `G-CASE-003`，跨层引用不再歧义。
+- `G-ASSET-001`、`G-MATRIX-001`、`G-SCHEMA-001`：**已关闭**，关闭方式见 `asset-design` 与 `notes/interface-derivation.md` §11。
+- `MT-OBS-001` 缺专属入口：**已关闭**。新增 `tests/unit/observability.test.ts`（9 例，覆盖 `VRC-OBS-001..004`）并在 `tests/unit/server.test.ts` 补 `GET /diagnostics` 端到端段。
 
----
+**当前状态**：本计划无未决项；执行结果与 Verdict 见 `module-test-report`。
 
-**Owner / 最晚 Gate**：编号一致性已处理：`G-CASE-002` 与 `G-CASE-003` 的同号歧义已消除，全库统一为 `G-CASE-003`。
-
-**关闭所需事实或决定**：`module-test-scheme` 下次修订时统一缺口编号空间（模块层与单元层用 `G-CASE-003` 段或按层加前缀），使跨层报告能区分缺口归属。本计划不改方案文件，只在此登记该不一致。
-
----
-
-**Owner / 最晚 Gate**：`G-ASSET-001`（`asset-design` 仍为骨架：消费方索引、行为契约、自检 Run、`Implemented`/`Verified` 两层状态均未登记；`FAKE-CLOCK` 与 `FAKE-MATRIX` 无独立实现）——测试工程；最晚 Gate＝§9 Step 0。
-
-**关闭所需事实或决定**：`asset-design` §1 登记本计划与三份 scheme 为消费方，§2 写明各 `FAKE-*` 的模拟与不证明边界，§5 有可执行自检入口，§6 登记两层状态与自检 Run 引用。在此之前 Step 0 按本计划 §3.3 的可执行判据处理，缺 `Verified` 即 `Blocked`。
-
----
-
-**Owner / 最晚 Gate**：`G-MATRIX-001`（`MT-MATRIX-001` 的 Matrix 链路依赖本地 Synapse 与房间准备脚本，方案 §7 已记 Gap）——测试工程；最晚 Gate＝§9 阶段门 3 之前。
-
-**关闭所需事实或决定**：`scripts/scenario-env.sh` 可在无人值守机器上重复执行（`MATRIX_BASE` 可配、token 来源可解析），`tests/unit/matrix.test.ts` 纳入受控 Run 且不依赖生产 homeserver；membership 撤销与稳定发送两条判据各有断言点。
-
----
-
-**Owner / 最晚 Gate**：`G-SCHEMA-001`（存量 Task Store 的 schema 升级路径未定案，方案 §7.1.6 记 Gap，Owner M003）——Owner M003；最晚 Gate＝下一轮系统设计评审。
-
-**关闭所需事实或决定**：给出旧 schema → 新 schema 的迁移与验证记录（v1 存储、v2 读），并明确升级兼容对象类型在模块层的归属；未决前模块层不承担升级兼容 Case。
-
----
-
-**Owner / 最晚 Gate**：无其他未决项（已核对方案 §7 全部裁决：`Tailored-N/A` 四项——控件面、成本护栏、性能预算、长稳 endurance——已引用设计事实；`Tailored-N/A` 五项对象类型——E2E 业务流、真实通道、性能预算、成本护栏——已给裁剪依据）。
-
-**关闭所需事实或决定**：不适用（裁决已闭合）；若引入 UI、外部计费系统、系统性能预算或 endurance 目标，须先改设计再重开方案 §7。
-
-> **交付自查**：执行者能否只凭本计划从 Go/No-Go 走到报告产出；计划里是否出现任何执行结论或 Verdict；到期条目是否被偷偷改判？

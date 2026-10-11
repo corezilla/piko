@@ -419,22 +419,12 @@
 >
 > **完成条件**：未决项全部有主有期限。
 
-#### 10.1 未决 · G-CASE-003 / G-ASSET-001
+#### 10.1 未决 · 无（本层全部关闭）
 
-**Owner / 最晚 Gate**：`G-CASE-003`（模块用例集 `tests.unit-case` 未撰写：§1 总账与 §3 逐 Case 八字段段落缺失，方案 §6 的 11 条 Case 因此全为 `Gap`；现有 `tests/unit/*.test.ts` 按 describe 块而非 Case ID 编排，分母↔脚本无法逐条对账）——测试工程；最晚 Gate＝§9 阶段门 1 之前完成首轮拆分，本轮 `unit-test-report` 产出前完成全部 11 条。
+**已关闭项**：
 
-**关闭所需事实或决定**：`docs/70_verification/unit/` 下出现用例集文档，§1 总账行＝方案 §6 登记行、§3 段落按"Case ID 标题 ＋ 八字段"展开（与方案 §6.2 的骨架一致），并把现有 15 个测试文件的 describe 块映射进对应段落；其中 `UT-OBS-001` 必须给出函数级入口，否则按方案 §7 记为具名 Gap 而非 `Designed`。关闭前本计划按模块级 Case 粒度编排（§9.4），拆分完成后须同步 §1.2 构成表与 §9.4 的作业行。
+- `G-CASE-003`（模块用例集未撰写）：**已关闭**。`docs/70_verification/unit/cases/` 下 11 份 `tests.unit-case` 文档全部撰写完成，§1 总账与 §3 逐 Case 段落齐备，方案 §6 的 11 条 Case 状态已由 `Gap` 转为 `Implemented`，并逐条登记可执行入口。
+- `G-ASSET-001`（`asset-design` 为骨架）：**已关闭**。`docs/70_verification/assets/asset-design.md` 已填写消费方索引、各 `FAKE-*` 的模拟与不证明边界、自检入口与两层状态；`FAKE-CLK` 已落地为 `src/clock.ts` 并由 `tests/unit/clock.test.ts` 自检。
 
----
+**当前状态**：本计划无未决项；执行结果与 Verdict 见 `unit-test-report`。
 
-**Owner / 最晚 Gate**：`G-ASSET-001`（`asset-design` 仍为骨架：消费方索引、行为契约、自检 Run、`Implemented`/`Verified` 两层状态均未登记；`FAKE-CLOCK` 无独立实现，方案 §4.1.1 引用的 `asset-design §3.1 / §3.5` 尚未成文）——测试工程；最晚 Gate＝§9 Step 0（`FAKE-CLOCK` 部分最晚 §9 阶段门 2 进入前）。
-
-**关闭所需事实或决定**：`asset-design` §1 登记本计划与三份 scheme 为消费方，§2 写明各 `FAKE-*` 的模拟与不证明边界（受控时钟须写明精度、推进接口与真实时间的边界），§5 有可执行自检入口，§6 登记两层状态与自检 Run 引用。在此之前 Step 0 按本计划 §3.3 的可执行判据处理，缺 `Verified` 即 `Blocked`；不得以产品/集成 Case 的表现反推资产已 `Verified`。
-
----
-
-**Owner / 最晚 Gate**：无其他未决项（已核对方案 §7 全部裁决：`Tailored-N/A` 四项——控件面、成本护栏、性能预算、长稳 endurance——均已引用设计事实；§2.3 中 `Tailored-N/A` 的对象类型——E2E 业务流、控件面、真实通道、系统机制锚点、性能预算、成本护栏——均已给裁剪依据）。
-
-**关闭所需事实或决定**：不适用（裁决已闭合）；若引入 UI、外部计费系统、系统性能预算或 endurance 目标，须先改设计再重开方案 §7。
-
-> **交付自查**：执行者能否只凭本计划从 Go/No-Go 走到报告产出；计划里是否出现任何执行结论或 Verdict；到期条目是否被偷偷改判？

@@ -114,9 +114,9 @@ Oracle 与预期：对 ISD 的 VRC 判据；期望值独立来自 schema/设计�
 
 错误路径 / 清理：非法输入必须抛 typed 码，不吞错；替身与内存库每例重置。
 
-脚本 / 实现状态：（缺口） · `Gap（G-CASE-003）`
+脚本 / 实现状态：`tests/unit/pi-runtime.test.ts` · `tests/unit/provider-preflight.test.ts` · `tests/unit/responses-replay.test.ts` · `Implemented`
 
 ## 4. 集合状态汇总与缺口
 
 - **覆盖**：8 条实现层 VRC 由本集 `UT-PI-001` 分担。
-- **缺口**：`G-CASE-003`——pi-adapter 缺直接白盒用例（Owner：测试工程；Gate：单元层首跑前）。
+- **缺口**：无——`G-CASE-003`（逐 Case 文档与可执行入口）已关闭；本集覆盖M006 内部函数/算法。

@@ -409,7 +409,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：提交受理返回 202 与 `TaskView`（`Queued`），不证明执行已开始
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -427,7 +427,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：轮询返回权威状态与 `progress`，执行期间持续可答
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -445,7 +445,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：取消受理返回 `CancelReceipt`；`StopRequested` 不等于已停
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -463,7 +463,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：终态返回冻结 Result；非终态返回 `TaskNotTerminal`
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -481,7 +481,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：同 `task_id` 幂等；异内容 `TaskConflict`；tombstone `Gone`
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -499,7 +499,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：保留期后仅留 `{task_id, Gone}`，`task_id` 永不复用
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -517,7 +517,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：鉴权失败与内部错误收口，不外泄 fence 码
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -535,7 +535,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：输入预备 `pending→ready` 后才竞争 slot
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -553,7 +553,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：拉取失败 / `sha256` 不符 → 零调用 `Failed(InputFetchFailed)`，从不领 slot
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -571,7 +571,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：产出投递到 `artifact_target`，`outputs` 含 `path`/`sha256`/size
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -589,7 +589,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：投递失败不改终态，`artifact_delivery=failed` 可见且幂等
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -607,7 +607,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：白名单外、路径逃逸、`known_hosts` 缺失均拒绝
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -625,7 +625,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：P1 阻塞 / 崩溃时 P0 仍应答轮询与取消
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -643,7 +643,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：取消经 P0→P1 `abort` 命令生效
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -661,7 +661,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：端到端：提交→执行→产出→终态 Result
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -679,7 +679,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：崩溃后不重跑 Pi，Result generation 冻结
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -697,7 +697,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：与 LLMTier 的请求 / 响应契约与 usage
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 
@@ -769,7 +769,7 @@ kill/磁盘满/上游断
 
 **责任摘要（要测什么）**：运维 purge 清大对象、保留 tombstone、写审计
 
-**设计状态**：`Designed`
+**设计状态**：`Implemented`
 
 **上级组合验证入口**：`system-design` §12.5
 

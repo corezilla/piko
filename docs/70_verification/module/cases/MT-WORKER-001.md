@@ -114,5 +114,5 @@ Oracle 与预期：逐条对 `design.definition` 的 VRC 判据；不复用模�
 
 错误路径 / 清理：拒绝用例断言 typed 码且不写额外持久行；临时 workspace 用后删除；不触碰 `~/.ssh`。
 
-脚本 / 实现状态：（缺口） · `Gap（G-CASE-003）`
+脚本 / 实现状态：`tests/unit/worker.test.ts` · `tests/unit/worker-runtime.test.ts` · `tests/unit/tool-recovery.test.ts` · `Implemented`
 
