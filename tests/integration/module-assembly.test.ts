@@ -176,3 +176,52 @@ describe("MT-POLICY · module assembly (policy inside the API path)", () => {
     expect([202, 400]).toContain(res.status);
   });
 });
+describe("MT-TAPI · cancel semantics", () => {
+  it("MT-TAPI-006 · cancelling a Queued task finalises it at once with a zero-call Result", async () => {
+    const { base } = await assembled();
+    await fetch(`${base}/tasks`, { method: "POST", headers: auth, body: JSON.stringify(task("mt-cancel")) });
+
+    const res = await fetch(`${base}/tasks/mt-cancel:cancel`, { method: "POST", headers: auth });
+    // Queued cancel is terminal immediately, so this is NOT an acceptance:
+    // 202 is reserved for StopRequested on a Running task.
+    expect(res.status).toBe(200);
+    const receipt: any = await res.json();
+    expect(receipt.outcome).toBe("CancelledBeforeStart");
+
+    const view: any = await (await fetch(`${base}/tasks/mt-cancel`, { headers: auth })).json();
+    expect(view.state).toBe("Cancelled");
+    // A queued cancel must never have called the model.
+    const result: any = await (await fetch(`${base}/tasks/mt-cancel/result`, { headers: auth })).json();
+    expect(result.state).toBe("Cancelled");
+    expect(result.stats.model_calls).toBe(0);
+  });
+
+  it("MT-TAPI-007 · cancelling an already terminal task is idempotent (200, not 202)", async () => {
+    const { base, store } = await assembled();
+    await fetch(`${base}/tasks`, { method: "POST", headers: auth, body: JSON.stringify(task("mt-cancel2")) });
+    await fetch(`${base}/tasks/mt-cancel2:cancel`, { method: "POST", headers: auth });
+
+    const again = await fetch(`${base}/tasks/mt-cancel2:cancel`, { method: "POST", headers: auth });
+    // Once terminal, there is nothing to accept: 200, never another 202.
+    expect(again.status).toBe(200);
+    expect(store.cancelRequested("mt-cancel2")).toBe(true);
+  });
+});
+
+describe("MT-TAPI-008 · cancel distinguishes acceptance from finalisation", () => {
+  it("StopRequested on a Running task must answer 202, not 200", async () => {
+    const { base, store } = await assembled();
+    await fetch(`${base}/tasks`, { method: "POST", headers: auth, body: JSON.stringify(task("mt-run")) });
+    // Drive the task into Running directly through the store, which is what
+    // P0 does once the slot is claimed.
+    store.tryClaimSlot("owner", "boot");
+
+    const res = await fetch(`${base}/tasks/mt-run:cancel`, { method: "POST", headers: auth });
+    // StopRequested only records intent; the stop is NOT yet observed, so the
+    // API must answer 202. Collapsing this to 200 would claim the work stopped.
+    expect(res.status).toBe(202);
+    const receipt: any = await res.json();
+    expect(receipt.outcome).toBe("StopRequested");
+    expect(store.getRun("mt-run").state).toBe("Cancelling");
+  });
+});
