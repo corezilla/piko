@@ -196,7 +196,9 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
       const staging: InputStaging = { state: task.input_refs?.length ? "pending" : "none", fetched: [], failed: [] };
       const delivery: ArtifactDelivery = { state: "none", delivered: [], failed: [] };
       this.db
-        .prepare("INSERT INTO tasks VALUES(?,?,?,?,?,?)")
+        .prepare(
+          "INSERT INTO tasks(task_id,owner_principal,identity_state,task_json,accepted_at,purge_after) VALUES(?,?,?,?,?,?)",
+        )
         .run(task.task_id, principal, "Active", JSON.stringify(task), accepted, purge);
       this.db
         .prepare(

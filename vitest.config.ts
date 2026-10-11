@@ -21,7 +21,10 @@ export default defineConfig({
       "upstream/**",
       "node_modules/**",
       "tests/integration/scenario-e2e.test.ts",
-      "tests/integration/matrix-acceptance.test.ts"
+      "tests/integration/matrix-acceptance.test.ts",
+      "tests/integration/exec-lifecycle-live.test.ts",
+      "tests/integration/matrix-discussion-live.test.ts",
+      "tests/integration/transfer-scp-live.test.ts"
     ],
     // Live integration/acceptance tests drive a real model and process; unit
     // tests still finish in milliseconds, so a generous ceiling is safe.

@@ -13,6 +13,7 @@
  * It is registered in vitest.live.config.ts alongside the scenario and Matrix
  * suites and is skipped entirely when no live Piko/LLM is reachable.
  */
+import { join } from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as H from "../common/scenario-harness.js";
 
@@ -29,11 +30,14 @@ d("ST-EXEC-001 submit -> execute -> artifacts -> terminal Result (live)", () => 
     H.resetSeeds();
 
     const started = Date.now();
+    // The instruction must name the DECLARED output path; anything else is
+    // (correctly) rejected by the permission fence.
+    const declaredOut = H.readParams(caseName).output[0]!;
     const handle = await H.runCase(caseName, {
       taskId: `st-exec-001-${Date.now()}`,
       instruction:
-        "Read README.md in the current directory and write exactly one line describing the project into out/summary.md. " +
-        "Do not read or write anything else.",
+        `Read ${H.readParams(caseName).read[0]}/README.md and write exactly one line describing the project ` +
+        `into ${declaredOut}. Do not read or write anything else.`,
     });
     const elapsedMs = Date.now() - started;
 
@@ -59,7 +63,8 @@ d("ST-EXEC-001 submit -> execute -> artifacts -> terminal Result (live)", () => 
     expect(declared.length).toBeGreaterThan(0);
     expect(result.outputs.length).toBeGreaterThan(0);
     for (const rel of declared) {
-      const abs = H.abs(caseName, rel);
+      // output paths are repo-relative, not seed-relative.
+      const abs = join(H.REPO_ROOT, rel);
       expect(H.exists(abs)).toBe(true);
       const recorded = result.outputs.find((o) => o.path.endsWith(rel));
       expect(recorded, `output ${rel} must be reported in the Result`).toBeTruthy();
