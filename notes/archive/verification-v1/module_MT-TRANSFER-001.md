@@ -1,31 +1,3 @@
-<!-- STD_DOCUMENT_COVER_BEGIN -->
-# Piko Case MT-TRANSFER-001
-
-> STD 使用入口：[项目采用说明与标准导航](../../../../README.md#std-entry)
-
-| 文档字段 | 值 |
-|---|---|
-| Document ID | `MT-TRANSFER-001` |
-| Document Version | `0.1.0-draft.1` |
-| Status | `Draft` |
-| Project | `piko` |
-| Authority | `piko` |
-| Document Owner | Piko QA |
-| Authors | opencode, corezilla |
-| Created Date | `2026-10-11` |
-| Last Modified Date | `2026-10-11` |
-| Template ID | `tests.module-case` |
-| Template Version | `3.0.8` |
-| Template Conformance | `tailored` |
-| Tailoring Reference | piko-std-tailoring-v0.1 |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/70_verification/module/cases/MT-TRANSFER-001.md` |
-| Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
-<!-- STD_DOCUMENT_COVER_END -->
 > **编写建议**：本文档是**单个模块的模块测试用例集**：一模块一集，本模块全部 MT Case 以固定段落块组织在 §3（Document ID＝`MT-COL-⟨模块短名⟩-⟨NNN⟩`，单集超过 40 条拆 `-002`）；段内 Case ID 仍为 `MT-⟨对象⟩-⟨NNN⟩`，与本模块模块测试方案（`tests.module-test-scheme`，同样一模块一份）的清单行一一对应；测试脚本一段一文件、文件名＝Case ID。LLM/智能体组件的输入构造、独立判据、统计口径与预算安全方法见 LLM 测试方法（见 `docs/std.lock.json` 所锁 STD 的 `docs/ai-guides/llm-testing.md`）。
 
 > **格式说明**：`> ` 引用块为编写建议（指导如何填写，生成实例后保留，项目可按标签整体裁除）；```example 围栏为虚构教学示例（以源文本呈现成品形态，`new-design` 实例化时整块剥离，不得当作项目事实）；`⟨angle⟩` 为待填槽，反引号为照抄的短建议/示例值。

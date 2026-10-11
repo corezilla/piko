@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "UT-BOOT-013",
+  "document_type": "tests.unit-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko Case UT-BOOT-013",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.unit-case",
+  "template_version": "3.0.9",
+  "template_sha256": "ed87cb64fb815490226c0e6abd2e3b9b968a0bdfc4430756d96f7eb7cf886e42",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/unit/cases/UT-BOOT-013.md",
+  "reviewed_commit": null,
+  "parent_document_id": "unit-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-10-11",
+  "last_modified_at": "2026-10-11",
+  "design_object_id": null
+}

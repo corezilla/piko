@@ -26,7 +26,7 @@
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_COVER_END -->
-> **编写建议**：本文档是**单个模块的单元测试用例集**：一模块一集，本模块全部 UT Case 以固定段落块组织在 §3（Document ID＝`UT-COL-⟨模块短名⟩-⟨NNN⟩`，单集超过 40 条拆 `-002`）；段内 Case ID 仍为 `UT-⟨对象⟩-⟨NNN⟩`，与本模块单测方案（`tests.unit-test-scheme`，同样一模块一份）的清单行一一对应；测试脚本一段一文件、文件名＝Case ID。LLM/智能体组件的输入构造、独立判据、统计口径与预算安全方法见 [LLM 测试方法](../../docs/ai-guides/llm-testing.md)。
+> **编写建议**：本文档是**单个模块的单元测试用例集**：一模块一集，本模块全部 UT Case 以固定段落块组织在 §3（Document ID＝`UT-COL-⟨模块短名⟩-⟨NNN⟩`，单集超过 40 条拆 `-002`）；段内 Case ID 仍为 `UT-⟨对象⟩-⟨NNN⟩`，与本模块单测方案（`tests.unit-test-scheme`，同样一模块一份）的清单行一一对应；测试脚本一段一文件、文件名＝Case ID。LLM/智能体组件的输入构造、独立判据、统计口径与预算安全方法见 LLM 测试方法（见 `docs/std.lock.json` 所锁 STD 的 `docs/ai-guides/llm-testing.md`）。
 
 > **格式说明**：`> ` 引用块为编写建议（指导如何填写，生成实例后保留，项目可按标签整体裁除）；```example 围栏为虚构教学示例（以源文本呈现成品形态，`new-design` 实例化时整块剥离，不得当作项目事实）；`⟨angle⟩` 为待填槽，反引号为照抄的短建议/示例值。
 
@@ -66,9 +66,9 @@
 
 #### 1.1 总账 · UT-WORKER-005
 
-对象函数：`WORKER` 模块 `错误路径` · LeaseLost 停止驱动
+对象函数：`aggregateUsage`（WORKER 模块）
 
-维度格（方案 §2.3 行×格）：`错误路径` × `LeaseLost 停止驱动`
+维度格（方案 §2.3 行×格）：`持久化/序列化` × `round-trip`、`截断/损坏`、`版本不符`
 
 实现状态：`Implemented`
 
@@ -95,19 +95,19 @@
 
 ## 3. 用例（固定段落块，按对象分组）
 
-#### 3.1 UT-WORKER-005 · LeaseLost 停止驱动
+#### 3.1 UT-WORKER-005 · `aggregateUsage` 在 `持久化/序列化` 类型下的完整维度
 
-**责任 / 明确不测**：对象类型 `错误路径` 下的「LeaseLost 停止驱动」；只测该维度格，同类型其余维度格由兄弟 Case 承担。
+**责任 / 明确不测**：被测函数 `aggregateUsage`，对象类型 `持久化/序列化`；必须覆盖本类型全部维度格 `round-trip`、`截断/损坏`、`版本不符`。只测该函数在该类型下的行为，不测同函数的其他类型（由兄弟 Case 承担）、不测模块整体行为。
 
-**维度坐标（方案 §2.3 行×格）**：`错误路径` × `LeaseLost 停止驱动`（家族 `negative`）。
+**维度坐标（方案 §2.3 行×格）**：`aggregateUsage` × `持久化/序列化`；展开维度格＝`round-trip`、`截断/损坏`、`版本不符`。
 
-**输入构造**：按方案 §2.3 该类型的展开规则构造（等价类合法值＋边界＋非法值）；替身与受控时钟见 §2。
+**输入构造**：按 `持久化/序列化` 的展开规则逐格构造——`round-trip`、`截断/损坏`、`版本不符`；替身与受控时钟见本集 §2。
 
-**步骤与观察点**：装配被测对象 → 触发本维度场景 → 观察公开返回、typed 错误码与持久化副作用。
+**步骤与观察点**：建立 `ENV-UNIT` → 调用 `aggregateUsage` → 逐格观察返回值、typed 错误码、持久化副作用与资源释放。
 
-**Oracle 与预期**：以模块设计 §14 的对应验证项为唯一权威；本段只细化执行断言，冲突回溯设计修订。
+**Oracle 与预期**：以 `docs/40_module_design/piko-worker-design.md` 中对应 `VRC` 为唯一权威；本段只细化执行断言，冲突回溯设计修订。
 
-**错误路径 / 清理**：失败必须 typed 化且不反向控制其他模块；每例重置内存库与替身。
+**错误路径 / 清理**：失败必须 typed 化；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。
 
 **脚本 / 实现状态**：`tests/unit/worker.test.ts` · `tests/unit/worker-runtime.test.ts` · `tests/unit/tool-recovery.test.ts` · `Implemented`
 
