@@ -1,0 +1,31 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "system-test-report",
+  "document_type": "tests.system-test-report",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko system-test-report",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.system-test-report",
+  "template_version": "0.3.12",
+  "template_sha256": "5a635ade1e060fd36627c608f7497f9b56fefa5c2ccceb12920af0d53c1a9515",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "system",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "tests/system/reports/system-test-report.md",
+  "reviewed_commit": null,
+  "parent_document_id": "system-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-10-11",
+  "last_modified_at": "2026-10-11"
+}

@@ -1,0 +1,1 @@
+PASS simplified.6: static contracts, task identity, auth/tool config, per-field usage, Matrix invariants, Pi AgentHarness evidence
