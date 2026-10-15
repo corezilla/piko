@@ -90,6 +90,23 @@ export async function loadConfig(path: string, root = process.cwd()): Promise<{ 
   // Verify the native extension surface Piko depends on exists at this revision.
   const harness = await readFile(`${piRoot}/packages/agent/src/harness/agent-harness.ts`, "utf8");
   if (!harness.includes("onRawUsage")) throw new Error("Pi revision lacks onRawUsage extension point");
+
+  // Overwrite Matrix config with environment variables (dynamic identity injection).
+  // When Slinky spawns a Piko container, it injects the target IR's matrix_user_id
+  // and access_token as environment variables. This takes priority over the JSON config.
+  if (typeof process.env.PIKO_MATRIX_USER_ID === "string" && process.env.PIKO_MATRIX_USER_ID.length > 0) {
+    config.matrix.user_id = process.env.PIKO_MATRIX_USER_ID;
+  }
+  if (typeof process.env.PIKO_MATRIX_ACCESS_TOKEN === "string" && process.env.PIKO_MATRIX_ACCESS_TOKEN.length > 0) {
+    config.matrix.direct_access_token = process.env.PIKO_MATRIX_ACCESS_TOKEN;
+  }
+  if (typeof process.env.PIKO_MATRIX_HOMESERVER === "string" && process.env.PIKO_MATRIX_HOMESERVER.length > 0) {
+    config.matrix.homeserver = process.env.PIKO_MATRIX_HOMESERVER;
+  }
+  if (typeof process.env.PIKO_MATRIX_ENABLED === "string") {
+    config.matrix.enabled = process.env.PIKO_MATRIX_ENABLED === "true";
+  }
+
   return { config, tools };
 }
 

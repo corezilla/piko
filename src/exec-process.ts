@@ -18,8 +18,14 @@ export async function runExecutionProcess(configPath: string, root: string) {
   const { config, tools } = await loadConfig(configPath, root);
   const store = new TaskStore(config.task_store.sqlite_path, config.task_store.busy_timeout_ms);
   const llmKey = await resolveSecret(config.llmtier.api_key_secret_ref);
-  const matrixToken =
-    config.matrix.enabled && config.matrix.access_token_secret_ref ? await resolveSecret(config.matrix.access_token_secret_ref) : undefined;
+  let matrixToken: string | undefined;
+  if (config.matrix.enabled) {
+    if (config.matrix.direct_access_token) {
+      matrixToken = config.matrix.direct_access_token;
+    } else if (config.matrix.access_token_secret_ref) {
+      matrixToken = await resolveSecret(config.matrix.access_token_secret_ref);
+    }
+  }
   const matrix = new MatrixRuntime(config, store, matrixToken);
   await matrix.start();
   const channel = new ProcessChannel(

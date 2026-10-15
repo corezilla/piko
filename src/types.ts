@@ -135,6 +135,7 @@ export type RuntimeConfig = {
     homeserver?: string;
     user_id?: string;
     access_token_secret_ref?: string;
+    direct_access_token?: string;
     sync_timeout_ms?: number;
     max_media_bytes?: number;
     allowed_mime_types?: string[];

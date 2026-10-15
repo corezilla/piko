@@ -175,6 +175,10 @@
         "access_token_secret_ref": {
           "$ref": "#/$defs/secretRef"
         },
+        "direct_access_token": {
+          "type": "string",
+          "minLength": 1
+        },
         "sync_timeout_ms": {
           "type": "integer",
           "minimum": 1000,
@@ -207,15 +211,22 @@
               "enabled"
             ]
           },
-          "then": {
-            "required": [
-              "homeserver",
-              "user_id",
-              "access_token_secret_ref",
-              "sync_timeout_ms",
-              "max_media_bytes",
-              "allowed_mime_types"
-            ]
+              "then": {
+                "required": [
+                  "homeserver",
+                  "user_id",
+                  "sync_timeout_ms",
+                  "max_media_bytes",
+                  "allowed_mime_types"
+                ],
+                "oneOf": [
+                  {
+                    "required": ["access_token_secret_ref"]
+                  },
+                  {
+                    "required": ["direct_access_token"]
+                  }
+                ]
           }
         }
       ]
