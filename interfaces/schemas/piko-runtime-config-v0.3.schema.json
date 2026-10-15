@@ -219,7 +219,7 @@
                   "max_media_bytes",
                   "allowed_mime_types"
                 ],
-                "oneOf": [
+                "anyOf": [
                   {
                     "required": ["access_token_secret_ref"]
                   },

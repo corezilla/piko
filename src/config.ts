@@ -94,17 +94,28 @@ export async function loadConfig(path: string, root = process.cwd()): Promise<{ 
   // Overwrite Matrix config with environment variables (dynamic identity injection).
   // When Slinky spawns a Piko container, it injects the target IR's matrix_user_id
   // and access_token as environment variables. This takes priority over the JSON config.
+  // Deep copy matrix config to avoid mutating the validated object: environment overrides
+  // are per-container and must not leak across processes or config references.
+  const envOverrides: Partial<RuntimeConfig["matrix"]> = {};
   if (typeof process.env.PIKO_MATRIX_USER_ID === "string" && process.env.PIKO_MATRIX_USER_ID.length > 0) {
-    config.matrix.user_id = process.env.PIKO_MATRIX_USER_ID;
+    envOverrides.user_id = process.env.PIKO_MATRIX_USER_ID;
   }
   if (typeof process.env.PIKO_MATRIX_ACCESS_TOKEN === "string" && process.env.PIKO_MATRIX_ACCESS_TOKEN.length > 0) {
-    config.matrix.direct_access_token = process.env.PIKO_MATRIX_ACCESS_TOKEN;
+    envOverrides.direct_access_token = process.env.PIKO_MATRIX_ACCESS_TOKEN;
   }
   if (typeof process.env.PIKO_MATRIX_HOMESERVER === "string" && process.env.PIKO_MATRIX_HOMESERVER.length > 0) {
-    config.matrix.homeserver = process.env.PIKO_MATRIX_HOMESERVER;
+    envOverrides.homeserver = process.env.PIKO_MATRIX_HOMESERVER;
   }
   if (typeof process.env.PIKO_MATRIX_ENABLED === "string") {
-    config.matrix.enabled = process.env.PIKO_MATRIX_ENABLED === "true";
+    envOverrides.enabled = process.env.PIKO_MATRIX_ENABLED === "true";
+  }
+  if (Object.keys(envOverrides).length > 0) {
+    config.matrix = { ...config.matrix, ...envOverrides };
+  }
+
+  // Validate that enabled Matrix mode has exactly one credential source.
+  if (config.matrix.enabled && !config.matrix.direct_access_token && !config.matrix.access_token_secret_ref) {
+    throw new Error("Matrix is enabled but neither direct_access_token nor access_token_secret_ref is configured");
   }
 
   return { config, tools };
