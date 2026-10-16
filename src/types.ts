@@ -17,59 +17,15 @@ export type TaskRequest = {
   input_refs?: InputRef[];
   artifact_target?: ArtifactTarget;
   discussion?: { room_id: string; trigger_event_id: string };
-  primary_role?: string;
-  context_entries?: {
-    memory_scope: "project_memory" | "role_project_memory" | "generalized_role_memory";
-    role_scope: string;
-    lesson: string;
-    evidence?: string;
-    applicable?: string;
-  }[];
-  /** Optional memory integration configuration for this task.
-   *  When present, Piko connects to the configured external memory system(s)
-   *  during execution to read and write structured memories (facts, lessons,
-   *  code relationships, trust signals).  When omitted, this task is a
-   *  plain instruction — no memory persistence or retrieval. */
-  memory?: {
-    /** Workspace-relative directory where this role's persistent memories are stored. */
-    memory_root: string;
-    /** Role's name/identity within the project (e.g. "alice:test_engineer"). */
-    identity?: string;
-    /** Configuration for external memory backends Piko may connect to. */
-    backends: {
-      /** Connection to a vector-memory store for semantic retrieval. */
-      vector_store?: {
-        /** Backend type. */
-        kind: "vector";
-        /** Backend endpoint / connection identifier. */
-        endpoint: string;
-        /** Collection / namespace within the backend. */
-        collection: string;
-        /** Embedding model name used by the backend. */
-        embedding_model?: string;
-        /** Credentials for the backend (secret provider ref). */
-        credential_ref?: string;
-      };
-      /** Connection to a code-knowledge system (e.g. GitNexus) for
-       *  symbol / dependency / call-chain queries. */
-      code_memory?: {
-        /** Backend type. */
-        kind: "code";
-        /** Repository path or identifier. */
-        repository: string;
-        /** Commit / branch to query. */
-        commit?: string;
-        /** Timeout for code-knowledge queries in ms. */
-        timeout_ms?: number;
-      };
-    };
-    /** Retrieval behavior when backends are configured. */
-    retrieval_policy?: {
-      /** Max memory entries injected into session context (default: 20). */
-      max_entries?: number;
-      /** Max bytes of memory context injected per task (default: 51200). */
-      max_bytes?: number;
-    };
+  /** Optional STD templates referenced by this task.  When present, Piko
+   *  must produce output conforming to these templates.  Template IDs
+   *  reference STD's template catalog; Piko itself does not define
+   *  templates — it only renders them. */
+  std_templates?: {
+    /** STD template ID for the output document (e.g. "tests.unit-test-scheme"). */
+    scheme?: string;
+    /** STD template ID for case-level detail (e.g. "tests.unit-case"). */
+    case?: string;
   };
 };
 
@@ -208,6 +164,36 @@ export type RuntimeConfig = {
   queue: { capacity: number };
   retention: { minimum_query_days: number };
   observability: { log_level: string; metrics_enabled: boolean };
+  /** Optional role identity and memory integration configuration.
+   *  When present, this Piko instance acts as a specific role
+   *  (e.g. "test_engineer") with an identity (e.g. "alice:test_engineer")
+   *  and connects to configured external memory backends. */
+  identity?: {
+    /** Role the Piko instance plays (architect, software_engineer, test_engineer, etc.). */
+    role: string;
+    /** Human-readable identity of this Piko instance (e.g. "alice:test_engineer"). */
+    name: string;
+    /** Workspace-relative directory where this role's persistent memories are stored. */
+    memory_root?: string;
+    /** Configuration for external memory backends. */
+    memory_backends?: {
+      /** Connection to a vector-memory store for semantic retrieval. */
+      vector?: {
+        kind: "vector";
+        endpoint: string;
+        collection: string;
+        embedding_model?: string;
+        credential_ref?: string;
+      };
+      /** Connection to a code-knowledge system (e.g. GitNexus). */
+      code?: {
+        kind: "code";
+        repository: string;
+        commit?: string;
+        timeout_ms?: number;
+      };
+    };
+  };
 };
 
 export class PikoError extends Error {
