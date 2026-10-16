@@ -33,6 +33,16 @@ export function discussionMessage(turn:DiscussionTurn,timestamp=Date.now()):Agen
 export function initialPrompt(task:TaskRequest,turn?:DiscussionTurn,timestamp=Date.now()):AgentMessage|AgentMessage[]{const instruction:AgentMessage={role:"user",content:[{type:"text",text:task.instruction}],timestamp};return turn?[instruction,discussionMessage(turn,timestamp)]:instruction}
 export function normalizeRawUsage(value:unknown){const raw=value as any,input=raw?.input_tokens_details,output=raw?.output_tokens_details;return {input:typeof raw?.input_tokens==="number"?raw.input_tokens:undefined,output:typeof raw?.output_tokens==="number"?raw.output_tokens:undefined,totalTokens:typeof raw?.total_tokens==="number"?raw.total_tokens:undefined,cacheRead:typeof input?.cached_tokens==="number"?input.cached_tokens:undefined,cacheWrite:typeof input?.cache_write_tokens==="number"?input.cache_write_tokens:undefined,reasoning:typeof output?.reasoning_tokens==="number"?output.reasoning_tokens:undefined}}
 
+/** Build the full system prompt for a task with memory context injected.
+ *  When `task.memory` is configured, the `memoryContext` fragment is
+ *  appended; otherwise the base prompt is used as-is. */
+export function buildSystemPrompt(task:TaskRequest,now=Date.now()):string{
+  const base="You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.";
+  const role=task.primary_role?`\n\nYou are acting as the **${task.primary_role}**.\nYour identity: ${task.memory?.identity ?? "(no identity configured)"}.\nYour persistent memory directory: ${task.memory?.memory_root ?? "(not configured)"}.\nYou may connect to configured external memory backends during execution to read and write structured memories.`:'';
+  const entries=task.context_entries&&task.context_entries.length>0?`\n\n=== Injected Memory Entries ===\n${task.context_entries.map(e=>`[${e.memory_scope}/${e.role_scope}] ${e.lesson}${e.applicable?`\n  Applicable: ${e.applicable}`:''}${e.evidence?`\n  Evidence: ${e.evidence}`:''}`).join('\n')}`:'';
+  return `${base}${role}${entries}\n`;
+}
+
 const finalText=async(lane:AgentLane)=>{
   const entries=await lane.findEntries({type:"message",order:"newestFirst"},BACKGROUND_CONTEXT);
   for(const entry of entries){
@@ -64,8 +74,9 @@ export class PiRuntime {
     const available:any={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
+    const systemPrompt=buildSystemPrompt(task);
     let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
-    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt:"You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.",onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);
+    const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt,onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);
     const lane=await created.harness.lane("main",BACKGROUND_CONTEXT);
     created.harness.hooks.on("before_request",event=>{
       const step=event.stepId;active={op:event.runId,step,attempt:event.attempt};
