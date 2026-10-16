@@ -17,6 +17,14 @@ export type TaskRequest = {
   input_refs?: InputRef[];
   artifact_target?: ArtifactTarget;
   discussion?: { room_id: string; trigger_event_id: string };
+  primary_role?: string;
+  context_entries?: {
+    memory_scope: "project_memory" | "role_project_memory" | "generalized_role_memory";
+    role_scope: string;
+    lesson: string;
+    evidence?: string;
+    applicable?: string;
+  }[];
 };
 
 export type InputStaging = {

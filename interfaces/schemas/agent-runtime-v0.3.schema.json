@@ -13,6 +13,17 @@
 
     "Permissions": {"type":"object","additionalProperties":false,"required":["read_paths","write_paths","tool_profile_ref"],"properties":{"read_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},"write_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"}},"tool_profile_ref":{"$ref":"#/$defs/OpaqueRef"}}},
     "DiscussionContext": {"type":"object","additionalProperties":false,"required":["room_id","trigger_event_id"],"properties":{"room_id":{"type":"string","minLength":3,"maxLength":255,"pattern":"^![A-Za-z0-9._~-]+(?::[A-Za-z0-9.-]+)?$","description":"Matrix room id. Synapse >=1.116 stores room ids without the server-name suffix, so both the bare and the fully-qualified form are accepted."},"trigger_event_id":{"type":"string","minLength":2,"maxLength":255,"pattern":"^\\$.+$"}}},
+    "MemoryContextEntry": {
+      "type":"object","additionalProperties":false,
+      "required":["role_scope","memory_scope","lesson"],
+      "properties":{
+        "role_scope":{"type":"string","minLength":1,"maxLength":128,"description":"角色范围（如 software_engineer, test_engineer, architect）"},
+        "memory_scope":{"type":"string","enum":["project_memory","role_project_memory","generalized_role_memory"],"description":"记忆层级"},
+        "lesson":{"type":"string","minLength":1,"maxLength":65536,"description":"经验/约束/反模式的提炼内容"},
+        "evidence":{"type":"string","minLength":0,"maxLength":65536,"description":"支持该经验的证据引用"},
+        "applicable":{"type":"string","minLength":0,"maxLength":65536,"description":"适用条件/场景描述"}
+      }
+    },
 
     "InputRef": {
       "type":"object","additionalProperties":false,"required":["source"],
@@ -50,7 +61,9 @@
         "output_paths":{"type":"array","maxItems":256,"uniqueItems":true,"items":{"$ref":"#/$defs/RelativePath"},"description":"产出的相对路径（相对 workspace 根）。投递映射：<artifact_target.target>/<该路径>，保留相对目录结构，不重命名。"},
         "input_refs":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/InputRef"},"description":"执行前由 Piko 主动拉取的输入；文件内容不经 HTTP。"},
         "artifact_target":{"$ref":"#/$defs/ArtifactTarget","description":"产出投递目标；缺省则产出留在 Piko 本地 staging（须 Slinky 可访问）。"},
-        "discussion":{"$ref":"#/$defs/DiscussionContext"}
+        "discussion":{"$ref":"#/$defs/DiscussionContext"},
+        "primary_role":{"type":"string","minLength":1,"maxLength":128,"description":"执行角色（如 software_engineer, test_engineer, architect）；由 Slinky 指定。"},
+        "context_entries":{"type":"array","maxItems":50,"items":{"$ref":"#/$defs/MemoryContextEntry"},"description":"Slinky 检索后注入的角色/记忆上下文条目；由 Slinky 提供，Piko 原样传给 Pi。"}
       }
     },
 
