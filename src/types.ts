@@ -25,6 +25,52 @@ export type TaskRequest = {
     evidence?: string;
     applicable?: string;
   }[];
+  /** Optional memory integration configuration for this task.
+   *  When present, Piko connects to the configured external memory system(s)
+   *  during execution to read and write structured memories (facts, lessons,
+   *  code relationships, trust signals).  When omitted, this task is a
+   *  plain instruction — no memory persistence or retrieval. */
+  memory?: {
+    /** Workspace-relative directory where this role's persistent memories are stored. */
+    memory_root: string;
+    /** Role's name/identity within the project (e.g. "alice:test_engineer"). */
+    identity?: string;
+    /** Configuration for external memory backends Piko may connect to. */
+    backends: {
+      /** Connection to a vector-memory store for semantic retrieval. */
+      vector_store?: {
+        /** Backend type. */
+        kind: "vector";
+        /** Backend endpoint / connection identifier. */
+        endpoint: string;
+        /** Collection / namespace within the backend. */
+        collection: string;
+        /** Embedding model name used by the backend. */
+        embedding_model?: string;
+        /** Credentials for the backend (secret provider ref). */
+        credential_ref?: string;
+      };
+      /** Connection to a code-knowledge system (e.g. GitNexus) for
+       *  symbol / dependency / call-chain queries. */
+      code_memory?: {
+        /** Backend type. */
+        kind: "code";
+        /** Repository path or identifier. */
+        repository: string;
+        /** Commit / branch to query. */
+        commit?: string;
+        /** Timeout for code-knowledge queries in ms. */
+        timeout_ms?: number;
+      };
+    };
+    /** Retrieval behavior when backends are configured. */
+    retrieval_policy?: {
+      /** Max memory entries injected into session context (default: 20). */
+      max_entries?: number;
+      /** Max bytes of memory context injected per task (default: 51200). */
+      max_bytes?: number;
+    };
+  };
 };
 
 export type InputStaging = {

@@ -24,6 +24,35 @@
         "applicable":{"type":"string","minLength":0,"maxLength":65536,"description":"适用条件/场景描述"}
       }
     },
+    "MemoryBackend": {
+      "type":"object","additionalProperties":false,
+      "required":["kind"],
+      "properties":{
+        "kind":{"type":"string","enum":["vector","code"],"description":"后端类型：vector=向量语义检索, code=代码知识图谱(GitNexus等)"},
+        "collection":{"type":"string","minLength":1,"maxLength":128,"description":"向量库的集合/命名空间名；code 类型使用 repository 字段"},
+        "endpoint":{"type":"string","minLength":1,"maxLength":4096,"description":"后端地址（vector 为 HTTP 端点, code 为仓库标识）"},
+        "repository":{"type":"string","minLength":1,"maxLength":4096,"description":"代码知识库目标仓库（code 类型必填）"},
+        "commit":{"type":"string","minLength":1,"maxLength":128,"description":"代码知识库查询的 commit 或分支"},
+        "embedding_model":{"type":"string","minLength":0,"maxLength":128,"description":"向量检索使用的 embedding 模型"},
+        "timeout_ms":{"type":"integer","minimum":100,"maximum":30000,"description":"代码知识库查询超时(ms)；vector 类型不使用此字段"},
+        "credential_ref":{"$ref":"#/$defs/OpaqueRef","description":"后端凭据引用（Secret provider）；不进载荷/日志"}
+      }
+    },
+    "MemoryConfig": {
+      "type":"object","additionalProperties":false,
+      "properties":{
+        "memory_root":{"$ref":"#/$defs/RelativePath","description":"此角色持久记忆的 workspace 相对目录（Piko 维护的记忆存储根）"},
+        "identity":{"type":"string","minLength":0,"maxLength":128,"description":"角色的名称/身份（如 'alice:test_engineer'）"},
+        "backends":{"type":"object","additionalProperties":false,"properties":{
+          "vector":{"$ref":"#/$defs/MemoryBackend"},
+          "code":{"$ref":"#/$defs/MemoryBackend"}
+        }},
+        "retrieval_policy":{"type":"object","additionalProperties":false,"properties":{
+          "max_entries":{"type":"integer","minimum":1,"maximum":200,"description":"注入 session 的最大记忆条目数"},
+          "max_bytes":{"type":"integer","minimum":1024,"maximum":524288,"description":"注入 session 的记忆上下文最大字节数"}
+        }}
+      }
+    },
 
     "InputRef": {
       "type":"object","additionalProperties":false,"required":["source"],
@@ -63,7 +92,8 @@
         "artifact_target":{"$ref":"#/$defs/ArtifactTarget","description":"产出投递目标；缺省则产出留在 Piko 本地 staging（须 Slinky 可访问）。"},
         "discussion":{"$ref":"#/$defs/DiscussionContext"},
         "primary_role":{"type":"string","minLength":1,"maxLength":128,"description":"执行角色（如 software_engineer, test_engineer, architect）；由 Slinky 指定。"},
-        "context_entries":{"type":"array","maxItems":50,"items":{"$ref":"#/$defs/MemoryContextEntry"},"description":"Slinky 检索后注入的角色/记忆上下文条目；由 Slinky 提供，Piko 原样传给 Pi。"}
+        "context_entries":{"type":"array","maxItems":50,"items":{"$ref":"#/$defs/MemoryContextEntry"},"description":"Slinky 检索后注入的角色/记忆上下文条目；由 Slinky 提供，Piko 原样传给 Pi。"},
+        "memory":{"$ref":"#/$defs/MemoryConfig","description":"可选的记忆集成配置。当存在时，Piko 在执行期间连接配置的后端（向量库、代码知识图谱等）进行结构化记忆读写。"}
       }
     },
 
