@@ -167,31 +167,23 @@ export type RuntimeConfig = {
   /** Optional role identity and memory integration configuration.
    *  When present, this Piko instance acts as a specific role
    *  (e.g. "test_engineer") with an identity (e.g. "alice:test_engineer")
-   *  and connects to configured external memory backends. */
+   *  and connects to configured memory/skill backends during execution. */
   identity?: {
     /** Role the Piko instance plays (architect, software_engineer, test_engineer, etc.). */
     role: string;
     /** Human-readable identity of this Piko instance (e.g. "alice:test_engineer"). */
     name: string;
-    /** Workspace-relative directory where this role's persistent memories are stored. */
-    memory_root?: string;
-    /** Configuration for external memory backends. */
-    memory_backends?: {
-      /** Connection to a vector-memory store for semantic retrieval. */
-      vector?: {
-        kind: "vector";
-        endpoint: string;
-        collection: string;
-        embedding_model?: string;
-        credential_ref?: string;
-      };
-      /** Connection to a code-knowledge system (e.g. GitNexus). */
-      code?: {
-        kind: "code";
-        repository: string;
-        commit?: string;
-        timeout_ms?: number;
-      };
+    /** Workspace-relative directory where skill and memory documents are stored. */
+    memory_root: string;
+    /** Optional GraphRAG endpoint for multi-hop reasoning (docs → knowledge graph). */
+    graphrag?: {
+      endpoint: string;
+      collection: string;
+    };
+    /** Optional GitNexus endpoint for real-time code relationship queries. */
+    gitnexus?: {
+      repository: string;
+      commit?: string;
     };
   };
 };
