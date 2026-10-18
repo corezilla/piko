@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": "../../..",
+    "paths": {
+      "typebox": ["upstream/pi/node_modules/typebox/build/index.d.mts"],
+      "@earendil-works/chord": ["upstream/pi/packages/chord/src/index.ts"],
+      "@earendil-works/chord/context": ["upstream/pi/packages/chord/src/context/index.ts"],
+      "@earendil-works/chord/*": ["upstream/pi/packages/chord/src/*"],
+      "@earendil-works/pi-telemetry": ["upstream/pi/packages/telemetry/src/index.ts"],
+      "@earendil-works/pi-telemetry/*": ["upstream/pi/packages/telemetry/src/*"],
+      "@earendil-works/pi-ai": ["upstream/pi/packages/ai/src/index.ts"],
+      "@earendil-works/pi-ai/*": ["upstream/pi/packages/ai/src/*.ts", "upstream/pi/packages/ai/src/providers/*.ts"]
+    }
+  },
+  "include": ["./*.ts"]
+}
