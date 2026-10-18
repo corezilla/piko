@@ -70,8 +70,8 @@ test("runtime.example.json: all required top-level fields present", () => {
 // ============================================================
 
 test("schema: validates runtime.example.json with Ajv", async () => {
-  const Ajv = (await import("/sessions/amazing-stoic-goldberg/mnt/piko/node_modules/ajv/dist/2020.js")).default;
-  const addFormats = (await import("/sessions/amazing-stoic-goldberg/mnt/piko/node_modules/ajv-formats/dist/index.js")).default;
+  const Ajv = (await import("ajv/dist/2020.js")).default;
+  const addFormats = (await import("ajv-formats/dist/index.js")).default;
 
   // Strip JSON comments from schema
   let schemaText = readFileSync("interfaces/schemas/piko-runtime-config-v0.3.schema.json", "utf8");
@@ -95,7 +95,7 @@ test("schema: validates runtime.example.json with Ajv", async () => {
 // ============================================================
 
 test("schema: validates minimal sample with identity block", async () => {
-  const Ajv = (await import("/sessions/amazing-stoic-goldberg/mnt/piko/node_modules/ajv/dist/2020.js")).default;
+  const Ajv = (await import("ajv/dist/2020.js")).default;
 
   let schemaText = readFileSync("interfaces/schemas/piko-runtime-config-v0.3.schema.json", "utf8");
   schemaText = schemaText.replace(/^\s*"[/][/].*$/gm, "");
@@ -138,7 +138,7 @@ test("schema: validates minimal sample with identity block", async () => {
 // ============================================================
 
 test("schema: rejects identity with uppercase role (pattern mismatch)", async () => {
-  const Ajv = (await import("/sessions/amazing-stoic-goldberg/mnt/piko/node_modules/ajv/dist/2020.js")).default;
+  const Ajv = (await import("ajv/dist/2020.js")).default;
 
   let schemaText = readFileSync("interfaces/schemas/piko-runtime-config-v0.3.schema.json", "utf8");
   schemaText = schemaText.replace(/^\s*"[/][/].*$/gm, "");
