@@ -79,6 +79,32 @@ Real env: regenerate with new-design --template contracts.specification (or inte
             "description": "Template for Mem0 user_id. V0.1 only supports ${role} and ${project_name}."
           }
         }
+      },
+      "doc_search": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "api_key_secret_ref", "base_url"],
+        "description": "V0.1 optional. Project-wide document corpus search via GraphRAG-style backend. Sibling to `memory` (different scope: per-role short lessons vs project-wide docs). Either can be configured independently.",
+        "properties": {
+          "provider": {
+            "const": "graphrag",
+            "description": "V0.1: hard-code 'graphrag'. Future versions may support other doc-search backends."
+          },
+          "api_key_secret_ref": {
+            "$ref": "#/$defs/secretRef",
+            "description": "Secret ref for GraphRAG backend API key. Use env:XXX or file:XXX. Resolved at startup via config.resolveSecret."
+          },
+          "base_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Base URL of the GraphRAG-style backend. REQUIRED — no Cloud default in V0.1; operators must deploy an HTTP service matching the contract documented in docs/20_system_design/mechanisms/piko-doc-search.md §5.3."
+          },
+          "default_scope": {
+            "type": "string",
+            "default": "all",
+            "description": "Default scope for graphrag_search when the agent omits one. Backend-defined ('piko-design-docs' / 'std-templates' / 'all')."
+          }
+        }
       }
     }
   }
@@ -106,10 +132,10 @@ Real env: regenerate with new-design --template contracts.specification (or inte
      "transfer"
 -  ]
 +  ],
-+  "//": "identity is optional (only needed for V0.1 skill-tools)"
++  "//": "identity is optional (only needed for V0.1 skill-tools and/or doc-search)"
 ```
 
-`identity` 不加进 `required`（向后兼容，未配 skill-tools 的实例不强制要 identity）。
+`identity` 不加进 `required`（向后兼容，未配 skill-tools / doc-search 的实例不强制要 identity）。
 
 **`properties` 顶层**：加 `identity` 字段（见 §3.1）。
 
@@ -130,6 +156,21 @@ export type MemoryConfig = {
 };
 ```
 
+### 4.1a `DocSearchConfig`
+
+```typescript
+export type DocSearchConfig = {
+  /** V0.1: hard-code "graphrag" */
+  provider: "graphrag";
+  /** Secret ref: env:XXX or file:XXX; resolved via config.resolveSecret */
+  api_key_secret_ref: string;
+  /** Base URL of the GraphRAG backend. REQUIRED — no Cloud default in V0.1. */
+  base_url: string;
+  /** Default scope when agent omits one; defaults to "all" on the wire. */
+  default_scope?: string;
+};
+```
+
 ### 4.2 `RuntimeConfig.identity`
 
 ```typescript
@@ -138,12 +179,16 @@ identity?: {
   role: string;
   /** Human-readable identity */
   name: string;
-  /** V0.1: external memory backend config */
+  /** V0.1: per-role skill experience backend (Mem0). */
   memory: MemoryConfig;
+  /** V0.1 optional: project-wide doc corpus search backend (GraphRAG-style). */
+  doc_search?: DocSearchConfig;
 };
 ```
 
-**删除**：原 `memory_root`、`graphrag`、`gitnexus` 字段。
+**删除**：原 `memory_root` 字段（仍是 breaking change，与旧 V0.3 不兼容）。
+
+**注意**：原 `graphrag` 字段（pre-V0.1）**已删除**——V0.1 把 GraphRAG 加回但**以新字段** `identity.doc_search: DocSearchConfig` 形式，与 `memory` 并列；不复用旧的 `identity.graphrag` 字段名（避免与命名混淆）。
 
 ## 5. 向后兼容
 
@@ -204,6 +249,9 @@ Piko bootstrap 加载 config 时应该：
 | Schema 改错启动失败 | Ajv 测试覆盖；CI 集成 |
 | `api_key_secret_ref` 拼错导致解析失败 | 启动 fail-fast（resolveSecret 抛错信息清晰）|
 | `user_id_template` 包含未支持变量 | V0.1 只解 `${role}` / `${project_name}`，其他原样输出（静默错）→ V1.x 加白名单校验 |
+| `identity.doc_search.base_url` 占位（运行时不在 operator 真 host） | schema 拒缺 base_url；操作员必须填真 host。V0.1 配错会进 `before_tool` hook 被 network_hosts 拦下 |
+| `identity.doc_search` 配置但无 `GRAPHRAG_API_KEY` env / file | `exec-process.ts` resolveSecret 抛错；启动 fail-fast（与 Mem0 同语义）|
+| Tool profile `network_hosts` 占位 `graphrag.example.com` 未替换 | 操作员必须替换为 operator 实际 host；`config/tool-profiles.json` 注释明示 |
 
 ---
 

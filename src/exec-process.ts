@@ -25,6 +25,12 @@ export async function runExecutionProcess(configPath: string, root: string) {
     mem0ApiKey = await resolveSecret(config.identity.memory.api_key_secret_ref);
   }
 
+  // V0.1: resolve GraphRAG api key at startup (sibling to mem0, same secret pattern)
+  let graphragApiKey: string | undefined;
+  if (config.identity?.doc_search) {
+    graphragApiKey = await resolveSecret(config.identity.doc_search.api_key_secret_ref);
+  }
+
   let matrixToken: string | undefined;
   if (config.matrix.enabled) {
     if (config.matrix.direct_access_token) {
@@ -41,7 +47,7 @@ export async function runExecutionProcess(configPath: string, root: string) {
       if (cmd.kind === "shutdown") void shutdown();
     },
   );
-  const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey);
+  const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey, graphragApiKey);
   const transfer = new Transfer(config);
   const worker = new RunWorker(config, store, pi, matrix, transfer, channel);
   worker.start();

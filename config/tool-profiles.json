@@ -45,6 +45,13 @@
           "permissions": {
             "network_hosts": ["api.mem0.ai"]
           }
+        },
+        "graphrag_search": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["graphrag.example.com"]
+          }
         }
       }
     },
@@ -100,6 +107,13 @@
           "replay": "never",
           "permissions": {
             "network_hosts": ["api.mem0.ai"]
+          }
+        },
+        "graphrag_search": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["graphrag.example.com"]
           }
         }
       }

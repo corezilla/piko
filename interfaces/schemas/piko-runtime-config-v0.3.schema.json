@@ -405,6 +405,32 @@
               "description": "Template for Mem0 user_id. V0.1 only supports ${role} and ${project_name}."
             }
           }
+        },
+        "doc_search": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "api_key_secret_ref", "base_url"],
+          "description": "V0.1 optional. Project-wide document corpus search via GraphRAG-style backend. Sibling to `memory` (different scope: per-role short lessons vs project-wide docs).",
+          "properties": {
+            "provider": {
+              "const": "graphrag",
+              "description": "V0.1: hard-code 'graphrag'. Future versions may support other doc-search backends."
+            },
+            "api_key_secret_ref": {
+              "$ref": "#/$defs/secretRef",
+              "description": "Secret ref for the GraphRAG backend API key. Use env:XXX or file:XXX. Resolved at startup via config.resolveSecret."
+            },
+            "base_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Base URL of the GraphRAG-style backend (e.g. 'https://graphrag.internal:8000' or your self-hosted host). REQUIRED — no Cloud default in V0.1; operators must deploy/run an HTTP service matching the contract documented in docs/20_system_design/mechanisms/piko-doc-search.md."
+            },
+            "default_scope": {
+              "type": "string",
+              "default": "all",
+              "description": "Default scope for graphrag_search when the agent does not pass one. Backend-defined ('piko-design-docs' / 'std-templates' / 'all')."
+            }
+          }
         }
       }
     }

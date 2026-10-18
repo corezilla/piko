@@ -29,6 +29,8 @@ export function validateToolRegistry(tools: ToolRegistry) {
     "read", "write", "edit", "bash",
     // V0.1: skill experience tools (mem0 backend)
     "mem0_lookup", "mem0_record",
+    // V0.1: doc-search tool (graphrag backend)
+    "graphrag_search",
   ]);
   for (const c of Object.values(tools.recovery_contracts)) {
     if (!supported.has(c.implementation_ref)) throw new Error(`unregistered recovery implementation: ${c.implementation_ref}`);

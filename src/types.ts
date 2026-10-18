@@ -173,8 +173,12 @@ export type RuntimeConfig = {
     role: string;
     /** Human-readable identity of this Piko instance (e.g. "alice:test_engineer"). */
     name: string;
-    /** V0.1: external memory backend (Mem0). Replaces old memory_root/graphrag/gitnexus. */
+    /** Per-role skill experience backend (Mem0 in V0.1). */
     memory: MemoryConfig;
+    /** V0.1: project-wide document corpus search backend (GraphRAG-style).
+     *  Sibling to `memory`: scopes are different (per-role short lessons vs
+     *  project-wide design/STD corpus). Either can be configured independently. */
+    doc_search?: DocSearchConfig;
   };
 };
 
@@ -193,6 +197,30 @@ export interface MemoryConfig {
   base_url?: string;
   /** User ID template. V0.1 reserved for future use; default "${role}:${project}". */
   user_id_template?: string;
+}
+
+/**
+ * V0.1: project-wide document corpus search backend configuration.
+ *
+ * Sibling to MemoryConfig — see RuntimeConfigIdentity.doc_search.
+ *
+ * Differs from MemoryConfig in three ways:
+ *   1. No Cloud default for `base_url` (no off-the-shelf GraphRAG Cloud vendor).
+ *   2. Scope is project-wide (not per-role); no `user_id_template`.
+ *   3. Indexing is an offline operator action; only search is exposed at runtime.
+ *
+ * `api_key_secret_ref` is resolved at startup via config.resolveSecret.
+ */
+export interface DocSearchConfig {
+  /** V0.1: hard-code "graphrag". */
+  provider: "graphrag";
+  /** Secret ref: env:XXX or file:XXX; resolved via config.resolveSecret at startup. */
+  api_key_secret_ref: string;
+  /** Base URL of the GraphRAG-style backend. REQUIRED — no Cloud default in V0.1. */
+  base_url: string;
+  /** Default scope the agent's graphrag_search tool resolves to when omitting `scope`.
+   *  Defaults to "all" on the wire when omitted. */
+  default_scope?: string;
 }
 
 export class PikoError extends Error {

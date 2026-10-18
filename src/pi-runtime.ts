@@ -8,9 +8,11 @@ import { createModels, createProvider } from "../upstream/pi/packages/ai/src/mod
 import { openAIResponsesApi } from "../upstream/pi/packages/ai/src/api/openai-responses.lazy.ts";
 import { envApiKeyAuth } from "../upstream/pi/packages/ai/src/auth/helpers.ts";
 import type { Model } from "../upstream/pi/packages/ai/src/types.ts";
-import type { AgentResult, MemoryConfig, RuntimeConfig, TaskRequest } from "./types.js";
+import type { AgentResult, DocSearchConfig, MemoryConfig, RuntimeConfig, TaskRequest } from "./types.js";
 import { Mem0Adapter } from "./mem0-client.js";
+import { GraphRAGAdapter } from "./graphrag-client.js";
 import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "./skill-tools.js";
+import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-tools.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
@@ -41,7 +43,7 @@ export function normalizeRawUsage(value:unknown){const raw=value as any,input=ra
  *  appends what the task itself declares (std_templates). */
 export function buildSystemPrompt(
   task:TaskRequest,
-  identity?:{role:string;name:string;memory?:MemoryConfig},
+  identity?:{role:string;name:string;memory?:MemoryConfig;doc_search?:DocSearchConfig},
 ):string{
   const base="You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.\n";
   if (!identity) return base;
@@ -63,6 +65,18 @@ export function buildSystemPrompt(
     );
   }
 
+  if (identity.doc_search) {
+    parts.push(
+      `\nYou have access to a document search tool (project-wide corpus):\n` +
+      `  - graphrag_search(query, scope?, max_results?): search the project's ` +
+      `design docs / STD corpus for relevant content\n` +
+      `Use graphrag_search when you need to recall what the project's specs say ` +
+      `before making changes, when verifying a design choice against the existing ` +
+      `docs, or when asked about a topic that may be documented. Indexing is ` +
+      `operator-managed; you can only search what is already indexed.`,
+    );
+  }
+
   return base + parts.join("") + "\n";
 }
 
@@ -79,7 +93,8 @@ const finalText=async(lane:AgentLane)=>{
 export class PiRuntime {
   private readonly repo:JsonlSessionRepo;
   private readonly mem0Adapter:Mem0Adapter|undefined;
-  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string,mem0ApiKey?:string){
+  private readonly graphragAdapter:GraphRAGAdapter|undefined;
+  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string,mem0ApiKey?:string,graphragApiKey?:string){
     process.env.PIKO_LLM_API_KEY=apiKey;
 
     // V0.1: 启动时一次性构造 Mem0Adapter（对齐 LLM/Matrix token resolve 模式）
@@ -91,6 +106,16 @@ export class PiRuntime {
       throw new Error("mem0ApiKey required when identity.memory configured");
     } else {
       this.mem0Adapter = undefined;
+    }
+
+    // V0.1: 同模式构造 GraphRAGAdapter（项目级文档语料，与 memory 并列）
+    if (config.identity?.doc_search && graphragApiKey) {
+      this.graphragAdapter = new GraphRAGAdapter(config.identity.doc_search.base_url, graphragApiKey);
+    } else if (config.identity?.doc_search && !graphragApiKey) {
+      // 配了 doc_search 但缺 key → fail-fast
+      throw new Error("graphragApiKey required when identity.doc_search configured");
+    } else {
+      this.graphragAdapter = undefined;
     }
 
     const root=Object.values(config.workspace.roots)[0]??process.cwd();
@@ -121,15 +146,31 @@ export class PiRuntime {
       };
     }
 
+    // V0.1: per-task docSearchDeps（GraphRAGAdapter 已在构造时缓存；与 skillDeps 并列）
+    let docSearchDeps:DocSearchToolDeps|undefined;
+    if (this.config.identity?.doc_search && this.graphragAdapter) {
+      docSearchDeps = {
+        graphrag: this.graphragAdapter,
+        context: {
+          role: this.config.identity.role,
+          projectName: task.workspace_ref,
+          taskId: task.task_id,
+        },
+      };
+    }
+
     const available:Record<string,any>={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
     if (skillDeps) {
       available.mem0_lookup = createMem0LookupTool(skillDeps);
       available.mem0_record = createMem0RecordTool(skillDeps);
     }
+    if (docSearchDeps) {
+      available.graphrag_search = createGraphragSearchTool(docSearchDeps);
+    }
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
     const identity=this.config.identity?{role:this.config.identity.role,name:this.config.identity.name,
-      memory:this.config.identity.memory}:undefined;
+      memory:this.config.identity.memory,doc_search:this.config.identity.doc_search}:undefined;
     const systemPrompt=buildSystemPrompt(task,identity);
     let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
     const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt,onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);

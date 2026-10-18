@@ -68,6 +68,11 @@
     "memory": {
       "provider": "mem0",
       "api_key_secret_ref": "env:MEM0_API_KEY"
+    },
+    "doc_search": {
+      "provider": "graphrag",
+      "api_key_secret_ref": "env:GRAPHRAG_API_KEY",
+      "base_url": "https://graphrag.example.com"
     }
   }
 }

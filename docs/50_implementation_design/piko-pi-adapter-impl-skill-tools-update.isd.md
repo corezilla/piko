@@ -402,6 +402,52 @@ identity?: {
 
 **Json schema 校验**：`Ajv` 跑 sample config（包含 identity + memory）应该 pass。
 
+### 4.a V0.1 补充：GraphRAG 集成
+
+V0.1 在 Skill Experience（Mem0）之外**并列**加了 Doc Search（GraphRAG-style），与本 ISD §2-§4 描述的 Mem0 改动并行。
+
+**新增 / 改动文件**：
+
+| 文件 | 改动 |
+|---|---|
+| `src/graphrag-client.ts`（新建） | `GraphRAGAdapter` 类（HTTP 客户端，仅 `search` 方法）。结构镜像 `Mem0Adapter`，但 `add` 不暴露（index 是离线运维）。详见 `piko-graphrag-impl.isd.md` |
+| `src/graphrag-tools.ts`（新建） | `createGraphragSearchTool` 工厂；`GraphragSearchSchema`；`validateDocSearchContext` 镜像 `validateContext` |
+| `src/graphrag-client.test.ts`（新建） | ~12 个 test |
+| `src/graphrag-tools.test.ts`（新建） | ~14 个 test |
+| `src/types.ts` | 加 `DocSearchConfig` interface（详见 §3.1a，本 ISD 未单列）；`identity.doc_search?` 字段 |
+| `src/pi-runtime.ts` | ① 构造函数加 `graphragApiKey?: string` 末尾参；② 同 Mem0 镜像构造 `GraphRAGAdapter`（fail-fast 同语义）；③ `available` map 在 `skillDeps` 之后追加 `graphrag_search`；④ `buildSystemPrompt` 新增 doc-search 段；⑤ identity 透传包含 `doc_search` |
+| `src/exec-process.ts` | resolve `graphragApiKey` at startup；传给 `PiRuntime` |
+| `src/config.ts` | `knownTools` Set 加 `"graphrag_search"` |
+| `interfaces/schemas/piko-runtime-config-v0.3.schema.json` | `identity` block 加 `doc_search` properties（`base_url` 必填，无 Cloud default） |
+| `config/tool-profiles.json` | 两个 profile 各加 `graphrag_search` 工具条目（占位 host `"graphrag.example.com"`，操作员必须改） |
+| `config/runtime.example.json` | `identity` 块加 `doc_search` 示例（占位 `base_url`，操作员必须改） |
+
+**V0.1 PiRuntime 配置了 memory + doc_search 后 `available` map 形态**：
+
+```typescript
+const available: Record<string, any> = {
+  read: createReadTool(),
+  write: createWriteTool(),
+  edit: createEditTool(),
+  bash: createBashTool(),   // 仅 workspace-exec profile，workspace-standard 不在这里加
+};
+if (skillDeps) {
+  available.mem0_lookup = createMem0LookupTool(skillDeps);
+  available.mem0_record = createMem0RecordTool(skillDeps);
+}
+if (docSearchDeps) {
+  available.graphrag_search = createGraphragSearchTool(docSearchDeps);
+}
+```
+
+**buildSystemPrompt** 现在的两段（按配置追加）：
+- `identity.memory` 配置时：现有"skill experience"段
+- `identity.doc_search` 配置时：**新** "document search" 段
+
+操作员可独立开关两者。V0.1 不互斥。
+
+**为什么不复用 `SkillToolDeps`**：见 `piko-doc-search.md` §11。简言之：sibling 模型独立调用链比类型判别 + 链式 if 干净。
+
 ## 5. 不动的部分
 
 - `available` map 不在 PiRuntime 构造时初始化（保持现在的 lazy 模式）
