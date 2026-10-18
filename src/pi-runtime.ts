@@ -13,6 +13,7 @@ import { Mem0Adapter } from "./mem0-client.js";
 import { GraphRAGAdapter } from "./graphrag-client.js";
 import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "./skill-tools.js";
 import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-tools.js";
+import { installNetworkPolicy, restoreNetworkPolicy } from "./tool-host-policy.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
@@ -120,6 +121,11 @@ export class PiRuntime {
 
     const root=Object.values(config.workspace.roots)[0]??process.cwd();
     this.repo=new JsonlSessionRepo({fileSystem:new DurableNodeExecutionEnv({cwd:root}),sessionsRoot:config.pi.session_root});
+
+    // V0.1.1 (H2 fix): install per-instance network host policy wrapper
+    // so `tool.profile.permissions.network_hosts` allowlist is enforced
+    // at fetch time. Idempotent; restored in `close()` below.
+    installNetworkPolicy();
   }
   private model(){
     const model:Model<"openai-responses">={id:this.config.agent.model,name:this.config.agent.model,api:"openai-responses",provider:"llmtier",baseUrl:this.config.llmtier.base_url,reasoning:true,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:262144,maxTokens:32768};
@@ -255,5 +261,11 @@ export class PiRuntime {
       }
     } finally {clearInterval(cancelTimer);await created.harness.close(BACKGROUND_CONTEXT)}
   }
-  async close(){await this.repo.close(BACKGROUND_CONTEXT);delete process.env.PIKO_LLM_API_KEY}
+  async close(){
+    await this.repo.close(BACKGROUND_CONTEXT);
+    delete process.env.PIKO_LLM_API_KEY;
+    // V0.1.1 (H2 fix): restore globalThis.fetch to the value prior to
+    // this PiRuntime's installation. Idempotent.
+    restoreNetworkPolicy();
+  }
 }

@@ -15,6 +15,7 @@ import {
 import { resolveToolPath } from "../upstream/pi/packages/agent/src/harness/tools/path-utils.ts";
 import type { ExecutionToolContext } from "../upstream/pi/packages/agent/src/harness/tools/tool-context.ts";
 import type { ToolPolicy, ToolRegistry } from "./config.js";
+import { enterNetworkScope, exitNetworkScope } from "./tool-host-policy.js";
 
 type RecoveryPlan = {
   version: 1;
@@ -91,10 +92,28 @@ export function applyToolRecoveryPolicy(
   policy:ToolPolicy,
   registry:ToolRegistry,
 ):AgentHarnessTool<ExecutionToolContext>{
-  if(policy.replay==="never")return {...base,replay:"never"};
-  if(policy.effect==="read_only")return {...base,replay:"safe"};
+  // Bracket the tool's execute() with module-scoped allowlist scopes so
+  // the globalThis.fetch wrapper (installed in PiRuntime) enforces the
+  // policy.permissions.network_hosts allowlist during the call.
+  //
+  // Empty allowlist = no scope entered (passthrough, no overhead).
+  const allowlist = policy.permissions?.network_hosts ?? [];
+  const withNetwork = <F extends (...args: any[]) => Promise<any>>(fn: F): F => {
+    if (allowlist.length === 0) return fn;
+    return (async (...args: Parameters<F>) => {
+      enterNetworkScope(allowlist);
+      try {
+        return await fn(...args);
+      } finally {
+        exitNetworkScope();
+      }
+    }) as F;
+  };
+
+  if(policy.replay==="never")return {...base,replay:"never",execute:withNetwork(base.execute)};
+  if(policy.effect==="read_only")return {...base,replay:"safe",execute:withNetwork(base.execute)};
   const contract=policy.recovery_contract_ref&&registry.recovery_contracts[policy.recovery_contract_ref];
   if(!contract||contract.implementation_ref!=="builtin:workspace-atomic-write")throw new Error(`Safe replay for ${base.name} has no executable recovery contract`);
   if(base.name!=="write"&&base.name!=="edit")throw new Error(`builtin:workspace-atomic-write does not support ${base.name}`);
-  return {...base,replay:"safe",execute:(id,params,update,context,invocation,runContext)=>executeRecoverable(base,id,params,update,context,invocation,runContext)};
+  return {...base,replay:"safe",execute:withNetwork((id,params,update,context,invocation,runContext)=>executeRecoverable(base,id,params,update,context,invocation,runContext))};
 }
