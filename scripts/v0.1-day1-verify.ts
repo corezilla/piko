@@ -1,5 +1,5 @@
 // scripts/v0.1-day1-verify.ts
-// 跑法：MEM0_API_KEY=xxx npx tsx scripts/v0.1-day1-verify.ts
+// 跑法：MEM0_API_KEY=xxx [MEM0_BASE_URL=https://your-host] npx tsx scripts/v0.1-day1-verify.ts
 //
 // Day-1 verification for V0.1 skill-memory integration with Mem0 Cloud.
 // 5 checks: per-role isolation, metadata preservation, filters field,
@@ -10,7 +10,7 @@
 import { Mem0Adapter } from "../src/mem0-client.js";
 
 const API_KEY = process.env.MEM0_API_KEY;
-const BASE = process.env.MEM0_BASE ?? "https://api.mem0.ai";
+const BASE = process.env.MEM0_BASE_URL ?? "https://api.mem0.ai";
 
 if (!API_KEY) {
   console.error("Set MEM0_API_KEY env var");
