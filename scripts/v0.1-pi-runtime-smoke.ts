@@ -113,3 +113,147 @@ test("buildSystemPrompt output contains expected sections for identity+memory", 
   assert.ok(prompt.includes("mem0_record"), "mem0_record mentioned");
   assert.ok(prompt.includes("role-scoped"), "role-scoped hint present");
 });
+
+// ============================================================
+// Network host policy end-to-end (V0.1.1 / H2 fix)
+//
+// Spins up an inline `node:http` server to act as a mock Mem0 /
+// GraphRAG backend, then verifies that the policyFetch wrapper
+// (installed by `installNetworkPolicy()`) actually blocks
+// fetches to disallowed hosts when invoked through the tool
+// factory + Mem0Adapter chain.
+// ============================================================
+
+import http from "node:http";
+import { Mem0Adapter } from "../src/mem0-client.js";
+import { createMem0LookupTool } from "../src/skill-tools.js";
+import {
+  installNetworkPolicy,
+  restoreNetworkPolicy,
+  enterNetworkScope,
+  exitNetworkScope,
+} from "../src/tool-host-policy.js";
+
+interface MockServer {
+  url: string;
+  host: string;
+  port: number;
+  close: () => void;
+  hits: { count: number; lastUrl: string | null };
+}
+
+function startMockMem0(): Promise<MockServer> {
+  return new Promise((resolve) => {
+    const hits = { count: 0, lastUrl: null as string | null };
+    const server = http.createServer((req, res) => {
+      hits.count += 1;
+      hits.lastUrl = req.url ?? null;
+      let body = "";
+      req.on("data", (c) => (body += c.toString()));
+      req.on("end", () => {
+        res.setHeader("Content-Type", "application/json");
+        res.writeHead(200);
+        if (req.url === "/v1/memories/search/") {
+          res.end(JSON.stringify({ results: [] }));
+        } else if (req.url === "/v1/memories/") {
+          res.end(JSON.stringify({ results: [{ id: "mem-test" }] }));
+        } else {
+          res.end("{}");
+        }
+      });
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      if (typeof addr !== "object" || addr === null) {
+        throw new Error("mock listen failed");
+      }
+      const port = addr.port;
+      resolve({
+        url: `http://127.0.0.1:${port}`,
+        host: "127.0.0.1",
+        port,
+        close: () => server.close(),
+        hits,
+      });
+    });
+  });
+}
+
+test("H2 wire: allowed host → tool returns search payload", async () => {
+  const mock = await startMockMem0();
+  installNetworkPolicy();
+  try {
+    const mem0 = new Mem0Adapter(mock.url, "fake");
+    const tool = createMem0LookupTool({
+      mem0,
+      context: { role: "tester", projectName: "piko" },
+    });
+    enterNetworkScope([mock.host]);
+    let result;
+    try {
+      result = await tool.execute("id", { query: "x" }, () => {}, {} as any, {} as any, {} as any);
+    } finally {
+      exitNetworkScope();
+    }
+    assert.equal(mock.hits.count, 1, "mock received exactly one request");
+    assert.equal(result.content.length, 1);
+    const text = (result.content[0] as { type: "text"; text: string }).text;
+    assert.ok(text.startsWith("["), `expected search JSON, got: ${text}`);
+  } finally {
+    restoreNetworkPolicy();
+    mock.close();
+  }
+});
+
+test("H2 wire: disallowed host → tool returns fallback content", async () => {
+  const mock = await startMockMem0();
+  installNetworkPolicy();
+  try {
+    const mem0 = new Mem0Adapter(mock.url, "fake");
+    const tool = createMem0LookupTool({
+      mem0,
+      context: { role: "tester", projectName: "piko" },
+    });
+    enterNetworkScope(["api.mem0.ai"]);  // allowlist does NOT include mock.host
+    let result;
+    try {
+      result = await tool.execute("id", { query: "x" }, () => {}, {} as any, {} as any, {} as any);
+    } finally {
+      exitNetworkScope();
+    }
+    assert.equal(mock.hits.count, 0, "mock never received a request (blocked at fetch)");
+    const text = (result.content[0] as { type: "text"; text: string }).text;
+    assert.equal(text, "memory unavailable: network");
+    const details = result.details as { error?: string; status?: number } | undefined;
+    assert.equal(details?.error, "network");
+    assert.equal(details?.status, 0);
+  } finally {
+    restoreNetworkPolicy();
+    mock.close();
+  }
+});
+
+test("H2 wire: empty allowlist → passthrough (no enforcement)", async () => {
+  const mock = await startMockMem0();
+  installNetworkPolicy();
+  try {
+    const mem0 = new Mem0Adapter(mock.url, "fake");
+    const tool = createMem0LookupTool({
+      mem0,
+      context: { role: "tester", projectName: "piko" },
+    });
+    enterNetworkScope([]);
+    let result;
+    try {
+      result = await tool.execute("id", { query: "x" }, () => {}, {} as any, {} as any, {} as any);
+    } finally {
+      exitNetworkScope();
+    }
+    assert.equal(mock.hits.count, 1, "mock received request (passthrough)");
+    const text = (result.content[0] as { type: "text"; text: string }).text;
+    assert.ok(text.startsWith("["), `expected search JSON, got: ${text}`);
+  } finally {
+    restoreNetworkPolicy();
+    mock.close();
+  }
+});
