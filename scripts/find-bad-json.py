@@ -4,7 +4,7 @@ import re
 import json
 from pathlib import Path
 
-base = Path("/sessions/amazing-stoic-goldberg/mnt/piko")
+base = Path("/Users/ben/work/piko") if Path("/Users/ben/work/piko").exists() else Path(__file__).resolve().parent.parent
 paths = [
     "docs/60_interfaces/contracts/piko-skill-tools-identity-contract-v0.1.md",
     "docs/40_module_design/piko-mem0-client-design.md",
