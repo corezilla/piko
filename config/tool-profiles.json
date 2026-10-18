@@ -31,6 +31,20 @@
           "permissions": {
             "write_paths": []
           }
+        },
+        "mem0_lookup": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["api.mem0.ai"]
+          }
+        },
+        "mem0_record": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["api.mem0.ai"]
+          }
         }
       }
     },
@@ -72,6 +86,20 @@
               "ls",
               "mkdir"
             ]
+          }
+        },
+        "mem0_lookup": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["api.mem0.ai"]
+          }
+        },
+        "mem0_record": {
+          "effect": "external",
+          "replay": "never",
+          "permissions": {
+            "network_hosts": ["api.mem0.ai"]
           }
         }
       }

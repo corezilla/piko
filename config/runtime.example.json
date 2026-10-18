@@ -61,5 +61,13 @@
       "max_attempts": 3,
       "base_delay_ms": 500
     }
+  },
+  "identity": {
+    "role": "developer",
+    "name": "alice:developer",
+    "memory": {
+      "provider": "mem0",
+      "api_key_secret_ref": "env:MEM0_API_KEY"
+    }
   }
 }

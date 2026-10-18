@@ -173,20 +173,27 @@ export type RuntimeConfig = {
     role: string;
     /** Human-readable identity of this Piko instance (e.g. "alice:test_engineer"). */
     name: string;
-    /** Workspace-relative directory where skill and memory documents are stored. */
-    memory_root: string;
-    /** Optional GraphRAG endpoint for multi-hop reasoning (docs → knowledge graph). */
-    graphrag?: {
-      endpoint: string;
-      collection: string;
-    };
-    /** Optional GitNexus endpoint for real-time code relationship queries. */
-    gitnexus?: {
-      repository: string;
-      commit?: string;
-    };
+    /** V0.1: external memory backend (Mem0). Replaces old memory_root/graphrag/gitnexus. */
+    memory: MemoryConfig;
   };
 };
+
+/**
+ * V0.1: external memory backend configuration.
+ *
+ * Currently hard-coded to Mem0 (other backends deferred to V1.x).
+ * `api_key_secret_ref` is resolved at startup via config.resolveSecret.
+ */
+export interface MemoryConfig {
+  /** V0.1: hard-code "mem0". */
+  provider: "mem0";
+  /** Secret ref: env:XXX or file:XXX; resolved via config.resolveSecret at startup. */
+  api_key_secret_ref: string;
+  /** Self-hosted base URL. Omit for Mem0 Cloud (default https://api.mem0.ai). */
+  base_url?: string;
+  /** User ID template. V0.1 reserved for future use; default "${role}:${project}". */
+  user_id_template?: string;
+}
 
 export class PikoError extends Error {
   constructor(

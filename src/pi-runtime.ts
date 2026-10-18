@@ -8,7 +8,9 @@ import { createModels, createProvider } from "../upstream/pi/packages/ai/src/mod
 import { openAIResponsesApi } from "../upstream/pi/packages/ai/src/api/openai-responses.lazy.ts";
 import { envApiKeyAuth } from "../upstream/pi/packages/ai/src/auth/helpers.ts";
 import type { Model } from "../upstream/pi/packages/ai/src/types.ts";
-import type { AgentResult, RuntimeConfig, TaskRequest } from "./types.js";
+import type { AgentResult, MemoryConfig, RuntimeConfig, TaskRequest } from "./types.js";
+import { Mem0Adapter } from "./mem0-client.js";
+import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "./skill-tools.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
@@ -33,18 +35,35 @@ export function discussionMessage(turn:DiscussionTurn,timestamp=Date.now()):Agen
 export function initialPrompt(task:TaskRequest,turn?:DiscussionTurn,timestamp=Date.now()):AgentMessage|AgentMessage[]{const instruction:AgentMessage={role:"user",content:[{type:"text",text:task.instruction}],timestamp};return turn?[instruction,discussionMessage(turn,timestamp)]:instruction}
 export function normalizeRawUsage(value:unknown){const raw=value as any,input=raw?.input_tokens_details,output=raw?.output_tokens_details;return {input:typeof raw?.input_tokens==="number"?raw.input_tokens:undefined,output:typeof raw?.output_tokens==="number"?raw.output_tokens:undefined,totalTokens:typeof raw?.total_tokens==="number"?raw.total_tokens:undefined,cacheRead:typeof input?.cached_tokens==="number"?input.cached_tokens:undefined,cacheWrite:typeof input?.cache_write_tokens==="number"?input.cache_write_tokens:undefined,reasoning:typeof output?.reasoning_tokens==="number"?output.reasoning_tokens:undefined}}
 
-/** Build the full system prompt for a task with memory context injected.
+/** Build the full system prompt for a task with role/identity/memory injection.
  *  Role/identity/memory configuration comes from RuntimeConfig
  *  (loaded at startup), not from the task.  This function only
  *  appends what the task itself declares (std_templates). */
-export function buildSystemPrompt(task:TaskRequest,identity?:{role:string;name:string;memory_root?:string}):string{
+export function buildSystemPrompt(
+  task:TaskRequest,
+  identity?:{role:string;name:string;memory?:MemoryConfig},
+):string{
   const base="You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.\n";
-  if (identity) {
-    const parts=[`\n\nYou are acting as **${identity.role}**.`,`\nYour identity: ${identity.name}.`];
-    if (identity.memory_root) parts.push(`\nYour memory directory: ${identity.memory_root}.`);
-    return base + parts.join("") + "\n";
+  if (!identity) return base;
+
+  const parts:string[]=[
+    `\n\nYou are acting as **${identity.role}**.`,
+    `\nYour identity: ${identity.name}.`,
+  ];
+
+  if (identity.memory) {
+    parts.push(
+      `\nYou have access to two skill-experience tools (role-scoped external memory):\n` +
+      `  - mem0_lookup(query): search past experience for this role in this project\n` +
+      `  - mem0_record(content, tags?): record a lesson when you encounter a pitfall, ` +
+      `surprising behavior, or repeated mistake\n` +
+      `Use mem0_lookup when starting work that might have known pitfalls. ` +
+      `Use mem0_record when you discover something worth remembering for next time. ` +
+      `Skip routine successes.`,
+    );
   }
-  return base;
+
+  return base + parts.join("") + "\n";
 }
 
 const finalText=async(lane:AgentLane)=>{
@@ -59,8 +78,21 @@ const finalText=async(lane:AgentLane)=>{
 
 export class PiRuntime {
   private readonly repo:JsonlSessionRepo;
-  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string){
+  private readonly mem0Adapter:Mem0Adapter|undefined;
+  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string,mem0ApiKey?:string){
     process.env.PIKO_LLM_API_KEY=apiKey;
+
+    // V0.1: 启动时一次性构造 Mem0Adapter（对齐 LLM/Matrix token resolve 模式）
+    if (config.identity?.memory && mem0ApiKey) {
+      const baseUrl = config.identity.memory.base_url ?? "https://api.mem0.ai";
+      this.mem0Adapter = new Mem0Adapter(baseUrl, mem0ApiKey);
+    } else if (config.identity?.memory && !mem0ApiKey) {
+      // 配了 memory 但缺 key → fail-fast（构造时即报错）
+      throw new Error("mem0ApiKey required when identity.memory configured");
+    } else {
+      this.mem0Adapter = undefined;
+    }
+
     const root=Object.values(config.workspace.roots)[0]??process.cwd();
     this.repo=new JsonlSessionRepo({fileSystem:new DurableNodeExecutionEnv({cwd:root}),sessionsRoot:config.pi.session_root});
   }
@@ -75,11 +107,29 @@ export class PiRuntime {
     const session=existing?await this.repo.open(existing,BACKGROUND_CONTEXT):await this.repo.create({cwd:workspace,id:runId},BACKGROUND_CONTEXT);
     const profile=this.registry.profiles[task.permissions.tool_profile_ref];
     if(!profile)throw new PikoError("UnknownToolProfile",422,`unknown tool profile ${task.permissions.tool_profile_ref}`);
-    const available:any={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
+
+    // V0.1: per-task skillDeps（Mem0Adapter 已在构造时缓存）
+    let skillDeps:SkillToolDeps|undefined;
+    if (this.config.identity?.memory && this.mem0Adapter) {
+      skillDeps = {
+        mem0: this.mem0Adapter,
+        context: {
+          role: this.config.identity.role,
+          projectName: task.workspace_ref,
+          taskId: task.task_id,
+        },
+      };
+    }
+
+    const available:Record<string,any>={read:createReadTool(),write:createWriteTool(),edit:createEditTool(),bash:createBashTool()};
+    if (skillDeps) {
+      available.mem0_lookup = createMem0LookupTool(skillDeps);
+      available.mem0_record = createMem0RecordTool(skillDeps);
+    }
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();
     const identity=this.config.identity?{role:this.config.identity.role,name:this.config.identity.name,
-      memory_root:this.config.identity.memory_root}:undefined;
+      memory:this.config.identity.memory}:undefined;
     const systemPrompt=buildSystemPrompt(task,identity);
     let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
     const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt,onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);

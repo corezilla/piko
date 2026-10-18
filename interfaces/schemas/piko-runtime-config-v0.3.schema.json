@@ -365,6 +365,48 @@
           }
         }
       }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "name", "memory"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,63}$",
+          "description": "Role of this Piko instance (e.g. 'tester', 'developer'). Used for skill experience per-role isolation."
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,128}$",
+          "description": "Human-readable identity (e.g. 'alice:tester')."
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "api_key_secret_ref"],
+          "properties": {
+            "provider": {
+              "const": "mem0",
+              "description": "V0.1: hard-code 'mem0'. Future versions may support other backends."
+            },
+            "api_key_secret_ref": {
+              "$ref": "#/$defs/secretRef",
+              "description": "Secret ref for Mem0 API key. Use env:XXX or file:XXX. Resolved at startup via config.resolveSecret."
+            },
+            "base_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Mem0 base URL. Omit for Cloud (default https://api.mem0.ai). Required for self-hosted."
+            },
+            "user_id_template": {
+              "type": "string",
+              "default": "${role}:${project_name}",
+              "description": "Template for Mem0 user_id. V0.1 only supports ${role} and ${project_name}."
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

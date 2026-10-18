@@ -18,6 +18,13 @@ export async function runExecutionProcess(configPath: string, root: string) {
   const { config, tools } = await loadConfig(configPath, root);
   const store = new TaskStore(config.task_store.sqlite_path, config.task_store.busy_timeout_ms);
   const llmKey = await resolveSecret(config.llmtier.api_key_secret_ref);
+
+  // V0.1: resolve Mem0 api key at startup (matches LLM/Matrix pattern)
+  let mem0ApiKey: string | undefined;
+  if (config.identity?.memory) {
+    mem0ApiKey = await resolveSecret(config.identity.memory.api_key_secret_ref);
+  }
+
   let matrixToken: string | undefined;
   if (config.matrix.enabled) {
     if (config.matrix.direct_access_token) {
@@ -34,7 +41,7 @@ export async function runExecutionProcess(configPath: string, root: string) {
       if (cmd.kind === "shutdown") void shutdown();
     },
   );
-  const pi = new PiRuntime(config, tools, store, channel, llmKey);
+  const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey);
   const transfer = new Transfer(config);
   const worker = new RunWorker(config, store, pi, matrix, transfer, channel);
   worker.start();
