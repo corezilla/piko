@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 980" font-family="system-ui, -apple-system, sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="p0bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/><stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+    <linearGradient id="p1bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e3f2fd"/><stop offset="100%" stop-color="#bbdefb"/>
+    </linearGradient>
+    <linearGradient id="storagebg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/><stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="reviewbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e1f5fe"/><stop offset="100%" stop-color="#b3e5fc"/>
+    </linearGradient>
+    <linearGradient id="threeSource" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f1f8e9"/><stop offset="100%" stop-color="#dcedc8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="980" height="980" fill="#fafafa" rx="12"/>
+
+  <!-- Title -->
+  <text x="490" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">Piko 接到任务执行流程</text>
+  <text x="490" y="48" text-anchor="middle" font-size="12" fill="#888">三层信息：STD 模板 + 岗位技能 + 记忆 · 冲突规则：模板 &gt; 记忆 &gt; 技能</text>
+
+  <!-- ===== Top: 3 sources ===== -->
+  <rect x="30" y="65" width="920" height="78" fill="url(#threeSource)" rx="10" stroke="#689f38" stroke-width="1.5"/>
+  <text x="50" y="85" font-size="13" font-weight="bold" fill="#33691e">接到任务时，agent 信息来自 3 独立来源</text>
+
+  <!-- Source 1: STD template -->
+  <rect x="40" y="93" width="290" height="42" fill="#fff" rx="6" stroke="#689f38" stroke-width="1"/>
+  <text x="55" y="110" font-weight="bold" fill="#33691e">① STD 模板（任务规范）</text>
+  <text x="55" y="127" fill="#666" font-size="10">Slinky 给 · std_templates · 输出格式、章节、checklist</text>
+
+  <!-- Source 2: Skills -->
+  <rect x="340" y="93" width="290" height="42" fill="#fff" rx="6" stroke="#689f38" stroke-width="1"/>
+  <text x="355" y="110" font-weight="bold" fill="#33691e">② 岗位技能（怎么做）</text>
+  <text x="355" y="127" fill="#666" font-size="10">Piko 内置 · skills/{role}/ · 步骤、工具、判据</text>
+
+  <!-- Source 3: Memories -->
+  <rect x="640" y="93" width="300" height="42" fill="#fff" rx="6" stroke="#689f38" stroke-width="1"/>
+  <text x="655" y="110" font-weight="bold" fill="#33691e">③ 记忆（项目特殊约束）</text>
+  <text x="655" y="127" fill="#666" font-size="10">Piko 内置 · lessons/{scope}/{project}/ · 已知坑、项目方式</text>
+
+  <!-- ===== P0 (Bootstrap) ===== -->
+  <rect x="30" y="155" width="920" height="85" fill="url(#p0bg)" rx="10" stroke="#4caf50" stroke-width="1.5"/>
+  <text x="50" y="175" font-size="14" font-weight="bold" fill="#2e7d32">P0 启动时 (Bootstrap)</text>
+
+  <rect x="50" y="188" width="240" height="40" fill="#fff" rx="6" stroke="#4caf50" stroke-width="1"/>
+  <text x="170" y="205" text-anchor="middle" font-weight="bold">加载 index.json</text>
+  <text x="170" y="222" text-anchor="middle" fill="#666" font-size="11">version 控制 + index.prev 回备份</text>
+
+  <rect x="310" y="188" width="200" height="40" fill="#fff" rx="6" stroke="#4caf50" stroke-width="1"/>
+  <text x="410" y="205" text-anchor="middle" font-weight="bold">扫描 memory_root/</text>
+  <text x="410" y="222" text-anchor="middle" fill="#666" font-size="11">构建内存缓存</text>
+
+  <rect x="530" y="188" width="260" height="40" fill="#fff" rx="6" stroke="#4caf50" stroke-width="1"/>
+  <text x="660" y="205" text-anchor="middle" font-weight="bold">暴露 P0API (IPC)</text>
+  <text x="660" y="222" text-anchor="middle" font-family="monospace" fill="#4caf50" font-size="10">query_skills · query_memories · get_*_content · write_memory</text>
+
+  <rect x="810" y="188" width="130" height="40" fill="url(#reviewbg)" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="875" y="205" text-anchor="middle" font-weight="bold" fill="#01579b" font-size="11">Memory Indexer</text>
+  <text x="875" y="222" text-anchor="middle" fill="#666" font-size="10">重生成 → 重载</text>
+
+  <line x1="290" y1="208" x2="305" y2="208" marker-end="url(#arrow)"/>
+  <line x1="510" y1="208" x2="525" y2="208" marker-end="url(#arrow)"/>
+
+  <!-- ===== P1 (8 steps) ===== -->
+  <rect x="30" y="255" width="920" height="450" fill="url(#p1bg)" rx="10" stroke="#1976d2" stroke-width="1.5"/>
+  <text x="50" y="277" font-size="14" font-weight="bold" fill="#1565c0">P1 接到任务时（8 步流程）</text>
+
+  <!-- Step 1 -->
+  <rect x="50" y="295" width="210" height="48" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="60" y="313" font-weight="bold" fill="#1976d2" font-size="11">1. 解析任务</text>
+  <text x="60" y="328" fill="#666" font-size="10">取 role、关键词、模板 ID</text>
+  <text x="60" y="341" fill="#666" font-size="10">从 TaskRequest + identity</text>
+
+  <!-- Step 2: STD template (source ①) -->
+  <rect x="280" y="295" width="210" height="48" fill="#fff" rx="6" stroke="#689f38" stroke-width="1.5"/>
+  <text x="290" y="313" font-weight="bold" fill="#33691e" font-size="11">2. 加载 STD 模板</text>
+  <text x="290" y="328" fill="#666" font-size="10">读模板 body + review checklist</text>
+  <text x="290" y="341" fill="#666" font-size="10">来源 ① → 告诉"输出格式"</text>
+
+  <!-- Step 3: Skills (source ②) -->
+  <rect x="510" y="295" width="210" height="48" fill="#fff" rx="6" stroke="#689f38" stroke-width="1.5"/>
+  <text x="520" y="313" font-weight="bold" fill="#33691e" font-size="11">3. 查岗位技能 (P0API)</text>
+  <text x="520" y="328" fill="#666" font-size="10">query_skills(role, taskType)</text>
+  <text x="520" y="341" fill="#666" font-size="10">来源 ② → 告诉"步骤+工具"</text>
+
+  <!-- Step 4: Memories (source ③) -->
+  <rect x="740" y="295" width="200" height="48" fill="#fff" rx="6" stroke="#689f38" stroke-width="1.5"/>
+  <text x="750" y="313" font-weight="bold" fill="#33691e" font-size="11">4. 查记忆 (P0API)</text>
+  <text x="750" y="328" fill="#666" font-size="10">query_memories · top-K + 打分</text>
+  <text x="750" y="341" fill="#666" font-size="10">来源 ③ → 告诉"项目约束"</text>
+
+  <line x1="260" y1="319" x2="275" y2="319" marker-end="url(#arrow)"/>
+  <line x1="490" y1="319" x2="505" y2="319" marker-end="url(#arrow)"/>
+  <line x1="720" y1="319" x2="735" y2="319" marker-end="url(#arrow)"/>
+
+  <!-- Scoring formula box -->
+  <rect x="50" y="355" width="890" height="38" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="60" y="372" font-weight="bold">记忆打分排序（步骤 4）：score = semanticSimilarity×0.5 + timeDecay×0.3 + importance×0.1 + referenceCount×0.1</text>
+  <text x="60" y="389" font-size="10" fill="#666">语义相似度默认关键词 Jaccard（Phase 3 可上 embedding）· 时间衰减 exp(-days/30) · importance 1-10 · 取 top-K 默认 K=20</text>
+
+  <!-- Step 5: Assemble + conflict resolution -->
+  <rect x="50" y="410" width="280" height="60" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="60" y="428" font-weight="bold" fill="#1976d2" font-size="11">5. 组装 system prompt</text>
+  <text x="60" y="443" fill="#666" font-size="10">身份 + 技能 + 模板 + 记忆</text>
+  <text x="60" y="456" fill="#666" font-size="10">三来源各归各段，不混</text>
+
+  <!-- Conflict rule box -->
+  <rect x="340" y="410" width="280" height="60" fill="#fff3e0" rx="6" stroke="#f57c00" stroke-width="1.5"/>
+  <text x="350" y="428" font-weight="bold" fill="#e65100" font-size="11">冲突解决规则</text>
+  <text x="350" y="443" fill="#666" font-size="10">优先级：模板 &gt; 记忆 &gt; 技能</text>
+  <text x="350" y="456" fill="#666" font-size="10">记忆 scope 越越具体越越优先</text>
+  <text x="350" y="465" fill="#666" font-size="10">project_memory &gt; role_project &gt; generalized</text>
+
+  <!-- Step 6: Execute (multi-modal + full text) -->
+  <rect x="630" y="410" width="310" height="60" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="640" y="428" font-weight="bold" fill="#1976d2" font-size="11">6. 按技能执行（多模态 + 全文按需）</text>
+  <text x="640" y="443" fill="#666" font-size="10">用技能 tools，按步骤推进，模板格式输出</text>
+  <text x="640" y="456" fill="#666" font-size="10">上下文不足 → get_skill_content / get_memory_content</text>
+  <text x="640" y="465" fill="#666" font-size="10">UI 测试→截图分析；设计→架构图解析</text>
+
+  <line x1="330" y1="440" x2="335" y2="440" marker-end="url(#arrow)"/>
+  <line x1="620" y1="440" x2="625" y2="440" marker-end="url(#arrow)"/>
+
+  <!-- Step 7: Self-check -->
+  <rect x="50" y="485" width="400" height="48" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="60" y="503" font-weight="bold" fill="#1976d2" font-size="11">7. 自检（对照模板 checklist）</text>
+  <text x="60" y="518" fill="#666" font-size="10">逐项核验 review checklist · 缺项 → 回步骤 6 补</text>
+
+  <path d="M 250 535 Q 400 555 700 470" stroke="#1976d2" stroke-width="1" stroke-dasharray="4,4" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Step 8: Report -->
+  <rect x="470" y="485" width="470" height="48" fill="#fff" rx="6" stroke="#1976d2" stroke-width="1"/>
+  <text x="480" y="503" font-weight="bold" fill="#1976d2" font-size="11">8. 经验报告（填写准则，非强制）</text>
+  <text x="480" y="518" fill="#666" font-size="10">新否 / importance≥5 / 通用否 → 三 yes 才填</text>
+
+  <line x1="450" y1="509" x2="465" y2="509" marker-end="url(#arrow)"/>
+
+  <!-- Failure handling -->
+  <rect x="50" y="548" width="890" height="42" fill="#ffebee" rx="6" stroke="#c62828" stroke-width="1"/>
+  <text x="70" y="566" font-weight="bold" fill="#b71c1c" font-size="11">失败/partial 任务处理</text>
+  <text x="70" y="581" fill="#666" font-size="10">failed 也可填报告："尝试 X，结果 Y，下次 Z建议" — 失败经验同样有价值，避开下次重踩坑</text>
+
+  <!-- Example box -->
+  <rect x="50" y="605" width="890" height="90" fill="#e1f5fe" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="70" y="625" font-weight="bold" fill="#01579b" font-size="12">例：写测试用例任务 — 三层协作 + 冲突解决</text>
+  <text x="70" y="643" font-family="monospace" fill="#0277bd" font-size="10">① 模板 assurance.test-specification → "要覆盖 happy/boundary/异常，checklist 5 项"</text>
+  <text x="70" y="658" font-family="monospace" fill="#0277bd" font-size="10">② 技能 developer/test.md → "读代码→列用例→写→跑测试→看覆盖率"（未指定 bun/jest，通用）</text>
+  <text x="70" y="673" font-family="monospace" fill="#0277bd" font-size="10">③ 记忆 piko/test_infra.md → "本项目用 bun test，不是 jest"（importance=8）</text>
+  <text x="70" y="688" font-family="monospace" fill="#c62828" font-size="10">冲突解决：技能说"跑测试"未定工具，记忆限定 bun → 记忆覆盖技能 → 用 bun test 跑</text>
+
+  <!-- ===== Review (Slinky) + 冲突合并 ===== -->
+  <rect x="30" y="720" width="920" height="130" fill="url(#reviewbg)" rx="10" stroke="#0288d1" stroke-width="1.5"/>
+  <text x="50" y="740" font-size="14" font-weight="bold" fill="#01579b">经验审核与生效（人主导） + 冲突合并 + SLA</text>
+
+  <rect x="50" y="755" width="200" height="55" fill="#fff" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="150" y="775" text-anchor="middle" font-weight="bold" font-size="11">P1 写候选</text>
+  <text x="150" y="790" text-anchor="middle" font-family="monospace" fill="#0288d1" font-size="10">pending_review/{project}/{role}/</text>
+  <text x="150" y="803" text-anchor="middle" font-family="monospace" fill="#0288d1" font-size="10">{date}-{taskid}.md</text>
+
+  <rect x="270" y="755" width="200" height="55" fill="#fff" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="370" y="775" text-anchor="middle" font-weight="bold" font-size="11">冲突合并策略</text>
+  <text x="370" y="790" text-anchor="middle" fill="#666" font-size="10">同内容跳过 · 不重叠 append</text>
+  <text x="370" y="803" text-anchor="middle" fill="#666" font-size="10">重叠章节 → pending 手动合并</text>
+
+  <rect x="490" y="755" width="220" height="55" fill="#fff" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="600" y="775" text-anchor="middle" font-weight="bold" font-size="11">审核 SLA</text>
+  <text x="600" y="790" text-anchor="middle" fill="#666" font-size="10">每日扫描未审核 &gt; 24h</text>
+  <text x="600" y="803" text-anchor="middle" fill="#666" font-size="10">超期 7 天自动归档 · 3 天提醒</text>
+
+  <rect x="730" y="755" width="200" height="55" fill="#fff" rx="6" stroke="#0288d1" stroke-width="1"/>
+  <text x="830" y="775" text-anchor="middle" font-weight="bold" font-size="11">Slinky Dashboard 人通过</text>
+  <text x="830" y="790" text-anchor="middle" fill="#666" font-size="10">通过 → lessons/ 生效</text>
+  <text x="830" y="803" text-anchor="middle" fill="#666" font-size="10">Indexer 重生成 → P0 重载新版</text>
+
+  <line x1="250" y1="782" x2="265" y2="782" marker-end="url(#arrow)"/>
+  <line x1="470" y1="782" x2="485" y2="782" marker-end="url(#arrow)"/>
+  <line x1="710" y1="782" x2="725" y2="782" marker-end="url(#arrow)"/>
+
+  <rect x="50" y="825" width="880" height="18" fill="#c8e6c9" rx="3" stroke="#4caf50" stroke-width="1"/>
+  <text x="490" y="837" text-anchor="middle" font-size="11" fill="#1b5e20" font-weight="bold">能力提升：通过 → lessons/ + referenceCount 计数 + 下次 agent 查到 → 岗位在本项目增强</text>
+
+  <!-- ===== Security + Version + Maintenance footer ===== -->
+  <rect x="30" y="868" width="920" height="100" fill="url(#storagebg)" rx="10" stroke="#f57c00" stroke-width="1.5"/>
+  <text x="50" y="888" font-size="13" font-weight="bold" fill="#e65100">memory_root/（磁盘持久存储 · 安全 + 版本 + 维护）</text>
+
+  <rect x="50" y="898" width="210" height="55" fill="#fff" rx="6" stroke="#f57c00" stroke-width="1"/>
+  <text x="155" y="915" text-anchor="middle" font-weight="bold" font-size="11">访问控制</text>
+  <text x="155" y="930" text-anchor="middle" fill="#666" font-size="10">project 限定 · 跨项目隔离</text>
+  <text x="155" y="944" text-anchor="middle" fill="#666" font-size="10">只 generalized_role 可跨</text>
+
+  <rect x="270" y="898" width="210" height="55" fill="#fff" rx="6" stroke="#f57c00" stroke-width="1"/>
+  <text x="375" y="915" text-anchor="middle" font-weight="bold" font-size="11">版本管理（STD 机制）</text>
+  <text x="375" y="930" text-anchor="middle" fill="#666" font-size="10">Document Version · Supersedes</text>
+  <text x="375" y="944" text-anchor="middle" fill="#666" font-size="10">index.json 含 version 字段</text>
+
+  <rect x="490" y="898" width="230" height="55" fill="#fff" rx="6" stroke="#f57c00" stroke-width="1"/>
+  <text x="605" y="915" text-anchor="middle" font-weight="bold" font-size="11">维护责任</text>
+  <text x="605" y="930" text-anchor="middle" fill="#666" font-size="10">技能：架构人员+资深dev 季度</text>
+  <text x="605" y="944" text-anchor="middle" fill="#666" font-size="10">记忆：agent 填写 + 人每日审核</text>
+
+  <rect x="730" y="898" width="200" height="55" fill="#fff" rx="6" stroke="#f57c00" stroke-width="1"/>
+  <text x="830" y="915" text-anchor="middle" font-weight="bold" font-size="11">新岗位添加</text>
+  <text x="830" y="930" text-anchor="middle" fill="#666" font-size="10">mkdir skills/{role} + write md</text>
+  <text x="830" y="944" text-anchor="middle" fill="#666" font-size="10">Indexer 重生成 · 不改 P0 代码</text>
+
+  <!-- 箭头: 存储层 -> P0 -->
+  <line x1="930" y1="868" x2="930" y2="240" stroke="#f57c00" stroke-width="1" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+  <text x="910" y="550" text-anchor="middle" font-size="10" fill="#f57c00" transform="rotate(-90 910 550)">扫描 &amp; 加载 · Indexer 定期</text>
+</svg>

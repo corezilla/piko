@@ -6,3 +6,6 @@ config/runtime.json
 .DS_Store
 .pytest_cache/
 config/runtime*.json
+
+# Local scratch / credential handoff files
+.git-tmp-*

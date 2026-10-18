@@ -435,3 +435,259 @@ identity?: {
 - 任务执行期间 `mem0_lookup` / `mem0_record` 能正常调
 - Mem0 不可达时 agent 任务仍能完成（fallback content）
 - `resolveSecret` 失败 → 启动 fail-fast（不进 S5 之后）
+
+---
+
+## 8. 函数规格（详细）
+
+### 8.1 `PiRuntime.constructor`（V0.1 修改后）
+
+**签名**（V0.1 后）：
+```typescript
+constructor(
+  config: RuntimeConfig,
+  registry: ToolRegistry,
+  store: TaskStore,
+  channel: Channel,
+  apiKey: string,
+  mem0ApiKey?: string
+)
+```
+
+**参数**：
+
+| 名 | 类型 | 必填 | 含义 |
+|---|---|---|---|
+| `config` | `RuntimeConfig` | 是 | 完整 runtime config（含 identity） |
+| `registry` | `ToolRegistry` | 是 | 工具 profile 注册表 |
+| `store` | `TaskStore` | 是 | 任务存储（run 状态） |
+| `channel` | `Channel` | 是 | 与 P0 通信的 IPC channel |
+| `apiKey` | `string` | 是 | LLM API key（由 caller resolve，**Piko LLM API key**） |
+| `mem0ApiKey` | `string` \| undefined | 否 | Mem0 API key（由 exec-process.ts resolve） |
+
+**副作用**：
+1. `process.env.PIKO_LLM_API_KEY = apiKey`（现有逻辑）
+2. 创建 `this.mem0Adapter`（V0.1 新增，详见下方）
+3. 创建 `this.repo = new JsonlSessionRepo(...)`（现有逻辑）
+
+**V0.1 新逻辑 — `mem0Adapter` 构造**：
+
+```typescript
+if (config.identity?.memory && mem0ApiKey) {
+  const baseUrl = config.identity.memory.base_url ?? "https://api.mem0.ai";
+  this.mem0Adapter = new Mem0Adapter(baseUrl, mem0ApiKey);
+} else {
+  this.mem0Adapter = undefined;
+}
+```
+
+**判断逻辑**：
+
+| `config.identity?.memory` | `mem0ApiKey` 参数 | `mem0Adapter` 结果 |
+|---|---|---|
+| undefined | *（忽略）* | `undefined`（skill tools 不挂载） |
+| 有 | undefined | **启动 fail**：`config.identity.memory` 已配置但 `mem0ApiKey` 缺失 → `throw new Error("mem0ApiKey required when identity.memory configured")` |
+| 有 | 非空字符串 | `new Mem0Adapter(baseUrl, mem0ApiKey)` |
+| 有 | 空字符串 `""` | 同上 fail（空串视为缺失） |
+
+**fail-fast 行为**：构造时抛 `Error("mem0ApiKey required when identity.memory configured")`，进程非零退出。**这是故意的**：配了 memory 但缺 key 应该是配置错误，不应该静默禁用 skill tools。
+
+**异常**：上述 fail-fast 错误。`apiKey` 缺失也由调用方保证（exec-process.ts:20 resolve 失败会先抛）。
+
+**线程安全**：N/A（构造同步）。
+
+### 8.2 `PiRuntime.execute`（V0.1 修改后）
+
+**签名**（V0.1 新增的部分）：
+```typescript
+async execute(
+  runId: string,
+  epoch: number,
+  task: TaskRequest,
+  workspace: string,
+  isCancelled: () => boolean,
+  onDiscussionReply?: (event: string, turn: number, body: string) => Promise<void>
+): Promise<PiExecution>
+```
+
+**V0.1 新增 block**（在 `execute()` 开头）：
+
+```typescript
+let skillDeps: SkillToolDeps | undefined;
+if (this.config.identity?.memory && this.mem0Adapter) {
+  skillDeps = {
+    mem0: this.mem0Adapter,
+    context: {
+      role: this.config.identity.role,
+      projectName: task.workspace_ref,
+      taskId: task.task_id,
+    },
+  };
+}
+```
+
+**`skillDeps` 各字段来源**：
+
+| 字段 | 来源 | 备注 |
+|---|---|---|
+| `mem0` | `this.mem0Adapter` | 复用构造时缓存的实例（per-task 不新建） |
+| `context.role` | `this.config.identity.role` | 实例级 role |
+| `context.projectName` | `task.workspace_ref` | **per-task**（来自 task） |
+| `context.taskId` | `task.task_id` | **per-task**（来自 task） |
+
+**约束**：
+- `task.workspace_ref` 必须非空且匹配 `^[A-Za-z0-9._-]+$`（skill-tools 工厂会 fail-fast）
+- 如果 `task.workspace_ref` 含 `:`，skill-tools 工厂抛 `Error`，**整任务执行失败**
+
+**返回**：`skillDeps` 供后续 `available` map 构造 skill tools 用。
+
+### 8.3 `buildSystemPrompt`（V0.1 修改后）
+
+**签名**：
+```typescript
+export function buildSystemPrompt(
+  task: TaskRequest,
+  identity?: { role: string; name: string; memory?: MemoryConfig }
+): string
+```
+
+**参数**：
+
+| 名 | 类型 | 必填 | 含义 |
+|---|---|---|---|
+| `task` | `TaskRequest` | 是 | 当前任务（V0.1 不读其字段，但保留以备将来） |
+| `identity` | `IdentityParams` \| undefined | 否 | agent identity（见下） |
+
+**`identity` 字段**：
+
+| 字段 | 类型 | 必填 | 含义 |
+|---|---|---|---|
+| `role` | `string` | 是 | agent 角色 |
+| `name` | `string` | 是 | agent human-readable identity |
+| `memory` | `MemoryConfig` \| undefined | 否 | 如果有，注入 skill tools 提示 |
+
+**返回值**：`string`（最终拼好的 system prompt）。
+
+**输出结构**（`identity.memory` 存在时）：
+```
+You are Piko, executing one durable task. Work only inside the configured workspace
+and pass workspace-relative paths to tools. Produce requested outputs and finish with
+a concise result summary.
+
+You are acting as **${role}**.
+
+Your identity: ${name}.
+
+You have access to two skill-experience tools (role-scoped external memory):
+  - mem0_lookup(query): search past experience for this role in this project
+  - mem0_record(content, tags?): record a lesson when you encounter a pitfall,
+surprising behavior, or repeated mistake
+Use mem0_lookup when starting work that might have known pitfalls.
+Use mem0_record when you discover something worth remembering for next time.
+Skip routine successes.
+```
+
+**输出结构**（`identity.memory` 不存在时）：
+```
+You are Piko, executing one durable task. Work only inside the configured workspace
+and pass workspace-relative paths to tools. Produce requested outputs and finish with
+a concise result summary.
+
+You are acting as **${role}**.
+
+Your identity: ${name}.
+```
+
+**输出结构**（`identity` undefined）：只返回 base（无 role/identity 行）。
+
+**内部流程**：
+1. 构造 `base` 字符串（task instruction 前缀）
+2. 如果 `!identity` → 返回 `base`
+3. 构造 `parts: string[]`：
+   - `\n\nYou are acting as **${identity.role}**.`
+   - `\nYour identity: ${identity.name}.`
+4. 如果 `identity.memory` 存在 → push skill tools 提示
+5. 返回 `base + parts.join("") + "\n"`
+
+**副作用**：无（pure function）。
+
+**线程安全**：✅ N/A。
+
+**示例**：
+```typescript
+// 有 memory
+buildSystemPrompt(task, {
+  role: "tester",
+  name: "alice:tester",
+  memory: { provider: "mem0", api_key_secret_ref: "env:MEM0" },
+});
+// 输出含 mem0_lookup / mem0_record 提示
+
+// 无 memory
+buildSystemPrompt(task, {
+  role: "tester",
+  name: "alice:tester",
+});
+// 输出无 skill tools 提示（即使 config.identity 有，但 buildSystemPrompt 不直接看 config）
+```
+
+### 8.4 `exec-process.ts:runExecutionProcess`（V0.1 修改后）
+
+**改动**：`mem0ApiKey` 解析 + 传给 PiRuntime。
+
+**新增逻辑**（在 `llmKey` 解析之后）：
+
+```typescript
+let mem0ApiKey: string | undefined;
+if (config.identity?.memory) {
+  mem0ApiKey = await resolveSecret(config.identity.memory.api_key_secret_ref);
+}
+```
+
+**`resolveSecret` 行为**：
+- 输入：`api_key_secret_ref: string`（格式 `"env:VAR_NAME"` 或 `"file:/path"`）
+- 输出：`Promise<string>`（已解析的 secret）
+- 异常：找不到时抛 `Error("missing env secret VAR_NAME")` 或 `Error("...")`
+- 失败时进程非零退出（exec-process.ts:17 启动失败）
+
+**传给 PiRuntime**：
+```typescript
+const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey);
+```
+
+**位置**：`src/exec-process.ts:20`（`llmKey` 解析）之后，`matrix` 解析之前。
+
+### 8.5 数据结构字段详情
+
+**`MemoryConfig`**（V0.1 新增类型）：
+
+| 字段 | 类型 | 必现 | 含义 | 约束 |
+|---|---|---|---|---|
+| `provider` | `"mem0"` | ✅ | V0.1 hard-code | enum 限制 `"mem0"` |
+| `api_key_secret_ref` | `string` | ✅ | Secret ref | 格式 `"env:XXX"` 或 `"file:XXX"` |
+| `base_url` | `string` \| undefined | ❌ | 自托管 URL | 必须以 `http://` 或 `https://` 开头；缺省 → Cloud |
+| `user_id_template` | `string` \| undefined | ❌ | 模板 | V0.1 不解析；保留供将来 |
+
+**`RuntimeConfig.identity`**（V0.1 修改后）：
+
+| 字段 | 类型 | 必现 | 含义 |
+|---|---|---|---|
+| `role` | `string` | ✅ | agent role |
+| `name` | `string` | ✅ | human-readable identity |
+| `memory` | `MemoryConfig` | ✅ | V0.1 必须有 memory（如配 identity） |
+
+**删除**（V0.1）：`memory_root` / `graphrag` / `gitnexus`。
+
+### 8.6 PiRuntime 实例字段
+
+**V0.1 新增字段**：
+
+```typescript
+private readonly mem0Adapter: Mem0Adapter | undefined;
+```
+
+**含义**：
+- `undefined` → skill tools 不挂载（无 identity 配置）
+- `Mem0Adapter` 实例 → skill tools 挂载（identity 配置且 mem0ApiKey 有效）
+
+**生命周期**：与 PiRuntime 实例同。构造时初始化，关闭时不显式释放（无 mutable state）。

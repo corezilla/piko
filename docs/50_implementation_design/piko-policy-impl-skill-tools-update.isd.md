@@ -158,3 +158,86 @@ V0.1 文档明确这一点：**自托管用户必须同时改 `tool-profiles.jso
 | 忘改 `knownTools` Set | 启动校验会立刻抛 |
 | `network_hosts` 跟实际 URL 不匹配 | 启动校验 + 文档说明 |
 | `effect: "external"` 选错（vs `network`）| schema 已合法；本设计明确用 `external` |
+
+---
+
+## 8. 函数规格（详细）
+
+> Policy update **不引入新函数**。本节详细描述被修改的现有函数 `validateToolRegistry` 的新行为 + 新数据结构字段。
+
+### 8.1 `validateToolRegistry(tools)`（V0.1 行为变化）
+
+**签名**（不变）：
+```typescript
+export function validateToolRegistry(tools: ToolRegistry): void
+```
+
+**V0.1 行为变化**：通过 `knownTools` Set 接受 `mem0_lookup` 和 `mem0_record`。
+
+**校验流程**（来自原 `config.ts:26-46`）：
+
+| 步骤 | 检查 | V0.1 错误消息 |
+|---|---|---|
+| 1 | 每个 `recovery_contracts` 的 `implementation_ref` 在 supported set | "unregistered recovery implementation: X" |
+| 2 | 每个 profile 的每个工具名在 `knownTools` set | "unregistered tool implementation: X"（**V0.1 新覆盖 `mem0_lookup` / `mem0_record`**）|
+| 3 | 工具 `recovery_contract_ref` 引用的 contract 存在 | "tool X has unbound recovery contract" |
+| 4 | `replay: "safe"` 的非 read_only 工具有 `recovery_contract_ref` | "unsafe replay declaration: X" |
+| 5 | `builtin:workspace-atomic-write` 只用于 `write`/`edit` | "workspace atomic recovery is not applicable to tool X" |
+| 6 | `replay: "safe"` 的非 read_only 工具的 contract 是 `builtin:workspace-atomic-write` | "recovery implementation X is not available for local tool Y" |
+
+**V0.1 新增校验**：**无新增校验**。`mem0_lookup` / `mem0_record` 的 `effect: "external"` + `replay: "never"` 自动通过所有现有检查（步骤 1、4、5、6 都不触发，因为它们针对 `recovery_contract` 或 `replay: "safe"`）。
+
+**校验时机**：
+- `loadConfig` 时调用一次（`config.ts:87`）
+- 启动失败 → 进程非零退出
+
+**异常**：`Error`（消息含具体哪个工具 / 哪条规则）
+
+**线程安全**：N/A。
+
+### 8.2 数据结构字段详情
+
+**`ToolPolicy` 新增字段**（V0.1 schema 已支持，无需改 schema）：
+
+| 字段 | 类型 | V0.1 mem0_lookup 用值 | V0.1 mem0_record 用值 |
+|---|---|---|---|
+| `effect` | `"read_only" \| "workspace_write" \| "process" \| "network" \| "external"` | `"external"` | `"external"` |
+| `replay` | `"never" \| "safe"` | `"never"` | `"never"` |
+| `recovery_contract_ref` | `string` \| undefined | `undefined` | `undefined` |
+| `permissions.read_paths` | `string[]` \| undefined | `undefined`（external 不用）| `undefined` |
+| `permissions.write_paths` | `string[]` \| undefined | `undefined` | `undefined` |
+| `permissions.executables` | `string[]` \| undefined | `undefined` | `undefined` |
+| `permissions.network_hosts` | `string[]` \| undefined | `["api.mem0.ai"]`（V0.1 hard-code）| `["api.mem0.ai"]`（V0.1 hard-code）|
+
+**V0.1 自托管变体**：用户在 `RuntimeConfig.identity.memory.base_url` 写 `"https://my-mem0.local:8000"`，需要**手动**把 `network_hosts` 改成 `["my-mem0.local:8000"]`。V0.1 文档必须强调这一点。V1.x 改为根据 config 动态生成 `network_hosts`。
+
+**`knownTools` Set**（V0.1 后）：
+```typescript
+const knownTools = new Set([
+  "read", "write", "edit", "bash",
+  "mem0_lookup", "mem0_record",  // V0.1 新增
+]);
+```
+
+**`tool-profiles.json` 的 `tools` map 字段**（V0.1 新增 2 个 key）：
+
+| key | effect | replay | permissions |
+|---|---|---|---|
+| `mem0_lookup` | `"external"` | `"never"` | `{ network_hosts: ["api.mem0.ai"] }` |
+| `mem0_record` | `"external"` | `"never"` | `{ network_hosts: ["api.mem0.ai"] }` |
+
+**两个 profile 都加**（`workspace-standard` 和 `workspace-exec`）。
+
+### 8.3 修改边界
+
+**不动**：
+- `RecoveryContract` 类型（skill tools 不需要 recovery_contract_ref，因 `replay: "never"`）
+- `validateToolRegistry` 的整体校验逻辑（V0.1 不加新分支）
+- `BoundToolProfile` 类型
+- `ToolRegistry` 类型
+
+**改**：
+- `knownTools` Set（§2.1）
+- `tool-profiles.json` 两个 profile 的 `tools` map（§3.1, §3.2）
+
+**新增**：无。
