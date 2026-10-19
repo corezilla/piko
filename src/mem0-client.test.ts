@@ -47,14 +47,16 @@ test("search: 200 OK returns Mem0SearchResult[]", async () => {
   const mem0 = makeAdapter();
   const origFetch = globalThis.fetch;
   globalThis.fetch = mockFetch((url, init) => {
-    assert.equal(url, `${BASE}/v1/memories/search/`);
+    // v3 endpoint and auth: /v3/memories/search/ + Authorization: Token
+    assert.equal(url, `${BASE}/v3/memories/search/`);
     assert.equal(init.method, "POST");
     const headers = init.headers as Record<string, string>;
-    assert.equal(headers["Authorization"], `Bearer ${KEY}`);
+    assert.equal(headers["Authorization"], `Token ${KEY}`);
     const body = JSON.parse(init.body as string);
+    // v3 body shape: { query, filters: { user_id, ... }, top_k }
     assert.equal(body.query, "auth boundary");
-    assert.equal(body.user_id, "tester:piko");
-    assert.equal(body.limit, 5);
+    assert.equal(body.filters.user_id, "tester:piko");
+    assert.equal(body.top_k, 5);
     return {
       status: 200,
       body: {
@@ -64,6 +66,7 @@ test("search: 200 OK returns Mem0SearchResult[]", async () => {
             memory: "Lesson text",
             score: 0.85,
             metadata: { type: "skill_experience" },
+            categories: ["lesson"],
             created_at: "2026-10-18T00:00:00Z",
           },
         ],
@@ -83,7 +86,8 @@ test("search: respects max_results option", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = mockFetch((_url, init) => {
     const body = JSON.parse(init.body as string);
-    assert.equal(body.limit, 20);
+    // v3 uses `top_k`, not `limit`
+    assert.equal(body.top_k, 20);
     return { status: 200, body: { results: [] } };
   }) as typeof fetch;
 
@@ -96,7 +100,10 @@ test("search: respects filters option", async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = mockFetch((_url, init) => {
     const body = JSON.parse(init.body as string);
-    assert.deepEqual(body.filters, { "metadata.type": "skill_experience" });
+    // v3: arbitrary metadata.X keys get translated to nested form,
+    // then passed through. user_id is added at the top level.
+    assert.equal(body.filters.user_id, "tester:piko");
+    assert.deepEqual(body.filters.metadata, { type: "skill_experience" });
     return { status: 200, body: { results: [] } };
   }) as typeof fetch;
 
@@ -217,14 +224,36 @@ test("search: handles missing fields in result with defaults", async () => {
 test("add: 200 OK returns ids array", async () => {
   const mem0 = makeAdapter();
   const origFetch = globalThis.fetch;
+  // v3 add returns {event_id, status}; piko's client surfaces the
+  // post-poll real memory id as ids[0] (falls back to event_id if
+  // the polled search never finds a matching entry). The mock below
+  // returns the just-added entry on the polled search so the test
+  // completes in ms instead of waiting for the 10s poll timeout.
   globalThis.fetch = mockFetch((url, init) => {
-    assert.equal(url, `${BASE}/v1/memories/`);
-    const body = JSON.parse(init.body as string);
-    assert.equal(body.infer, true);
-    assert.equal(body.user_id, "tester:piko");
-    assert.deepEqual(body.messages, [{ role: "user", content: "lesson" }]);
-    assert.deepEqual(body.metadata, { type: "skill_experience" });
-    return { status: 200, body: { results: [{ id: "mem-new-1" }] } };
+    if (url.endsWith("/v3/memories/add/")) {
+      const body = JSON.parse(init.body as string);
+      assert.equal(body.infer, true);
+      assert.equal(body.user_id, "tester:piko");
+      assert.deepEqual(body.messages, [{ role: "user", content: "lesson" }]);
+      return { status: 200, body: { event_id: "mem-new-1", status: "PENDING" } };
+    }
+    if (url.endsWith("/v3/memories/search/")) {
+      return {
+        status: 200,
+        body: {
+          results: [
+            {
+              id: "mem-new-1",
+              memory: "lesson",
+              score: 1.0,
+              metadata: {},
+              created_at: "2026-10-19T00:00:00Z",
+            },
+          ],
+        },
+      };
+    }
+    throw new Error(`unmocked URL: ${url}`);
   }) as typeof fetch;
 
   const result = await mem0.add(
