@@ -10,10 +10,10 @@ Real env: regenerate with new-design --template design.implementation.
 | 文档字段 | 值（占位） |
 |---|---|
 | Document ID | `piko-graphrag-impl` |
-| Document Version | `0.1.0-draft` |
+| Document Version | `0.1.2-draft` |
 | Status | `Draft` |
 | Template ID | `design.implementation` |
-| Last Modified Date | `2026-10-18` |
+| Last Modified Date | `2026-10-19` (V0.1.2: switch to OpenSearch `_search` contract) |
 
 ---
 
@@ -21,7 +21,7 @@ Real env: regenerate with new-design --template design.implementation.
 
 实现 `piko-graphrag` 模块的 TypeScript 代码：`GraphRAGAdapter` 类 + `GraphRAGApiError` 类型 + 单元测试。
 
-输入基线：`piko-doc-search.md`（机制设计）+ `piko-graphrag-design.md`（模块设计）+ 操作员部署的 GraphRAG 后端（V0.1 无现成 Cloud，必须自部署或自费）。
+输入基线：`piko-doc-search.md`（机制设计，V0.1.2 写明 OpenSearch 契约）+ `piko-graphrag-design.md`（模块设计）+ 操作员部署的 OpenSearch/Elasticsearch 后端（vendor 中性，详见 `piko-doc-search.md` §5.3）。
 
 ### 1.1 实现对象
 
@@ -59,7 +59,7 @@ export interface GraphRAGSearchOptions {
 }
 
 export class GraphRAGAdapter {
-  constructor(baseUrl: string, apiKey: string);
+  constructor(baseUrl: string, apiKey: string, defaultScope?: string);
   search(query: string, options?: GraphRAGSearchOptions): Promise<GraphRAGSearchResult[]>;
 }
 ```
@@ -185,11 +185,12 @@ caller.search(query, options)
   → 检查 query 非空（空抛 Error）
   → options 字段归一化（scope 默认 "all"、filters 默认 {}、max_results 默认 5）
   → 构造 fetch Request:
-      URL: `${baseUrl}/v1/search`
+      URL: `${baseUrl}/${encodeURIComponent(index)}/_search`     // index = options.scope || defaultScope || "all"
       method: POST
       headers: { Authorization: `Bearer ${apiKey}`, Content-Type: application/json }
-      body: { query, scope, filters, max_results }
-  → fetch()  → 解析 response
+      body: { size, query: { multi_match: { query, fields: ["content^2","title"], type: "best_fields" },
+                          bool?: { filter: [{ term: { k: v } }] } } }
+  → fetch()  → 解析 hits.hits[*]._source
   → 2xx: 解析 { results: [...] } → 映射成 GraphRAGSearchResult[] → 返回
   → 4xx/5xx: 读 body 提取 message → 抛 GraphRAGApiError
   → fetch reject / network error: 抛 GraphRAGApiError(status=0, code="network")
@@ -274,7 +275,7 @@ GRAPHRAG_API_KEY=... GRAPHRAG_BASE_URL=... \
 
 | 风险 | 缓解 |
 |---|---|
-| 没有公认 GraphRAG Cloud 供应商（2026 现状） | 我们定义 HTTP 契约（POST /v1/search），操作员自部署/自费商用 |
+| 没有公认 GraphRAG Cloud 供应商（2026 现状，V0.1 旧议题） | V0.1.2 已切换到 OpenSearch `_search` JSON-over-HTTP——ES / OpenSearch / Bonsai / Elastic Cloud / 自托管都 speak，vendor 中性 |
 | 操作员部署的后端字段 shape 与本 ISD 不符 | 客户端对缺失字段用默认值（id="", content="", score=0, metadata={}, created_at=""）；不对错误字段硬性 throw。后续 V0.2 收紧 |
 | `base_url` 不可达 / DNS 不对 | 走 fetch reject 路径 → `GraphRAGApiError(0, "network")` → 工具 fallback `doc search unavailable: network` → agent 优雅处理 |
 | Scope 由后端定义，op 配置错（typo） | 后端返 404 → 工具 fallback `not_found`；schema 不在客户端校验 scope 由后端解析 |
@@ -310,7 +311,7 @@ constructor(baseUrl: string, apiKey: string)
 
 | 名 | 类型 | 必填 | 含义 | 约束 |
 |---|---|---|---|---|
-| `baseUrl` | `string` | 是 | GraphRAG 后端根 URL | 必须以 `http://` 或 `https://` 开头；不含尾部 `/`；不含 `/v1/search`（自动拼）|
+| `baseUrl` | `string` | 是 | OpenSearch/Elasticsearch 后端根 URL | 必须以 `http://` 或 `https://` 开头；不含尾部 `/`；不含 `/{index}/_search`（自动拼）|
 | `apiKey` | `string` | 是 | 后端认证 token | 非空；来自 `resolveSecret(config.identity.doc_search.api_key_secret_ref)`；**禁止进 log / error message** |
 
 **返回值 / 异常 / 线程安全**：同 Mem0。
@@ -325,7 +326,7 @@ async search(
 ): Promise<GraphRAGSearchResult[]>
 ```
 
-**描述**：调 GraphRAG `POST /v1/search`，返回按相关度排序的文档片段列表。
+**描述**：调 OpenSearch/Elasticsearch `POST /{index}/_search`，返回按相关度排序的文档片段列表。
 
 **参数**：
 
@@ -361,7 +362,7 @@ async search(
 3. **构造 body**：`{ query, scope, filters, max_results }`
 4. **构造 fetch init**：
    ```typescript
-   const url = `${this.baseUrl}/v1/search`;
+   const url = `${this.baseUrl}/${encodeURIComponent(index)}/_search`;
    const init: RequestInit = {
      method: "POST",
      headers: {

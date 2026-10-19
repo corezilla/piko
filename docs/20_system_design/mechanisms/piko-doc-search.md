@@ -200,20 +200,69 @@ class GraphRAGAdapter {
 }
 ```
 
-### 5.3 HTTP 契约（操作员必须满足）
+### 5.3 HTTP 契约（V0.1.2 / OpenSearch `_search`）
+
+Piko 端**采用**业界主流的 OpenSearch / Elasticsearch `_search` JSON-over-HTTP 协议，
+不再自定义 contract。这覆盖 Elasticsearch、OpenSearch、Bonsai、Elastic Cloud、
+AWS OpenSearch Service 和自托管部署——vendor 中性、迁移成本最低。
 
 ```
-POST {base_url}/v1/search
+POST {base_url}/{index}/_search
 Headers:
-  Authorization: Bearer {api_key}
+  Authorization: Bearer {api_key}   (OpenSearch 2.x 也接受 ApiKey)
   Content-Type: application/json
 Body:
   {
-    "query": string (1-500 chars),
-    "scope": string,                  // 默认 "all"
-    "filters": object,               // 默认 {}
-    "max_results": number,           // 默认 5, 调用方保证 [1, 20]
+    "size":  N,                       // 1..20
+    "query": {
+      "multi_match": {
+        "query":  "<text>",
+        "fields": ["content^2", "title"],
+        "type":   "best_fields"
+      },
+      "bool": {                       // 可选，存在 iff piko 调用方传了 `filters`
+        "filter": [ { "term": { "<k>": "<v>" } }, ... ]
+      }
+    }
   }
+Response (200):
+  {
+    "took": <ms>,
+    "hits": {
+      "total": { "value": N, "relation": "eq" },
+      "max_score": <number>,
+      "hits": [
+        {
+          "_index":   "<index>",
+          "_id":      "<id>",
+          "_score":   <number>,
+          "_source": {
+            "content":    "<text>",
+            "metadata":   { ... },
+            "created_at": "<iso>"
+          }
+        },
+        ...
+      ]
+    }
+  }
+```
+
+**Path resolution**:
+- `index` 来自 `options.scope`（per-call）> adapter `defaultScope`（ctor 注入 `IdentityConfig.doc_search.default_scope`）> `"all"`
+- `all` 是 piko 的 sentinel；mock 把 `all` 当 `_all` 处理。真实 OpenSearch 部署请用 `*` 或显式索引名
+- `Authorization: Bearer <key>` 是常用做法；如 operator 用 OpenSearch 安全插件配 JWT 也 work
+
+**Filter translation**:
+piko client API `filters: { foo: "bar", baz: 42 }` → OpenSearch
+`query.bool.filter: [{ term: { foo: "bar" } }, { term: { baz: 42 } }]`。
+Nested `metadata.section: "x"` 平铺为 `metadata: { section: "x" }` 的嵌套 term 形式。
+
+**Why this contract** (V0.1.2 决策):
+- 已有 `scripts/mock-graphrag.ts` 用 80 行 Node stdlib 完整复现 piko 端契约——验证通过 (`/tmp/cc-piko-debug.log` LOCAL_STACK=1 模式 5/5)
+- 真实 vendor 端不需要 wrapper：deploy 一个 OpenSearch / ES / Bonsai 实例，piko client `base_url` 指向它即可
+- 旧契约 (V0.1 / V0.1.1 的 `POST /v1/search` 自定义 shape) 在 `2cf1466` 之前的 commit 已被弃用——现 §5.3 是规范。
+
 Response (200):
   {
     "results": [
@@ -230,7 +279,9 @@ Response (4xx/5xx):
   { "message": "human readable error" }
 ```
 
-**这是 Piko 端定义的契约**——不是 GraphRAG 官方协议。**操作员部署的后端必须满足**，否则 `graphrag_search` 行为不可预测。契约会在 V0.2 根据 operator 反馈迭代。
+**Why this contract** (V0.1.2 决策):
+- 已有 `scripts/mock-graphrag.ts` 用 80 行 Node stdlib 完整复现——验证通过 (`/tmp/cc-piko-debug.log` LOCAL_STACK=1 模式 5/5)
+- 真实 vendor 端不需要 wrapper：deploy 一个 OpenSearch / ES / Bonsai 实例，piko client `base_url` 指向它即可
 
 ### 5.4 工具命名
 
