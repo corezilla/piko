@@ -7,16 +7,24 @@
 #   ./scripts/v0.1-real-env-verify.sh
 #
 # Environment:
-#   MEM0_API_KEY                — required (or at $MEM0_KEY_FILE, default
+#   MEM0_API_KEY                — required unless LOCAL_STACK=1 (or at
+#                                 $MEM0_KEY_FILE, default
 #                                 /Users/ben/work/keys/mem0_key.txt)
 #   MEM0_KEY_FILE               — override for key file path (default above)
-#   GRAPHRAG_API_KEY            — required for GraphRAG day-1 verify
-#   GRAPHRAG_BASE_URL           — required for GraphRAG day-1 verify
+#   GRAPHRAG_API_KEY            — required for GraphRAG day-1 verify (unless LOCAL_STACK=1)
+#   GRAPHRAG_BASE_URL           — required for GraphRAG day-1 verify (unless LOCAL_STACK=1)
 #   SKIP_INSTALL=1              — skip pnpm install
 #   SKIP_TSC=1                  — skip tsc --noEmit
 #   SKIP_DAY1=1                 — skip Mem0 + GraphRAG day-1 verify
 #   SKIP_STD=1                  — skip STD cover / validate-design
 #   SKIP_DETECT=1               — skip gitnexus detect_changes
+#   LOCAL_STACK=1               — use scripts/mock-mem0.ts + scripts/mock-graphrag.ts
+#                                 fixtures for step 06/07 instead of real backends;
+#                                 no MEM0_API_KEY / GRAPHRAG_API_KEY / GRAPHRAG_BASE_URL
+#                                 required. mem0 still uses MEM0_API_KEY env var
+#                                 (any non-empty string works against the mock).
+#   LOCAL_MEM0_PORT=9999        — mock-mem0 listen port (LOCAL_STACK mode)
+#   LOCAL_GRAPH_PORT=8765       — mock-graphrag listen port (LOCAL_STACK mode)
 #
 # V0.1 立项否决条件（piko-skill-memory.md §13.3 + piko-doc-search.md §8）：
 #   Mem0 day-1 (5 项) 任一 fail → 否决
@@ -67,6 +75,28 @@ skip() {
   SUMMARY+=("SKIP  $NAME — $reason")
 }
 
+# Spawn one of the mock fixtures (mock-mem0 / mock-graphrag) and
+# wait until its HTTP endpoint is alive. Used by LOCAL_STACK steps.
+# Args: $1 = fixture name (debug label); $2 = port; $3 = probe path
+# (e.g. /v1/memories/search_/). Echoes the child PID on stdout.
+spawn_mock_and_wait() {
+  local label=$1 port=$2 path=$3
+  npx tsx "scripts/${label}.ts" > "/tmp/cc-mock-${label}.log" 2>&1 &
+  local pid=$!
+  local attempts=10
+  while (( attempts > 0 )); do
+    if curl -sS --max-time 1 -X POST "http://127.0.0.1:${port}${path}" \
+       -H 'Content-Type: application/json' -d '{}' >/dev/null 2>&1; then
+      echo "$pid"
+      return 0
+    fi
+    sleep 1
+    attempts=$((attempts - 1))
+  done
+  kill -9 "$pid" 2>/dev/null || true
+  return 1
+}
+
 # ----- env -----
 
 banner "Environment"
@@ -76,9 +106,15 @@ if [[ -z "${MEM0_API_KEY:-}" && -f "$KEY_FILE" ]]; then
   ok "MEM0_API_KEY loaded from $KEY_FILE"
 fi
 
+if [[ -z "${MEM0_API_KEY:-}" && "${LOCAL_STACK:-0}" == "1" ]]; then
+  # In LOCAL_STACK mode any non-empty API key satisfies the API.
+  export MEM0_API_KEY="local-stack-mock-key"
+  ok "LOCAL_STACK=1: using synthetic MEM0_API_KEY ($MEM0_API_KEY)"
+fi
+
 if [[ -z "${MEM0_API_KEY:-}" ]]; then
   fail "MEM0_API_KEY unavailable — Mem0 day-1 verify cannot proceed"
-  echo "Set MEM0_API_KEY env var, or place it at $KEY_FILE"
+  echo "Set MEM0_API_KEY env var, place it at $KEY_FILE, or use LOCAL_STACK=1"
   exit 1
 fi
 ok "MEM0_API_KEY set (${#MEM0_API_KEY} chars)"
@@ -156,6 +192,28 @@ console.log("runtime.example.json OK; tool-profiles.json OK");
 NAME="06 — Mem0 day-1 verify (5 项真接口)"
 if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
   skip "SKIP_DAY1=1"
+elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
+  banner "Step: $NAME (LOCAL_STACK=1 → scripts/mock-mem0.ts)"
+  LOCAL_MEM0_PORT=${LOCAL_MEM0_PORT:-9999}
+  mock_pid=$(spawn_mock_and_wait "mock-mem0" "$LOCAL_MEM0_PORT" "/v1/memories/search_/") || {
+    fail "mock-mem0 didn't start on :$LOCAL_MEM0_PORT"
+    SUMMARY+=("FAIL  $NAME (mock not reachable)")
+    return 1
+  }
+  set +e
+  env MEM0_API_KEY="$MEM0_API_KEY" \
+      MEM0_BASE_URL="http://127.0.0.1:${LOCAL_MEM0_PORT}" \
+      npx tsx scripts/v0.1-day1-verify.ts
+  rc=$?
+  kill -9 "$mock_pid" 2>/dev/null || true
+  set -e
+  if (( rc == 0 )); then
+    ok "$NAME (LOCAL_STACK)"
+    SUMMARY+=("PASS  $NAME (LOCAL_STACK)")
+  else
+    fail "$NAME (exit $rc)"
+    SUMMARY+=("FAIL  $NAME (exit $rc) [LOCAL_STACK]")
+  fi
 else
   run_step "$NAME" env MEM0_API_KEY="$MEM0_API_KEY" \
     npx tsx scripts/v0.1-day1-verify.ts
@@ -166,6 +224,29 @@ fi
 NAME="07 — GraphRAG day-1 verify (5 项真接口)"
 if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
   skip "SKIP_DAY1=1"
+elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
+  banner "Step: $NAME (LOCAL_STACK=1 → scripts/mock-graphrag.ts)"
+  LOCAL_GRAPH_PORT=${LOCAL_GRAPH_PORT:-8765}
+  mock_pid=$(spawn_mock_and_wait "mock-graphrag" "$LOCAL_GRAPH_PORT" "/v1/search") || {
+    fail "mock-graphrag didn't start on :$LOCAL_GRAPH_PORT"
+    SUMMARY+=("FAIL  $NAME (mock not reachable)")
+    return 1
+  }
+  set +e
+  env MEM0_API_KEY="$MEM0_API_KEY" \
+      GRAPHRAG_API_KEY="local-stack-mock-key" \
+      GRAPHRAG_BASE_URL="http://127.0.0.1:${LOCAL_GRAPH_PORT}" \
+      npx tsx scripts/v0.1-graphrag-day1-verify.ts
+  rc=$?
+  kill -9 "$mock_pid" 2>/dev/null || true
+  set -e
+  if (( rc == 0 )); then
+    ok "$NAME (LOCAL_STACK)"
+    SUMMARY+=("PASS  $NAME (LOCAL_STACK)")
+  else
+    fail "$NAME (exit $rc)"
+    SUMMARY+=("FAIL  $NAME (exit $rc) [LOCAL_STACK]")
+  fi
 elif [[ -z "${GRAPHRAG_API_KEY:-}" || -z "${GRAPHRAG_BASE_URL:-}" ]]; then
   skip "GRAPHRAG_API_KEY / GRAPHRAG_BASE_URL not set"
 else
