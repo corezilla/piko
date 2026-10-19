@@ -1,14 +1,97 @@
 // scripts/mock-mem0.ts — minimal local mock matching Mem0 HTTP contract.
 // For sandbox validation of piko Mem0Adapter independent of Mem0 Cloud.
-// Run: MEM0_BASE_URL=http://127.0.0.1:${MOCK_PORT:-9999} tsx scripts/mock-mem0.ts
-// Then: MEM0_BASE_URL=http://127.0.0.1:${MOCK_PORT:-9999} MEM0_API_KEY=anything tsx scripts/v0.1-day1-verify.ts
-// POST /v1/memories/ → returns { results: [{ id }] } matching piko Mem0ApiError code path
-// POST /v1/memories/search/ → returns ranked results, scoped per user_id
+// Run: MOCK_PORT=9999 tsx scripts/mock-mem0.ts
+// Then: MEM0_BASE_URL=http://127.0.0.1:${MOCK_PORT:-9999} MEM0_API_KEY=anything \
+//       tsx scripts/v0.1-day1-verify.ts
+//
+// V0.1.1: Seeds role-scoped "career experience" memories on boot so an
+// agent has history to recall. Mem0 seed content mirrors real lessons
+// from `docs/91_reviews/v0.1-coding-notes-2026-10-18.md` and the
+// Mem0 docs — these are the kind of short, role-anchored notes a real
+// skill-experience workflow would accumulate. Disable via
+// `MOCK_MEM0_SEED=0`.
+//
+// POST /v1/memories/        → { results: [{ id, event: "ADD" }] }
+// POST /v1/memories/search/ → { results: Mem0SearchResult[] } sorted
+//                              by token-overlap score, scoped per user_id
 
 import http from "node:http";
 
-interface Mem { id: string; memory: string; created_at: string; metadata: Record<string, any> }
+interface Mem {
+  id: string;
+  memory: string;
+  created_at: string;
+  metadata: Record<string, any>;
+}
 const stores = new Map<string, Mem[]>();
+
+interface Seed {
+  user_id: string;
+  memory: string;
+  metadata: Record<string, any>;
+}
+
+const SEEDS: Seed[] = [
+  // software_engineer lessons — what a SE on piko accumulates
+  {
+    user_id: "software_engineer:piko",
+    memory:
+      "## When wiring Piko config blocks: prefer sibling fields over provider-switch. V0.1 added `identity.doc_search` beside `identity.memory` because per-role short experience and project-wide corpus are different scopes — forcing one provider for both would break operators who need both.",
+    metadata: { type: "skill_experience", role: "software_engineer", tags: ["piko-design", "config-schema"] },
+  },
+  {
+    user_id: "software_engineer:piko",
+    memory:
+      "## HTTP contract authorship: when no off-the-shelf API exists, define the contract from the client side (request shape + auth + error mapping), document it in the mechanism doc, and let the operator deploy any backend that matches. piko-graphrag-impl.isd.md §11.3 is the canonical example.",
+    metadata: { type: "skill_experience", role: "software_engineer", tags: ["api-design", "graphrag"] },
+  },
+  {
+    user_id: "software_engineer:piko",
+    memory:
+      "## Skill-tool factory pattern: each tool's `execute()` must NEVER throw; it catches `Mem0ApiError` and returns a fallback content like `'memory unavailable: <code>'`. The piko skill-tools.ts Mem0Lookup/Mem0Record are the reference. Don't break this contract when extending.",
+    metadata: { type: "skill_experience", role: "software_engineer", tags: ["mem0", "error-handling"] },
+  },
+  // tester lessons
+  {
+    user_id: "tester:piko",
+    memory:
+      "## Per-role isolation verified via day-1: tester writes, developer search returns []. user_id is `${role}:${project}`. Don't compose memories across roles or expose role-scoped entries from tool factory. The 5-check day-1 verify at scripts/v0.1-day1-verify.ts is the gate.",
+    metadata: { type: "skill_experience", role: "tester", tags: ["mem0", "isolation"] },
+  },
+  {
+    user_id: "tester:piko",
+    memory:
+      "## Day-1 gate failure = V0.1 否决. Per piko-skill-memory.md §13.3, any of the 5 checks failing on a real env is a V0.1 no-go. Don't paper over with mocks.",
+    metadata: { type: "skill_experience", role: "tester", tags: ["go-no-go"] },
+  },
+  // developer lessons
+  {
+    user_id: "developer:piko",
+    memory:
+      "## Commit attribution: end with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>` per the user's session instruction. PR body should also use that attribution.",
+    metadata: { type: "skill_experience", role: "developer", tags: ["process"] },
+  },
+  {
+    user_id: "developer:piko",
+    memory:
+      "## Before any symbol edit, run `node .gitnexus/run.cjs impact <symbol> --direction upstream --repo piko` and warn the user on HIGH/CRITICAL risk. After the diff is staged, run `detect_changes --scope staged` before committing.",
+    metadata: { type: "skill_experience", role: "developer", tags: ["process", "gitnexus"] },
+  },
+];
+
+function seedOnBoot() {
+  if (process.env.MOCK_MEM0_SEED === "0") return;
+  for (const s of SEEDS) {
+    if (!stores.has(s.user_id)) stores.set(s.user_id, []);
+    const arr = stores.get(s.user_id)!;
+    arr.push({
+      id: `seed-${arr.length}-${Math.random().toString(36).slice(2, 8)}`,
+      memory: s.memory,
+      created_at: new Date().toISOString(),
+      metadata: s.metadata,
+    });
+  }
+}
 
 const server = http.createServer((req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -77,7 +160,9 @@ const server = http.createServer((req, res) => {
   });
 });
 
+seedOnBoot();
 const PORT = Number(process.env.MOCK_PORT ?? 9999);
 server.listen(PORT, "127.0.0.1", () => {
-  process.stdout.write(`mock-mem0 listening on http://127.0.0.1:${PORT}\n`);
+  const counts = [...stores.entries()].map(([k, v]) => `${k}=${v.length}`).join(" ");
+  process.stdout.write(`mock-mem0 listening on http://127.0.0.1:${PORT} (seeded: ${counts})\n`);
 });
