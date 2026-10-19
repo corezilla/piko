@@ -192,13 +192,20 @@ These tests pin down the *behavior* (auto-prefetch), not the adapter correctness
 | `src/pi-runtime.ts:execute` | direct to `harness.create` | `await prefetchSkillContext` → then `harness.create` |
 | `buildSystemPrompt` | 2 args | 3 args (added `skillContext?`) |
 | `available` map | unchanged | unchanged (tools stay for additional mid-task queries) |
+| Prefetch cache | n/a | **(V0.1.3) process-scoped LRU** keyed on `(role, user_id, defaultScope)`; first task with a new key runs the fetch, subsequent reuse until `identity` changes |
+| Bypass heuristic | n/a | **(V0.1.3)** skip prefetch when `task.instruction.length < 20` OR `task.flags?.prefetch_disabled === true` OR `task.kind === "no_skill"`; still emit the `=== Context ===` section with `(skipped: <reason>)` |
 | `v0.1-coding-notes §0.9` | n/a | new section recording this decision |
 
-## 7. Open questions
+## 7. Open questions (V0.1.3 锁定)
 
-1. **Prefetch query**: should it be `task.instruction` verbatim, or enriched with `role: ${identity.role}\n${task.instruction}` to bias toward role-relevant experience? *Decision*: use `task.instruction` raw; the `user_id` already biases by role.
-2. **What if `task.instruction` is very long (>1KB)**: cap at 500 chars to keep search query bounded. *Default*: `query.slice(0, 500)`.
-3. **Caching**: should we cache `prefetchSkillContext` results across `execute()` calls within the same process? *Default*: no cache; the backend is fast enough; caching would complicate identity-change scenarios.
+1. **Prefetch query**: `task.instruction` verbatim. Identity role is already encoded in `user_id` (`${role}:${project}`) so role-bias is automatic.
+2. **What if `task.instruction` is very long (>1KB)**: cap at 500 chars to keep search query bounded. `query.slice(0, 500)`.
+3. **Caching**: **V0.1.3 process-scoped LRU** keyed on `(role, user_id, defaultScope)`. First task with a new key runs the fetch; subsequent tasks reuse the cached `SkillContext` until `identity` changes. Bypass the cache when the request comes with a different `task.instruction` (cache stores the most-recently-fetched context for that key, not by query — agent's iteration over the same identity is the unit).
+4. **Bypass conditions** (skip prefetch entirely):
+   - `task.instruction.length < 20` chars (clearly trivial)
+   - `task.flags?.prefetch_disabled === true` (explicit override)
+   - `task.kind === "no_skill"` (operator-set flag for tasks that don't need context — e.g., compute / pure IO)
+   - Even when bypassed, emit the `=== Context ===` section with `(skipped: <reason>)` so the LLM still sees a consistent prompt shape.
 
 ## 8. Roll-out
 
@@ -216,5 +223,7 @@ After operator approval:
 11. Update `scripts/v0.1-real-env-verify.sh` to include a "prefetch happened" smoke check
 
 Steps 1-4 = design phase (this RFC + doc updates). Steps 5-11 = code/debug phase.
+
+**Version discipline**: V0.1.3 is the working branch; do not bump further until steps 5-11 are exercised end-to-end and the verify suite is green. The `V0.2` items that were previously listed in §6 / §0.9.4 are now folded into V0.1.3 (cache, bypass). If during code/debug we discover V0.1.3 needs more, stay on V0.1.3 — bump only on real green.
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
