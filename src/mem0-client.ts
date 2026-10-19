@@ -1,7 +1,20 @@
-// Mem0 HTTP client wrapper for Piko Skill Experience System V0.1
+// Mem0 HTTP client wrapper for Piko Skill Experience System V0.1.1
 //
 // Per design: docs/20_system_design/mechanisms/piko-skill-memory.md
 // Per ISD: docs/50_implementation_design/piko-mem0-client-impl.isd.md §11
+//
+// V0.1.1 update (commit pending): Mem0 Cloud migrated to v3 API.
+//   - Endpoint base path: /v3/memories/  (was /v1/memories/)
+//   - Auth header format: Authorization: Token <key>  (was Bearer)
+//   - search body: { query, filters: { user_id }, top_k }
+//                  (was { query, user_id, limit, filters })
+//   - add body:    { messages, filters: { user_id }, metadata, infer }
+//                  (was { messages, user_id, metadata, infer })
+// V0.1 (legacy) v1 fields are kept in the response-mapping path for
+// back-compat with the unit tests, but the request side is v3-only.
+// A failed v1 401 was confirmed on 2026-10-19 to come from the
+// gateway's djangorestframework-simplejwt middleware that tries to
+// parse opaque keys as JWTs — switching to Token + v3 path resolves.
 
 /**
  * Custom error for Mem0 HTTP API failures.
@@ -85,20 +98,23 @@ export class Mem0Adapter {
     // 2. 计算 maxResults
     const maxResults = options?.max_results ?? 5;
 
-    // 3. 构造请求体
+    // 3. v3: request body wraps user_id inside `filters`, no top-level user_id
     const body = {
       query,
-      user_id,
-      limit: maxResults,
-      filters: options?.filters ?? {},
+      filters: {
+        user_id,
+        ...(options?.filters ?? {}),
+      },
+      top_k: maxResults,
     };
 
-    // 4. 构造 fetch 参数
-    const url = `${this.baseUrl}/v1/memories/search/`;
+    // 4. v3: Token auth header (mem0 Cloud's gateway runs djangorestframework-simplejwt
+    //    and rejects opaque keys sent as `Authorization: Bearer ...` as invalid JWTs)
+    const url = `${this.baseUrl}/v3/memories/search/`;
     const init: RequestInit = {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Token ${this.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -164,20 +180,22 @@ export class Mem0Adapter {
       throw new Error("messages must be non-empty");
     }
 
-    // 3. 构造请求体（V0.1 总是让 Mem0 抽取）
+    // 3. v3: request body wraps user_id inside `filters` (same convention as search)
     const body = {
       messages,
-      user_id,
+      filters: {
+        user_id,
+      },
       metadata: metadata ?? {},
       infer: true,
     };
 
-    // 4. 构造 fetch 参数
-    const url = `${this.baseUrl}/v1/memories/`;
+    // 4. v3: Token + /v3 path
+    const url = `${this.baseUrl}/v3/memories/`;
     const init: RequestInit = {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Token ${this.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
