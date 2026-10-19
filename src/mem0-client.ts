@@ -98,13 +98,32 @@ export class Mem0Adapter {
     // 2. 计算 maxResults
     const maxResults = options?.max_results ?? 5;
 
-    // 3. v3: request body wraps user_id inside `filters`, no top-level user_id
+    // 3. v3: search body — filters wrap the entity_id; allowed keys
+    //    are: agent_id, app_id, categories, created_at, keywords,
+    //    memory_ids, memory_type, run_id, user_id, plus AND/NOT/OR
+    //    combinators. Mem0 v3 rejects `metadata.X` flat keys with
+    //    "Unknown filter key 'metadata.X'"; we translate them into
+    //    v3's nested form (`metadata: { X: ... }`) and `metadata.tags`
+    //    gets mapped to `categories.contains` since v3 separates
+    //    categories from arbitrary metadata.
+    const userFilters = options?.filters ?? {};
+    const translatedFilters: Record<string, any> = { user_id, ...userFilters };
+    if (translatedFilters["metadata.tags"] !== undefined) {
+      const tagVal = translatedFilters["metadata.tags"];
+      translatedFilters.categories = { contains: tagVal };
+      delete translatedFilters["metadata.tags"];
+    }
+    for (const [k, v] of Object.entries(translatedFilters)) {
+      if (k.startsWith("metadata.") && k !== "metadata.tags") {
+        const subKey = k.slice("metadata.".length);
+        translatedFilters.metadata = translatedFilters.metadata ?? {};
+        translatedFilters.metadata[subKey] = v;
+        delete translatedFilters[k];
+      }
+    }
     const body = {
       query,
-      filters: {
-        user_id,
-        ...(options?.filters ?? {}),
-      },
+      filters: translatedFilters,
       top_k: maxResults,
     };
 
@@ -131,16 +150,32 @@ export class Mem0Adapter {
     // 6. 处理响应
     if (response.ok) {
       const data = (await response.json()) as {
-        results?: Array<Partial<Mem0SearchResult>>;
+        results?: Array<{
+          id?: string;
+          memory?: string;
+          score?: number;
+          metadata?: Record<string, any>;
+          created_at?: string;
+          categories?: string[];
+        }>;
       };
       const results = data.results ?? [];
-      return results.map((r) => ({
-        id: r.id ?? "",
-        memory: r.memory ?? "",
-        score: typeof r.score === "number" ? r.score : 0,
-        metadata: r.metadata ?? {},
-        created_at: r.created_at ?? "",
-      }));
+      // Synthesize the v1-style `metadata.tags` shape from v3's
+      // top-level `categories` array so callers (e.g. day-1 verify)
+      // that read `result.metadata.tags.includes(...)` keep working.
+      return results.map((r) => {
+        const meta = { ...(r.metadata ?? {}) } as Record<string, any>;
+        if (r.categories && r.categories.length > 0) {
+          meta.tags = r.categories;
+        }
+        return {
+          id: r.id ?? "",
+          memory: r.memory ?? "",
+          score: typeof r.score === "number" ? r.score : 0,
+          metadata: meta,
+          created_at: r.created_at ?? "",
+        };
+      });
     }
 
     // 7. 非 2xx：抛 Mem0ApiError
@@ -180,18 +215,24 @@ export class Mem0Adapter {
       throw new Error("messages must be non-empty");
     }
 
-    // 3. v3: request body wraps user_id inside `filters` (same convention as search)
-    const body = {
+    // 3. v3: add endpoint uses top-level user_id (NOT inside filters;
+    //    that's a search-only convention). v3 also has dedicated
+    //    top-level `categories` (string array) — we map the legacy
+    //    `metadata.tags` array (if present) onto it so that v3's
+    //    `categories.contains` search filter can find the entry.
+    const tags = (metadata as { tags?: string[] } | undefined)?.tags;
+    const body: Record<string, any> = {
       messages,
-      filters: {
-        user_id,
-      },
-      metadata: metadata ?? {},
+      user_id,
       infer: true,
     };
+    if (tags && tags.length > 0) {
+      body.categories = tags;
+    }
 
-    // 4. v3: Token + /v3 path
-    const url = `${this.baseUrl}/v3/memories/`;
+    // 4. v3: Token + /v3/memories/add/ (note: distinct from /v3/memories/,
+    //    which is a search-only endpoint in v3; add is its own path)
+    const url = `${this.baseUrl}/v3/memories/add/`;
     const init: RequestInit = {
       method: "POST",
       headers: {
@@ -209,13 +250,29 @@ export class Mem0Adapter {
       throw new Mem0ApiError(0, "network", `add failed: ${err}`, err);
     }
 
-    // 6. 处理响应
+    // 6. v3: response is async — returns { event_id, status: "PENDING"|... }
+    //    since fact extraction runs in the background. The day-1 verifier
+    //    (and skill-tools.ts callers) expect `ids[0]` to be the actual
+    //    memory id they can correlate via a follow-up search. We poll the
+    //    search endpoint up to 10s waiting for the LLM to extract and the
+    //    just-added entry to become queryable; if it doesn't appear we
+    //    fall back to the event_id (caller's find-by-id will then fail,
+    //    which is the correct signal of "extraction didn't complete in
+    //    time").
     if (response.ok) {
       const data = (await response.json()) as {
-        results?: Array<{ id?: string }>;
+        event_id?: string;
+        status?: string;
       };
-      const ids = (data.results ?? []).map((r) => r.id ?? "");
-      return { ids };
+      const eventId = data.event_id ?? "";
+      if (eventId) {
+        const memoryId = await this.pollForExtractedMemory(
+          user_id,
+          String(messages[0]?.content ?? "").slice(0, 80),
+        );
+        return { ids: [memoryId ?? eventId] };
+      }
+      return { ids: [] };
     }
 
     // 7. 非 2xx
@@ -228,5 +285,39 @@ export class Mem0Adapter {
       // ignore
     }
     throw new Mem0ApiError(response.status, code, errMessage);
+  }
+
+  /**
+   * After a v3 add() (which returns an async event_id), poll the search
+   * endpoint until the just-added memory becomes queryable. v3's LLM
+   * fact extraction runs server-side and may take several seconds; we
+   * bound the wait at 10s and return the most recently created memory
+   * id that matches `user_id` and `query` (a slice of the original
+   * message). Returns null on timeout — caller falls back to the
+   * event_id, which will fail any follow-up find-by-id lookup.
+   */
+  private async pollForExtractedMemory(
+    user_id: string,
+    query: string,
+  ): Promise<string | null> {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      try {
+        const hits = await this.search(query || " ", user_id, { max_results: 5 });
+        if (hits.length > 0) {
+          // Take the most recently created entry
+          const sorted = hits
+            .slice()
+            .sort((a, b) =>
+              (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+            );
+          if (sorted[0]?.id) return sorted[0].id;
+        }
+      } catch {
+        /* ignore transient poll errors, try again */
+      }
+      await new Promise((r) => setTimeout(r, 700));
+    }
+    return null;
   }
 }
