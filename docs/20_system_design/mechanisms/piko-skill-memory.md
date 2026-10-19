@@ -156,12 +156,16 @@ function mem0_record(args: {
 
 ### 4.3 触发机制
 
-V0.1 阶段不实现全自动检测（V1.x 增量）。提供三种触发方式：
+V0.1.1 假设"agent 主动调"，但 **slinky 派任务过来时只给 raw 描述**，不会告诉 agent 要查记忆或 STD——V0.1.1 的"agent 触发"假设在生产里不成立（qwen3-flash 这类小模型不会自己决定调 tool）。
 
-**方式 A：Agent 主动调用**（V0.1 主要方式）
-- Agent 在任务 review 阶段检查"是否有踩坑/反直觉/重复发生"
-- 命中触发条件时调 `mem0_record`
-- 通过 system prompt / skill 提示让 agent 知道这个流程
+V0.1.3 起改成 **prefetch at task start + 工具保留**：
+
+**方式 A（V0.1.3 默认行为）**：任务入口自动 prefetch
+- `pi-runtime.ts:execute()` 入口（`harness.create` 之前）**自动**跑：
+  - `mem0.search(task.instruction, { user_id: \`${role}:${project}\`, max_results: 5 })`
+  - `graphrag.search(task.instruction, { scope: defaultScope, max_results: 5 })`
+- 结果**注入** `buildSystemPrompt` 的 `=== Context ===` 段，agent 一开始就有相关 past experience 和 design docs 摘要
+- 工具（`mem0_lookup` / `mem0_record` / `graphrag_search`）**仍**在 `available` map，agent 任务进行中可补查
 
 **方式 B：人工手动调用**
 - Slinky Dashboard 提供 UI
@@ -171,6 +175,8 @@ V0.1 阶段不实现全自动检测（V1.x 增量）。提供三种触发方式�
 **方式 C：自动规则触发**（V0.1 不实现，V1.x）
 - 检测任务失败次数、review 被拒次数等指标
 - 阈值触发自动 prompt agent 调用 `mem0_record`
+
+详细决策见 `docs/91_reviews/piko-skill-auto-prefetch-decision.md`（V0.1.3 RFC）。
 
 ---
 

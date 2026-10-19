@@ -323,7 +323,14 @@ const tool = createGraphragSearchTool({
 - 与 Mem0 binding 校验对齐（fail-fast 一致性）
 - 未来 V0.2 想做按 role 限 scope 时无需改工具
 
-### 6.2 buildSystemPrompt 调整
+### 6.2 buildSystemPrompt 调整（V0.1.3：prefetch + 工具）
+
+V0.1 / V0.1.1 / V0.1.2 假设"agent 主动调"，但 slinky 派任务过来时只给 raw 描述——V0.1.3 起改成"prefetch at task start + 工具保留"。详见 `docs/91_reviews/piko-skill-auto-prefetch-decision.md`。
+
+简言之：
+- 任务入口（`pi-runtime.ts:execute()` 在 `harness.create` 之前）**自动**跑 `mem0.search(task.instruction, ...)` 和 `graphrag.search(task.instruction, ...)`
+- 结果**注入** `buildSystemPrompt` 的 `=== Context ===` 段，agent 一开始就有相关 past experience 和 design docs 摘要，**不用**主动调
+- 工具（`graphrag_search`）**仍**在 `available` map，agent 任务进行中可补查
 
 ```
 You have access to a document search tool (project-wide corpus):
@@ -332,6 +339,20 @@ You have access to a document search tool (project-wide corpus):
 Use graphrag_search when you need to recall what the project's specs say 
 before making changes, when verifying a design choice against the existing 
 docs, or when asked about a topic that may be documented.
+```
+
+**V0.1.3 新加：`=== Context ===` 段**（prefetch 注入，agent 任务开始时就看到）：
+
+```
+=== Prior experience for role "tester" (3 most recent) ===
+- "Prefer hermetic tmpdir for test fixtures" (2026-10-12, tags: tests, fixtures)
+- "Mock fetch at the global level, not in adapter" (2026-10-08, tags: tests, mock)
+- ...
+
+=== Relevant project docs (top 3) ===
+- docs/91_reviews/v0.1-coding-notes §0.7: 端到端 piko 跑通 mlx-serve qwen3-8b-flash; piko tool profiles use workspace-exec + mem0_lookup/record/graphrag_search
+- docs/20_system_design/mechanisms/piko-skill-memory.md §3.2: per-role 隔离用 ${role}:${project} 形式 user_id
+- ...
 ```
 
 ---
