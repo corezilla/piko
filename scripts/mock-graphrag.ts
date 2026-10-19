@@ -1,25 +1,32 @@
-// scripts/mock-graphrag.ts — minimal local mock matching GraphRAG HTTP contract.
+// scripts/mock-graphrag.ts — minimal local mock speaking OpenSearch /
+// Elasticsearch `_search` JSON-over-HTTP. Compatible with piko's
+// V0.1.2 GraphRAGAdapter after the OpenSearch _search migration.
 //
-// V0.1.1: Seeds a small corpus of piko design docs + STD template
-// references so a software_engineer agent has context to recall when
-// writing piko code. Disable seeds via MOCK_GRAPH_SEED=0.
+// Seeds a small corpus of piko design docs + STD template refs so a
+// software_engineer agent has context to recall when writing piko code.
+// Disable seeds via MOCK_GRAPH_SEED=0.
 //
 // Run: MOCK_GRAPH_PORT=8765 tsx scripts/mock-graphrag.ts
 // Then point piko at:
 //   MEM0_BASE_URL=http://127.0.0.1:9999  (mock-mem0)
 //   identity.doc_search.base_url=http://127.0.0.1:8765  (this file)
 //
-// POST /v1/search  → { results: GraphRAGSearchResult[] }
+// Per piko-doc-search.md §5.3, the canonical OpenSearch _search contract:
+//   POST /{index}/_search
+//   Authorization: Bearer <api_key>   (ApiKey also accepted)
+//   Body: { size, query: { multi_match: { query, fields, type }, bool?: { filter: [...] } } }
+//   Response: { hits: { hits: [{ _id, _score, _source: { content, metadata, created_at } }] } }
 //
-// Each result exposes the source chunk (`metadata.section`,
-// `metadata.doc`) so the agent can cite where it learned from.
+// For "all" or "_all" index we serve the full corpus (the mock doesn't
+// enforce strict per-index separation; scope is used as a soft filter
+// so callers can still run cross-index queries).
 
 import http from "node:http";
 
 interface Chunk {
   id: string;
-  content: string;
   scope: string;
+  content: string;
   metadata: Record<string, any>;
 }
 
@@ -64,12 +71,16 @@ const CORPUS: Chunk[] = [
     id: "piko-doc-search-mech-1",
     scope: "piko-design-docs",
     content:
-      "## GraphRAG 集成设计（V0.1）\n\n" +
-      "Backend: GraphRAG-style HTTP 后端（operator 自部署或自费商用）。Piko 端不绑实现，只对接 `POST {base_url}/v1/search` 契约。\n\n" +
+      "## GraphRAG 集成设计（V0.1.2 / OpenSearch _search）\n\n" +
+      "Backend: any OpenSearch / Elasticsearch deployment that's reachable from " +
+      "piko. V0.1.2 选了 OpenSearch `_search` JSON-over-HTTP 作为契约，理由是它 " +
+      "是行业主流的向量+全文搜索协议（Elasticsearch / OpenSearch / Bonsai / " +
+      "AWS OpenSearch Service / 自托管 ES 都 speak）。\n\n" +
       "HTTP 契约：\n" +
-      "  Body: { query: string(1-500), scope?: string, filters?: object, max_results?: number[1,20] }\n" +
-      "  Response 200: { results: Array<{ id, content, score, metadata, created_at }> }\n\n" +
-      "scope 由后端定义。V0.1 仅暴露 `graphrag_search` 工具（不暴露 index——indexing 离线运维动作）。",
+      "  POST {base_url}/{index}/_search\n" +
+      "  Body: { size, query: { multi_match: { query, fields }, bool?: { filter } } }\n" +
+      "  Response 200: { hits: { hits: [{ _id, _score, _source: { content, metadata, created_at } }] } }\n\n" +
+      "index（scope）由后端 operator 定义；piko 端不绑定 vendor。",
     metadata: { doc: "docs/20_system_design/mechanisms/piko-doc-search.md", section: "5.3", chunk: 4 },
   },
   {
@@ -117,10 +128,41 @@ const CORPUS: Chunk[] = [
   },
 ];
 
+function tokenScore(haystack: string, tokens: string[]): number {
+  if (tokens.length === 0) return 0;
+  const lower = haystack.toLowerCase();
+  const hits = tokens.filter((t) => lower.includes(t)).length;
+  return hits / tokens.length;
+}
+
+function matchesAllFilters(
+  chunk: Chunk,
+  filterTerms: Array<{ key: string; value: unknown }>,
+): boolean {
+  for (const { key, value } of filterTerms) {
+    // Walk the metadata chain first; fall back to top-level chunk fields.
+    const segs = key.split(".");
+    let cursor: unknown = chunk;
+    for (const s of segs) {
+      if (cursor && typeof cursor === "object" && s in (cursor as Record<string, unknown>)) {
+        cursor = (cursor as Record<string, unknown>)[s];
+      } else {
+        cursor = undefined;
+        break;
+      }
+    }
+    if (cursor !== value) return false;
+  }
+  return true;
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization,Content-Type",
+  );
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -131,52 +173,104 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ message: "method not allowed" }));
   }
 
-  let body = "";
-  req.on("data", (c) => (body += c.toString()));
+  let raw = "";
+  req.on("data", (c) => (raw += c.toString()));
   req.on("end", () => {
     try {
+      // Path: /<index>/_search
       const url = new URL(req.url ?? "", "http://localhost");
-      if (url.pathname !== "/v1/search") {
+      const m = url.pathname.match(/^\/([^/]+)\/_search\/?$/);
+      if (!m) {
         res.writeHead(404);
-        return res.end(JSON.stringify({ message: `not found: ${url.pathname}` }));
+        return res.end(
+          JSON.stringify({
+            error: { type: "not_found", reason: `not found: ${url.pathname}` },
+          }),
+        );
       }
-      const m = JSON.parse(body);
-      const query: string = m.query ?? "";
-      const scope: string = m.scope ?? "all";
-      const limit: number = m.limit ?? 5;
+      const indexName = decodeURIComponent(m[1]);
+      if (indexName !== "_all" && indexName !== "all" && !CORPUS.find((c) => c.scope === indexName)) {
+        res.writeHead(404);
+        return res.end(
+          JSON.stringify({
+            error: { type: "index_not_found", reason: `index '${indexName}' not found` },
+          }),
+        );
+      }
 
-      // Seedless mode
-      let pool = CORPUS;
-      if (process.env.MOCK_GRAPH_SEED === "0") pool = [];
-      // Scope filter
-      const filtered =
-        scope === "all"
-          ? pool
-          : pool.filter((c) => c.scope === scope);
+      const body = raw ? JSON.parse(raw) : {};
+      const multiMatch = body?.query?.multi_match;
+      if (!multiMatch || typeof multiMatch.query !== "string") {
+        res.writeHead(400);
+        return res.end(
+          JSON.stringify({
+            error: {
+              type: "illegal_argument_exception",
+              reason: "query.multi_match.query is required",
+            },
+          }),
+        );
+      }
+      const query = multiMatch.query as string;
+      const topK = Math.min(Math.max(body.size ?? 5, 1), 20);
+      const boolFilter: Array<{ term: Record<string, unknown> }> = Array.isArray(
+        body?.query?.bool?.filter,
+      )
+        ? body.query.bool.filter
+        : [];
+      const filterTerms = boolFilter
+        .map((f) => {
+          const [[key, value]] = Object.entries(f.term ?? {});
+          return { key, value };
+        })
+        .filter((t) => t.key);
+
+      const pool =
+        process.env.MOCK_GRAPH_SEED === "0"
+          ? []
+          : indexName === "_all" || indexName === "all"
+          ? CORPUS
+          : CORPUS.filter((c) => c.scope === indexName);
 
       const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
-      const ranked = filtered
-        .map((c) => {
-          const txt = c.content.toLowerCase();
-          const hits = tokens.filter((t) => txt.includes(t)).length;
-          const score = tokens.length === 0 ? 0 : hits / tokens.length;
-          return {
-            id: c.id,
-            content: c.content,
-            score,
-            metadata: c.metadata,
-            created_at: "2026-10-18T00:00:00Z",
-          };
-        })
-        .filter((r) => r.score > 0)
+      const ranked = pool
+        .map((c) => ({
+          id: c.id,
+          content: c.content,
+          score: tokenScore(c.content, tokens),
+          metadata: c.metadata,
+          created_at: "2026-10-18T00:00:00Z",
+        }))
+        .filter((r) => r.score > 0 && matchesAllFilters(r, filterTerms))
         .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
+        .slice(0, topK);
 
+      // OpenSearch _search response shape
       res.writeHead(200);
-      return res.end(JSON.stringify({ results: ranked }));
+      res.end(
+        JSON.stringify({
+          took: 0,
+          timed_out: false,
+          _shards: { total: 1, successful: 1, skipped: 0, failed: 0 },
+          hits: {
+            total: { value: ranked.length, relation: "eq" },
+            max_score: ranked[0]?.score ?? null,
+            hits: ranked.map((r) => ({
+              _index: indexName,
+              _id: r.id,
+              _score: r.score,
+              _source: {
+                content: r.content,
+                metadata: r.metadata,
+                created_at: r.created_at,
+              },
+            })),
+          },
+        }),
+      );
     } catch (e: any) {
       res.writeHead(500);
-      return res.end(JSON.stringify({ message: String(e?.message ?? e) }));
+      res.end(JSON.stringify({ message: String(e?.message ?? e) }));
     }
   });
 });
@@ -186,6 +280,6 @@ const SEED_ON =
   process.env.MOCK_GRAPH_SEED === "0" ? "off" : `on (${CORPUS.length} chunks)`;
 server.listen(PORT, "127.0.0.1", () => {
   process.stdout.write(
-    `mock-graphrag listening on http://127.0.0.1:${PORT} (seed: ${SEED_ON})\n`,
+    `mock-graphrag (OpenSearch _search) listening on http://127.0.0.1:${PORT} (seed: ${SEED_ON})\n`,
   );
 });

@@ -112,12 +112,19 @@ const server = http.createServer((req, res) => {
   req.on("end", () => {
     const url = new URL(req.url ?? "", "http://localhost");
     try {
-      if (url.pathname === "/v1/memories/") {
+      // v3: add endpoint is /v3/memories/add/ (distinct from /v3/memories/
+      // which is a v3 search/list endpoint). Piko's client surfaces the
+      // v3 `event_id` as ids[0] for backward compat with v1 callers.
+      if (url.pathname === "/v3/memories/add/") {
         const m = JSON.parse(body);
         const user_id: string = m.user_id;
         const content: string = (m.messages ?? []).map((x: any) => x.content).join(" ");
+        const event_id = `mem-${Math.random().toString(36).slice(2, 10)}`;
+        // v3 returns synthetic memory_id = event_id (the mock doesn't
+        // do real async extraction). Piko's client polls search() and
+        // finds the just-stored entry by content match.
         const mem: Mem = {
-          id: `mem-${Math.random().toString(36).slice(2, 10)}`,
+          id: event_id,
           memory: content,
           created_at: new Date().toISOString(),
           metadata: m.metadata ?? {},
@@ -125,14 +132,25 @@ const server = http.createServer((req, res) => {
         if (!stores.has(user_id)) stores.set(user_id, []);
         stores.get(user_id)!.push(mem);
         res.writeHead(200);
-        return res.end(JSON.stringify({ results: [{ id: mem.id, event: "ADD" }] }));
+        return res.end(JSON.stringify({ event_id, status: "PENDING" }));
       }
-      if (url.pathname === "/v1/memories/search/") {
-        const m = JSON.parse(body);
-        const user_id: string = m.user_id;
-        const limit: number = m.limit ?? 5;
-        const mems = stores.get(user_id) ?? [];
-        const tokens = (m.query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+      // v3: search/list uses /v3/memories/search/ (search w/ query)
+      // and /v3/memories/ (list w/o query, just filters). We support
+      // both for piko's adapter (which uses /v3/memories/search/) and
+      // for the verify script's `spawn_mock_and_wait` probe path
+      // (which can hit either).
+      const isSearch = url.pathname === "/v3/memories/search/";
+      const isList = url.pathname === "/v3/memories/";
+      if (isSearch || isList) {
+        const m = body ? JSON.parse(body) : {};
+        // v3: user_id is inside `filters`, not top-level
+        const user_id: string =
+          m.filters?.user_id ?? m.user_id ?? "";
+        // v3: top_k is the size field (search) or absent (list)
+        const limit: number = m.top_k ?? m.size ?? 5;
+        const mems = user_id ? stores.get(user_id) ?? [] : [];
+        const query: string = m.query?.multi_match?.query ?? m.query ?? "";
+        const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
         const ranked = mems
           .map((mem) => {
             const hits = tokens.filter((t) => (mem.memory ?? "").toLowerCase().includes(t)).length;
@@ -149,6 +167,7 @@ const server = http.createServer((req, res) => {
           .sort((a, b) => b.score - a.score)
           .slice(0, limit);
         res.writeHead(200);
+        // v3 search response: { results: [...] } (used by piko adapter)
         return res.end(JSON.stringify({ results: ranked }));
       }
       res.writeHead(404);

@@ -1,12 +1,53 @@
-// GraphRAG-style document search HTTP client wrapper for Piko Doc Search V0.1
+// GraphRAG-style document search HTTP client wrapper for Piko Doc Search
 //
 // Per design: docs/20_system_design/mechanisms/piko-doc-search.md
 // Per ISD: docs/50_implementation_design/piko-graphrag-impl.isd.md §11
 //
-// Thin HTTP wrapper around an externalized doc-corpus search service. The
-// API contract (POST {base_url}/v1/search) is defined per the mechanism doc;
-// the actual backend is operator-deployed (no off-the-shelf GraphRAG Cloud
-// vendor is universally available in 2026).
+// V0.1.2: Piko's client no longer defines its own contract. We adopt
+// the OpenSearch / Elasticsearch `_search` JSON-over-HTTP API, which is
+// the industry-mainstream vector+keyword search protocol (compatible
+// with Elasticsearch, OpenSearch, Bonsai, Elastic Cloud, AWS
+// OpenSearch Service, self-hosted). Any operator-deployed service
+// that exposes `/{index}/_search` works as the backend; piko does
+// not define or wrap a custom protocol.
+//
+// Wire contract (see piko-doc-search.md §5.3 for the canonical spec):
+//   POST {base_url}/{index}/_search
+//   Authorization: Bearer {api_key}     (also accepts ApiKey for OS 2.x)
+//   Content-Type: application/json
+//   Body:
+//     {
+//       "size":  N,                       // 1..20
+//       "query": {
+//         "multi_match": {
+//           "query": "<text>",
+//           "fields": ["content^2", "title"],
+//           "type":  "best_fields"
+//         },
+//         "bool": {                       // present iff piko caller passed `filters`
+//           "filter": [ { "term": { <key>: <value> } }, ... ]
+//         }
+//       }
+//     }
+//   Response 200:
+//     {
+//       "hits": {
+//         "hits": [
+//           {
+//             "_id":     "<chunk id>",
+//             "_score":  <number>,
+//             "_source": {
+//               "content":    "<text>",
+//               "metadata":   { ... },
+//               "created_at": "<iso>"
+//             }
+//           },
+//           ...
+//         ]
+//       }
+//     }
+//   Response 404: index not found → GraphRAGApiError code=not_found
+//   Response 5xx/4xx → GraphRAGApiError with semantic code mapping
 
 /**
  * Custom error for GraphRAG HTTP API failures.
@@ -36,12 +77,15 @@ export interface GraphRAGSearchResult {
 
 /** Options for search(). */
 export interface GraphRAGSearchOptions {
-  /** Corpus scope identifier. Backend-defined (e.g. "piko-design-docs",
-   *  "std-templates", "all"). Defaults to "all" on the wire when omitted. */
+  /** OpenSearch index name. Backend-defined (e.g. "piko-design-docs",
+   *  "std-templates", "_all"). Defaults to `defaultScope` on the
+   *  adapter, then "all". */
   scope?: string;
-  /** Backend-defined filter expression. Forwarded as-is. */
+  /** OpenSearch filter terms. Each key/value becomes a
+   *  `bool.filter: [{ term: { k: v } }]` clause. */
   filters?: Record<string, any>;
-  /** Maximum results. Caller is responsible for the [1, 20] bound (schema-enforced). */
+  /** Maximum results. Caller is responsible for the [1, 20] bound
+   *  (schema-enforced). Mapped to OpenSearch `size`. */
   max_results?: number;
 }
 
@@ -52,21 +96,26 @@ function mapStatusToCode(status: number): string {
   if (status === 404) return "not_found";
   if (status === 429) return "rate_limited";
   if (status >= 500 && status < 600) return "server_error";
-  // 其他 4xx 也归 server_error（client bug，归 operator 修）
   return "server_error";
 }
 
 /**
- * Stateless HTTP client for a GraphRAG-style document search backend.
- * Construct one per process; share across tasks safely.
+ * Stateless HTTP client for an OpenSearch / Elasticsearch _search
+ * backend. Construct one per process; share across tasks safely.
  *
- * Differs from Mem0Adapter: scope is project-level (not per-role),
- * and V0.1 only exposes search (indexing is an offline operator action).
+ * V0.1 only exposes search (indexing is an offline operator action).
  */
 export class GraphRAGAdapter {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey: string,
+    /**
+     * Default OpenSearch index to query when the caller doesn't pass
+     * `options.scope`. Typically set by Piko to the per-role
+     * `IdentityConfig.doc_search.default_scope`. Falls back to "all"
+     * which most OpenSearch deployments alias to `_all`.
+     */
+    private readonly defaultScope: string = "all",
   ) {}
 
   /**
@@ -82,21 +131,36 @@ export class GraphRAGAdapter {
     query: string,
     options?: GraphRAGSearchOptions,
   ): Promise<GraphRAGSearchResult[]> {
-    // 1. 校验 query
     if (!query || query.trim() === "") {
       throw new Error("query required");
     }
 
-    // 2. 构造请求体（V0.1：不做模型侧过滤，全交给后端）
-    const body = {
-      query,
-      scope: options?.scope ?? "all",
-      filters: options?.filters ?? {},
-      max_results: options?.max_results ?? 5,
-    };
+    // Resolve index: per-call scope > adapter defaultScope > "all"
+    const index = encodeURIComponent(
+      options?.scope ?? this.defaultScope ?? "all",
+    );
+    const url = `${this.baseUrl.replace(/\/+$/, "")}/${index}/_search`;
 
-    // 3. 构造 fetch 参数
-    const url = `${this.baseUrl}/v1/search`;
+    // Build OpenSearch request body. `multi_match` on content+title
+    // is the standard piko search pattern; content is weighted higher
+    // (^2) because title is often short and noisy.
+    const topK = options?.max_results ?? 5;
+    const queryClause: Record<string, any> = {
+      multi_match: {
+        query,
+        fields: ["content^2", "title"],
+        type: "best_fields",
+      },
+    };
+    // piko filter dict → OpenSearch `bool.filter` term clauses
+    const filterEntries = Object.entries(options?.filters ?? {});
+    if (filterEntries.length > 0) {
+      queryClause.bool = {
+        filter: filterEntries.map(([k, v]) => ({ term: { [k]: v } })),
+      };
+    }
+    const body = { size: topK, query: queryClause };
+
     const init: RequestInit = {
       method: "POST",
       headers: {
@@ -106,7 +170,6 @@ export class GraphRAGAdapter {
       body: JSON.stringify(body),
     };
 
-    // 4. 发起 fetch（catch 抛 GraphRAGApiError(0, "network")）
     let response: Response;
     try {
       response = await fetch(url, init);
@@ -114,27 +177,42 @@ export class GraphRAGAdapter {
       throw new GraphRAGApiError(0, "network", `search failed: ${err}`, err);
     }
 
-    // 5. 处理响应
     if (response.ok) {
       const data = (await response.json()) as {
-        results?: Array<Partial<GraphRAGSearchResult>>;
+        hits?: {
+          hits?: Array<{
+            _id?: string;
+            _score?: number;
+            _source?: {
+              content?: string;
+              metadata?: Record<string, any>;
+              created_at?: string;
+            };
+          }>;
+        };
       };
-      const results = data.results ?? [];
-      return results.map((r) => ({
-        id: r.id ?? "",
-        content: r.content ?? "",
-        score: typeof r.score === "number" ? r.score : 0,
-        metadata: r.metadata ?? {},
-        created_at: r.created_at ?? "",
-      }));
+      const hits = data.hits?.hits ?? [];
+      return hits.map((h) => {
+        const src = h._source ?? {};
+        return {
+          id: h._id ?? "",
+          content: src.content ?? "",
+          score: typeof h._score === "number" ? h._score : 0,
+          metadata: src.metadata ?? {},
+          created_at: src.created_at ?? "",
+        };
+      });
     }
 
-    // 6. 非 2xx：抛 GraphRAGApiError
     const code = mapStatusToCode(response.status);
     let errMessage = response.statusText;
     try {
-      const errBody = (await response.json()) as { message?: string };
-      if (errBody.message) errMessage = errBody.message;
+      const errBody = (await response.json()) as {
+        error?: { reason?: string; type?: string };
+        message?: string;
+      };
+      if (errBody.error?.reason) errMessage = errBody.error.reason;
+      else if (errBody.message) errMessage = errBody.message;
     } catch {
       // ignore JSON parse failure, use statusText
     }

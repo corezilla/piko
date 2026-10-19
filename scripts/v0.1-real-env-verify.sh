@@ -195,11 +195,11 @@ if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
 elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
   banner "Step: $NAME (LOCAL_STACK=1 → scripts/mock-mem0.ts)"
   LOCAL_MEM0_PORT=${LOCAL_MEM0_PORT:-9999}
-  mock_pid=$(spawn_mock_and_wait "mock-mem0" "$LOCAL_MEM0_PORT" "/v1/memories/search_/") || {
+  mock_pid=$(spawn_mock_and_wait "mock-mem0" "$LOCAL_MEM0_PORT" "/v3/memories/search/") && rc=0 || rc=1
+  if (( rc != 0 )); then
     fail "mock-mem0 didn't start on :$LOCAL_MEM0_PORT"
     SUMMARY+=("FAIL  $NAME (mock not reachable)")
-    return 1
-  }
+  else
   set +e
   env MEM0_API_KEY="$MEM0_API_KEY" \
       MEM0_BASE_URL="http://127.0.0.1:${LOCAL_MEM0_PORT}" \
@@ -214,6 +214,7 @@ elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
     fail "$NAME (exit $rc)"
     SUMMARY+=("FAIL  $NAME (exit $rc) [LOCAL_STACK]")
   fi
+  fi
 else
   run_step "$NAME" env MEM0_API_KEY="$MEM0_API_KEY" \
     npx tsx scripts/v0.1-day1-verify.ts
@@ -227,11 +228,11 @@ if [[ "${SKIP_DAY1:-0}" == "1" ]]; then
 elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
   banner "Step: $NAME (LOCAL_STACK=1 → scripts/mock-graphrag.ts)"
   LOCAL_GRAPH_PORT=${LOCAL_GRAPH_PORT:-8765}
-  mock_pid=$(spawn_mock_and_wait "mock-graphrag" "$LOCAL_GRAPH_PORT" "/v1/search") || {
+  mock_pid=$(spawn_mock_and_wait "mock-graphrag" "$LOCAL_GRAPH_PORT" "/piko-design-docs/_search") && rc=0 || rc=1
+  if (( rc != 0 )); then
     fail "mock-graphrag didn't start on :$LOCAL_GRAPH_PORT"
     SUMMARY+=("FAIL  $NAME (mock not reachable)")
-    return 1
-  }
+  else
   set +e
   env MEM0_API_KEY="$MEM0_API_KEY" \
       GRAPHRAG_API_KEY="local-stack-mock-key" \
@@ -246,6 +247,7 @@ elif [[ "${LOCAL_STACK:-0}" == "1" ]]; then
   else
     fail "$NAME (exit $rc)"
     SUMMARY+=("FAIL  $NAME (exit $rc) [LOCAL_STACK]")
+  fi
   fi
 elif [[ -z "${GRAPHRAG_API_KEY:-}" || -z "${GRAPHRAG_BASE_URL:-}" ]]; then
   skip "GRAPHRAG_API_KEY / GRAPHRAG_BASE_URL not set"

@@ -111,7 +111,11 @@ export class PiRuntime {
 
     // V0.1: 同模式构造 GraphRAGAdapter（项目级文档语料，与 memory 并列）
     if (config.identity?.doc_search && graphragApiKey) {
-      this.graphragAdapter = new GraphRAGAdapter(config.identity.doc_search.base_url, graphragApiKey);
+      this.graphragAdapter = new GraphRAGAdapter(
+        config.identity.doc_search.base_url,
+        graphragApiKey,
+        config.identity.doc_search.default_scope,
+      );
     } else if (config.identity?.doc_search && !graphragApiKey) {
       // 配了 doc_search 但缺 key → fail-fast
       throw new Error("graphragApiKey required when identity.doc_search configured");
