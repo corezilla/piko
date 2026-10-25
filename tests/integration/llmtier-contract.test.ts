@@ -45,7 +45,11 @@ async function makeStack(mock: MockLlmtier, opts?: { timeoutMs?: number }) {
   const server = await ApiServer.create(config, store, new BearerAuth("slinky", Buffer.from("test-token")));
   await server.listen();
   const channel = new LocalChannel(new FactHandler(store));
-  const pi = new PiRuntime(config, tools, store, channel, "test-key");
+  // runtime.example.json sets identity.memory + identity.doc_search, and
+  // PiRuntime fails fast when either adapter lacks a key. These suites drive a
+  // mocked LLMTier and never invoke the mem0/graphrag tools, so dummy keys are
+  // enough to reach construction.
+  const pi = new PiRuntime(config, tools, store, channel, "test-key", "test-mem0-key", "test-graphrag-key");
   const worker = new RunWorker(config, store, pi, matrix, new Transfer(config), channel);
   worker.start();
   const stack: Stack = {
