@@ -14,6 +14,7 @@ import { GraphRAGAdapter } from "./graphrag-client.js";
 import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "./skill-tools.js";
 import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-tools.js";
 import { installNetworkPolicy, restoreNetworkPolicy } from "./tool-host-policy.js";
+import { assertExecutablesAllowed } from "./tool-exec-policy.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
@@ -212,6 +213,15 @@ export class PiRuntime {
         const write=event.toolName==="write"||event.toolName==="edit";
         const staging=resolve(this.config.workspace.staging_root,runId),candidate=resolve(path),rel=relative(staging,candidate),stagedRead=!write&&(rel===""||(!rel.startsWith(`..${sep}`)&&rel!==".."&&!rel.startsWith(sep)));
         if(!stagedRead)try{await authorizePath(workspace,path,write?task.permissions.write_paths:task.permissions.read_paths,write)}catch(error){toolFailure=error instanceof Error?error.message:String(error);return {block:{reason:toolFailure,terminate:true}}}
+      }
+      // MECH-TESTEXEC §3: executable allowlist. Enforced BEFORE env.exec, so a
+      // rejected command has no side effects. The allowlist bounds which
+      // binaries may be launched; the instruction (from slinky) decides which
+      // command to run. Empty allowlist = no restriction.
+      const execAllowlist=policy.permissions?.executables??[];
+      if(execAllowlist.length>0){
+        const command=typeof event.args.command==="string"?event.args.command:undefined;
+        if(command!==undefined)try{assertExecutablesAllowed(command,execAllowlist)}catch(error){toolFailure=error instanceof Error?error.message:String(error);return {block:{reason:toolFailure,terminate:true}}}
       }
       const admission=(await this.channel.report({kind:"reserveTool",task_id:runId,operation:event.runId,tool_call_id:event.toolCallId,name:event.toolName,effect:policy.effect,replay:policy.replay,contract:policy.recovery_contract_ref})).value as "Admitted"|"UnsafeRetryBlocked";
       if(admission==="UnsafeRetryBlocked"){unsafeRetry=true;return {block:{reason:"UnsafeRetryBlocked",terminate:true}}}return undefined;

@@ -1,9 +1,10 @@
 import { mkdtemp,readFile,rm,writeFile } from "node:fs/promises";
+import { existsSync,mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach,describe,expect,it } from "vitest";
 import { BACKGROUND_CONTEXT } from "../../upstream/pi/packages/agent/src/harness/context.ts";
-import { createEditTool,createReadTool,createWriteTool } from "../../upstream/pi/packages/agent/src/harness/tools/index.ts";
+import { createBashTool,createEditTool,createReadTool,createWriteTool } from "../../upstream/pi/packages/agent/src/harness/tools/index.ts";
 import type { AgentHarnessToolInvocation } from "../../upstream/pi/packages/agent/src/harness/types.ts";
 import type { JsonValue } from "../../upstream/pi/packages/agent/src/harness/session/types.ts";
 import { DurableNodeExecutionEnv } from "../../src/durable-fs.js";
@@ -51,5 +52,42 @@ describe("workspace write recovery",()=>{
     const tool=applyToolRecoveryPolicy(createWriteTool(),policy,registry);const inv=invocation();inv.memos.set("workspace-write-plan",{version:1,before:7} as any);const context={env:new DurableNodeExecutionEnv({cwd:root})};
     await expect(tool.execute("call",{path:"x.txt",content:"after\n"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/Invalid durable recovery plan/);
     expect(await readFile(join(root,"x.txt"),"utf8")).toBe("before\n");
+  });
+});
+
+describe("MECH-TESTEXEC · executable allowlist enforcement",()=>{
+  const execPolicy:ToolPolicy={effect:"process",replay:"never",permissions:{executables:["python3","pytest","ls"]}};
+  function bashTool(allowlist:string[]=["python3","pytest","ls"]){
+    const tool=applyToolRecoveryPolicy(createBashTool(),{...execPolicy,permissions:{executables:allowlist}},registry);
+    const inv=invocation();
+    const root=mkdtempSync(join(tmpdir(),"piko-exec-"));roots.push(root);
+    const context={env:new DurableNodeExecutionEnv({cwd:root})};
+    return {tool,inv,context,root};
+  }
+  it("allows a command whose executable is on the allowlist",async()=>{
+    const {tool,inv,context}=bashTool();
+    await tool.execute("call",{command:"ls"},()=>{},context,inv.value,BACKGROUND_CONTEXT);
+  });
+  it("rejects an executable that is not on the allowlist",async()=>{
+    const {tool,inv,context}=bashTool();
+    await expect(tool.execute("call",{command:"rm -rf /"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/executable not allowed/);
+  });
+  it("rejects when a chained command is not on the allowlist",async()=>{
+    const {tool,inv,context}=bashTool();
+    await expect(tool.execute("call",{command:"ls; rm -rf /"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/executable not allowed/);
+    await expect(tool.execute("call",{command:"ls && curl http://evil"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/executable not allowed/);
+  });
+  it("has no side effects when a command is rejected",async()=>{
+    const {tool,inv,context,root}=bashTool();
+    await expect(tool.execute("call",{command:"ls; touch created.txt"},()=>{},context,inv.value,BACKGROUND_CONTEXT)).rejects.toThrow(/executable not allowed/);
+    expect(existsSync(join(root,"created.txt"))).toBe(false);
+  });
+  it("treats an empty allowlist as no restriction",async()=>{
+    const {tool,inv,context}=bashTool([]);
+    await tool.execute("call",{command:"ls"},()=>{},context,inv.value,BACKGROUND_CONTEXT);
+  });
+  it("leaves tools without a command argument untouched",async()=>{
+    const tool=applyToolRecoveryPolicy(createReadTool(),{effect:"read_only",replay:"safe",permissions:{executables:["python3"]}},registry);
+    expect(tool.replay).toBe("safe");
   });
 });

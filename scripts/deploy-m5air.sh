@@ -73,6 +73,10 @@ p.write_text(json.dumps(d, indent=2))
 print('  runtime.example.json configured')
 PY"
 
+# The LLMTier wire-conformance test reads the LLMTier OpenAPI spec by absolute
+# path; point it at the m5air checkout so the suite is green there too.
+ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && sed -i.bak 's#/Users/ben/work/LLMTier#/Users/mlp/work/LLMTier#g' tests/integration/llmtier-contract.test.ts"
+
 # ---------------------------------------------------------------- 2. vendored Pi
 echo "[deploy] syncing vendored upstream/pi"
 rsync -az --exclude 'node_modules' "$REPO_ROOT/upstream/pi/" "${M5AIR_HOST}:${M5AIR_ROOT}/upstream/pi/"

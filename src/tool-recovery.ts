@@ -15,6 +15,7 @@ import {
 import { resolveToolPath } from "../upstream/pi/packages/agent/src/harness/tools/path-utils.ts";
 import type { ExecutionToolContext } from "../upstream/pi/packages/agent/src/harness/tools/tool-context.ts";
 import type { ToolPolicy, ToolRegistry } from "./config.js";
+import { assertExecutablesAllowed } from "./tool-exec-policy.js";
 import { enterNetworkScope, exitNetworkScope } from "./tool-host-policy.js";
 
 type RecoveryPlan = {
@@ -110,10 +111,30 @@ export function applyToolRecoveryPolicy(
     }) as F;
   };
 
-  if(policy.replay==="never")return {...base,replay:"never",execute:withNetwork(base.execute)};
-  if(policy.effect==="read_only")return {...base,replay:"safe",execute:withNetwork(base.execute)};
+  // MECH-TESTEXEC §3: executable allowlist, enforced at the tool seam so it
+  // applies to every process-class tool regardless of how the call arrives.
+  // PiRuntime's before_tool hook performs the same check earlier (it can
+  // block the call with a clean reason); this layer is the backstop that
+  // guarantees the check cannot be skipped by a caller that bypasses hooks.
+  //
+  // Empty allowlist = no restriction, mirroring network_hosts semantics.
+  const execAllowlist = policy.permissions?.executables ?? [];
+  const withExecGuard = <F extends (...args: any[]) => Promise<any>>(fn: F): F => {
+    if (execAllowlist.length === 0) return fn;
+    return (async (...args: Parameters<F>) => {
+      const params = args[1] as { command?: unknown } | undefined;
+      if (typeof params?.command === "string") {
+        assertExecutablesAllowed(params.command, execAllowlist);
+      }
+      return await fn(...args);
+    }) as F;
+  };
+  const guard = <F extends (...args: any[]) => Promise<any>>(fn: F): F => withExecGuard(withNetwork(fn));
+
+  if(policy.replay==="never")return {...base,replay:"never",execute:guard(base.execute)};
+  if(policy.effect==="read_only")return {...base,replay:"safe",execute:guard(base.execute)};
   const contract=policy.recovery_contract_ref&&registry.recovery_contracts[policy.recovery_contract_ref];
   if(!contract||contract.implementation_ref!=="builtin:workspace-atomic-write")throw new Error(`Safe replay for ${base.name} has no executable recovery contract`);
   if(base.name!=="write"&&base.name!=="edit")throw new Error(`builtin:workspace-atomic-write does not support ${base.name}`);
-  return {...base,replay:"safe",execute:withNetwork((id,params,update,context,invocation,runContext)=>executeRecoverable(base,id,params,update,context,invocation,runContext))};
+  return {...base,replay:"safe",execute:guard((id,params,update,context,invocation,runContext)=>executeRecoverable(base,id,params,update,context,invocation,runContext))};
 }
