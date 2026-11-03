@@ -321,7 +321,8 @@ flowchart LR
     replay: "never" | "safe";
     recovery_contract_ref: string | null;
     permissions: { read_paths?: string[]; write_paths?: string[];
-                   executables?: string[]; network_hosts?: string[] };
+                   executables?: string[]; network_hosts?: string[];
+                   remote_hosts?: string[] };   // V0.1.3：远程执行目标主机
   }
   interface BoundToolProfile {
     readonly profile_version: "0.3";

@@ -293,8 +293,9 @@ Piko 采用"无 subsystem"结构：11 个直属模块按职责分 5 个功能分
 | MECH-RECOVERY · 进程崩溃后恢复 | MECH-RUN | `worker` M005 + `task-repository` M003 + `pi-adapter` M006 + `scheduler` M004（新 lease）；Constraint 需求 PK-12 | MECH-RUN | `piko-recovery.md`（v0.6.0，已建；本轮修订） | Draft / PK-T12 |
 | MECH-CANCEL · Run 取消分流 | MECH-RUN | `task-api` M001 + `task-repository` M003 + `worker` M005；Constraint 需求 PK-04（本版撤销，取消分流语义保留） | MECH-RUN | `piko-cancel.md`（v0.2.0，已建；本轮修订） | Draft / PK-T05 |
 | MECH-TRANSFER · 数据面输入拉取 / 产出投递 | MECH-RUN | `task-api` M001 + `worker` M005 + `transfer` M010 + `task-repository` M003 + `policy` M002；Constraint 需求 PK-21 | MECH-RUN | `piko-transfer.md`（v0.1.0，新建） | Draft / PK-T41/PK-T42 |
+| MECH-TESTEXEC · 测试执行：远程执行 + 可执行文件白名单 + 执行事实 | MECH-RUN | `pi-adapter` M006（执行接缝）+ `worker` M005（Result 汇总）+ `policy` M002（白名单授权）+ `transfer` M010（SSH 凭据骨架）；Constraint 需求 PK-06/PK-21 | MECH-RUN | `piko-test-execution.md`（v0.1.0，新建） | Draft / 新增 PK-T（待编号） |
 
-> 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-RUN 是机制族设计锚点（`parent none`、`prereq none`）；其余 7 个以 MECH-RUN 为归属父项，且不构成前置依赖循环（CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL/TRANSFER 的 prereq 单向指向 MECH-RUN 或 MECH-CONFIG）。
+> 机制归属规则：仅当共同协议或运行职责跨 ≥ 2 个直属模块时建独立 `design.system-mechanism` 文档；否则归模块设计自身描述。MECH-RUN 是机制族设计锚点（`parent none`、`prereq none`）；其余 8 个以 MECH-RUN 为归属父项，且不构成前置依赖循环（CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL/TRANSFER/TESTEXEC 的 prereq 单向指向 MECH-RUN 或 MECH-CONFIG）。
 
 **3.5.1 机制依赖矩阵（唯一权威）**
 

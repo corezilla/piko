@@ -430,10 +430,12 @@ flowchart LR
     partial: boolean; summary: string;
     outputs: OutputArtifact[]; known_actions: KnownAction[];
     usage: TokenUsage; failure: Failure | null; published_at: string;
+    executions: ExecutionFact[];   // V0.1.3：执行事实（exit code / 超时 / 时序）
   }
   ```
 
 - **逐字段类型/范围/初值/不变量/owner**：`generation >= 1`；`Completed ⟹ failure=null ∧ partial=false`；`Failed ⟹ failure≠null`；`Cancelled ⟹ failure.code=CancelledByRequest ∧ cause_class=Cancellation`。owner = worker 构造、M003 持久化；发布后不可变。
+- **`executions`（V0.1.3）**：每个 process 类工具执行一条；`status ∈ exited|timeout|aborted|spawn_error|policy_denied`；`exit_code` 在 `exited` 时必有值。`report_missing` 语义：任务声明 `output_paths` 但一个都没回收成功 → 执行失败事实。authority = `docs/20_system_design/mechanisms/piko-test-execution.md` §5。
 
 - **创建/借用/释放/失败路径**：`buildResult` 构造；发布失败（校验/`FencedWrite`）不产生持久记录。
 

@@ -6,14 +6,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-agent-runtime-contract-v0.3` |
-| Document Version | `0.4.1` |
+| Document Version | `0.4.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko Contract Owner |
 | Authors | corezilla |
 | Created Date | `2026-09-07` |
-| Last Modified Date | `2026-09-28` |
+| Last Modified Date | `2026-11-03` |
 | Template ID | `contracts.specification` |
 | Template Version | `0.4.2` |
 | Template Conformance | `tailored` |
@@ -56,6 +56,10 @@
 结果包含状态、partial、summary、outputs、known_actions、task token usage 和 failure。`Completed` 强制 `partial=false/failure=null`；`Failed` 必须有 failure；`Cancelled` 必须映射 `CancelledByRequest/Cancellation`。`Completed` 不代表业务接受。失败也必须尽可能返回部分输出、已知动作和 usage。Usage 的 Complete/Partial/Unknown 与 null/missing_fields 由机器 Schema 约束；每个 token 字段只有在全部 durable Pi provider-effect attempt 都提供该字段时才返回完整 sum，否则为 null 并列入 missing_fields。Complete 表示六项都完整，Partial 表示部分字段完整，Unknown 表示无字段能完整聚合；Unknown 的 usage_observed_attempts 可以非零。零模型调用的 Cancelled Result 使用全零 Complete。跨字段attempt数量、加法与token子集关系由契约版本绑定的executable semantic validator在Result持久化前强制；Schema `x-semantic-invariants`列出相同规则。Result 发布冻结 UsageSnapshot，迟到 usage 不修改 generation；未知不填零。Cost 不存在于本契约。
 
 **执行统计**。`Result.stats` 提供 `model_calls`（逻辑调用，不含重试）/`tool_calls`/`duration_ms`/`outputs_count`/`outputs_bytes`；token 明细仍见 `usage`。
+
+**执行事实（V0.1.3）**。`Result.executions[]` 给出每个 process 类工具执行的可机器判定事实：`exit_code`（`status=exited` 时必有值）、`status`（`exited|timeout|aborted|spawn_error|policy_denied`）、`timed_out`、`truncated`、起止时间与 `duration_ms`。**`summary` 是模型自述的自然语言，不构成执行判定依据**；消费方（Oracle 比较）必须用 `executions[]` 与 `outputs[]`，不得以 `summary` 判定成功。任务声明了 `output_paths` 但一个都没回收成功时，该执行是**失败事实**（报告缺失），不是成功。**SSH 客户端退出不等于远端进程已停止**：`status=aborted` 或 `timeout` 时远端停止状态为未知，产出方不得宣称已终止。语义来源见 `docs/20_system_design/mechanisms/piko-test-execution.md` §5。
+
+**工具授权边界（V0.1.3）**。tool profile 的 `permissions.executables`（可执行文件白名单）与 `permissions.remote_hosts`（远程执行目标主机白名单）由 Piko 在工具调用前**强制执行**，不依赖模型自觉。`executables` 按**可执行文件**粒度（不是命令内容粒度）；空 allowlist = 不限制。白名单外可执行文件与白名单外 host 均**拒绝执行且无副作用**。`remote_hosts` 与 `network_hosts` 是**独立** allowlist：远程执行目标主机与网络出站目标不是一回事。
 
 **投递与 Result 解耦**。`Result` **不含投递状态**；产出是否可读见 `TaskView.artifact_delivery`（`none|pending|in_progress|delivered|partial|failed`），**读产出字节前必须确认 `state=delivered`**（`partial` 时按 `delivered[]`）。产出投递**不改变执行终态**：投递失败时 `Result` 与 `failure` 不变。输入拉取失败是**执行前提失败**：零调用 `Failed`，`failure.code=InputFetchFailed`（`cause_class=Dependency`）。输入预备状态见 `TaskView.input_staging`（`none|pending|in_progress|ready|failed`）。
 

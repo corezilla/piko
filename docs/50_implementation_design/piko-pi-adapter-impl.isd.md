@@ -688,9 +688,9 @@ pi-adapter 的对外接口是 §5.1 的七个函数与 §5.1.8 hook 桥；被消
 - **完整签名与 caller**：`install(harness: AgentHarness, ctx: HookContext): void`；caller = `PiRuntime` 在 `AgentHarness.create` 后装配。
 - **固定契约与版本**：模块设计 §8.3/§8.5/§8.6。
 - **输入参数 / 数据结构 authority**：`harness`；`ctx{config, registry, store, runId, epoch, task, profile, active}`。
-- **输入约束 / 校验顺序 / 失败映射**：`before_request`：写 attempt 身份（记录 attempt）；`onRawUsage`：构造 `RawUsage` → `observeUsage`；`before_tool`：profile 检查 → 路径授权 → `reserveTool`；`after_tool`/`tool_end`：terminal。
+- **输入约束 / 校验顺序 / 失败映射**：`before_request`：写 attempt 身份（记录 attempt）；`onRawUsage`：构造 `RawUsage` → `observeUsage`；`before_tool`：profile 检查 → 路径授权 → **可执行文件白名单（V0.1.3）** → `reserveTool`；`after_tool`/`tool_end`：terminal。
 - **成功输出 / 数据结构 / 后置条件**：无返回；`model_attempts`/`tool_calls` 事实更新。
-- **错误输出 / 触发条件 / 优先级**：block 决策：`UnsafeRetryBlocked`（never）、越界路径；写入失败记录不中断。
+- **错误输出 / 触发条件 / 优先级**：block 决策：`UnsafeRetryBlocked`（never）、越界路径、**白名单外可执行文件（V0.1.3）**；写入失败记录不中断。
 - **底层异常 / 失败事实**：M003 端口抛错；`reserveTool` 判别值。
 - **模块是否处理及处理函数**：handler 内 `try/catch` 观测写入；block 经 hook 返回值。
 - **Typed 异常与原生异常所有权**：原生 M003 错误被记录、不外抛；block 决策交 Harness。

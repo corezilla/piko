@@ -176,7 +176,9 @@ V0.1.3 起改成 **prefetch at task start + 工具保留**：
 - 检测任务失败次数、review 被拒次数等指标
 - 阈值触发自动 prompt agent 调用 `mem0_record`
 
-详细决策见 `docs/91_reviews/piko-skill-auto-prefetch-decision.md`（V0.1.3 RFC）。
+**Bypass（V0.1.3）**：**执行已写好的测试用例**这类任务走 bypass——instruction 已经指定了跑哪条命令，不需要再从记忆里学「怎么测」。命中 bypass 条件（`task.instruction.length < 20` / `flags.prefetch_disabled` / `task.kind === "no_skill"`）时跳过 prefetch，但仍 emit `=== Context ===` 段标 `(skipped: <reason>)`，保持 prompt 形状一致。
+
+详见 `docs/91_reviews/piko-skill-auto-prefetch-decision.md`（V0.1.3 RFC）与 `docs/20_system_design/mechanisms/piko-test-execution.md` §2.1（两层边界）。
 
 ---
 

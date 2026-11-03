@@ -355,6 +355,10 @@ docs, or when asked about a topic that may be documented.
 - ...
 ```
 
+**Bypass（V0.1.3）**：**执行已写好的测试用例**这类任务走 bypass——instruction 已经指定了跑哪条命令、报告什么字段，不需要再从文档语料里推导「怎么做」。命中 bypass 条件时跳过 prefetch，但仍 emit `=== Context ===` 段标 `(skipped: <reason>)`，保持 prompt 形状一致。
+
+详见 `docs/20_system_design/mechanisms/piko-test-execution.md` §2.1（两层边界：instruction 决定「怎么测」，tool profile 决定「能跑什么」）。
+
 ---
 
 ## 7. 配置
