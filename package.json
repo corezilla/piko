@@ -13,6 +13,7 @@
     "dev": "tsx src/main.ts",
     "test": "npm run test:node && vitest run",
     "test:node": "tsx --test src/*.test.ts",
+    "cli": "tsx scripts/piko-cli.ts",
     "check": "tsc -p tsconfig.json --noEmit && vitest run && python3 tests/contract/validate_v03_contract.py",
     "test:scenario": "vitest run --config vitest.live.config.ts tests/integration/scenario-e2e.test.ts",
     "test:live": "vitest run --config vitest.live.config.ts",

@@ -6,6 +6,7 @@ import { BearerAuth } from "./auth.js";
 import { ApiServer } from "./server.js";
 import { ExecutionProcessSupervisor } from "./supervisor.js";
 import { FactHandler } from "./ipc.js";
+import { Observability } from "./observability.js";
 
 /**
  * P0 entrypoint (control process). Serves HTTP and owns the Task Store; spawns and
@@ -18,6 +19,11 @@ export async function runControlProcess(configPath: string, root: string) {
   const bearer = await resolveSecret(config.api_auth.bearer_token_secret_ref);
   const auth = new BearerAuth(config.api_auth.principal_id, Buffer.from(bearer));
 
+  // M009 `observability`: the /diagnostics route serves this snapshot. Without
+  // it the route 404s even though the server implements it, so an operator
+  // debugging a live instance has no read-only view of it.
+  const obs = new Observability(config);
+
   const supervisor = new ExecutionProcessSupervisor(
     { ...process.env, PIKO_EXEC_CONFIG: configPath, PIKO_EXEC_ROOT: root, PIKO_ROLE: "exec" },
     (code: number | null, signal: NodeJS.Signals | null) => console.error(`[P0] execution process exited code=${code} signal=${signal}`),
@@ -29,7 +35,7 @@ export async function runControlProcess(configPath: string, root: string) {
   // P0 notifies P1 over the data channel so it aborts the in-flight Pi operation.
   const server = await ApiServer.create(config, store, auth, (taskId, outcome) => {
     if (outcome === "StopRequested") supervisor.send({ kind: "abort", task_id: taskId });
-  });
+  }, obs);
   await server.listen();
   console.log(`[P0] Piko control process listening on http://${config.listen.host}:${config.listen.port}`);
 
