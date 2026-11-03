@@ -193,6 +193,22 @@ export class RunWorker {
           message: `declared output was not produced: ${task.output_paths.join(", ")}`,
         };
       }
+      // PTS-04 also requires a non-zero exit / timeout / failed remote to be
+      // an execution failure fact. Without this, an agent that writes a
+      // well-formed report after its remote host died would publish
+      // Completed, and the consumer would see a green task whose command
+      // never ran.
+      if (state === "Completed" && raw.execution_failed) {
+        const bad = raw.executions.find((f) => f.status !== "exited" || (f.exit_code !== null && f.exit_code !== 0));
+        state = "Failed";
+        failure = {
+          code: "ToolFailure",
+          cause_class: "Tool",
+          message: `execution failed: ${bad?.command ?? "unknown command"}${
+            bad && bad.exit_code !== null ? ` (exit ${bad.exit_code})` : ""
+          }${bad && bad.status !== "exited" ? ` (${bad.status})` : ""}`,
+        };
+      }
       const result: AgentResult = {
         task_id: taskId,
         generation: this.store.generation(taskId),

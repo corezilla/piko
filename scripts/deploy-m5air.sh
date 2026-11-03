@@ -55,13 +55,36 @@ rsync -az vitest.config.ts vitest.live.config.ts package.json tsconfig.json \
 # paths; rewrite them to the m5air layout in place.
 #
 # The SSH credentials for remote_bash (MECH-TESTEXEC) are prepared FIRST so
-# the rewritten config can point at them: a dedicated key, authorized on the
-# host itself so piko can reach a reachable SSH target, and pinned host keys.
+# the rewritten config can point at them.
+#
+# Two targets:
+#   - m5air itself (self-SSH): a dedicated key generated here and authorized
+#     on the host, so piko has a reachable SSH target for local smoke tests.
+#   - a7048 (the HIFM inference host): the workstation's key, which is
+#     already in a7048's authorized_keys. A7048 is Linux/Ubuntu, user
+#     "a7048", at 192.168.1.7; its host key is pinned from the workstation's
+#     known_hosts (NOT accept-new) so the pin is authoritative.
 echo "[deploy] preparing SSH credentials for remote execution"
 ssh "$M5AIR_HOST" "mkdir -p '${M5AIR_ROOT}/var/keys' '${M5AIR_ROOT}/var/staging' '${M5AIR_ROOT}/var/pi-sessions' '${M5AIR_ROOT}/var/ws-m5air/reports' && chmod 700 '${M5AIR_ROOT}/var/keys'"
 ssh "$M5AIR_HOST" "test -f '${M5AIR_ROOT}/var/keys/id_remote' || ssh-keygen -t ed25519 -N '' -f '${M5AIR_ROOT}/var/keys/id_remote' -C 'piko-remote-exec' >/dev/null 2>&1"
 ssh "$M5AIR_HOST" "grep -qf '${M5AIR_ROOT}/var/keys/id_remote.pub' ~/.ssh/authorized_keys 2>/dev/null || cat '${M5AIR_ROOT}/var/keys/id_remote.pub' >> ~/.ssh/authorized_keys"
-ssh "$M5AIR_HOST" "touch '${M5AIR_ROOT}/var/known_hosts' && ssh-keyscan -H localhost 127.0.0.1 2>/dev/null >> '${M5AIR_ROOT}/var/known_hosts'; sort -u '${M5AIR_ROOT}/var/known_hosts' -o '${M5AIR_ROOT}/var/known_hosts'"
+
+# The A7048 key: the workstation's own key (already authorized on A7048).
+if [ -f "${A7048_KEY:-$HOME/.ssh/id_ed25519}" ]; then
+  scp -q "${A7048_KEY:-$HOME/.ssh/id_ed25519}" "${M5AIR_HOST}:${M5AIR_ROOT}/var/keys/id_a7048"
+  ssh "$M5AIR_HOST" "chmod 600 '${M5AIR_ROOT}/var/keys/id_a7048'"
+  echo "[deploy] installed A7048 key from ${A7048_KEY:-$HOME/.ssh/id_ed25519}"
+else
+  echo "[deploy] WARNING: no A7048 key at ${A7048_KEY:-$HOME/.ssh/id_ed25519}; remote_bash on a7048 will not authenticate" >&2
+fi
+
+# Host keys: pinned from the workstation's known_hosts where available, plus
+# the local self-SSH target.
+ssh "$M5AIR_HOST" "touch '${M5AIR_ROOT}/var/known_hosts' && ssh-keyscan -H localhost 127.0.0.1 2>/dev/null >> '${M5AIR_ROOT}/var/known_hosts'"
+if [ -f "$HOME/.ssh/known_hosts" ]; then
+  scp -q "$HOME/.ssh/known_hosts" "${M5AIR_HOST}:${M5AIR_ROOT}/var/known_hosts.workstation"
+  ssh "$M5AIR_HOST" "cat '${M5AIR_ROOT}/var/known_hosts.workstation' >> '${M5AIR_ROOT}/var/known_hosts'; rm -f '${M5AIR_ROOT}/var/known_hosts.workstation'; sort -u '${M5AIR_ROOT}/var/known_hosts' -o '${M5AIR_ROOT}/var/known_hosts'"
+fi
 
 echo "[deploy] rewriting machine-specific paths for m5air"
 ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && python3 - <<'PY'
@@ -86,13 +109,26 @@ d['workspace'] = {
 }
 # No Mem0 / GraphRAG backend on m5air yet: drop identity so no secret is required.
 d.pop('identity', None)
-# SSH credentials for remote_bash (MECH-TESTEXEC): dedicated key + pinned
+# SSH credentials for remote_bash (MECH-TESTEXEC): the A7048 key + pinned
 # host keys. These are the SAME secrets the scp transfer uses.
-d['transfer']['credential_ref'] = 'file:${M5AIR_ROOT}/var/keys/id_remote'
+d['transfer']['credential_ref'] = 'file:${M5AIR_ROOT}/var/keys/id_a7048'
 d['transfer']['known_hosts'] = '${M5AIR_ROOT}/var/known_hosts'
-d['transfer']['target_allowlist'] = ['m5air:/Users/mlp', 'a7048:/Users/mlp', 'localhost:/tmp']
+d['transfer']['target_allowlist'] = ['a7048:/home/a7048', 'm5air:/Users/mlp', 'localhost:/tmp']
 p.write_text(json.dumps(d, indent=2))
 print('  runtime.example.json configured')
+PY"
+
+# The tool profile's remote_hosts must name the host as the SSH client will
+# address it: "a7048@192.168.1.7" (A7048 is Linux, user "a7048").
+ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && python3 - <<'PY'
+import json, pathlib
+p = pathlib.Path('config/tool-profiles.json')
+d = json.loads(p.read_text())
+tool = d['profiles']['workspace-exec']['tools'].get('remote_bash')
+if tool is not None:
+    tool['permissions']['remote_hosts'] = ['a7048@192.168.1.7', 'a7048', 'm5air', 'localhost']
+    p.write_text(json.dumps(d, indent=2))
+    print('  tool-profiles.json remote_hosts configured')
 PY"
 
 # The LLMTier wire-conformance test reads the LLMTier OpenAPI spec by absolute

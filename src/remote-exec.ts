@@ -30,6 +30,16 @@ export interface RemoteExecResult {
   duration_ms: number;
   /** Whether the remote process is known to have stopped. */
   remote_stop_state: RemoteStopState;
+  /**
+   * True when the SSH CLIENT failed (could not connect, auth refused, host
+   * unreachable) rather than the remote command failing.
+   *
+   * ssh(1) exits 255 for its own errors, which is indistinguishable from a
+   * remote command that legitimately exits 255. Without this flag a dead
+   * host would be reported as "the command ran and returned 255" -- a
+   * fabricated exit code for a command that never ran.
+   */
+  transport_failed: boolean;
 }
 
 export interface RemoteExecOptions {
@@ -58,10 +68,32 @@ const MAX_OUTPUT_BYTES = 1 << 20; // 1 MiB per stream, mirroring Pi's capture bo
  * result with a non-zero exit_code, because the caller (and slinky's Oracle
  * comparison) needs to judge it.
  */
+/**
+ * Spawn seam: how the SSH client is launched.
+ *
+ * Production uses `execFile("ssh", ...)`. Tests inject a fake so the remote
+ * path (exit codes, timeouts, transport failures) is exercisable without a
+ * network or a second host.
+ */
+export type RemoteSpawner = (
+  args: readonly string[],
+  options: { timeoutMs: number; maxBuffer: number },
+  callback: (error: (Error & { code?: unknown; killed?: boolean; signal?: string }) | null, stdout: string, stderr: string) => void,
+) => { on(event: string, listener: (error: Error) => void): void };
+
+const defaultSpawner: RemoteSpawner = (args, options, callback) =>
+  execFile(
+    "ssh",
+    args as string[],
+    { timeout: options.timeoutMs, maxBuffer: options.maxBuffer, encoding: "utf8" },
+    callback as never,
+  ) as never;
+
 export async function execRemote(
   options: RemoteExecOptions,
   transfer: { sshCommandArgs(host: string, argv: readonly string[]): Promise<string[]> },
   config: RuntimeConfig,
+  spawn: RemoteSpawner = defaultSpawner,
 ): Promise<RemoteExecResult> {
   const { host, argv } = options;
 
@@ -93,10 +125,9 @@ export async function execRemote(
 
   return await new Promise<RemoteExecResult>((resolve, reject) => {
     let settled = false;
-    const child = execFile(
-      "ssh",
+    const child = spawn(
       sshArgs,
-      { timeout: timeoutMs, maxBuffer: MAX_OUTPUT_BYTES * 2, encoding: "utf8" },
+      { timeoutMs, maxBuffer: MAX_OUTPUT_BYTES * 2 },
       (error, stdout, stderr) => {
         if (settled) return;
         settled = true;
@@ -110,13 +141,35 @@ export async function execRemote(
         let exitCode: number | null = null;
         if (!error) {
           exitCode = 0;
+        } else if (timedOut) {
+          // A killed client has no remote exit code: the remote process was
+          // still running (or its state is unknown). Reporting the client's
+          // own signal-derived code here would be a fabricated exit code.
+          exitCode = null;
         } else {
           const code = (error as { code?: unknown }).code;
           if (typeof code === "number") exitCode = code;
           else if (typeof code === "string" && /^\d+$/.test(code)) exitCode = Number(code);
         }
 
-        if (error && exitCode === null && !timedOut) {
+        // ssh(1) exits 255 for its OWN failures (cannot connect, auth
+        // refused, host unreachable). The remote command's exit code is
+        // carried in the exit status of the remote shell, and ssh prints
+        // these diagnostics on stderr -- so a 255 with one of these
+        // signatures is the client failing, not the command failing.
+        const stderrText = stderr ?? "";
+        const transportFailed =
+          exitCode === 255 &&
+          /(ssh: connect to host |Could not resolve hostname |Permission denied \(|Host key verification failed|Connection closed by |Connection refused|kex_exchange_identification)/.test(
+            stderrText,
+          );
+
+        if (transportFailed) {
+          // The remote command never ran: there is no remote exit code.
+          exitCode = null;
+        }
+
+        if (error && exitCode === null && !timedOut && !transportFailed) {
           // Transport-level failure (host unreachable, auth refused, ...).
           reject(
             new PikoError(
@@ -135,6 +188,7 @@ export async function execRemote(
           truncated: (stdout?.length ?? 0) > MAX_OUTPUT_BYTES || (stderr?.length ?? 0) > MAX_OUTPUT_BYTES,
           timed_out: timedOut,
           duration_ms: durationMs,
+          transport_failed: transportFailed,
           // The SSH client exiting says nothing about the remote process.
           remote_stop_state: timedOut ? "unknown" : "stopped",
         });

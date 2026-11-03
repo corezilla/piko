@@ -124,4 +124,38 @@ describe("MECH-TESTEXEC · execution facts contract", () => {
     });
     expect(isExecutionFailure(raw)).toBe(false);
   });
+
+  it("treats a remote host that never answered as a failure even when the report exists", () => {
+    // Regression: the agent wrote a well-formed report with empty stdout
+    // after the remote host was unreachable, and the task was published
+    // Completed. The report existing is not evidence the command ran.
+    const raw = buildRawResultRef({
+      declaredOutputPaths: ["reports/result.json"],
+      outputs: [{ path: "reports/result.json", sha256: "a".repeat(64), size_bytes: 10 }],
+      executions: [fact({ status: "spawn_error", exit_code: null, output: "connect to host: failure" })],
+    });
+    expect(raw.report_missing).toBe(false);
+    expect(raw.execution_failed).toBe(true);
+    expect(isExecutionFailure(raw)).toBe(true);
+  });
+
+  it("treats a timed-out remote as a failure", () => {
+    const raw = buildRawResultRef({
+      declaredOutputPaths: ["reports/result.json"],
+      outputs: [{ path: "reports/result.json", sha256: "a".repeat(64), size_bytes: 10 }],
+      executions: [fact({ status: "timeout", exit_code: null, timed_out: true })],
+    });
+    expect(raw.execution_failed).toBe(true);
+    expect(isExecutionFailure(raw)).toBe(true);
+  });
+
+  it("treats a non-zero remote exit as a failure", () => {
+    const raw = buildRawResultRef({
+      declaredOutputPaths: ["reports/result.json"],
+      outputs: [{ path: "reports/result.json", sha256: "a".repeat(64), size_bytes: 10 }],
+      executions: [fact({ exit_code: 1 })],
+    });
+    expect(raw.execution_failed).toBe(true);
+    expect(isExecutionFailure(raw)).toBe(true);
+  });
 });

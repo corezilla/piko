@@ -192,6 +192,9 @@ export class PiRuntime {
         config:this.config,
         remoteHosts:remotePolicy.permissions?.remote_hosts??[],
         executables:remotePolicy.permissions?.executables??[],
+        // Remote runs are recorded in the same fact list as local ones, so a
+        // dead remote host yields a machine-judgeable failure fact.
+        executionFacts:fileSystem.executionFacts,
       });
     }
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);

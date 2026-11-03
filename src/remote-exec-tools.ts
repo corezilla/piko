@@ -17,7 +17,8 @@
 import { Type, type Static } from "typebox";
 import type { AgentHarnessTool } from "../upstream/pi/packages/agent/src/harness/types.ts";
 import type { ExecutionToolContext } from "../upstream/pi/packages/agent/src/harness/tools/tool-context.ts";
-import { execRemote, type RemoteExecResult } from "./remote-exec.js";
+import { execRemote, type RemoteExecResult, type RemoteSpawner } from "./remote-exec.js";
+import type { ExecutionFact, ExecutionFactCollector } from "./execution-facts.js";
 import { PikoError, type RuntimeConfig } from "./types.js";
 
 export const RemoteBashSchema = Type.Object({
@@ -69,6 +70,15 @@ export interface RemoteExecToolDeps {
   remoteHosts: readonly string[];
   /** Allowed executables (from the tool profile). Empty = no restriction. */
   executables: readonly string[];
+  /**
+   * Collector for execution facts. Optional so existing callers are
+   * unaffected; when present, every remote invocation -- including one that
+   * fails to connect -- is recorded, so a dead remote host produces a
+   * machine-judgeable failure fact instead of an empty report.
+   */
+  executionFacts?: ExecutionFactCollector;
+  /** Spawn seam; defaults to execFile("ssh", ...). Tests inject a fake. */
+  spawn?: RemoteSpawner;
 }
 
 const REMOTE_BASH_DESCRIPTION =
@@ -103,6 +113,21 @@ export function createRemoteBashTool(
     parameters: RemoteBashSchema,
     async execute(_toolCallId, params, _onUpdate, _toolContext, _invocation, _context) {
       const argv = splitRemoteCommand(params.command);
+      const startedAt = new Date().toISOString();
+      const startedMs = Date.now();
+      const fact = (over: Partial<ExecutionFact>): ExecutionFact => ({
+        tool_call_id: null,
+        command: `${params.host}: ${params.command}`,
+        exit_code: null,
+        status: "exited",
+        output: "",
+        truncated: false,
+        timed_out: false,
+        started_at: startedAt,
+        ended_at: new Date().toISOString(),
+        duration_ms: Date.now() - startedMs,
+        ...over,
+      });
       try {
         const result: RemoteExecResult = await execRemote(
           {
@@ -115,6 +140,23 @@ export function createRemoteBashTool(
           },
           deps.transfer,
           deps.config,
+          deps.spawn,
+        );
+        deps.executionFacts?.record(
+          fact({
+            exit_code: result.exit_code,
+            // A transport failure means the remote command never ran, so it is
+            // a spawn_error, not an "exited" command that happened to return
+            // ssh's own 255.
+            status: result.timed_out
+              ? "timeout"
+              : result.transport_failed
+                ? "spawn_error"
+                : "exited",
+            output: `${result.stdout}${result.stderr}`,
+            truncated: result.truncated,
+            timed_out: result.timed_out,
+          }),
         );
         return {
           content: [
@@ -126,6 +168,7 @@ export function createRemoteBashTool(
                 stderr: result.stderr,
                 timed_out: result.timed_out,
                 truncated: result.truncated,
+                transport_failed: result.transport_failed,
                 remote_stop_state: result.remote_stop_state,
                 duration_ms: result.duration_ms,
               }),
@@ -145,6 +188,16 @@ export function createRemoteBashTool(
         // error result so the agent can react, rather than aborting the task.
         const message = e instanceof Error ? e.message : String(e);
         const code = e instanceof PikoError ? e.code : "RemoteExecFailed";
+        // A remote host that is down (or refused) is a real execution fact:
+        // the command did not run, so it is not a success. Recording it here
+        // is what lets slinky's Oracle see "the remote never ran" instead of
+        // an agent-authored report with empty output.
+        deps.executionFacts?.record(
+          fact({
+            status: code === "ScopeDenied" ? "policy_denied" : "spawn_error",
+            output: message,
+          }),
+        );
         return {
           content: [{ type: "text", text: `remote execution unavailable: ${code}: ${message}` }],
           details: {
