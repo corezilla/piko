@@ -92,9 +92,24 @@ export class Transfer {
   }
 
   private async scpArgs(remote: string, local: string, direction: "pull" | "push") {
-    // Design: host keys are PINNED via known_hosts (never auto-accepted); the private
-    // key comes from the credential reference (secret mount). Both are mandatory for
-    // scp — fail closed rather than fall back to ~/.ssh or a password prompt.
+    const args = await this.sshBaseArgs("scp");
+    // Non-default SSH port for scp (-P); host keys stay pinned via known_hosts.
+    if (this.config.transfer.port) args.push("-P", String(this.config.transfer.port));
+    if (direction === "pull") args.push("--", remote, local);
+    else args.push("--", local, remote);
+    return args;
+  }
+
+  /**
+   * Shared SSH credential skeleton for every outbound SSH call (scp and remote
+   * command execution alike).
+   *
+   * Design: host keys are PINNED via known_hosts (never auto-accepted); the
+   * private key comes from the credential reference (secret mount). Both are
+   * mandatory — fail closed rather than fall back to ~/.ssh or a password
+   * prompt.
+   */
+  private async sshBaseArgs(binary: "scp" | "ssh"): Promise<string[]> {
     const knownHosts = this.config.transfer.known_hosts;
     if (!knownHosts) throw new PikoError("InputFetchFailed", 422, "transfer.known_hosts is required for scp (host keys must be pinned)");
     const key = await this.scpKeyPath();
@@ -107,10 +122,19 @@ export class Transfer {
       "-o", `UserKnownHostsFile=${knownHosts}`,
       "-i", key,
     ];
-    // Non-default SSH port for scp (-P); host keys stay pinned via known_hosts.
-    if (this.config.transfer.port) args.push("-P", String(this.config.transfer.port));
-    if (direction === "pull") args.push("--", remote, local);
-    else args.push("--", local, remote);
+    if (binary === "ssh" && this.config.transfer.port) args.push("-p", String(this.config.transfer.port));
+    return args;
+  }
+
+  /**
+   * Build the argv for a remote command execution over SSH.
+   *
+   * Exposed so remote-exec.ts reuses the exact same credential skeleton rather
+   * than introducing a second, weaker one.
+   */
+  async sshCommandArgs(host: string, argv: readonly string[]): Promise<string[]> {
+    const args = await this.sshBaseArgs("ssh");
+    args.push("--", host, ...argv);
     return args;
   }
 

@@ -15,6 +15,8 @@ import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "
 import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-tools.js";
 import { installNetworkPolicy, restoreNetworkPolicy } from "./tool-host-policy.js";
 import { assertExecutablesAllowed } from "./tool-exec-policy.js";
+import { createRemoteBashTool } from "./remote-exec-tools.js";
+import type { Transfer } from "./transfer.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
 import type { TaskStore } from "./store.js";
@@ -96,7 +98,7 @@ export class PiRuntime {
   private readonly repo:JsonlSessionRepo;
   private readonly mem0Adapter:Mem0Adapter|undefined;
   private readonly graphragAdapter:GraphRAGAdapter|undefined;
-  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string,mem0ApiKey?:string,graphragApiKey?:string){
+  constructor(private config:RuntimeConfig,private registry:ToolRegistry,private store:TaskStore,private channel:Channel,apiKey:string,mem0ApiKey?:string,graphragApiKey?:string,private transfer?:Transfer){
     process.env.PIKO_LLM_API_KEY=apiKey;
 
     // V0.1: 启动时一次性构造 Mem0Adapter（对齐 LLM/Matrix token resolve 模式）
@@ -177,6 +179,19 @@ export class PiRuntime {
     }
     if (docSearchDeps) {
       available.graphrag_search = createGraphragSearchTool(docSearchDeps);
+    }
+    // MECH-TESTEXEC: remote_bash needs the transfer layer for its SSH
+    // credential skeleton. The host and executable allowlists come from the
+    // tool's own policy entry, so a profile that does not declare
+    // remote_bash simply never gets the tool.
+    const remotePolicy=profile.tools["remote_bash"];
+    if(this.transfer&&remotePolicy) {
+      available.remote_bash=createRemoteBashTool({
+        transfer:this.transfer,
+        config:this.config,
+        remoteHosts:remotePolicy.permissions?.remote_hosts??[],
+        executables:remotePolicy.permissions?.executables??[],
+      });
     }
     const tools=Object.entries(profile.tools).map(([name,policy])=>available[name]&&applyToolRecoveryPolicy(available[name],policy,this.registry)).filter(Boolean);
     const {models,model}=this.model();

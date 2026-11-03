@@ -36,21 +36,27 @@
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["api.mem0.ai"]
+            "network_hosts": [
+              "api.mem0.ai"
+            ]
           }
         },
         "mem0_record": {
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["api.mem0.ai"]
+            "network_hosts": [
+              "api.mem0.ai"
+            ]
           }
         },
         "graphrag_search": {
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["graphrag.example.com"]
+            "network_hosts": [
+              "graphrag.example.com"
+            ]
           }
         }
       }
@@ -99,21 +105,50 @@
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["api.mem0.ai"]
+            "network_hosts": [
+              "api.mem0.ai"
+            ]
           }
         },
         "mem0_record": {
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["api.mem0.ai"]
+            "network_hosts": [
+              "api.mem0.ai"
+            ]
           }
         },
         "graphrag_search": {
           "effect": "external",
           "replay": "never",
           "permissions": {
-            "network_hosts": ["graphrag.example.com"]
+            "network_hosts": [
+              "graphrag.example.com"
+            ]
+          }
+        },
+        "remote_bash": {
+          "effect": "process",
+          "replay": "never",
+          "permissions": {
+            "executables": [
+              "python3",
+              "pytest",
+              "node",
+              "npm",
+              "cat",
+              "ls",
+              "mkdir",
+              "make",
+              "cmake",
+              "ctest"
+            ],
+            "remote_hosts": [
+              "a7048",
+              "m5air",
+              "localhost"
+            ]
           }
         }
       }

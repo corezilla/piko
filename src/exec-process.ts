@@ -47,8 +47,10 @@ export async function runExecutionProcess(configPath: string, root: string) {
       if (cmd.kind === "shutdown") void shutdown();
     },
   );
-  const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey, graphragApiKey);
+  // Transfer is created before PiRuntime: the remote_bash tool reuses its SSH
+  // credential skeleton (private key + known_hosts pinning).
   const transfer = new Transfer(config);
+  const pi = new PiRuntime(config, tools, store, channel, llmKey, mem0ApiKey, graphragApiKey, transfer);
   const worker = new RunWorker(config, store, pi, matrix, transfer, channel);
   worker.start();
 

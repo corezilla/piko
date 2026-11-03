@@ -31,6 +31,8 @@ export function validateToolRegistry(tools: ToolRegistry) {
     "mem0_lookup", "mem0_record",
     // V0.1: doc-search tool (graphrag backend)
     "graphrag_search",
+    // V0.1.3: remote command execution over SSH (MECH-TESTEXEC)
+    "remote_bash",
   ]);
   for (const c of Object.values(tools.recovery_contracts)) {
     if (!supported.has(c.implementation_ref)) throw new Error(`unregistered recovery implementation: ${c.implementation_ref}`);
