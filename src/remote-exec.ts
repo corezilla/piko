@@ -154,13 +154,14 @@ export async function execRemote(
 
         // ssh(1) exits 255 for its OWN failures (cannot connect, auth
         // refused, host unreachable). The remote command's exit code is
-        // carried in the exit status of the remote shell, and ssh prints
-        // these diagnostics on stderr -- so a 255 with one of these
-        // signatures is the client failing, not the command failing.
+        // forwarded verbatim otherwise -- including 255 -- so the exit code
+        // alone cannot separate the two. ssh's own diagnostics on stderr are
+        // what distinguish them; they are only present because the skeleton
+        // does NOT pass "-q" (quiet mode silences exactly these).
         const stderrText = stderr ?? "";
         const transportFailed =
           exitCode === 255 &&
-          /(ssh: connect to host |Could not resolve hostname |Permission denied \(|Host key verification failed|Connection closed by |Connection refused|kex_exchange_identification)/.test(
+          /(ssh: connect to host |Could not resolve hostname|Permission denied \(|Host key verification failed|Connection closed by |Connection refused|kex_exchange_identification|no matching host|Bad configuration|channel \d+: )/.test(
             stderrText,
           );
 

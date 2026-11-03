@@ -80,6 +80,21 @@ describe("UT-TRANSFER-004 · outbound SSH argv", () => {
     }
   });
 
+  it("does not pass -q (quiet), which would hide ssh's connection diagnostics", async () => {
+    // ssh uses exit 255 for BOTH its own failures and a remote command that
+    // exits 255. The stderr diagnostics ("ssh: connect to host ... Operation
+    // timed out") are what tell them apart, and "-q" silences them.
+    const root = await mkdtemp(join(tmpdir(), "piko-sshargs-"));
+    try {
+      await writeFile(join(root, "key"), "-----BEGIN KEY-----\n");
+      const tf = new Transfer(cfg(root));
+      const args = await tf.sshCommandArgs("host", ["echo", "hi"]);
+      expect(args).not.toContain("-q");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("never lets a value-taking flag swallow the next flag", async () => {
     const root = await mkdtemp(join(tmpdir(), "piko-sshargs-"));
     try {

@@ -188,4 +188,32 @@ describe("MECH-TESTEXEC · ssh client failure vs remote command failure", () => 
     expect(result.transport_failed).toBe(false);
     expect(result.exit_code).toBe(255);
   });
+
+  it("detects the connect timeout ssh reports on stderr", async () => {
+    // The live failure mode on m5air: A7048 down -> ssh prints
+    // "ssh: connect to host ... Operation timed out" and exits 255.
+    const result = await execRemote(
+      { host: "h", argv: ["cat"] },
+      transferStub,
+      cfg,
+      spawner({
+        exitCode: 255,
+        stderr: "ssh: connect to host 192.168.1.99 port 22: Operation timed out\n",
+      }),
+    );
+    expect(result.transport_failed).toBe(true);
+    expect(result.exit_code).toBeNull();
+    expect(result.stderr).toContain("Operation timed out");
+  });
+
+  it("detects an auth refusal ssh reports on stderr", async () => {
+    const result = await execRemote(
+      { host: "h", argv: ["cat"] },
+      transferStub,
+      cfg,
+      spawner({ exitCode: 255, stderr: "a7048@h: Permission denied (publickey,password).\n" }),
+    );
+    expect(result.transport_failed).toBe(true);
+    expect(result.exit_code).toBeNull();
+  });
 });

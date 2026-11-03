@@ -119,8 +119,13 @@ export class Transfer {
     // below). Passing "-B -q" made ssh parse "-q" as the interface to bind to,
     // fail with "getifaddrs: -q: no suitable addresses", and then fall through
     // to an unrouted connection. scp(1) does not support "-B" either.
+    //
+    // NOTE: no "-q" either. Quiet mode suppresses ssh's connection
+    // diagnostics ("ssh: connect to host ... Operation timed out"), which are
+    // the ONLY way to tell an SSH client failure from a remote command that
+    // legitimately exited 255 -- ssh uses 255 for both, and the exit code
+    // alone cannot separate them.
     const args: string[] = [
-      "-q",
       "-o", "BatchMode=yes",
       "-o", "StrictHostKeyChecking=yes",
       "-o", "IdentitiesOnly=yes",
