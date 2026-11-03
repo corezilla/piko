@@ -1,6 +1,7 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Case UT-WORKER-001
 
+> **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
 > STD 使用入口：[项目采用说明与标准导航](../../../../README.md#std-entry)
 
 | 文档字段 | 值 |
