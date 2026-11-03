@@ -114,8 +114,13 @@ export class Transfer {
     if (!knownHosts) throw new PikoError("InputFetchFailed", 422, "transfer.known_hosts is required for scp (host keys must be pinned)");
     const key = await this.scpKeyPath();
     if (!key) throw new PikoError("InputFetchFailed", 422, "transfer.credential_ref is required for scp (private key via secret)");
+    // NOTE: no "-B" here. In ssh(1), "-B" means bind_interface and TAKES A
+    // VALUE; it is not "batch mode" (that is "-o BatchMode=yes", listed
+    // below). Passing "-B -q" made ssh parse "-q" as the interface to bind to,
+    // fail with "getifaddrs: -q: no suitable addresses", and then fall through
+    // to an unrouted connection. scp(1) does not support "-B" either.
     const args: string[] = [
-      "-B", "-q",
+      "-q",
       "-o", "BatchMode=yes",
       "-o", "StrictHostKeyChecking=yes",
       "-o", "IdentitiesOnly=yes",
