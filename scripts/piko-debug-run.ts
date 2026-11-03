@@ -181,6 +181,13 @@ async function main() {
   );
 
   // Build a TaskRequest — software engineer task: write a small module.
+  //
+  // V0.1.3 §8 step 8: the instruction must NOT hint at the skill tools. The
+  // old one ("create greeting.ts...") simply did not need them, so it proved
+  // nothing about prefetch -- the agent would not have called them anyway.
+  // This one asks for work whose conventions live in the corpus, so a
+  // prefetch that fires BEFORE the first model turn is the only way the
+  // agent could get them right.
   const task: TaskRequest = {
     task_id: `debug-${Date.now()}`,
     instruction:

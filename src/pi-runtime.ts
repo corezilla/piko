@@ -11,6 +11,7 @@ import type { Model } from "../upstream/pi/packages/ai/src/types.ts";
 import type { AgentResult, DocSearchConfig, MemoryConfig, RuntimeConfig, TaskRequest } from "./types.js";
 import { Mem0Adapter } from "./mem0-client.js";
 import { GraphRAGAdapter } from "./graphrag-client.js";
+import { prefetchSkillContext, renderSkillContext, type PrefetchedSkillContext } from "./skill-prefetch.js";
 import { createMem0LookupTool, createMem0RecordTool, type SkillToolDeps } from "./skill-tools.js";
 import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-tools.js";
 import { installNetworkPolicy, restoreNetworkPolicy } from "./tool-host-policy.js";
@@ -45,10 +46,16 @@ export function normalizeRawUsage(value:unknown){const raw=value as any,input=ra
 /** Build the full system prompt for a task with role/identity/memory injection.
  *  Role/identity/memory configuration comes from RuntimeConfig
  *  (loaded at startup), not from the task.  This function only
- *  appends what the task itself declares (std_templates). */
+ *  appends what the task itself declares (std_templates).
+ *
+ *  V0.1.3: `skillContext` is the prefetched prior experience + project docs.
+ *  It is optional so callers that do not prefetch keep the old shape; when
+ *  present, the `=== Context ===` section is always rendered (even empty) so
+ *  the prompt structure does not vary between tasks. */
 export function buildSystemPrompt(
   task:TaskRequest,
   identity?:{role:string;name:string;memory?:MemoryConfig;doc_search?:DocSearchConfig},
+  skillContext?:PrefetchedSkillContext,
 ):string{
   const base="You are Piko, executing one durable task. Work only inside the configured workspace and pass workspace-relative paths to tools. Produce requested outputs and finish with a concise result summary.\n";
   if (!identity) return base;
@@ -57,6 +64,11 @@ export function buildSystemPrompt(
     `\n\nYou are acting as **${identity.role}**.`,
     `\nYour identity: ${identity.name}.`,
   ];
+
+  // V0.1.3: the prefetched context sits between the identity block and the
+  // tool hints, so the agent reads prior experience BEFORE it reads what
+  // tools it has.
+  if (skillContext) parts.push(renderSkillContext(skillContext));
 
   if (identity.memory) {
     parts.push(
@@ -201,7 +213,21 @@ export class PiRuntime {
     const {models,model}=this.model();
     const identity=this.config.identity?{role:this.config.identity.role,name:this.config.identity.name,
       memory:this.config.identity.memory,doc_search:this.config.identity.doc_search}:undefined;
-    const systemPrompt=buildSystemPrompt(task,identity);
+
+    // V0.1.3: auto-prefetch prior experience + project docs BEFORE the
+    // agent's first turn, so a small model that would never decide to call
+    // mem0_lookup still starts informed. It never throws and never blocks
+    // past its timeout: a dead backend yields an empty context section.
+    const skillContext:PrefetchedSkillContext|undefined=await prefetchSkillContext(
+      task.instruction,
+      identity
+        ? {role:identity.role,userId:`${identity.role}:${task.workspace_ref}`,defaultScope:this.config.identity?.doc_search?.default_scope??""}
+        : undefined,
+      this.mem0Adapter,
+      this.graphragAdapter,
+    );
+
+    const systemPrompt=buildSystemPrompt(task,identity,skillContext);
     let active:{op:string;step:string;attempt:number}|undefined;let activeTurn:{event:string;seq:number}|undefined;let unsafeRetry=false;let toolFailure:string|undefined;let latestUsage:any=undefined;
     const created=await AgentHarness.create({session,models,model,tools,toolContext:{env:fileSystem},activeToolNames:tools.map((x:any)=>x.name),streamOptions:{maxRetries:0,timeoutMs:this.config.llmtier.models_timeout_ms,cacheRetention:"none"},retry:{enabled:true,maxRetries:2,baseDelayMs:1000},systemPrompt,onRawUsage:usage=>{if(active)void this.channel.report({kind:"observeUsage",task_id:runId,operation:active.op,step:active.step,attempt:active.attempt,raw:normalizeRawUsage(usage)});latestUsage=usage}},BACKGROUND_CONTEXT);
     const lane=await created.harness.lane("main",BACKGROUND_CONTEXT);

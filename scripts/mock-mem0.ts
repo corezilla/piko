@@ -111,6 +111,9 @@ const server = http.createServer((req, res) => {
   req.on("data", (c) => (body += c.toString()));
   req.on("end", () => {
     const url = new URL(req.url ?? "", "http://localhost");
+    // Request log: makes the mock's traffic visible when debugging
+    // prefetch (a prefetch shows up here BEFORE any model turn).
+    process.stdout.write(`mock-mem0 ${req.method} ${url.pathname}\n`);
     try {
       // v3: add endpoint is /v3/memories/add/ (distinct from /v3/memories/
       // which is a v3 search/list endpoint). Piko's client surfaces the

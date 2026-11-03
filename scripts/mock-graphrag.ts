@@ -176,6 +176,9 @@ const server = http.createServer((req, res) => {
   let raw = "";
   req.on("data", (c) => (raw += c.toString()));
   req.on("end", () => {
+    // Request log: makes the mock's traffic visible when debugging
+    // prefetch (a prefetch shows up here BEFORE any model turn).
+    process.stdout.write(`mock-graphrag ${req.method} ${req.url}\n`);
     try {
       // Path: /<index>/_search
       const url = new URL(req.url ?? "", "http://localhost");

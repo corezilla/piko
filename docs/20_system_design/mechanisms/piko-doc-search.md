@@ -143,12 +143,23 @@ agent 调工具时只传 query / scope / max_results，**不传 role / project /
 
 ### 4.3 触发机制
 
-V0.1 与 Skill Experience 一致：
-- **方式 A：Agent 主动调用**（主）
-  - agent 接到涉及设计 / STD 的问题前先调 `graphrag_search`
-  - system prompt 告知有这个能力
+V0.1.3 起与 Skill Experience 一致，改成 **prefetch at task start + 工具保留**：
 
-**方式 B / C**：与 Skill Experience 一样，V0.1 不自动检测（人工 / dashboard / 规则触发延后）。
+**方式 A（V0.1.3 默认行为）**：任务入口自动 prefetch
+- `pi-runtime.ts:execute()` 入口（`harness.create` 之前）**自动**跑：
+  - `mem0.search(task.instruction, { user_id: \`${role}:${project}\`, max_results: 5 })`
+  - `graphrag.search(task.instruction, { scope: defaultScope, max_results: 5 })`
+- 两个后端**并行**跑，各有独立超时（默认 1500ms），**任一失败不影响另一个**
+- 结果**注入** `buildSystemPrompt` 的 `=== Context ===` 段（在 identity 块之后、工具提示之前），agent 一开始就有相关 past experience 和 design docs 摘要
+- 工具（`mem0_lookup` / `mem0_record` / `graphrag_search`）**仍**在 `available` map，agent 任务进行中可补查
+
+**为什么不再依赖 agent 主动调**：slinky 派任务过来时只给 raw 描述，不会告诉 agent 要查文档；qwen3-flash 这类小模型不会自己决定调 tool。V0.1/V0.1.2 的 day-1 verify 证明了**适配层正确**，但没有证明 **skill 真的被用上了**。
+
+**Bypass（V0.1.3）**：instruction 长度 < 20 / `flags.prefetch_disabled` / `task.kind === "no_skill"` 时跳过 prefetch，但仍 emit `=== Context ===` 段标 `(skipped: <reason>)`，保持 prompt 形状一致。
+
+**方式 B / C**：与 Skill Experience 一样，人工 / dashboard / 规则触发延后。
+
+详见 `docs/91_reviews/piko-skill-auto-prefetch-decision.md`（V0.1.3 RFC）。
 
 ---
 

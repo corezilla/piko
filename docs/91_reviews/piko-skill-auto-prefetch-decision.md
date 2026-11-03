@@ -1,6 +1,6 @@
 # V0.1.3 Decision: Skill auto-prefetch at task start (LLM doesn't drive)
 
-Status: **Draft, awaiting operator approval before code**
+Status: **Implemented** (2026-11-03) — code, unit tests and e2e test landed; see §9.
 Author: Claude (sandbox session, 2026-10-20)
 Supersedes: V0.1 / V0.1.1 / V0.1.2 (which kept skills as opt-in tools)
 
@@ -227,3 +227,69 @@ Steps 1-4 = design phase (this RFC + doc updates). Steps 5-11 = code/debug phase
 **Version discipline**: V0.1.3 is the working branch; do not bump further until steps 5-11 are exercised end-to-end and the verify suite is green. The `V0.2` items that were previously listed in §6 / §0.9.4 are now folded into V0.1.3 (cache, bypass). If during code/debug we discover V0.1.3 needs more, stay on V0.1.3 — bump only on real green.
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+
+---
+
+## 9. 实现记录（2026-11-03）
+
+代码阶段按 §8 的 rollout 落地。实现与本 RFC 的差异，以及实现中发现的问题，逐条记在这里。
+
+### 9.1 落地了什么
+
+| §8 步骤 | 状态 | 产出 |
+|---|---|---|
+| 1-4 设计 | ✅ | 本 RFC + `piko-skill-memory.md §4.3` + `piko-doc-search.md §4.3` + coding notes §0.9 |
+| 5 `src/skill-prefetch.ts` | ✅ | `prefetchSkillContext` / `renderSkillContext` / `renderMemoryEntry` / `renderDocEntry` + 进程级 LRU |
+| 6 接入 `pi-runtime.ts` | ✅ | `execute()` 在 `harness.create` 之前 prefetch；`buildSystemPrompt` 加第三个可选参数 |
+| 7 测试 | ✅ | `src/skill-prefetch.test.ts`（24 个）+ `tests/integration/skill-prefetch-e2e.test.ts`（3 个）+ `tests/unit/pi-runtime.test.ts` 加 4 个 prompt 断言 |
+| 8 `piko-debug-run.ts` 改 instruction | ✅ | 改成不依赖 skill hint 的形式（见 §9.4） |
+| 9 e2e 观察 prefetch 调用 | ✅ | 真实 adapter 打 mock HTTP server，断言调用确实发生且发生在任何模型动作之前 |
+| 10 commit + push | ✅ | 见 §9.5 |
+| 11 `v0.1-real-env-verify.sh` 加 smoke | ⚠️ | 未做（见 §9.6） |
+
+### 9.2 实现与 RFC 的差异
+
+1. **缓存语义收紧了**。RFC §7.3 说「缓存存该 key 最近一次 fetch 的 context，不按 query」——那样会把**上一个任务**的 context 喂给**下一个任务**。实现改成：**只有 query 相同才命中缓存**；query 不同则重新 fetch。这样缓存省掉的是「同一任务形态重复付延迟」，而不是「拿旧答案冒充新答案」。
+2. **失败不缓存**。全部已配置后端都失败时不写缓存——否则一次后端抖动会让整个进程生命周期都返回「backend down」。后端**未配置**（skipped）不算失败。
+3. **timeout 的 exit code**。超时后底层请求**不取消**（adapter 没有取消能力），晚到的结果被丢弃。这是有意的：prefetch 已经继续往下走了。
+4. **`sources` 字段**。context 里带 `memory`/`docs` 各自分的状态（`ok` / `empty` / `unavailable` / `skipped`），这样「真的没有」和「查不到」渲染成不同的话——后者说「prior experience unavailable」而不是「no prior experience found」，避免把一次故障说成「语料是空的」。
+
+### 9.3 实现中发现的三个问题
+
+1. **`=== Context ===` 段的位置**。第一版实现把 context 段放在**工具提示之后**（因为直接 push 到 `parts` 末尾）。测试断言「identity 之后、工具提示之前」失败——RFC §2.3 明确要求 context 在 role 段之后、工具说明**之前**。已修正：agent 先读到过往经验，再读到「你有哪些工具」。
+2. **NUL 字节**。写缓存 key 时用了不可见字符做分隔符，落盘成了真 NUL 字节，文件被当成二进制。已换成 `|`。
+3. **进程级缓存会串测试**。e2e 测试里前一个用例填了缓存，后一个用例拿到缓存命中，**根本没发 HTTP 请求**——而那个用例断言的正是「请求确实发出去了」。已加 `clearPrefetchCache()` 到 `beforeEach`。
+
+### 9.4 `piko-debug-run.ts` 的 instruction
+
+改成不依赖 skill hint：
+
+> 先查现有 skill 命名约定 + piko 编码规范再写新工具
+
+原 instruction（"create the file `greeting.ts` that exports…"）不需要 skill，agent 自然不会去查——那不是 prefetch 的失败，是任务本来就不需要。
+
+### 9.5 验证
+
+**静态**：`tsc --noEmit` 零错误；`npm run test:node` **145/145**（含 24 个 prefetch 用例）；`npx vitest run` **296 pass / 1 skipped / 0 fail**（含 3 个 e2e + 4 个 prompt 断言）；`validate_v03_contract.py` PASS。
+
+**实机（m5air）**：真实 `PiRuntime` + 真实 adapter + mock mem0/mock-graphrag + 真实 oMLX。
+
+```
+mock-mem0     POST /v3/memories/search/        ← prefetch 先到
+mock-graphrag POST /piko-design-docs/_search   ← prefetch 先到
+=== RESULT ===
+state: completed | elapsed: 1257 ms
+summary: I have written the JSON file `reports/e2e.json` with `{"ok": true}` as requested.
+```
+
+**两个后端都在模型动作之前被访问了，然后 agent 跑完并写出了正确产出。** 这是「skill context 真的自动到达了 agent」的直接证据，不是推断。
+
+为了拿到这个证据，给两个 mock 加了请求日志（`mock-mem0 <METHOD> <path>` / `mock-graphrag <METHOD> <path>`）——这本身也是调试时需要的东西。
+
+> 踩坑记录：第一次跑出来 `elapsed: 17ms`、没有产出文件、summary 是「Task completed without a textual final response」。看着像 prefetch 把 agent 弄挂了，其实**不是**——`lane.getResult(initialId)` 命中了上一轮留下的 Pi durable session，任务被**恢复**而不是重跑（这本身是对的 piko 行为）。清掉 `var/pi-sessions/` 里那个残留 session 目录后，一切正常。
+
+### 9.6 未做
+
+**`scripts/v0.1-real-env-verify.sh` 的 "prefetch happened" smoke（§8 步骤 11）没做**。它需要真实 Mem0 Cloud / OpenSearch 后端；上面的实机验证用的是 **mock 后端**。
+
+**所以「agent 真的在第一轮之前就拿到了 context」这件事，现在有 mock 后端上的实机证据**（§9.5），**但还没有真实 Mem0/OpenSearch 后端上的证据**。这是 V0.1.3 剩下的唯一一项。
