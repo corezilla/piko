@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-plan` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
-| Authors | opencode, corezilla |
+| Authors | opencode, corezilla, Claude |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.unit-test-plan` |
 | Template Version | `0.10.9` |
 | Template Conformance | `tailored` |
@@ -67,11 +67,11 @@
 
 #### 1.1 构成项 · 单元方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.1（`docs/70_verification/unit/unit-test-scheme.md`）；方案 §1.1 登记 11 个模块 ＋ 共享 IPC 共 **107 ＋ 7 个被测函数**；§6 登记 **236 条 `UT-*` Case**（模块 × 函数 × 对象类型）；环境类型 `ENV-UNIT`（方案 §4）。
+**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.2（`docs/70_verification/unit/unit-test-scheme.md`）；方案 §1.1 登记 11 个模块 ＋ 共享 IPC，并把被测符号拆成**三个集合**——A·ISD §5.1 接口符号 51 个、B·`src/` 实际导出符号 161 个、C·Case 命名的被测符号 131 个（A − 登记 = 0，A − Case = 31 项无 Case）；§6.1 登记 **136 条 `UT-*` Case**（模块 × 被测符号 × 对象类型）；环境类型 `ENV-UNIT`（方案 §4）。
 
-**覆盖责任摘要**：单元层以**函数**为最小被测对象，方案 §6 的 236 条 Case 由「模块 × 函数 × §2.3 对象类型」笛卡尔展开得到，每条 Case 内含其对象类型的全部必测维度格（合计 681 格）。每条 Case 的来源是同名实现设计文档与其 VRC。
+**覆盖责任摘要**：单元层以**被测符号**为最小被测对象，方案 §6.1 的 136 条 Case 由「模块 × 被测符号 × §2.3 对象类型」展开得到，每条 Case 登记**一个**维度格（不是全部格）。§2.3 的展开规则共定义 **24 个义务维度格**，当前已登记 **9 格（覆盖率 38%）**，未登记的 15 格登记为 `G-UT-DIM-1`。每条 Case 的来源是同名实现设计文档与其 VRC。
 
-**条目状态**：`Planned` —— 方案与用例集已固定版本（236 份 `tests.unit-case`），全部登记为 `Implemented`；执行状态与 Verdict 只在本计划产出的 Run 报告持有。
+**条目状态**：`Planned` —— 方案与用例集已固定版本（136 份 `tests.unit-case`），全部登记为 `Implemented`（实现率 100%）；执行状态与 Verdict 只在本计划产出的 Run 报告持有。
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
@@ -133,15 +133,15 @@
 
 #### 3.1 前检项 · 方案就绪度
 
-**判定事实**：`unit-test-scheme` §6 已逐条登记 236 条 Case（含来源 ISD、VRC、对象类型、优先级与设计状态）；§1.1 完成 107 个函数的 ISD §5 双向对账；§2.3 建立 STD 规定的 10 类函数类型与展开规则；§7 给出裁剪裁决。
+**判定事实**：`unit-test-scheme` §6.1 已逐条登记 136 条 Case（含来源 ISD、对象类型、维度格、优先级与设计状态）；§1.1 完成三集合对账（ISD §5.1 51 个接口符号与登记差集为零，其中 31 个无 Case）；§2.3 建立 STD 规定的 10 类对象类型与展开规则（24 个义务格）；§5.2 给出维度分母与实现率；§7 给出 10 条裁剪与缺口裁决。
 
-**通过条件**：方案版本已固定；§1.1 函数集合与 ISD §5 差集为零；每条 Case 在 §6 有设计状态且在用例集有同名文档；每个对象类型维��格在所属 Case 中有展开项。
+**通过条件**：方案版本已固定；§1.1 的 **A 集合（ISD §5.1 接口符号）与登记差集为零**；每条 Case 在 §6.1 有设计状态且在用例集有同名文档；每个对象类型维度格在所属 Case 中有展开项（或按 `G-UT-DIM-1` 登记为未登记格——本轮 24 格中已登记 9 格，未登记 15 格须有主有期限，不得静默消失）。
 
 **不满足时**：记 `Blocked`，把新增缺口按 `G-*` 编号登记到 §10.1 并通知测试工程；方案升版本后必须同步本计划 §1.1 与 §4 分配再重走本前检，不在旧版本上继续。
 
 #### 3.2 前检项 · Case 实现状态盘点
 
-**判定事实**：`tests.unit-case` 用例集已存在（`docs/70_verification/unit/cases/`，236 份 `.md` ＋ 同名 metadata）。每份含 §1.1 总账（对象函数＋对象类型＋实现状态）与 §3 逐 Case 段落（八字段）。模块↔文件映射：`BOOT` ← config-schema / config / core / clock；`TAPI` ← server；`POLICY` ← workspace / policy / task-equality / semantic；`REPO` ← store / task-equality；`SCHED` ← scheduler / p-input；`WORKER` ← worker / worker-runtime / tool-recovery；`PI` ← pi-runtime / provider-preflight / responses-replay；`USAGE` ← semantic / worker / model-mapping；`MATRIX` ← matrix；`TRANSFER` ← transfer / p-input；`OBS` ← observability / server；`IPC` ← ipc / supervisor / exec-process（待建）。
+**判定事实**：`tests.unit-case` 用例集已存在（`docs/70_verification/unit/cases/`，136 份 `.md` ＋ 同名 metadata）。每份含 §1.1 总账（对象函数＋对象类型＋实现状态）与 §3 逐 Case 段落（八字段）。模块↔文件映射：`BOOT` ← config-schema / config / core / clock；`TAPI` ← server；`POLICY` ← workspace / policy / task-equality / semantic；`REPO` ← store / task-equality；`SCHED` ← scheduler / p-input；`WORKER` ← worker / worker-runtime / tool-recovery；`PI` ← pi-runtime / provider-preflight / responses-replay；`USAGE` ← semantic / worker / model-mapping；`MATRIX` ← matrix；`TRANSFER` ← transfer / p-input；`OBS` ← observability / server；`IPC` ← ipc / supervisor / exec-process（待建）。
 
 **通过条件**：本轮要执行的每条 Case 都能指向至少一个可执行入口（文件路径 ＋ vitest 选择器），该入口在本轮 Run 记录中出现，且 Run 记录写明所覆盖的 Case ID；指不到入口的 Case 记 `NOT_RUN` 并登记原因，不得从清单消失。
 
@@ -182,7 +182,7 @@
 
 **Owner**：测试工程
 
-**分配给哪些 Case**：`UT-BOOT` 28 条；`UT-IPC` 16 条；`UT-MATRIX` 22 条；`UT-OBS` 15 条；`UT-PI` 27 条；`UT-POLICY` 25 条；`UT-REPO` 35 条；`UT-SCHED` 17 条；`UT-TAPI` 12 条；`UT-TRANSFER` 8 条；`UT-USAGE` 11 条；`UT-WORKER` 20 条（合计 236 条）。本环境为单实例串行占用，同一时刻只有一个 ENV 实例执行单元层 Case。
+**分配给哪些 Case**：`UT-BOOT` 10 条；`UT-IPC` 10 条；`UT-MATRIX` 11 条；`UT-OBS` 7 条；`UT-PI` 7 条；`UT-POLICY` 11 条；`UT-REPO` 51 条；`UT-SCHED` 5 条；`UT-TAPI` 3 条；`UT-TRANSFER` 8 条；`UT-USAGE` 2 条；`UT-WORKER` 11 条（合计 136 条）。本环境为单实例串行占用，同一时刻只有一个 ENV 实例执行单元层 Case。
 
 **准备时限**：§9 阶段门 1 进入前
 
@@ -252,9 +252,9 @@
 >
 > **完成条件**：报告的生成时机、模板与 Gate 规则确定。
 
-- **报告生成时机与模板**：全部 236 条 Case 走完（或按出口准则提前结束）后生成 `unit-test-report` 实例（`tests/unit/reports/unit-test-report.md`，模板 `tests.unit-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
+- **报告生成时机与模板**：全部 136 条 Case 走完（或按出口准则提前结束）后生成 `unit-test-report` 实例（`tests/unit/reports/unit-test-report.md`，模板 `tests.unit-test-report`），按 §6 的 Run 记录汇总 Verdict。降级路径：plan 整体环境性 `BLOCKED` → 该轮不生成 report 实例，只在 §10.1 记缺口与原因；部分 Case 失败仍生成 report（含 `FAIL`/`INVALID` 完整记录）；报告生成工具本身失败时，复现状态与修复状态分开记录，不掩盖 `FAIL`。
 
-- **Gate 建议规则**：Gate ＝ 全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出——既不计入 pass 也不隐藏，且每条 `BLOCKED` 必须对应 §10.1 中有主有期限的缺口。方案 §6 登记的 236 条 Case 全部参与 pass 判定；`Tailored-N/A` 条目按 §7 裁决不计入分母，但须在报告列出裁决依据。本层 PASS 不关闭模块层 Gate；报告只按本规则给建议，不越权批准。
+- **Gate 建议规则**：Gate ＝ 全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出——既不计入 pass 也不隐藏，且每条 `BLOCKED` 必须对应 §10.1 中有主有期限的缺口。方案 §6.1 登记的 136 条 Case 全部参与 pass 判定；`Tailored-N/A` 条目按 §7 裁决不计入分母，但须在报告列出裁决依据。本层 PASS 不关闭模块层 Gate；报告只按本规则给建议，不越权批准。
 
 ## 8. 责任、排期与风险
 
@@ -321,7 +321,7 @@
 
 **动作**：读取方案清单并按优先级排序
 
-**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.1 §6（236 条 `UT-<模块>-NNN`，含对象类型、分类、优先级与设计状态）、§1.1 函数集合、§2.1 `unit-contract` 判定规则与 §2.2 家族选型
+**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.2 §6.1（136 条 `UT-<模块>-NNN`，含来源 ISD、对象类型、维度格、优先级与设计状态）、§1.1 三集合对账、§2.1 家族方法记录与 §2.2 选型记录、§5.2 维度分母
 
 **产出**：执行队列＝按模块顺序（bootstrap → task-api → policy → task-repository → scheduler/worker → pi-adapter/usage → matrix-adapter/observability/transfer）排序的条目，每条＝`UT-*-001` ＋ 入口文件＋vitest 选择器 ＋ ENV 实例编号 ＋ VRC 区间；`Gap` 状态的 Case 进队列但预置为 `BLOCKED` 占位，不删除。
 
@@ -434,7 +434,7 @@
 
 **已关闭项**：
 
-- `G-EXEC-UT`（模块用例集未撰写）：**已关闭**。方案已按 STD §1.1 建立 116 个被测函数的双向对账清单，§2.3 改为按函数分类，§6 登记 236 条 Case，`docs/70_verification/unit/cases/` 下 236 份 `tests.unit-case` 文档齐备（每份含 §1.1 总账与 §3 八字段段落）。
+- `G-EXEC-UT`（模块用例集未撰写）：**已关闭**。方案已按 STD §1.1 建立被测符号的对账清单（§1.1 三集合：A·ISD 接口 51 / B·`src/` 导出 161 / C·Case 符号 131），§2.3 改为按对象类型分类，§6.1 登记 136 条 Case，`docs/70_verification/unit/cases/` 下 136 份 `tests.unit-case` 文档齐备（每份含 §1.1 总账与 §3 八字段段落）。
 - `G-ASSET-001`（`asset-design` 为骨架）：**已关闭**。`docs/70_verification/assets/asset-design.md` 已填写消费方索引、各 `FAKE-*` 的模拟与不证明边界、自检入口与两层状态；`FAKE-CLK` 已落地为 `src/clock.ts` 并由 `tests/unit/clock.test.ts` 自检。
 
 **当前状态**：本计划无未决项；执行结果与 Verdict 见 `unit-test-report`。
@@ -454,4 +454,16 @@
 | `G-EXEC-UT-3` | 测试工程 | 用例集段落未按 `UT-*-NNN` 组织 `describe` | 模块层 Gate 前 | **部分关闭**：新增 describe 块以 `UT-<模块>-<NNN> · <责任>` 命名；既有 describe 块重命名留给模块层 |
 | `G-EXEC-UT-4` | 模块设计 | `bindToolProfile` 接口粒度漂移：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现是 `validateToolRegistry(tools)` 校验整个注册表（行为等价：逐 `recovery_contract_ref` 解析、未绑定即失败，但函数粒度不同） | 下次 ISD 修订 | **未关闭，不阻塞本层**（本层只断言行为，不断言函数名） |
 
-**分母口径说明**：方案 §6 登记 148 个 Case ID，其中 `UT-FD-001` / `UT-FD-003` 是文档自带的虚构示例（FrameDecoder），**不计入分母**；真实分母 **136 条**，全部 `PASS`。本计划 §1.1 / §3.1 / §3.2 正文写的「236 条」是模板数字，与实际不符，应在方案升版时统一。
+**分母口径说明**：真实分母 **136 条**，全部 `PASS`。方案 §6.1 登记 136 条 Case，与用例集 `docs/70_verification/unit/cases/` 下 136 份文档一一对应。本计划 §1.1 / §3.1 / §3.2 / §4.1 / §7 正文原写的「236 条」是模板数字（136 条真 Case ＋ 100 条模板示例），**已在本轮随方案升版统一为 136**。
+
+**方案升版引入的新缺口**（`unit-test-scheme` v0.1.0-draft.2，随 STD 模板补齐 §5.2 维度词表与 §2.1/§5.1 家族记录后暴露）：
+
+| 缺口 | Owner | 内容 | 最晚 Gate | 状态 |
+|---|---|---|---|---|
+| `G-UT-DIM-1` | 测试工程 | §2.3 展开规则定义 24 个义务维度格，§6.1 只登记 9 格（覆盖率 38%），15 格未登记（方案 §5.2.1 逐格列出） | 下次方案升版 | **未关闭**，登记在方案 §7.1.7 |
+| `G-UT-DENOM-1` | 测试工程 + 模块 Owner | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖（方案 §1.1 对账表逐项列出） | 下次方案升版 | **未关闭**，登记在方案 §7.1.6 |
+| `G-UT-DENOM-2` | 测试工程 + 模块 Owner | `src/` 导出 161 个符号，ISD 只声明 51 个为接口（差 110）；未出现在任何 Case 的导出符号需逐项判定 | 下次方案升版 | **未关闭**，登记在方案 §7.1.8 |
+| `G-UT-VRC-1` | 测试工程 + 模块 Owner | 69 条 VRC 未逐条绑定到 Case（§6.1「来源 · VRC」列只写模块 ISD 路径） | 下次方案升版 | **未关闭**，登记在方案 §7.1.9 |
+| `G-UT-DRIFT-1` | 模块设计 + 测试工程 | 12 个被测符号名在 `src/` 里不存在（命名漂移），逐项对照见 `unit-test-report` §3.2.2 | 下次 ISD 修订 | **未关闭**，登记在方案 §7.1.10 |
+
+这五项**不改变本轮 136 条 Case 的 Verdict**（136/136 仍为 `PASS`），但它们说明**登记的分母本身还不完整**——`G-UT-DIM-1` 与 `G-UT-DENOM-1` 关闭前，Case 级全 PASS 不能等同于「单元层已全覆盖」。

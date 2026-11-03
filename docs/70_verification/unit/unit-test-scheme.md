@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
-| Authors | opencode, corezilla |
+| Authors | opencode, corezilla, Claude |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.unit-test-scheme` |
 | Template Version | `0.9.9` |
 | Template Conformance | `tailored` |
@@ -90,22 +90,40 @@
 
 - 共享设施（跨模块 IPC 与进程管理）：`src/ipc.ts` · `src/exec-process.ts` · `src/supervisor.ts`；ISD 归属 M000/M005，无独立 ISD。
 
-**被测函数集合（与 ISD §5 对账）**：逐函数列名如下；本集合 = ISD §5 声明的接口签名 ∪ `src/` 实际导出符号，故与两侧的差集均为零。
+**被测函数集合（与 ISD §5 对账）**：本方案登记**三个集合**，它们互不覆盖，必须分开读——STD §1.1 要求「函数集合与 ISD §5 清单全量对账，差集须为零」。
 
-- `BOOT`：`ManualClock`、`bindToolProfile`、`load`、`loadConfig`、`main`、`matrixWhoami`、`openStore`、`probe`、`resolveSecret`、`run`、`runControlProcess`、`stop`、`systemClock`、`validateToolRegistry`、`verifyPi`
-- `MATRIX`：`MatrixRuntime`、`close`、`downloadMedia`、`ingestMatrixBatch`、`isPermanentMatrixError`、`sendDiscussionReply`、`start`、`syncOnce`、`verifyDiscussion`
-- `OBS`：`Observability`、`appendAudit`、`audit`、`createObservability`、`emit`、`metric`、`redact`、`snapshot`
-- `PI`：`PiRuntime`、`accept`、`discussionMessage`、`drive`、`getResult`、`initialPrompt`、`inspect`、`install`、`isProviderUnavailableMessage`、`normalizeRawUsage`、`openOrCreateRunSession`、`preflightModelProvider`、`requestAbort`、`verifyPiUpstream`
-- `POLICY`：`Policy`、`authorizePath`、`bindToolProfile`、`canonicalizePath`、`collectOutputs`、`emptyUsage`、`ensureTaskDirs`、`normalizeTask`、`normalizedTask`、`resolveWorkspace`、`sameTask`、`validateSubmission`、`validateUsage`
-- `REPO`：`TaskStore`、`asReader`、`createOrGetRun`、`fenceSlot`、`finish`、`listQueued`、`mutateRun`、`openStore`、`patchTerminal`、`publishResult`、`purge`、`readSlot`、`releaseSlot`、`renewSlot`、`scanNonTerminalRuns`、`tryClaimSlot`
-- `SCHED`：`Scheduler`、`acquireSlot`、`fence`、`fenceSlot`、`isRecoveryComplete`、`renewLease`、`renewSlot`、`tryClaimSlot`
-- `TAPI`：`ApiServer`、`BearerAuth`、`cancelTask`、`createTask`、`getTask`、`getTaskResult`
-- `TRANSFER`：`DurableNodeExecutionEnv`、`Transfer`、`safeJoin`
-- `USAGE`：`check`、`emptyUsage`、`readAttempts`、`reduce`、`snapshot`、`validateBeforePublish`、`validateUsage`
-- `WORKER`：`RunWorker`、`aggregateUsage`、`applyToolRecoveryPolicy`、`build`、`onIdle`、`onLease`、`plan`、`route`
-- 共享：`ExecutionProcessSupervisor`、`FactHandler`、`LocalChannel`、`PikoError`、`ProcessChannel`、`attachChildToHandler`、`runExecutionProcess`
+- **集合 A · ISD §5.1 权威接口符号（51 个）**：设计文档声明的对外接口签名，唯一权威在 ISD §5.1 的 `**5.1.N \`Symbol(...)\`**` 条目。**A − §1.1 登记 = 空**（本方案不漏登记任何 ISD 接口）。
+- **集合 B · `src/` 实际导出符号（161 个）**：实现侧的真实导出面，比 A 大，因为 A 只声明对外接口，B 含工具类与内部编排函数。
+- **集合 C · §6 Case 实际命名的被测符号（131 个）**：用例集逐 Case 声明的「被测符号」。**C 与 A 只交 20 个**——C 的主体是 A 未声明的**私有成员/受保护方法**（如 `TaskStore.createOrGet`、`Policy.canonicalize`、`MatrixRuntime.auditMembership`），它们不是独立可调用单元，只能经公开入口间接覆盖。
 
-合计 **114 个被测函数**。
+**A ∪ B ∪ C 的差集不是零，登记如下**（每行可按符号名复算）：
+
+| 集合 | 规模 | 与 A 的差集 | 性质与处置 |
+|---|---|---|---|
+| A · ISD §5.1 接口符号 | 51 | — | 设计声明的必测点，**A − C = 31 项无 Case**，见 §7.1 裁决 `G-UT-DENOM-1` |
+| B · `src/` 导出符号 | 161 | B − A = 110 | 实现导出但设计未声明为接口；其中未被任何 Case 命名的导出符号按 §7.1 `G-UT-DENOM-2` 登记 |
+| C · Case 被测符号 | 131 | C − A = 111 | 其中 104 项是 `src/` 里的**私有成员/受保护方法**（非导出），经公开入口间接覆盖；12 项是**命名漂移**（用例集写的名字与实现不一致），逐项对照见 `unit-test-report` §3.2.2 |
+
+**各模块的三方对账**（ISD §5.1 符号数 / §1.1 登记数 / Case 命中该模块 Case 数 / ISD 符号无 Case 数）：
+
+| 模块 | ISD §5.1 符号 | §1.1 登记 | Case 数 | Case 命中的符号 | ISD 符号无 Case |
+|---|---|---|---|---|---|
+| `BOOT` | 4 | 15 | 10 | 10 | 2（`load`、`probe`） |
+| `MATRIX` | 5 | 9 | 11 | 11 | 2（`close`、`syncOnce`） |
+| `OBS` | 4 | 8 | 7 | 7 | 0 |
+| `PI` | 8 | 14 | 7 | 7 | 7（`accept`、`drive`、`getResult`、`inspect`、`install`、`openOrCreateRunSession`、`verifyPiUpstream`） |
+| `POLICY` | 3 | 13 | 11 | 11 | 3（`bindToolProfile`、`canonicalizePath`、`validateSubmission`） |
+| `REPO` | 14 | 16 | 51 | 51 | 6（`createOrGetRun`、`fenceSlot`、`listQueued`、`openStore`、`patchTerminal`、`scanNonTerminalRuns`） |
+| `SCHED` | 3 | 8 | 5 | 5 | 3（`acquireSlot`、`fence`、`renewLease`） |
+| `TAPI` | 4 | 6 | 3 | 3 | 4（`cancelTask`、`createTask`、`getTaskResult`，含 `getTask`） |
+| `TRANSFER` | 0 | 3 | 8 | 8 | 0（该 ISD 无 §5.1 API 小节） |
+| `USAGE` | 2 | 7 | 2 | 2 | 1（`validateBeforePublish`） |
+| `WORKER` | 5 | 8 | 11 | 11 | 4（`build`、`onIdle`、`onLease`、`plan`） |
+| 共享 | 0 | 7 | 0 | 0 | 0（`src/ipc.ts`·`exec-process.ts`·`supervisor.ts` 无独立 ISD） |
+
+**合计**：A = 51，§1.1 登记 = 106（去重前列名 114，其中 8 个跨模块重名：`snapshot`、`emptyUsage`、`fenceSlot`、`tryClaimSlot`、`renewSlot`、`bindToolProfile`、`validateUsage`、`openStore`），§6 Case = 136 条 / 131 个符号。
+
+**「差集为零」的正确表述**：**A − §1.1 登记 = 0**（设计声明的接口一个不漏登记）；但 **A − §6 Case ≠ 0**（31 个设计接口当前没有专门 Case），**C − A ≠ 0**（111 个 Case 测的是设计未声明为接口的私有成员）。前一项是本层的**覆盖缺口**（`G-UT-DENOM-1`），后一项是**命名粒度问题**（不构成缺口，但要求用例集的「被测符号」栏注明真实归属，见 `unit-test-report` §3.2）。
 
 **本阶段边界（真实组成／替身范围）**：被测函数全部为 `src/` 真实代码；替身仅限四处——受控时钟 `FAKE-CLK`（`src/clock.ts`）、LLMTier 与 Matrix 的homeserver 边界、scp 远端与 MCP 工具边界、内存 SQLite 实例。替身清单与其自检入口见 `docs/70_verification/assets/asset-design.md`。
 
@@ -144,6 +162,66 @@
 **环境类型引用**：`ENV-UNIT`
 
 **自动化与判定规则**：`tests/unit/*.test.ts`；断言返回值与抛错码；替身为严格 fake；缺断言即 INVALID
+
+**本层的粒度约定**：`unit-contract` 是**所有 Case 共享的判定基线**（怎么调用、断言什么、什么算失效），不是 STD 家族词表里的一个家族。STD §2.1 要求按家族逐条登记「选用的设计技术与注入／环境类型引用／自动化与判定规则」三字段，因此 §2.1.2–§2.1.7 按 STD 的七个家族各登记一条，声明该家族在本层用什么技术、注入什么、判定规则是什么，以及哪些格当前已登记、哪些格尚未登记（§5.2 给出逐格分母）。
+
+#### 2.1.2 Family · normal
+
+**选用的设计技术与注入**：等价类划分＋边界值抽样；对每个被测符号注入合法主路径输入 1 组＋边界输入 1 组（`src/` 真实实现，外部依赖替身化）
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：`tests/unit/*.test.ts` 一次执行即判；断言返回值逐值相等或抛错码与设计错误表一致；替身未命中即 `INVALID`
+
+#### 2.1.3 Family · boundary
+
+**选用的设计技术与注入**：边界值（上限/下限/零/1/刚好满）；对有上限声明的参数注入「恰好通过 / +1 拒绝 / −1 通过」三点；路径与字符串类注入「空 / 超长 / 注入字符 / 未知枚举」四点
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：接受与拒绝二选一，无第三态；超限行为按设计定义（拒绝或截断），不得崩溃或走未定义分支；单 Case 可复跑
+
+#### 2.1.4 Family · negative
+
+**选用的设计技术与注入**：错误猜测＋反例驱动；注入非法输入、越权路径、schema 违规、fence 拒绝；对每个 typed 错误码注入触发该码的输入 1 组
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：错误类型保真传播（不丢失、不改写）；内部 fence 不得外泄为客户端码；一次性判定，不掩盖 `FAIL`
+
+#### 2.1.5 Family · concurrency
+
+**选用的设计技术与注入**：顺序交错（状态机相邻转移）＋容量三点（N−1/N/N+1）；不注入真实并发
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：并发下不出现双写；可重入操作保持幂等；固定种子或受控时钟，禁依赖真实调度时序；失败须记录交错状态以复现，不允许「重跑通过」掩盖
+
+#### 2.1.6 Family · recovery
+
+**选用的设计技术与注入**：异常路径＋资源归还；注入「获取失败／正常释放／异常中途释放」三点，观察资源计数成对
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：异常路径后必须有显式释放；槽位归还、可重入；不得用「重试」模拟恢复
+
+#### 2.1.7 Family · security
+
+**选用的设计技术与注入**：路径逃逸／凭据／脱敏冒烟；注入 `../` 穿越、绝对路径越界、超长输入、含密钥样例的输出
+
+**环境类型引用**：`ENV-UNIT`
+
+**自动化与判定规则**：越权路径一律拒绝且不读取目标；凭据只记存在性与指纹、不落明文；无 Oracle 的模糊安全测试不采用
+
+#### 2.1.8 Family · performance
+
+**选用的设计技术与注入**：`Tailored-N/A`——ISD 未声明任何微基线预算，无注入内容
+
+**环境类型引用**：`—`
+
+**自动化与判定规则**：不适用，裁决见 §7.1；单元层不承担系统预算，基线归模块层与系统层
+
+> **§2.1 与 §6 的对应关系**：§6.1 每条 Case 的「分类」栏登记**对象类型**（§2.3 行），其家族归属由 §5.1 的分类适用性登记给出——即每个对象类型落到哪一个家族、该家族用哪条 §2.1 方法记录。§5.2 给出逐维度的分母。
 
 
 ### 2.2 测试设计技术选型记录（按 Case 家族）
@@ -407,11 +485,110 @@
 >
 > **完成条件**：七家族齐；每条不适用有依据。
 
-#### 5.1.1 分类 · normal / boundary / negative / concurrency / recovery / security / performance / endurance
+#### 5.1.1 分类 · normal
 
 **本阶段适用性**：适用
 
-**裁剪依据**：normal/boundary/negative/recovery/security 有对应 Case（见 §6）；concurrency 仅顺序交错；performance/endurance 走 §7
+**裁剪依据**：对应 §2.1.2 方法记录；本层的等价类/边界抽样由 §2.3 的「纯函数/无副作用」「数值/长度上限参数」「字符串/路径/枚举输入」三类对象类型的维度格承担
+
+#### 5.1.2 分类 · boundary
+
+**本阶段适用性**：适用
+
+**裁剪依据**：对应 §2.1.3 方法记录；§2.3「数值/长度上限参数」的三点边界与「字符串/路径/枚举输入」的四点路径格是本家族的义务格
+
+#### 5.1.3 分类 · negative
+
+**本阶段适用性**：适用
+
+**裁剪依据**：对应 §2.1.4 方法记录；§2.3「错误路径」的每个 typed 错误码是本家族的义务格
+
+#### 5.1.4 分类 · concurrency
+
+**本阶段适用性**：适用（仅顺序交错，不注入真实并发）
+
+**裁剪依据**：对应 §2.1.5 方法记录；§2.3「并发/可重入」三格。裁剪依据＝本层只验单实例语义下的确定性交错，真实多进程竞争归模块层 `MT-*`（跨模块协作与进程间租约传递不在本层证明）
+
+#### 5.1.5 分类 · recovery
+
+**本阶段适用性**：适用
+
+**裁剪依据**：对应 §2.1.6 方法记录；§2.3「资源获取/释放」三格。跨调用状态的恢复扫描与补写归模块层
+
+#### 5.1.6 分类 · security
+
+**本阶段适用性**：适用（冒烟级）
+
+**裁剪依据**：对应 §2.1.7 方法记录。裁剪依据＝上游与集成层已覆盖完整鉴权与注入面，本层只做路径逃逸/凭据/脱敏冒烟；资产级契约归 `tests.asset-design`
+
+#### 5.1.7 分类 · performance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：ISD 未声明任何微基线预算（§2.3.10 对象类型记为「ISD 无预算声明」），无预算阈值可比对，故不适用而非缺口。性能与容量预算归模块层与系统层
+
+#### 5.1.8 分类 · endurance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：长稳（endurance）验证需要连续运行时长与真实资源压测，属系统层 `ST-*` 范围；单元层按设计边界不涉及，裁决见 §7.1
+
+### 5.2 覆盖维度词表登记（大分量登记适用）
+
+> **本节目的**：把本层实际 Case 类型词表（对象类型×必测维度展开成的类型码）登记一处，供 §6 总账与实现率按维度统计。
+>
+> **完成条件**：Σ 各维度分母＝登记 Case 数；每维度可复算自机器源。
+
+> **Tailoring 说明（版本依赖，须在 STD 升版时核对）**：本节是 STD `0.1.0-draft.124` 引入的章节，**项目当前锁定的 `0.1.0-draft.120` 模板没有 §5.2**。本方案按用户「按模版改」的指示提前采用了该章节的内容（登记维度分母与实现率），但封面 `Template Version` 仍按锁定版本记 `0.9.9`——**该字段表示本方案所依据的模板版本，不表示章节形状的逐字一致**。STD 升版到 draft.124 时，本节随模板一并对齐，无需重写内容。
+
+本层登记 136 条 Case，超过 STD「大分量」阈值，故按两条正轴登记：**被测面**＝模块前缀（`UT-<模块>-NNN`），**覆盖维度**＝§2.3 对象类型 × 维度格。词表与 §2.3 展开表、§6.1 登记行的类型码三处一致。
+
+#### 5.2.1 维度 · 对象类型 × 维度格
+
+**枚举来源（机器权威）**：§2.3 各对象类型的「必测维度（展开规则）」行——展开规则本身就是义务格的权威定义，不是凭记忆挑选。
+
+**本轮分母**：下表「义务格」＝§2.3 展开规则要求的格数；「已登记格」＝§6.1 实际登记该格的 Case 数。**一行 Case 只登记一格**（STD §6.2「一格一 Case」）。
+
+| 对象类型 | 义务格 | 已登记格 | 已登记的格 | 未登记的格 | §6.1 Case 数 |
+|---|---|---|---|---|---|
+| 纯函数/无副作用 | 3 | 1 | 每等价类合法值 | 边界(上/下/零/空/满)、非法值 | 21 |
+| 数值/长度上限参数 | 3 | 1 | 恰好通过 | +1 拒绝、−1 通过 | 3 |
+| 字符串/路径/枚举输入 | 4 | 1 | 空 | 超长、注入字符、未知枚举/路径穿越 | 5 |
+| 错误路径 | 1 | 1 | 每个 typed 错误码 | — | 18 |
+| 资源获取/释放 | 3 | 1 | 获取失败路径 | 正常释放、异常中途释放 | 14 |
+| 并发/可重入 | 3 | 1 | 并发对偶/交错 | 容量 N−1/N/N+1、可重入幂等 | 14 |
+| 状态分支 | 2 | 1 | 合法迁移 | 每个非法迁移拒绝 | 37 |
+| 时间域行为 | 2 | 1 | 超时边界 ±1 tick | 定时器触发序 | 9 |
+| 持久化/序列化 | 3 | 1 | round-trip | 截断/损坏、版本不符 | 15 |
+| **合计** | **24** | **9** | — | **15** | **136** |
+
+**维度覆盖实况**：义务 24 格，已登记 9 格，**维度覆盖率 38%**。未登记的 15 格按 STD §6「未实现与 NOT_RUN 不删」登记为**待排期缺口**，汇总为 §7.1 的 `G-UT-DIM-1`，Owner＝测试工程。
+
+#### 5.2.2 维度 · 被测面（模块前缀）
+
+**枚举来源（机器权威）**：§6.1 登记行的 Case ID 前缀；模块↔ISD 基线映射见 §1.1。
+
+**本轮分母**：136 条 Case 的模块分布。
+
+| 前缀 | 模块 | ISD 基线 | Case 数 | 已实现 | 待实现 |
+|---|---|---|---|---|---|
+| `UT-BOOT` | bootstrap | `piko-bootstrap-impl.isd.md` | 10 | 10 | 0 |
+| `UT-IPC` | 共享 IPC | `src/ipc.ts`（无独立 ISD） | 10 | 10 | 0 |
+| `UT-MATRIX` | matrix-runtime | `piko-matrix-adapter-impl.isd.md` | 11 | 11 | 0 |
+| `UT-OBS` | observability | `piko-observability-impl.isd.md` | 7 | 7 | 0 |
+| `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 7 | 7 | 0 |
+| `UT-POLICY` | policy | `piko-policy-impl.isd.md` | 11 | 11 | 0 |
+| `UT-REPO` | task-repository | `piko-task-repository-impl.isd.md` | 51 | 51 | 0 |
+| `UT-SCHED` | scheduler | `piko-scheduler-impl.isd.md` | 5 | 5 | 0 |
+| `UT-TAPI` | task-api | `piko-task-api-impl.isd.md` | 3 | 3 | 0 |
+| `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 8 | 8 | 0 |
+| `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 2 | 0 |
+| `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 11 | 11 | 0 |
+| **合计** | — | — | **136** | **136** | **0** |
+
+**实现率**：按 §6「登记状态 `已实现`（脚本＋用例文档齐备）／`待实现`」二值随每行登记，本轮 **136/136 已实现，实现率 100%**（每个 Case 都有同名 `tests.unit-case` 文档 ＋ 可执行入口文件）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3），本轮为 100%，无需 §7 裁决说明。
+
+**「实现率 100%」与「维度覆盖 38%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。前者满格、后者缺 15 格，是本轮的真实状态——登记的分母本身还不完整。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -437,7 +614,7 @@
 
 #### 6.1 Case · UT-BOOT-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `advance`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `advance`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -449,7 +626,7 @@
 
 #### 6.1 Case · UT-BOOT-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `iso`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `iso`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -461,7 +638,7 @@
 
 #### 6.1 Case · UT-BOOT-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `loadConfig`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `loadConfig`（BOOT）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -473,7 +650,7 @@
 
 #### 6.1 Case · UT-BOOT-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `main`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `main`（BOOT）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -485,7 +662,7 @@
 
 #### 6.1 Case · UT-BOOT-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `monotonic`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `monotonic`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -497,7 +674,7 @@
 
 #### 6.1 Case · UT-BOOT-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `now`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `now`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -509,7 +686,7 @@
 
 #### 6.1 Case · UT-BOOT-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `resolveSecret`（BOOT）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `resolveSecret`（BOOT）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -521,7 +698,7 @@
 
 #### 6.1 Case · UT-BOOT-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `runControlProcess`（BOOT）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `runControlProcess`（BOOT）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -533,7 +710,7 @@
 
 #### 6.1 Case · UT-BOOT-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `systemClock`（BOOT）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `systemClock`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -545,7 +722,7 @@
 
 #### 6.1 Case · UT-BOOT-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `validateToolRegistry`（BOOT）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `validateToolRegistry`（BOOT）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -557,7 +734,7 @@
 
 #### 6.1 Case · UT-IPC-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `apply`（IPC）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `apply`（IPC）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -569,7 +746,7 @@
 
 #### 6.1 Case · UT-IPC-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `attachChildToHandler`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `attachChildToHandler`（IPC）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -581,7 +758,7 @@
 
 #### 6.1 Case · UT-IPC-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `kill`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `kill`（IPC）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -593,7 +770,7 @@
 
 #### 6.1 Case · UT-IPC-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `report`（IPC）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `report`（IPC）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -605,7 +782,7 @@
 
 #### 6.1 Case · UT-IPC-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `runExecutionProcess`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `runExecutionProcess`（IPC）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -617,7 +794,7 @@
 
 #### 6.1 Case · UT-IPC-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `send`（IPC）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `send`（IPC）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -629,7 +806,7 @@
 
 #### 6.1 Case · UT-IPC-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `spawn`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `spawn`（IPC）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -641,7 +818,7 @@
 
 #### 6.1 Case · UT-IPC-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `startWatchdog`（IPC）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `startWatchdog`（IPC）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -653,7 +830,7 @@
 
 #### 6.1 Case · UT-IPC-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `stop`（IPC）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `stop`（IPC）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -665,7 +842,7 @@
 
 #### 6.1 Case · UT-IPC-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `unhealthy`（IPC）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `unhealthy`（IPC）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -677,7 +854,7 @@
 
 #### 6.1 Case · UT-MATRIX-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `auditMembership`（MATRIX）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `auditMembership`（MATRIX）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -689,7 +866,7 @@
 
 #### 6.1 Case · UT-MATRIX-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `downloadMedia`（MATRIX）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `downloadMedia`（MATRIX）在对象类型 `数值/长度上限参数` 下的维度格 `恰好通过`（该 Case 只登记本行 1 格）、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -701,7 +878,7 @@
 
 #### 6.1 Case · UT-MATRIX-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `isJoined`（MATRIX）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `isJoined`（MATRIX）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -713,7 +890,7 @@
 
 #### 6.1 Case · UT-MATRIX-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `isPermanentMatrixError`（MATRIX）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `isPermanentMatrixError`（MATRIX）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -725,7 +902,7 @@
 
 #### 6.1 Case · UT-MATRIX-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `prepareEvent`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `prepareEvent`（MATRIX）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -737,7 +914,7 @@
 
 #### 6.1 Case · UT-MATRIX-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `processBatch`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `processBatch`（MATRIX）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -749,7 +926,7 @@
 
 #### 6.1 Case · UT-MATRIX-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `recordDiscussionAccessLost`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `recordDiscussionAccessLost`（MATRIX）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -761,7 +938,7 @@
 
 #### 6.1 Case · UT-MATRIX-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `send`（MATRIX）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `send`（MATRIX）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -773,7 +950,7 @@
 
 #### 6.1 Case · UT-MATRIX-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `sendDiscussionReply`（MATRIX）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `sendDiscussionReply`（MATRIX）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -785,7 +962,7 @@
 
 #### 6.1 Case · UT-MATRIX-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `start`（MATRIX）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `start`（MATRIX）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -797,7 +974,7 @@
 
 #### 6.1 Case · UT-MATRIX-011
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `verifyDiscussion`（MATRIX）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `verifyDiscussion`（MATRIX）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
 
@@ -809,7 +986,7 @@
 
 #### 6.1 Case · UT-OBS-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `audit`（OBS）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `audit`（OBS）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -821,7 +998,7 @@
 
 #### 6.1 Case · UT-OBS-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `bump`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `bump`（OBS）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -833,7 +1010,7 @@
 
 #### 6.1 Case · UT-OBS-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `emit`（OBS）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `emit`（OBS）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -845,7 +1022,7 @@
 
 #### 6.1 Case · UT-OBS-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `keep`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `keep`（OBS）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -857,7 +1034,7 @@
 
 #### 6.1 Case · UT-OBS-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `metric`（OBS）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `metric`（OBS）在对象类型 `数值/长度上限参数` 下的维度格 `恰好通过`（该 Case 只登记本行 1 格）、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -869,7 +1046,7 @@
 
 #### 6.1 Case · UT-OBS-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `redact`（OBS）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `redact`（OBS）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -881,7 +1058,7 @@
 
 #### 6.1 Case · UT-OBS-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `snapshot`（OBS）在对象类型 `数值/长度上限参数` 下的全部维度格 `恰好通过`、`+1 拒绝`、`−1 通过`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `snapshot`（OBS）在对象类型 `数值/长度上限参数` 下的维度格 `恰好通过`（该 Case 只登记本行 1 格）、`+1 拒绝`、`−1 通过`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
 
@@ -893,7 +1070,7 @@
 
 #### 6.1 Case · UT-PI-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `discussionMessage`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `discussionMessage`（PI）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -905,7 +1082,7 @@
 
 #### 6.1 Case · UT-PI-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `execute`（PI）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `execute`（PI）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -917,7 +1094,7 @@
 
 #### 6.1 Case · UT-PI-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `initialPrompt`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `initialPrompt`（PI）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -929,7 +1106,7 @@
 
 #### 6.1 Case · UT-PI-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `isProviderUnavailableMessage`（PI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `isProviderUnavailableMessage`（PI）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -941,7 +1118,7 @@
 
 #### 6.1 Case · UT-PI-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `model`（PI）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `model`（PI）在对象类型 `字符串/路径/枚举输入` 下的维度格 `空`（该 Case 只登记本行 1 格）、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -953,7 +1130,7 @@
 
 #### 6.1 Case · UT-PI-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `normalizeRawUsage`（PI）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `normalizeRawUsage`（PI）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -965,7 +1142,7 @@
 
 #### 6.1 Case · UT-PI-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `preflightModelProvider`（PI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `preflightModelProvider`（PI）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
 
@@ -977,7 +1154,7 @@
 
 #### 6.1 Case · UT-POLICY-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `authorizePath`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `authorizePath`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的维度格 `空`（该 Case 只登记本行 1 格）、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -989,7 +1166,7 @@
 
 #### 6.1 Case · UT-POLICY-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `canonicalize`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `canonicalize`（POLICY）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1001,7 +1178,7 @@
 
 #### 6.1 Case · UT-POLICY-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `collectOutputs`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `collectOutputs`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的维度格 `空`（该 Case 只登记本行 1 格）、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1013,7 +1190,7 @@
 
 #### 6.1 Case · UT-POLICY-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（POLICY）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1025,7 +1202,7 @@
 
 #### 6.1 Case · UT-POLICY-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `ensureTaskDirs`（POLICY）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `ensureTaskDirs`（POLICY）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1037,7 +1214,7 @@
 
 #### 6.1 Case · UT-POLICY-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `normalizedTask`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `normalizedTask`（POLICY）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1049,7 +1226,7 @@
 
 #### 6.1 Case · UT-POLICY-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `resolveWorkspace`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `resolveWorkspace`（POLICY）在对象类型 `字符串/路径/枚举输入` 下的维度格 `空`（该 Case 只登记本行 1 格）、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1061,7 +1238,7 @@
 
 #### 6.1 Case · UT-POLICY-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `sameTask`（POLICY）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `sameTask`（POLICY）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1073,7 +1250,7 @@
 
 #### 6.1 Case · UT-POLICY-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `validate`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `validate`（POLICY）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1085,7 +1262,7 @@
 
 #### 6.1 Case · UT-POLICY-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `validateResult`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `validateResult`（POLICY）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1097,7 +1274,7 @@
 
 #### 6.1 Case · UT-POLICY-011
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（POLICY）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（POLICY）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-policy-impl.isd.md` · 该模块 VRC
 
@@ -1109,7 +1286,7 @@
 
 #### 6.1 Case · UT-REPO-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `asReader`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `asReader`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1121,7 +1298,7 @@
 
 #### 6.1 Case · UT-REPO-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `cancel`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `cancel`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1133,7 +1310,7 @@
 
 #### 6.1 Case · UT-REPO-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `cancelRequested`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `cancelRequested`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1145,7 +1322,7 @@
 
 #### 6.1 Case · UT-REPO-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `createOrGet`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `createOrGet`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1157,7 +1334,7 @@
 
 #### 6.1 Case · UT-REPO-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `discussionAccessLost`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `discussionAccessLost`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1169,7 +1346,7 @@
 
 #### 6.1 Case · UT-REPO-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `discussionRoomsInUse`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `discussionRoomsInUse`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1181,7 +1358,7 @@
 
 #### 6.1 Case · UT-REPO-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `failAccessLostTasks`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `failAccessLostTasks`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1193,7 +1370,7 @@
 
 #### 6.1 Case · UT-REPO-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `finish`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `finish`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1205,7 +1382,7 @@
 
 #### 6.1 Case · UT-REPO-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `finishMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `finishMatrixSend`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1217,7 +1394,7 @@
 
 #### 6.1 Case · UT-REPO-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `finishQueued`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `finishQueued`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1229,7 +1406,7 @@
 
 #### 6.1 Case · UT-REPO-011
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `generation`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `generation`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1241,7 +1418,7 @@
 
 #### 6.1 Case · UT-REPO-012
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `getRun`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `getRun`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1253,7 +1430,7 @@
 
 #### 6.1 Case · UT-REPO-013
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `getTask`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `getTask`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1265,7 +1442,7 @@
 
 #### 6.1 Case · UT-REPO-014
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `hasMatrixEvent`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `hasMatrixEvent`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1277,7 +1454,7 @@
 
 #### 6.1 Case · UT-REPO-015
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixBatch`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixBatch`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1289,7 +1466,7 @@
 
 #### 6.1 Case · UT-REPO-016
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `ingestMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1301,7 +1478,7 @@
 
 #### 6.1 Case · UT-REPO-017
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `inputStaging`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `inputStaging`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1313,7 +1490,7 @@
 
 #### 6.1 Case · UT-REPO-018
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `insertResult`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `insertResult`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1325,7 +1502,7 @@
 
 #### 6.1 Case · UT-REPO-019
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `knownActions`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `knownActions`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1337,7 +1514,7 @@
 
 #### 6.1 Case · UT-REPO-020
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `markDiscussionAccessLost`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `markDiscussionAccessLost`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1349,7 +1526,7 @@
 
 #### 6.1 Case · UT-REPO-021
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `markTurn`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `markTurn`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1361,7 +1538,7 @@
 
 #### 6.1 Case · UT-REPO-022
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `matrixCursor`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `matrixCursor`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1373,7 +1550,7 @@
 
 #### 6.1 Case · UT-REPO-023
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `migrate`（REPO）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `migrate`（REPO）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1385,7 +1562,7 @@
 
 #### 6.1 Case · UT-REPO-024
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `mutateRun`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `mutateRun`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1397,7 +1574,7 @@
 
 #### 6.1 Case · UT-REPO-025
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `nextNeedingStaging`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `nextNeedingStaging`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1409,7 +1586,7 @@
 
 #### 6.1 Case · UT-REPO-026
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `observeUsage`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `observeUsage`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1421,7 +1598,7 @@
 
 #### 6.1 Case · UT-REPO-027
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `openDiscussionRuns`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `openDiscussionRuns`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1433,7 +1610,7 @@
 
 #### 6.1 Case · UT-REPO-028
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `pendingTurns`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `pendingTurns`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1445,7 +1622,7 @@
 
 #### 6.1 Case · UT-REPO-029
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `prepareMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `prepareMatrixSend`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1457,7 +1634,7 @@
 
 #### 6.1 Case · UT-REPO-030
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `publishResult`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `publishResult`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1469,7 +1646,7 @@
 
 #### 6.1 Case · UT-REPO-031
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `purge`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `purge`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1481,7 +1658,7 @@
 
 #### 6.1 Case · UT-REPO-032
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `purgeExpired`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `purgeExpired`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1493,7 +1670,7 @@
 
 #### 6.1 Case · UT-REPO-033
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `rawUsage`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `rawUsage`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1505,7 +1682,7 @@
 
 #### 6.1 Case · UT-REPO-034
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `readSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `readSlot`（REPO）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1517,7 +1694,7 @@
 
 #### 6.1 Case · UT-REPO-035
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `recordMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `recordMatrixEvent`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1529,7 +1706,7 @@
 
 #### 6.1 Case · UT-REPO-036
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `recordProviderCall`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `recordProviderCall`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1541,7 +1718,7 @@
 
 #### 6.1 Case · UT-REPO-037
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `recoverOrphaned`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `recoverOrphaned`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1553,7 +1730,7 @@
 
 #### 6.1 Case · UT-REPO-038
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `releaseSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `releaseSlot`（REPO）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1565,7 +1742,7 @@
 
 #### 6.1 Case · UT-REPO-039
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `renewSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `renewSlot`（REPO）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1577,7 +1754,7 @@
 
 #### 6.1 Case · UT-REPO-040
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `reserveModel`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `reserveModel`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1589,7 +1766,7 @@
 
 #### 6.1 Case · UT-REPO-041
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `reserveTool`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `reserveTool`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1601,7 +1778,7 @@
 
 #### 6.1 Case · UT-REPO-042
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `scanNonTerminal`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `scanNonTerminal`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1613,7 +1790,7 @@
 
 #### 6.1 Case · UT-REPO-043
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `setArtifactDelivery`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `setArtifactDelivery`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1625,7 +1802,7 @@
 
 #### 6.1 Case · UT-REPO-044
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `setInputStaging`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `setInputStaging`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1637,7 +1814,7 @@
 
 #### 6.1 Case · UT-REPO-045
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `setMatrixCursor`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `setMatrixCursor`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1649,7 +1826,7 @@
 
 #### 6.1 Case · UT-REPO-046
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `terminalModel`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `terminalModel`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1661,7 +1838,7 @@
 
 #### 6.1 Case · UT-REPO-047
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `terminalTool`（REPO）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `terminalTool`（REPO）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1673,7 +1850,7 @@
 
 #### 6.1 Case · UT-REPO-048
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `tryClaimSlot`（REPO）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `tryClaimSlot`（REPO）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1685,7 +1862,7 @@
 
 #### 6.1 Case · UT-REPO-049
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `tryCloseIntake`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `tryCloseIntake`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1697,7 +1874,7 @@
 
 #### 6.1 Case · UT-REPO-050
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `unknownMatrixSend`（REPO）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `unknownMatrixSend`（REPO）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1709,7 +1886,7 @@
 
 #### 6.1 Case · UT-REPO-051
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `usageSoFar`（REPO）在对象类型 `持久化/序列化` 下的全部维度格 `round-trip`、`截断/损坏`、`版本不符`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `usageSoFar`（REPO）在对象类型 `持久化/序列化` 下的维度格 `round-trip`（该 Case 只登记本行 1 格）、`截断/损坏`、`版本不符`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-repository-impl.isd.md` · 该模块 VRC
 
@@ -1721,7 +1898,7 @@
 
 #### 6.1 Case · UT-SCHED-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `acquire`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `acquire`（SCHED）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
@@ -1733,7 +1910,7 @@
 
 #### 6.1 Case · UT-SCHED-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `read`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `read`（SCHED）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
@@ -1745,7 +1922,7 @@
 
 #### 6.1 Case · UT-SCHED-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `recover`（SCHED）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `recover`（SCHED）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
@@ -1757,7 +1934,7 @@
 
 #### 6.1 Case · UT-SCHED-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `release`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `release`（SCHED）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
@@ -1769,7 +1946,7 @@
 
 #### 6.1 Case · UT-SCHED-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `renew`（SCHED）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `renew`（SCHED）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-scheduler-impl.isd.md` · 该模块 VRC
 
@@ -1781,7 +1958,7 @@
 
 #### 6.1 Case · UT-TAPI-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `create`（TAPI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `create`（TAPI）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
@@ -1793,7 +1970,7 @@
 
 #### 6.1 Case · UT-TAPI-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `listen`（TAPI）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `listen`（TAPI）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
@@ -1805,7 +1982,7 @@
 
 #### 6.1 Case · UT-TAPI-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `route`（TAPI）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `route`（TAPI）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
 
@@ -1817,7 +1994,7 @@
 
 #### 6.1 Case · UT-TRANSFER-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `assertAllowed`（TRANSFER）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `assertAllowed`（TRANSFER）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1829,7 +2006,7 @@
 
 #### 6.1 Case · UT-TRANSFER-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `clearStaging`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `clearStaging`（TRANSFER）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1841,7 +2018,7 @@
 
 #### 6.1 Case · UT-TRANSFER-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `deliverArtifacts`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `deliverArtifacts`（TRANSFER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1853,7 +2030,7 @@
 
 #### 6.1 Case · UT-TRANSFER-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `fetchInputs`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `fetchInputs`（TRANSFER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1865,7 +2042,7 @@
 
 #### 6.1 Case · UT-TRANSFER-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `safeJoin`（TRANSFER）在对象类型 `字符串/路径/枚举输入` 下的全部维度格 `空`、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `safeJoin`（TRANSFER）在对象类型 `字符串/路径/枚举输入` 下的维度格 `空`（该 Case 只登记本行 1 格）、`超长`、`注入字符`、`未知枚举/路径穿越`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1877,7 +2054,7 @@
 
 #### 6.1 Case · UT-TRANSFER-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `scpArgs`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `scpArgs`（TRANSFER）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1889,7 +2066,7 @@
 
 #### 6.1 Case · UT-TRANSFER-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `scpKeyPath`（TRANSFER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `scpKeyPath`（TRANSFER）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1901,7 +2078,7 @@
 
 #### 6.1 Case · UT-TRANSFER-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `sync`（TRANSFER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `sync`（TRANSFER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
 
@@ -1913,7 +2090,7 @@
 
 #### 6.1 Case · UT-USAGE-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（USAGE）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `emptyUsage`（USAGE）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-usage-impl.isd.md` · 该模块 VRC
 
@@ -1925,7 +2102,7 @@
 
 #### 6.1 Case · UT-USAGE-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（USAGE）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `validateUsage`（USAGE）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-usage-impl.isd.md` · 该模块 VRC
 
@@ -1937,7 +2114,7 @@
 
 #### 6.1 Case · UT-WORKER-001
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `aggregateUsage`（WORKER）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `aggregateUsage`（WORKER）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -1949,7 +2126,7 @@
 
 #### 6.1 Case · UT-WORKER-002
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `applyToolRecoveryPolicy`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `applyToolRecoveryPolicy`（WORKER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -1961,7 +2138,7 @@
 
 #### 6.1 Case · UT-WORKER-003
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `claimNext`（WORKER）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `claimNext`（WORKER）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -1973,7 +2150,7 @@
 
 #### 6.1 Case · UT-WORKER-004
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `isAborted`（WORKER）在对象类型 `纯函数/无副作用` 下的全部维度格 `每等价类合法值`、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `isAborted`（WORKER）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -1985,7 +2162,7 @@
 
 #### 6.1 Case · UT-WORKER-005
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `loop`（WORKER）在对象类型 `时间域行为` 下的全部维度格 `超时边界 ±1 tick`、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `loop`（WORKER）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -1997,7 +2174,7 @@
 
 #### 6.1 Case · UT-WORKER-006
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `report`（WORKER）在对象类型 `并发/可重入` 下的全部维度格 `并发对偶/交错`、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `report`（WORKER）在对象类型 `并发/可重入` 下的维度格 `并发对偶/交错`（该 Case 只登记本行 1 格）、`容量 N−1/N/N+1`、`可重入幂等`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2009,7 +2186,7 @@
 
 #### 6.1 Case · UT-WORKER-007
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `reportPreconditionFailure`（WORKER）在对象类型 `错误路径` 下的全部维度格 `每个 typed 错误码`、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `reportPreconditionFailure`（WORKER）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2021,7 +2198,7 @@
 
 #### 6.1 Case · UT-WORKER-008
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `requestAbort`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `requestAbort`（WORKER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2033,7 +2210,7 @@
 
 #### 6.1 Case · UT-WORKER-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `run`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `run`（WORKER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2045,7 +2222,7 @@
 
 #### 6.1 Case · UT-WORKER-010
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `stageInputs`（WORKER）在对象类型 `状态分支` 下的全部维度格 `合法迁移`、`每个非法迁移拒绝`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `stageInputs`（WORKER）在对象类型 `状态分支` 下的维度格 `合法迁移`（该 Case 只登记本行 1 格）、`每个非法迁移拒绝`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2057,7 +2234,7 @@
 
 #### 6.1 Case · UT-WORKER-011
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `start`（WORKER）在对象类型 `资源获取/释放` 下的全部维度格 `获取失败路径`、`正常释放`、`异常中途释放`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `start`（WORKER）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
 
@@ -2066,6 +2243,33 @@
 **设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-011.md`
+
+
+### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
+
+> **本节目的**：展示 §6 登记行在用例集中展开成的固定格式段落，供作者预判对应关系。
+>
+> **完成条件**：登记行与集合段落可互相定位。
+
+§6.1 每条登记行在 `docs/70_verification/unit/cases/<Case ID>.md` 里展开成一个八字段段落块（STD `tests.unit-case` §3 的固定形状）：责任/明确不测、维度坐标、输入构造、步骤与观察点、Oracle 与预期、错误路径/清理、脚本/实现状态。以 `UT-REPO-048` 为例：
+
+**Case · UT-REPO-048 · slot 认领在并发下不双写（集合内展开形状）**
+
+**责任 / 明确不测**：验证 `tryClaimSlot` 在容量边界下同一 slot 不被两个持有者同时认领；不测跨进程租约传递与真实并发调度（归 `MT-REPO-*`）。
+
+**维度坐标（方案 §2.3 行×格）**：并发/可重入 × 并发对偶/交错。（该类型的其余两格「容量 N−1/N/N+1」「可重入幂等」尚未登记，见 §5.2.1 与 `G-UT-DIM-1`。）
+
+**输入构造**：内存 SQLite 库，队列容量 N，注入 N−1/N/N+1 个已占 slot 与 1 个空闲 slot。
+
+**步骤与观察点**：调 `tryClaimSlot` → 返回认领结果 → 检查 slot 持有者唯一。
+
+**Oracle 与预期**：同一 slot 至多一个持有者（ISD §5 的 fenced-run 规则，判据语义以 VRC 为唯一权威）；失败时返回 fenced 拒绝而非静默成功。
+
+**错误路径 / 清理**：被 fence 的一侧必须显式拒绝；每 Case 重建内存库，不跨 Case 复用状态。
+
+**脚本 / 实现状态**：`tests/unit/store.test.ts` · `Implemented`
+
+> **新增 Case 的顺序**：先入 §6.1 登记，再在用例集建段落，再同步 §5.2 的维度分母与计划 §4 的 ENV 分配。计划只引用本方案版本，不复制登记。
 
 
 ## 7. 不适用与缺口裁决
@@ -2088,37 +2292,65 @@
 >
 > **完成条件**：§6 中每个 Gap/N/A 能在本节找到裁决记录。
 
-#### 7.1.1 裁决 · 不适用与缺口（登记矩阵）
-
 #### 7.1.1 裁决 · 控件面
 
 **裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— 无 UI
 
-**Owner / 恢复条件**：—
+**依据 · Owner · 恢复条件**：Piko 是无界面的服务进程，设计文档未声明任何 UI 元素面；Owner＝—；无恢复条件（若引入 UI 需先改设计）
 
 #### 7.1.2 裁决 · 成本护栏
 
 **裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— 无 Cost
 
-**Owner / 恢复条件**：—
+**依据 · Owner · 恢复条件**：本层不承载成本护栏（成本维度归模块层/系统层）；Owner＝—；无恢复条件
 
 #### 7.1.3 裁决 · 性能预算
 
 **裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— 无预算分母
 
-**Owner / 恢复条件**：—
+**依据 · Owner · 恢复条件**：§2.3.10 对象类型记「ISD 无预算声明」；ISD 未声明微基线预算，无阈值可比对。Owner＝—；若 ISD 补上预算声明则本裁决失效，转 §2.1.8 适用路径
 
 #### 7.1.4 裁决 · 长稳
 
 **裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— 无 endurance
 
-**Owner / 恢复条件**：—
+**依据 · Owner · 恢复条件**：长稳验证需连续运行时长与真实资源压测，属系统层 `ST-*` 范围；Owner＝—；无恢复条件
 
 #### 7.1.5 裁决 · 逐 Case 文档
 
 **裁决（Tailored-N/A 或 Gap）**：Gap —— `UT-*-001` case 文档未逐条撰写
 
-**Owner / 恢复条件**：测试工程 / 按 §6 拆分
+**依据 · Owner · 恢复条件**：**已关闭**。136 份 `tests.unit-case` 文档齐备（`docs/70_verification/unit/cases/`），每份含 §1.1 总账与 §3 八字段段落，全部指向可执行入口。Owner＝测试工程
+
+#### 7.1.6 裁决 · ISD 接口符号无专属 Case（`G-UT-DENOM-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§1.1 对账显示 ISD §5.1 声明的 **51 个接口符号中有 31 个没有任何 Case 直接命中**（`BOOT` 2 / `MATRIX` 2 / `PI` 7 / `POLICY` 3 / `REPO` 6 / `SCHED` 3 / `TAPI` 4 / `USAGE` 1 / `WORKER` 4；逐项清单见 §1.1 对账表）。部分经公开入口间接覆盖（如 `TaskStore.createOrGetRun` 由 `UT-REPO-004` 的 `createOrGet` 覆盖），部分完全无覆盖。Owner＝测试工程 ＋ 模块 Owner；恢复条件＝为这 31 个符号补 Case 或逐项登记「经哪个公开入口间接覆盖」的依据
+
+#### 7.1.7 裁决 · 维度格未登记（`G-UT-DIM-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **24 个义务维度格**，§6.1 实际只登记 **9 格**（每个 Case 登记 1 格，见 §5.2.1），未登记 **15 格**：纯函数（边界、非法值）、数值上限（+1 拒绝、−1 通过）、字符串/路径（超长、注入字符、未知枚举/路径穿越）、资源获取/释放（正常释放、异常中途释放）、并发/可重入（容量三点、可重入幂等）、状态分支（每个非法迁移拒绝）、时间域行为（定时器触发序）、持久化/序列化（截断/损坏、版本不符）。Owner＝测试工程；恢复条件＝按 §6.2「一格一 Case」逐格补登记（补 15 条即维度覆盖达 100%），并同步 §5.2 的分母
+
+#### 7.1.8 裁决 · 导出但无 Case 的 `src/` 符号（`G-UT-DENOM-2`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`src/` 实际导出 **161** 个符号，ISD §5.1 只声明 51 个为接口（差 110 个）。这些符号中未出现在任何 §6.1「被测符号」栏的，构成实现侧未被本层认领的面。Owner＝测试工程 ＋ 模块 Owner；恢复条件＝逐项判定「需 Case／经他处间接覆盖／本层不测（附依据）」，不得默认忽略
+
+#### 7.1.9 裁决 · VRC 未逐条绑定到 Case（`G-UT-VRC-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：本层 VRC 合计 69 条（逐条计数见附录 A），§6.1 的「来源 ID · VRC」列写的是模块 ISD 路径而非具体 VRC ID，附录 A 的覆盖列因此只能是通配 `UT-<模块>-*`。STD 附录 A 要求「每个 VRC 在 §6 有 Case 或缺口」的逐条绑定。Owner＝测试工程 ＋ 模块 Owner；恢复条件＝§6.1 补写具体 VRC ID，且每个 VRC 至少被一条 Case 引用
+
+#### 7.1.10 裁决 · 命名漂移（`G-UT-DRIFT-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§6.1 中 **12 个被测符号名在 `src/` 里不存在**（用例集写的是 ISD 声明名或旧名，实现用的是另一名），逐项对照见 `unit-test-report` §3.2.2。已确认全部是命名漂移而非未实现行为。Owner＝模块设计 ＋ 测试工程；恢复条件＝要么改用例集的「被测符号」栏为实现真实名，要么改 ISD 使两者一致。**其中 `bindToolProfile` 需要设计层确认**：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现是 `validateToolRegistry(tools)` 校验整个注册表（行为等价，粒度不同）
 
 
 ## 8. 文档联动与登记变更规则
@@ -2144,6 +2376,14 @@
 - 方案冻结与变更规则：登记随 ISD 基线冻结；新增 Case 先登记再建段落；变更升版本并通知计划与集合。
 - 与用例集／计划的同步规则：用例集总账行＝§6 登记行；计划构成表引用本方案版本。
 
+**三方同步的完整传播链**（本方案 §5.2 引入维度分母后，登记变更要同步四处，不只两处）：
+
+| 变更类型 | 传播到 |
+|---|---|
+| 新增／删除 Case | §6.1 登记 → §5.2 维度分母与实现率 → 用例集 `cases/<Case ID>.md` 建段落 → 计划 §4 ENV 分配与 §1.1 构成表 |
+| 新增／删除对象类型 | §2.3 展开表 → §2.1／§5.1 家族归属 → §5.2 维度词表 → §6.1 登记行 → §7.1 裁决（若为 N/A） |
+| ISD 基线变更（函数增删改名） | §1.1 三集合对账 → §6.1 登记行的「来源 ID」列 → §7.1 缺口裁决 → 用例集段落 → 计划 §2 重跑范围规则 |
+| 维度格补登记 | §6.1 新增 Case 行 → §5.2 该格「已登记格」与覆盖率 → §6.2 示例同步 |
 
 > **交付自查**：每个适用来源 ID 是否都有 Case 或缺口；每条登记是否有集合段落对应；方案是否混入输入构造或 Oracle 复制；§2.3 维度是否被 §6 覆盖。
 
@@ -2158,6 +2398,27 @@
 > **完成条件**：本附录 VRC 集合与设计一致；每个 VRC 在 §6 有 Case 或缺口。
 
 #### A.1 VRC · 单元层设计验证项汇集
+
+> **绑定粒度说明（缺口登记）**：STD 附录 A 要求「每个 VRC 在 §6 有 Case 或缺口」，即 **VRC → Case 的逐条绑定**。本方案当前只到**模块粒度**——§6.1 每条 Case 的「来源 ID · VRC」列写的是该模块的 ISD 路径（`docs/50_implementation_design/piko-<模块>-impl.isd.md` · 该模块 VRC），**未写具体 VRC ID**；下表「§6 Case 覆盖」列因此只能写通配 `UT-<模块>-*`。
+>
+> 本层 VRC 合计 **69** 条（逐条计数见下表「VRC 数」列，与各 ISD 实际声明一致）；Case 合计 136 条；**VRC 到 Case 的逐条映射尚未建立**，登记为 `G-UT-VRC-1`，Owner＝测试工程 ＋ 模块 Owner，恢复条件＝§6.1 的「来源 ID · VRC」列补写具体 VRC ID，且每个 VRC 至少被一条 Case 引用。
+>
+> 逐模块 VRC 数与 Case 数对照（可按 ISD 复算）：
+>
+> | 模块 | VRC 数 | Case 数 | VRC→Case 逐条绑定 |
+> |---|---|---|---|
+> | `BOOT` | 8 | 10 | 未建立 |
+> | `MATRIX` | 5 | 11 | 未建立 |
+> | `OBS` | 6 | 7 | 未建立 |
+> | `PI` | 8 | 7 | 未建立 |
+> | `POLICY` | 6 | 11 | 未建立 |
+> | `REPO` | 9 | 51 | 未建立 |
+> | `SCHED` | 6 | 5 | 未建立 |
+> | `TAPI` | 6 | 3 | 未建立 |
+> | `TRANSFER` | 2 | 8 | 未建立 |
+> | `USAGE` | 6 | 2 | 未建立 |
+> | `WORKER` | 7 | 11 | 未建立 |
+> | **合计** | **69** | **136** | — |
 
 #### A.1.1 VRC · `VRC-REPO-001..009`
 
