@@ -16,13 +16,13 @@
 | Created Date | `2026-11-03` |
 | Last Modified Date | `2026-11-03` |
 | Template ID | `tests.unit-test-report` |
-| Template Version | `0.10.9` |
+| Template Version | `0.3.13` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Repository | `corezilla/piko` |
 | Canonical Path | `tests/unit/reports/unit-test-report.md` |
 | Supersedes | none |
-
+| Migration Map Reference | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 本轮 Run

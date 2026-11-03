@@ -14,7 +14,6 @@
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
 | Template Version | `1.3.0` |
-| implementation_view_of_document_id | `piko-transfer-design` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线
@@ -146,4 +145,8 @@ cover/sidecar 一致；`template_sha256` 校验通过；发现见 `notes/interfa
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/50_implementation_design/piko-transfer-impl.isd.md` |
 | Supersedes | none |
+| implementation_view_of_document_id | `piko-transfer-design` |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_CONTROL_END -->

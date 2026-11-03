@@ -14,6 +14,15 @@
 | Last Modified Date | `2026-11-03` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.3.1` |
+| Authority | piko |
+| Authors | corezilla |
+| Created Date | 2026-11-03 |
+| Template Conformance | tailored |
+| Tailoring Reference | piko-std-tailoring-v0.1 |
+| Migration Map Reference | none |
+| Repository | corezilla/piko |
+| Canonical Path | docs/20_system_design/mechanisms/piko-test-execution.md |
+| Supersedes | none |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题
