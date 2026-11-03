@@ -129,6 +129,7 @@ export class RunWorker {
       partial: false,
       summary: failure.message,
       outputs: [],
+      executions: [],
       stats: { model_calls: 0, tool_calls: 0, duration_ms: 0, outputs_count: 0, outputs_bytes: 0 },
       known_actions: [],
       usage: aggregateUsage([], 0),
@@ -184,6 +185,7 @@ export class RunWorker {
         usage,
         failure,
         published_at: publishedAt,
+        executions: outcome.executions ?? [],
       };
       await this.report({ kind: "publishResult", result, lease_epoch: epoch });
       await this.report({ kind: "finish", result, lease_epoch: epoch });
@@ -229,6 +231,7 @@ export class RunWorker {
           usage: aggregateUsage(this.store.rawUsage(taskId), attempts),
           failure: { code: code as any, cause_class: cause_class as any, message: e.message ?? String(e) },
           published_at: publishedAt,
+          executions: [],
         };
         await this.report({ kind: "publishResult", result, lease_epoch: epoch });
         await this.report({ kind: "finish", result, lease_epoch: epoch });

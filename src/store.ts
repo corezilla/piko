@@ -644,6 +644,7 @@ CREATE INDEX IF NOT EXISTS provider_calls_task ON provider_calls(task_id,ts);
           partial: false,
           summary: "Cancelled before execution started.",
           outputs: [],
+          executions: [],
           stats: { model_calls: 0, tool_calls: 0, duration_ms: 0, outputs_count: 0, outputs_bytes: 0 },
           known_actions: [],
           usage: emptyUsage(),

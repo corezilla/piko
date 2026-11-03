@@ -26,6 +26,7 @@ const result = (task_id: string, state: AgentResult["state"], over: Partial<Agen
   usage: emptyUsage(),
   failure: state === "Completed" ? null : { code: "InternalError", cause_class: "Internal", message: "x" },
   published_at: new Date().toISOString(),
+  executions: [],
   ...over,
 });
 

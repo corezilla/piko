@@ -16,6 +16,7 @@ import { createGraphragSearchTool, type DocSearchToolDeps } from "./graphrag-too
 import { installNetworkPolicy, restoreNetworkPolicy } from "./tool-host-policy.js";
 import { assertExecutablesAllowed } from "./tool-exec-policy.js";
 import { createRemoteBashTool } from "./remote-exec-tools.js";
+import type { ExecutionFact } from "./execution-facts.js";
 import type { Transfer } from "./transfer.js";
 import { appendFileSync } from "node:fs";
 import { PikoError } from "./types.js";
@@ -27,7 +28,7 @@ import { authorizePath } from "./workspace.js";
 import { applyToolRecoveryPolicy } from "./tool-recovery.js";
 import { relative,resolve,sep } from "node:path";
 
-export type PiExecution={status:"completed"|"failed"|"cancelled";summary:string;failure?:NonNullable<AgentResult["failure"]>};
+export type PiExecution={status:"completed"|"failed"|"cancelled";summary:string;failure?:NonNullable<AgentResult["failure"]>;executions?:ExecutionFact[]};
 
 /** Provider-availability failures (gateway 502/503, provider unreachable) map to
  *  the contract's ModelUnavailable/Dependency, not ModelProtocol. Pi folds the
@@ -265,8 +266,11 @@ export class PiRuntime {
         let outcome=recoveredOutcome;recoveredOutcome=undefined;
         if(!outcome){const driven=await lane.drive({operationId:operation.operationId,waitForRetry:true,pollDeferred:true},BACKGROUND_CONTEXT);if(!driven.ok)throw driven.error;if(driven.value.kind==="waiting")continue;outcome=driven.value.outcome}
         if(activeTurn){const turn=activeTurn;if(outcome.status==="completed"&&onDiscussionReply)await onDiscussionReply(turn.event,turn.seq,await finalText(lane));void this.channel.report({kind:"turn",task_id:runId,event_id:turn.event,status:"Consumed",operation:operation.operationId});activeTurn=undefined}
-        if(toolFailure)return {status:"failed",summary:toolFailure,failure:{code:"ToolFailure",cause_class:"Tool",message:toolFailure}};
-        if(unsafeRetry)return {status:"failed",summary:"Unsafe tool replay was blocked.",failure:{code:"UnsafeRetryBlocked",cause_class:"ExecutionUnknown",message:"A non-replayable tool call was encountered again."}};
+        // MECH-TESTEXEC §5: execution facts are collected at the env boundary
+        // and ride along with the outcome, so the worker can publish them.
+        const executions=fileSystem.executionFacts.list();
+        if(toolFailure)return {status:"failed",summary:toolFailure,failure:{code:"ToolFailure",cause_class:"Tool",message:toolFailure},executions};
+        if(unsafeRetry)return {status:"failed",summary:"Unsafe tool replay was blocked.",failure:{code:"UnsafeRetryBlocked",cause_class:"ExecutionUnknown",message:"A non-replayable tool call was encountered again."},executions};
         if(outcome.status==="completed"){
           if(task.discussion){
             const pending=this.store.pendingTurns(runId);
@@ -281,12 +285,12 @@ export class PiRuntime {
             }
             if(!(await this.channel.report({kind:"closeIntake",task_id:runId,lease_epoch:epoch})).value)continue;
           }
-          return {status:"completed",summary:await finalText(lane)};
+          return {status:"completed",summary:await finalText(lane),executions};
         }
-        if(outcome.status==="aborted")return {status:"cancelled",summary:"Execution cancelled.",failure:{code:"CancelledByRequest",cause_class:"Cancellation",message:"Cancellation was acknowledged by Pi."}};
+        if(outcome.status==="aborted")return {status:"cancelled",summary:"Execution cancelled.",failure:{code:"CancelledByRequest",cause_class:"Cancellation",message:"Cancellation was acknowledged by Pi."},executions};
         const message=outcome.error?.message??`Pi operation ${outcome.status}.`;
         const unavailable=outcome.error?.code==="model_unavailable"||isProviderUnavailableMessage(message);
-        return {status:"failed",summary:message,failure:{code:unavailable?"ModelUnavailable":"ModelResponseInvalid",cause_class:unavailable?"Dependency":"ModelProtocol",message}};
+        return {status:"failed",summary:message,failure:{code:unavailable?"ModelUnavailable":"ModelResponseInvalid",cause_class:unavailable?"Dependency":"ModelProtocol",message},executions};
       }
     } finally {clearInterval(cancelTimer);await created.harness.close(BACKGROUND_CONTEXT)}
   }

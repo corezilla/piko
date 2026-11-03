@@ -52,6 +52,19 @@ describe("parseExecutable", () => {
     assert.equal(parseExecutable("'pytest'"), "pytest");
   });
 
+  it("does not mistake a quoted argument for the executable", () => {
+    // Regression: a naive whitespace split produced "sys.exit(7)\"" as the
+    // first token of `python3 -c "import sys; sys.exit(7)"`.
+    assert.equal(parseExecutable('python3 -c "import sys; sys.exit(7)"'), "python3");
+    assert.equal(parseExecutable('python3 -c \'import os; os.system("rm")\''), "python3");
+    assert.equal(parseExecutable('pytest -k "foo bar"'), "pytest");
+  });
+
+  it("handles a quoted argument containing a command separator", () => {
+    const found = parseExecutables('python3 -c "print(1); print(2)"');
+    assert.deepEqual(found, ["python3"]);
+  });
+
   it("returns undefined when nothing is executable", () => {
     assert.equal(parseExecutable(""), undefined);
     assert.equal(parseExecutable("   "), undefined);

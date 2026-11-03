@@ -44,6 +44,13 @@ rsync -az --delete \
   --exclude 'config/runtime.llmtier.json' \
   "$REPO_ROOT/" "${M5AIR_HOST}:${M5AIR_ROOT}/"
 
+# The config rewrite below must survive a sync, and the root-level tool config
+# (vitest/tsconfig/package.json) is part of the tracked tree -- the exclude
+# list above only skips the machine-local runtime.*.json variants.
+echo "[deploy] syncing runtime config files and build config"
+rsync -az vitest.config.ts vitest.live.config.ts package.json tsconfig.json \
+  "${M5AIR_HOST}:${M5AIR_ROOT}/"
+
 # config/runtime.example.json IS tracked but carries machine-specific absolute
 # paths; rewrite them to the m5air layout in place.
 echo "[deploy] rewriting machine-specific paths for m5air"

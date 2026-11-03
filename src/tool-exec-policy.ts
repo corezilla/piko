@@ -24,9 +24,6 @@ export class ExecPolicyViolationError extends Error {
   }
 }
 
-/** Shell metacharacters that separate one command from the next. */
-const COMMAND_SEPARATORS = /(?:\|\||&&|[;|\n])/;
-
 /**
  * Prefixes that wrap the real executable rather than being it.
  * `env FOO=1 python3` runs python3; `sudo rm` runs rm.
@@ -39,11 +36,50 @@ const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 /**
  * Split a shell command string into the individual commands it would run.
  * `python3; rm -rf /` yields ["python3", "rm -rf /"].
+ *
+ * Separators inside quotes are not separators: `python3 -c "a; b"` is ONE
+ * command, not two.
  */
 export function splitCommands(command: string): string[] {
-  return command
-    .split(COMMAND_SEPARATORS)
-    .map((part) => part.trim())
+  const segments: string[] = [];
+  let current = "";
+  let quote: '"' | "'" | undefined;
+  let escaped = false;
+
+  for (const char of command) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\" && quote !== "'") {
+      escaped = true;
+      current += char;
+      continue;
+    }
+    if (quote) {
+      current += char;
+      if (char === quote) quote = undefined;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === ";" || char === "|" || char === "&" || char === "\n") {
+      // A separator ends the current command; the trailing marker is dropped
+      // from the segment below.
+      segments.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  segments.push(current);
+
+  return segments
+    .map((part) => part.replace(/[;&|]+\s*$/, "").trim())
     .filter((part) => part.length > 0);
 }
 
@@ -53,8 +89,59 @@ export function splitCommands(command: string): string[] {
  * Strips environment assignments, wrapper commands, and path prefixes, then
  * returns the basename. Returns undefined when no executable can be identified.
  */
+/**
+ * Split a command segment into shell-style tokens, respecting quotes.
+ *
+ * A plain whitespace split is not enough: `python3 -c "import os; sys.exit(1)"`
+ * must yield ["python3", "-c", "import os; sys.exit(1)"], not a token whose
+ * first word is a fragment of the quoted argument.
+ */
+export function tokenize(segment: string): string[] {
+  const tokens: string[] = [];
+  let current = "";
+  let quote: '"' | "'" | undefined;
+  let escaped = false;
+
+  for (const char of segment) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+        // Keep the token even when it was entirely quoted.
+        tokens.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += char;
+  }
+  if (current.length > 0) tokens.push(current);
+  return tokens;
+}
+
 export function parseExecutable(segment: string): string | undefined {
-  let tokens = segment.split(/\s+/).filter((token) => token.length > 0);
+  let tokens = tokenize(segment);
 
   // Skip leading environment assignments (FOO=bar cmd).
   while (tokens.length > 0 && ENV_ASSIGNMENT.test(tokens[0]!)) {

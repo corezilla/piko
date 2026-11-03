@@ -1,6 +1,8 @@
 // Piko Agent Runtime — contract types, aligned to interfaces/schemas/agent-runtime-v0.3.schema.json
 // (v0.3.0-simplified.6, data-plane revision; no run_id, no task-level limits)
 
+import type { ExecutionFact } from "./execution-facts.js";
+
 export type TaskState = "Queued" | "Running" | "Cancelling" | "Completed" | "Failed" | "Cancelled";
 export type TerminalState = "Completed" | "Failed" | "Cancelled";
 export type IntakeState = "Disabled" | "Open" | "Closing" | "Closed";
@@ -127,6 +129,10 @@ export type AgentResult = {
   usage: TokenUsage;
   failure: Failure | null;
   published_at: string;
+  /** V0.1.3 MECH-TESTEXEC §5: machine-judgeable execution facts.
+   *  `summary` is the model's own account and is NOT a pass/fail basis;
+   *  consumers judge success from these plus `outputs`. */
+  executions: ExecutionFact[];
 };
 
 export type CancelOutcome = "CancelledBeforeStart" | "StopRequested" | "AlreadyTerminal";
