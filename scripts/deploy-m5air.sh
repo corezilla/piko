@@ -53,6 +53,16 @@ rsync -az vitest.config.ts vitest.live.config.ts package.json tsconfig.json \
 
 # config/runtime.example.json IS tracked but carries machine-specific absolute
 # paths; rewrite them to the m5air layout in place.
+#
+# The SSH credentials for remote_bash (MECH-TESTEXEC) are prepared FIRST so
+# the rewritten config can point at them: a dedicated key, authorized on the
+# host itself so piko can reach a reachable SSH target, and pinned host keys.
+echo "[deploy] preparing SSH credentials for remote execution"
+ssh "$M5AIR_HOST" "mkdir -p '${M5AIR_ROOT}/var/keys' '${M5AIR_ROOT}/var/staging' '${M5AIR_ROOT}/var/pi-sessions' '${M5AIR_ROOT}/var/ws-m5air/reports' && chmod 700 '${M5AIR_ROOT}/var/keys'"
+ssh "$M5AIR_HOST" "test -f '${M5AIR_ROOT}/var/keys/id_remote' || ssh-keygen -t ed25519 -N '' -f '${M5AIR_ROOT}/var/keys/id_remote' -C 'piko-remote-exec' >/dev/null 2>&1"
+ssh "$M5AIR_HOST" "grep -qf '${M5AIR_ROOT}/var/keys/id_remote.pub' ~/.ssh/authorized_keys 2>/dev/null || cat '${M5AIR_ROOT}/var/keys/id_remote.pub' >> ~/.ssh/authorized_keys"
+ssh "$M5AIR_HOST" "touch '${M5AIR_ROOT}/var/known_hosts' && ssh-keyscan -H localhost 127.0.0.1 2>/dev/null >> '${M5AIR_ROOT}/var/known_hosts'; sort -u '${M5AIR_ROOT}/var/known_hosts' -o '${M5AIR_ROOT}/var/known_hosts'"
+
 echo "[deploy] rewriting machine-specific paths for m5air"
 ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && python3 - <<'PY'
 import json, re, pathlib
@@ -76,6 +86,11 @@ d['workspace'] = {
 }
 # No Mem0 / GraphRAG backend on m5air yet: drop identity so no secret is required.
 d.pop('identity', None)
+# SSH credentials for remote_bash (MECH-TESTEXEC): dedicated key + pinned
+# host keys. These are the SAME secrets the scp transfer uses.
+d['transfer']['credential_ref'] = 'file:${M5AIR_ROOT}/var/keys/id_remote'
+d['transfer']['known_hosts'] = '${M5AIR_ROOT}/var/known_hosts'
+d['transfer']['target_allowlist'] = ['m5air:/Users/mlp', 'a7048:/Users/mlp', 'localhost:/tmp']
 p.write_text(json.dumps(d, indent=2))
 print('  runtime.example.json configured')
 PY"
@@ -94,10 +109,9 @@ ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && npm install --no-audit --no-fund"
 ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}/upstream/pi' && npm ci --no-audit --no-fund --ignore-scripts --omit=optional"
 
 # ---------------------------------------------------------------- 4. runtime dirs
-echo "[deploy] preparing runtime dirs, known_hosts, launch script"
-ssh "$M5AIR_HOST" "mkdir -p '${M5AIR_ROOT}/var/staging' '${M5AIR_ROOT}/var/pi-sessions' '${M5AIR_ROOT}/var/ws-m5air/reports'"
-
-ssh "$M5AIR_HOST" "touch '${M5AIR_ROOT}/config/known_hosts' && ssh-keyscan -H localhost 2>/dev/null >> '${M5AIR_ROOT}/config/known_hosts'; ssh-keyscan -H 192.168.1.9 2>/dev/null >> '${M5AIR_ROOT}/config/known_hosts'; sort -u '${M5AIR_ROOT}/config/known_hosts' -o '${M5AIR_ROOT}/config/known_hosts'"
+echo "[deploy] preparing launch script"
+# The runtime dirs and the SSH credentials were prepared above, before the
+# config rewrite that points at them.
 
 # The oMLX API key lives in oMLX's own settings on m5air; read it from there
 # rather than hardcoding it in the repo.
