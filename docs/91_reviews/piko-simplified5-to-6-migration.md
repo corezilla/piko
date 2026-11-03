@@ -111,6 +111,22 @@ class ExecutionFact:
 - `exit_code` 在 `status == "exited"` 时必有值；`timeout` / `aborted` / `spawn_error` 时为 `null`
 - **SSH 客户端退出 ≠ 远端进程已停止**：`status=timeout` 或 `aborted` 时远端停止状态为**未知**，不得宣称已终止
 - 任务声明了 `output_paths` 但一个都没回收 → 该任务是**失败**（Piko 侧已实现为 `state=Failed` + `ToolFailure`），不是成功
+- **任一执行失败（非零退出 / 超时 / spawn_error / policy_denied）→ 该任务是 `Failed`**，即使 agent 声称成功、即使报告文件存在。这条已在 Piko 侧实现并实机验证。
+
+**远程执行的状态语义**（`remote_bash`，MECH-TESTEXEC）：
+
+ssh(1) 对**自己的失败**和「远程命令真的退出 255」用同一个退出码 255，Piko 靠 ssh 的 stderr 诊断区分。因此：
+
+| 情形 | `exit_code` | `status` |
+|---|---|---|
+| 远程命令正常结束 | 0 | `exited` |
+| 远程命令非零退出 | 实际退出码 | `exited` |
+| 远程命令真的退出 255 | 255 | `exited` |
+| **目标主机不可达 / 认证被拒** | `null` | **`spawn_error`** |
+| 超时 | `null` | `timeout` |
+| 主机或可执行文件不在白名单 | `null` | `policy_denied` |
+
+**对 Slinky 侧的直接含义**：远端主机死机时，`executions[0].status == "spawn_error"` 且 `exit_code == null`，`output` 里是 ssh 的诊断（如 `ssh: connect to host … Operation timed out`）。这是「A7048 死了」和「测试跑过了但失败了」之间的判别依据——**前者 `exit_code` 为 null，后者有具体退出码**。
 
 ---
 
@@ -144,6 +160,8 @@ Piko 已在 m5air 上以 `.6` 实现跑通（`scripts/deploy-m5air.sh` 可复现
 | 取消 | `StopRequested` → 终态 `Cancelled` + `CancelledByRequest` + `partial: true` |
 | 执行事实 | `python3 -c "import sys; sys.exit(7)"` → `executions[0].exit_code = 7` |
 | 报告缺失 | 声明 `reports/x.json` 未产出 → `state=Failed` + `ToolFailure`，尽管 agent 说 "done." |
+| **远程执行（A7048 真机）** | `remote_bash` → `cat /etc/hostname` → `executions[0] = {status: "exited", exit_code: 0, output: "a7048-Super-Server\n"}` |
+| **远端主机不可达** | `state=Failed` + `ToolFailure`；`executions[0] = {status: "spawn_error", exit_code: null, output: "ssh: connect to host … Operation timed out"}`；**piko 进程存活** |
 
 ---
 
@@ -154,8 +172,9 @@ Piko 已在 m5air 上以 `.6` 实现跑通（`scripts/deploy-m5air.sh` 可复现
 | 能力 | 位置 | 说明 |
 |---|---|---|
 | `permissions.executables` 强制执行 | `src/tool-exec-policy.ts` | 修的是「schema 声明了但运行时从未消费」的缺陷 |
-| `remote_bash` 工具 | `src/remote-exec.ts` / `src/remote-exec-tools.ts` | SSH 远程执行；`remote_hosts` 独立白名单 |
+| `remote_bash` 工具 | `src/remote-exec.ts` / `src/remote-exec-tools.ts` | SSH 远程执行；`remote_hosts` 独立白名单；远程执行**也进 `executions[]`** |
 | `AgentResult.executions` | `src/execution-facts.ts` | **这是 `.6` 契约的一部分**（`executions` 已在 schema 中为必填） |
+| **执行失败 → 任务失败** | `src/worker.ts` | 任一执行非零退出 / 超时 / spawn_error → `state=Failed` + `ToolFailure`，不再发布绿色任务 |
 
 > 注：`executions` 已在 `.6` 的 schema 里（本次 V0.1.3 增量已并入 `.6` 的 `AgentResult`），所以 Slinky 升 `.6` 时**必须**能解析该字段。
 

@@ -217,6 +217,23 @@ export interface ExecutionFact {
 
 `AgentResult` 增加 `executions: ExecutionFact[]`（必填，默认 `[]`）。`AgentResult` 除 `failure` 外全是必填非空字段，保持这个风格。
 
+**远程执行也进 `executions[]`**（v0.1.3 补记）：`remote_bash` 走 `execRemote` → `execFile("ssh", …)`，不经过 `DurableNodeExecutionEnv.exec`，因此必须**显式**把远程执行记进同一个 collector。否则远端主机死掉时 `executions[]` 是空的，消费者没有任何机器可判读的事实——而这正是「A7048 死机、piko 存活并报失败」这条要求的核心。
+
+**SSH 客户端失败 vs 远程命令失败**：ssh(1) 对自己的失败（连不上、认证被拒、主机不可达）与「远程命令本身退出 255」**用同一个退出码 255**。退出码本身无法区分。可靠的判据是 ssh 的 stderr 诊断（`ssh: connect to host … Operation timed out`、`Permission denied (publickey,password)` 等）——因此**SSH 调用不得带 `-q`**（quiet 会把这些诊断全部静音）。
+
+| 情形 | `exit_code` | `status` |
+|---|---|---|
+| 远程命令正常结束 | 0 | `exited` |
+| 远程命令非零退出 | 实际退出码 | `exited` |
+| 远程命令退出 255（真实） | 255 | `exited`（stderr 为空） |
+| SSH 客户端失败（连不上/认证被拒） | `null` | `spawn_error` |
+| 超时（客户端被杀） | `null` | `timeout`，且 `remote_stop_state = "unknown"` |
+| 白名单拒绝 | `null` | `policy_denied` |
+
+**「超时」与「客户端被杀」不产生退出码**：被 kill 的客户端其 error 上仍带 `code: 255`，直接采信会伪造一个远程进程从未产生过的退出码。
+
+**终态判定**：`raw.execution_failed`（任一执行 `status != "exited"` 或 `exit_code != 0`）与 `raw.report_missing` 一样，**必须**把任务终态从 `Completed` 改为 `Failed` + `ToolFailure`。否则 agent 在远端主机不可达时写下一份格式正确但内容为空的报告，任务仍会发布为 `Completed`——消费者看到的是一个「绿色任务」，而它要跑的命令从未运行。
+
 ### 5.4 stdout/stderr 无法分离
 
 Pi 的 `NodeExecutionEnv` 把两个流喂给同一个 `feed()`（`nodejs.ts:579-580`），`ShellExecResult` 没有分列的 stdout/stderr。**这是 Pi 层的限制，不是 Piko 的选择。** 若未来需要分离，需要 upstream 改 `ShellExecResult`，不是加一个 Piko 钩子能解决的。
