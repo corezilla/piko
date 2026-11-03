@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { systemClock, type Clock } from "./clock.js";
-import type { AgentResult, RuntimeConfig, TaskRequest, TokenUsage } from "./types.js";
+import type { AgentResult, RuntimeConfig, TaskRequest, TerminalState, TokenUsage } from "./types.js";
 import { PikoError } from "./types.js";
 import type { TaskStore, TaskStoreReader } from "./store.js";
 import type { Channel, Fact } from "./ipc.js";
@@ -10,6 +10,7 @@ import type { Transfer } from "./transfer.js";
 import { collectOutputs, resolveWorkspace, ensureTaskDirs } from "./workspace.js";
 import { isPermanentMatrixError } from "./matrix.js";
 import { isProviderUnavailableMessage } from "./pi-runtime.js";
+import { buildRawResultRef } from "./test-evidence.js";
 
 /**
  * M005 `worker` — Run orchestration. Runs in P1 (may block).
@@ -168,10 +169,29 @@ export class RunWorker {
         await this.report({ kind: "delivery", task_id: taskId, delivery });
       }
 
-      const state = outcome.status === "completed" ? "Completed" : lost ? "Failed" : outcome.status === "cancelled" ? "Cancelled" : "Failed";
+      const executions = outcome.executions ?? [];
+      const raw = buildRawResultRef({
+        declaredOutputPaths: task.output_paths,
+        outputs,
+        executions,
+      });
+
+      let state: TerminalState = outcome.status === "completed" ? "Completed" : lost ? "Failed" : outcome.status === "cancelled" ? "Cancelled" : "Failed";
       let failure = state === "Completed" ? null : lost ? accessLostFailure : outcome.failure ?? { code: "InternalError" as const, cause_class: "Internal" as const, message: outcome.summary };
       if (state === "Failed" && failure && failure.code === "ModelResponseInvalid" && isProviderUnavailableMessage(failure.message)) {
         failure = { code: "ModelUnavailable", cause_class: "Dependency", message: failure.message };
+      }
+
+      // MECH-TESTEXEC §5.5: a declared-but-missing report is an execution
+      // FAILURE fact (PTS-04), even when the agent reported success in its
+      // summary. The summary is the model's account; the facts are the truth.
+      if (state === "Completed" && raw.report_missing) {
+        state = "Failed";
+        failure = {
+          code: "ToolFailure",
+          cause_class: "Tool",
+          message: `declared output was not produced: ${task.output_paths.join(", ")}`,
+        };
       }
       const result: AgentResult = {
         task_id: taskId,
@@ -185,7 +205,7 @@ export class RunWorker {
         usage,
         failure,
         published_at: publishedAt,
-        executions: outcome.executions ?? [],
+        executions,
       };
       await this.report({ kind: "publishResult", result, lease_epoch: epoch });
       await this.report({ kind: "finish", result, lease_epoch: epoch });
