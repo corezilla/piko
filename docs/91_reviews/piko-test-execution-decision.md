@@ -182,8 +182,12 @@ slinky 的 `validate_url`（`piko_client.py:32-37`）要求 HTTPS，或 HTTP 仅
 
 | 风险 | 缓解 |
 |---|---|
-| A7048 的测试代码如何同步（piko scp 推 vs A7048 自己 git checkout） | 待确认。倾向后者（A7048 是实验环境，代码由开发流程管理） |
-| A7048 的 SSH 私钥（复用 `PIKO_SCP_KEY` vs 单独配） | 待确认 |
+| A7048 的测试代码如何同步（piko scp 推 vs A7048 自己 git checkout） | **已定**：A7048 自己 git checkout。A7048 是实验环境，代码由开发流程管理；piko 只负责在 A7048 上**执行**命令，不负责搬代码 |
+| A7048 的 SSH 私钥（复用 `PIKO_SCP_KEY` vs 单独配） | **已定**：复用 `transfer.credential_ref`（不新增配置项）。m5air 部署脚本把工作站自己的 `~/.ssh/id_ed25519` 装成 `var/keys/id_a7048`，host key 从工作站 `known_hosts` 钉扎 |
 | `DurableNodeExecutionEnv` HIGH blast radius | 只增不改；全量测试验证 |
 | stdout/stderr 无法分离 | Pi 层已合并；设计文档写明限制 |
 | piko 与 slinky 不同机时需 HTTPS | 记为部署约束；本轮同机不触发 |
+| SSH 客户端失败与「远程命令真的退出 255」无法从退出码区分 | ssh 的 stderr 诊断可区分；因此 SSH 调用**不得**带 `-q`（quiet 会静音这些诊断） |
+| 远端主机不可达时任务报 `Failed` 而非 `Completed` | 已实现：`executions[].status = spawn_error` + `exit_code = null`；worker 把 `execution_failed` 映射到终态 |
+
+> 上述两条「已定」项的落地细节与实机验证见 `docs/91_reviews/v0.1-coding-notes-2026-10-18.md` §0.10.7。
