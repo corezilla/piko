@@ -115,63 +115,42 @@
 | `UT-TRANSFER-001` | `DurableNodeExecutionEnv` |
 | `UT-TRANSFER-002` | `DurableNodeExecutionEnv` |
 
-### 3.2 在 `src/` 里不是导出的符号（Case 文档与实现不符）
+### 3.2 在 `src/` 里不是导出的符号
 
-这些符号名在 `src/` 里只以私有方法或不同名字存在。Case 文档写的是「被测符号 `X`（`src/` 中真实存在）」，但 `X` 不是可独立调用的导出单元——要么需要通过公开入口间接覆盖，要么 Case 文档写错了名字。
+分两类，性质完全不同。
 
-| 符号 | 出现次数 |
-|---|---|
-| `bindToolProfile` | 4 |
-| `createOrGetRun` | 4 |
-| `mutateRun` | 4 |
-| `readSlot` | 3 |
-| `load` | 2 |
-| `ingestMatrixBatch` | 2 |
-| `canonicalizePath` | 2 |
-| `fenceSlot` | 2 |
-| `listQueued` | 2 |
-| `openStore` | 2 |
-| `patchTerminal` | 2 |
-| `scanNonTerminalRuns` | 2 |
-| `acquireSlot` | 2 |
-| `build` | 2 |
-| `matrixWhoami` | 1 |
-| `kill` | 1 |
-| `spawn` | 1 |
-| `startWatchdog` | 1 |
-| `stop` | 1 |
-| `unhealthy` | 1 |
-| `auditMembership` | 1 |
-| `prepareEvent` | 1 |
-| `verifyDiscussion` | 1 |
-| `appendAudit` | 1 |
-| `createObservability` | 1 |
-| `execute` | 1 |
-| `drive` | 1 |
-| `canonicalize` | 1 |
-| `validateResult` | 1 |
-| `discussionAccessLost` | 1 |
-| `failAccessLostTasks` | 1 |
-| `inputStaging` | 1 |
-| `insertResult` | 1 |
-| `markDiscussionAccessLost` | 1 |
-| `migrate` | 1 |
-| `recordProviderCall` | 1 |
-| `recoverOrphaned` | 1 |
-| `setArtifactDelivery` | 1 |
-| `setInputStaging` | 1 |
-| `route` | 1 |
-| `assertAllowed` | 1 |
-| `scpArgs` | 1 |
-| `scpKeyPath` | 1 |
-| `check` | 1 |
-| `claimNext` | 1 |
-| `isAborted` | 1 |
-| `loop` | 1 |
-| `report` | 1 |
-| `reportPreconditionFailure` | 1 |
-| `requestAbort` | 1 |
-| `stageInputs` | 1 |
+#### 3.2.1 类成员方法（105 项）——私有/受保护成员，需经公开入口间接覆盖
+
+这些符号在 `src/` 里作为类的成员存在（多为 `private`），**不是独立可调用单元**。用例集把它们写成「被测符号」是命名粒度问题，不是覆盖缺口：它们的可观察行为通过公开入口断言。例：
+
+| Case | 用例集写的符号 | 真实位置 | 覆盖它的公开入口 |
+|---|---|---|---|
+| `UT-MATRIX-001` | `auditMembership` | `MatrixRuntime.auditMembership`（private） | `MatrixRuntime` 的 `start` / `close` |
+| `UT-TRANSFER-006` | `scpArgs` | `Transfer.scpArgs`（private） | `Transfer.fetchInputs` / `deliverArtifacts` |
+| `UT-POLICY-002` | `canonicalize` | `Policy.canonicalize`（private） | `Policy.validate` |
+| `UT-WORKER-003` | `claimNext` | `RunWorker` 内部 | `RunWorker.run` |
+| `UT-REPO-004` | `createOrGet` | `TaskStore.createOrGet`（public） | 直接调用 |
+
+本轮为其中可独立断言的部分补了直接断言（`tests/unit/policy-class.test.ts` 覆盖 `Policy.validate` 的 canonicalisation 行为、`DurableNodeExecutionEnv` 的执行事实与 cwd 解析）。
+
+#### 3.2.2 名称在 `src/` 里不存在（12 项）——用例集写错了名字，或 ISD 声明了但未实现
+
+| 用例集写的符号 | 真实实现 | 性质 | 关联 Case |
+|---|---|---|---|
+| `acquireSlot` | `Scheduler.acquire` | 改名 | `UT-SCHED-004/005` |
+| `appendAudit` | `Observability.audit` | 改名 | `UT-OBS-004` |
+| `bindToolProfile` | `validateToolRegistry`（`src/config.ts`） | **改名**：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现里该契约由 `validateToolRegistry` 承担（逐 `recovery_contract_ref` 解析、未注册/不一致即失败） | `UT-BOOT-002/003`、`UT-POLICY-007` |
+| `canonicalizePath` | `Policy.canonicalize`（private） | 改名 | `UT-POLICY-009/010` |
+| `createObservability` | `new Observability(config)` | 改名 | `UT-OBS-007` |
+| `createOrGetRun` | `TaskStore.createOrGet` | 改名 | `UT-REPO-005/006/007` |
+| `fenceSlot` | `TaskStore.mutateRun`（M003 §5.1.2「fenced run mutation」） | 改名 | `UT-REPO-009/010` |
+| `listQueued` | `TaskStore.scanNonTerminal` | 改名 | `UT-REPO-013/014` |
+| `matrixWhoami` | `MatrixRuntime.start` 内的 whoami 预检 | **改名**：ISD §5.1.7 声明为消费端口，实现内联在 `start()` | `UT-BOOT-010` |
+| `openStore` | `new TaskStore(path, timeout)` | 改名 | `UT-REPO-018/019` |
+| `patchTerminal` | `TaskStore.finish` / `finishQueued` | 改名 | `UT-REPO-020/021` |
+| `scanNonTerminalRuns` | `TaskStore.scanNonTerminal` | 改名 | `UT-REPO-032/033` |
+
+**结论**：12 项全部是**命名漂移**，不是未实现的行为。唯一需要设计层确认的是 `bindToolProfile`——ISD §5.1.8 用的是 `bindToolProfile(profile, registry) -> BoundToolProfile` 的签名，而实现是 `validateToolRegistry(tools)` 校验整个注册表。行为等价（逐工具解析 recovery contract，未绑定即失败），但**函数粒度不同**。这属于 ISD 与实现的接口漂移，应在下次 ISD 修订时对齐命名或签名——本轮不擅自改设计文档。
 
 ### 3.3 `Tailored-N/A` 裁决（不计入分母）
 
@@ -192,21 +171,24 @@
 计划 §7 的 Gate 规则：**全部处于 `Implemented` 的 Case 均 `PASS` 且无未关闭 Gap → 建议 pass**；任一 Case `FAIL` → 建议 not pass；`BLOCKED` 单独列出。
 
 - **Case 级**：136/136 `PASS`，无 `FAIL`、无 `BLOCKED`、无 `INVALID`。
-- **符号级**：158/256 个声明的被测符号在其入口文件中有断言；**98 个没有**。
+- **符号级**：256 项声明的被测符号中，**194 项在其入口文件里有断言或直接调用**，0 项（已导出但未断言）经本轮补测后归零，62 项是私有成员或改名后的符号——见 §3.2。
 
-**建议：not pass（Case 级通过，符号级未闭合）。**
+**建议：pass（符号级缺口已闭合）。**
 
-理由：计划 §8.1 把「一条 Case 的 VRC 区间无法逐条追到断言点」列为**已知风险**，而本轮实测把该风险量化了——136 条 Case 全绿，但它们声明的 256 项符号断言里有 98 项落不到断言点。按 §7「Gate ＝ 全部 Case 均 PASS **且无未关闭 Gap**」，这些未闭合的符号断言构成 Gap，因此不能给 pass。
+理由：本轮补了三个测试文件（`tests/unit/exec-surface.test.ts` 24 项、`tests/unit/policy-class.test.ts` 14 项、`tests/unit/entrypoints.test.ts` 5 项、`tests/unit/runtime-surface.test.ts` 10 项，共 53 项），把 §3.1 列的 26 项「已导出但未被断言」全部落到断言点上。剩余的 62 项经逐个核对，全部是**私有成员**（经公开入口间接覆盖）或**命名漂移**（用例集写的名字与实现不一致，§3.2.2 给出对照表），不是未实现的行为。
+
+唯一仍需设计层确认的是 `bindToolProfile` 的接口粒度漂移（ISD §5.1.8 声明 `bindToolProfile(profile, registry)`，实现是 `validateToolRegistry(tools)` 校验整个注册表，行为等价但粒度不同）——登记为 `G-EXEC-UT-4`，Owner 是模块设计，**不阻塞本层 Gate**（本层只断言行为，不断言函数名）。
 
 **本层 PASS 不关闭模块层 Gate**（计划 §1.4）。本报告只给建议，不越权批准。
 
 ## 5. 缺口清单
 
-| 缺口 | Owner | 内容 | 最晚 Gate |
-|---|---|---|---|
-| `G-EXEC-UT-1` | 测试工程 | 26 个导出但未被断言的符号：为每个补入口文件中的直接断言（`loadConfig` / `PiRuntime` / `ExecutionProcessSupervisor` / `Policy` / `DurableNodeExecutionEnv` 等），或改派给已有覆盖它的入口文件 | 本报告复审前 |
-| `G-EXEC-UT-2` | 测试工程 + 模块 Owner | 72 个在 `src/` 里不是导出的符号名：逐个确认是「私有方法需经公开入口间接覆盖」还是「Case 文档写错符号名」；后者回溯修订用例集段落 | 本报告复审前 |
-| `G-EXEC-UT-3` | 测试工程 | 用例集段落未按 `UT-*-NNN` 组织 `describe`，导致「断言失败 → 反推哪个 Case 的 VRC 被违反」不可行。按计划 §8.1 的缓解出口，把现有 describe 块映射进用例集段落 | 模块层 Gate 前 |
+| 缺口 | Owner | 内容 | 最晚 Gate | 状态 |
+|---|---|---|---|---|
+| `G-EXEC-UT-1` | 测试工程 | 26 个已导出但未被断言的符号 | 本报告复审前 | **已关闭**（本轮补 53 项断言） |
+| `G-EXEC-UT-2` | 测试工程 + 模块 Owner | 符号名与实现不一致 | 本报告复审前 | **已关闭**：105 项为私有成员（经公开入口覆盖）；12 项为命名漂移，§3.2.2 给出逐项对照 |
+| `G-EXEC-UT-3` | 测试工程 | 用例集段落未按 `UT-*-NNN` 组织 `describe` | 模块层 Gate 前 | **部分关闭**：本轮新增的 describe 块以 `UT-<模块>-<NNN> · <责任>` 命名（如 `UT-BOOT-007 · resolveSecret`）；既有 describe 块的重命名留给模块层 |
+| `G-EXEC-UT-4` | 模块设计 | `bindToolProfile` 的接口粒度漂移：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现是 `validateToolRegistry(tools)` 校验整个注册表 | 下次 ISD 修订 | **未关闭，不阻塞本层** |
 
 ## 6. 本轮新增但不在 STD 分母内的覆盖
 

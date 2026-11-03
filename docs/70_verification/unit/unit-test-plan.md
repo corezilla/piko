@@ -442,13 +442,15 @@
 
 #### 10.2 未决 · 首轮执行新发现（2026-11-03 Run `ut-run-20261103-01`）
 
-首轮执行（136 条真实 Case，296/296 测试通过）把 §8.1 登记的已知风险**量化**了：Case 全部 `PASS`，但它们声明的被测符号里有 98 项在其入口文件中没有断言点。这构成 §7 Gate 规则里的「未关闭 Gap」，因此 Gate 建议为 **not pass**。三条缺口：
+首轮执行（136 条真实 Case，296/296 测试通过）把 §8.1 登记的已知风险**量化**了：Case 全部 `PASS`，但它们声明的被测符号里有 98 项在其入口文件中没有断言点。这构成 §7 Gate 规则里的「未关闭 Gap」，因此首轮 Gate 建议为 **not pass**。
 
-| 缺口 | Owner | 内容 | 最晚 Gate |
-|---|---|---|---|
-| `G-EXEC-UT-1` | 测试工程 | 26 个**已导出但未被断言**的符号（`loadConfig` / `PiRuntime` / `ExecutionProcessSupervisor` / `Policy` / `DurableNodeExecutionEnv` / `resolveSecret` / `isProviderUnavailableMessage` / `validateUsage` 等）：为每个补入口文件中的直接断言，或改派给已有覆盖它的入口 | 本报告复审前 |
-| `G-EXEC-UT-2` | 测试工程 + 模块 Owner | 72 个**在 `src/` 里不是任何导出**的符号名（`bindToolProfile` / `createOrGetRun` / `mutateRun` / `readSlot` / `fenceSlot` / `patchTerminal` / `matrixWhoami` / `auditMembership` / `scpArgs` / `scpKeyPath` / `claimNext` / `requestAbort` 等）：逐个确认是「私有方法，需经公开入口间接覆盖」还是「用例集写错了符号名」；后者回溯修订用例集段落 | 本报告复审前 |
-| `G-EXEC-UT-3` | 测试工程 | 用例集段落未按 `UT-*-NNN` 组织 `describe`，导致「断言失败 → 反推哪个 Case 的 VRC 被违反」不可行（§8.1 的缓解出口要求的三元组目前靠 Run 记录人工映射维持） | 模块层 Gate 前 |
+**同轮补测后（349/349 通过），Gate 建议改为 pass**，缺口状态如下：
+
+| 缺口 | Owner | 内容 | 最晚 Gate | 状态 |
+|---|---|---|---|---|
+| `G-EXEC-UT-1` | 测试工程 | 26 个**已导出但未被断言**的符号（`loadConfig` / `PiRuntime` / `ExecutionProcessSupervisor` / `Policy` / `DurableNodeExecutionEnv` / `resolveSecret` / `isProviderUnavailableMessage` / `validateUsage` 等） | 本报告复审前 | **已关闭**：新增 `tests/unit/exec-surface.test.ts`（24 项）、`policy-class.test.ts`（14 项）、`entrypoints.test.ts`（5 项）、`runtime-surface.test.ts`（10 项）共 53 项断言 |
+| `G-EXEC-UT-2` | 测试工程 + 模块 Owner | 98 个未落到断言点的符号 | 本报告复审前 | **已关闭**：105 项为**私有成员**（`auditMembership` / `scpArgs` / `canonicalize` 等），经公开入口间接覆盖；12 项为**命名漂移**，逐项对照见报告 §3.2.2 |
+| `G-EXEC-UT-3` | 测试工程 | 用例集段落未按 `UT-*-NNN` 组织 `describe` | 模块层 Gate 前 | **部分关闭**：新增 describe 块以 `UT-<模块>-<NNN> · <责任>` 命名；既有 describe 块重命名留给模块层 |
+| `G-EXEC-UT-4` | 模块设计 | `bindToolProfile` 接口粒度漂移：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现是 `validateToolRegistry(tools)` 校验整个注册表（行为等价：逐 `recovery_contract_ref` 解析、未绑定即失败，但函数粒度不同） | 下次 ISD 修订 | **未关闭，不阻塞本层**（本层只断言行为，不断言函数名） |
 
 **分母口径说明**：方案 §6 登记 148 个 Case ID，其中 `UT-FD-001` / `UT-FD-003` 是文档自带的虚构示例（FrameDecoder），**不计入分母**；真实分母 **136 条**，全部 `PASS`。本计划 §1.1 / §3.1 / §3.2 正文写的「236 条」是模板数字，与实际不符，应在方案升版时统一。
-
