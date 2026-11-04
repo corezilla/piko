@@ -11,8 +11,8 @@
     "corezilla"
   ],
   "template_id": "tests.module-test-plan",
-  "template_version": "0.10.9",
-  "template_sha256": "b0c58c9f9815ea21cee78ebdf012764da5688b27ffe80b542dfaccb401ea91f8",
+  "template_version": "0.11.0",
+  "template_sha256": "dfc4787721b175a64662009d581069902750e7826b8afffd430aab61b2ebf92f",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

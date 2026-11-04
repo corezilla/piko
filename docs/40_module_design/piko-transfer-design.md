@@ -13,7 +13,7 @@
 | Document Owner | Piko Implementation |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
-| Template Version | `3.5.0` |
+| Template Version | `3.6.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 单元摘要：为什么存在

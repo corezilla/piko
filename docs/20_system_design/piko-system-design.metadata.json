@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "design.software-system",
-  "template_version": "2.2.0",
-  "template_sha256": "1ec3cf85d9430a93a206452e206743e1dbfec472b891c9c3708289fca0fb5709",
+  "template_version": "2.3.0",
+  "template_sha256": "ab8020d32804f2410c3f1aa67665d79acd1fb010568554c13bc5631feebcce42",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

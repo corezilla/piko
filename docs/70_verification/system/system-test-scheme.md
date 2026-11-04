@@ -16,7 +16,7 @@
 | Created Date | `2026-10-10` |
 | Last Modified Date | `2026-10-10` |
 | Template ID | `tests.system-test-scheme` |
-| Template Version | `0.7.18` |
+| Template Version | `0.8.18` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

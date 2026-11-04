@@ -16,7 +16,7 @@
 | Created Date | `2026-09-15` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.2.3` |
+| Template Version | `0.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

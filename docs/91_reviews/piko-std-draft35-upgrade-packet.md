@@ -16,7 +16,7 @@
 | Created Date | `2026-09-25` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.2.3` |
+| Template Version | `0.3.0` |
 | Template Conformance | `native` |
 | Tailoring Reference | none |
 | Migration Map Reference | none |

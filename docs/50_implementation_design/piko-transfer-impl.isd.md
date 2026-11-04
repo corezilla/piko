@@ -13,7 +13,7 @@
 | Document Owner | Piko Implementation |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.implementation` |
-| Template Version | `1.3.0` |
+| Template Version | `1.4.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 实现目标与输入基线

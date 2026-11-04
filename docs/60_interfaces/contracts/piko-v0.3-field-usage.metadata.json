@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "contracts.specification",
-  "template_version": "0.4.2",
-  "template_sha256": "3919bab3e66087966d85b8c6d2bb6635011ef277a80c478f2aa967221e40bdfe",
+  "template_version": "0.5.0",
+  "template_sha256": "11e201cd575aa0c7ba2789e2c10f37b59a2f38860a54255f441280e130c48237",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

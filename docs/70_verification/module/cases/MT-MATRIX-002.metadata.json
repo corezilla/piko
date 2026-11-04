@@ -10,8 +10,8 @@
     "opencode"
   ],
   "template_id": "tests.module-case",
-  "template_version": "3.0.8",
-  "template_sha256": "3e6dd2851b05be2c8cc7303b45ad2b3df7b1cbdaf468a70841a15f9f7326382a",
+  "template_version": "3.0.9",
+  "template_sha256": "61aedb9142eba8314772a2e91fa858b60d9c117d1b5b825492bcb61cbd96be11",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "management.tailoring",
-  "template_version": "0.2.2",
-  "template_sha256": "00e07480eac3a3e9aa3a0c54a7abdcd32ba6284e41119088724111416e156aa5",
+  "template_version": "0.3.0",
+  "template_sha256": "8c381891c4113d354dbafcb130a61f6760dbf420538d40a27f20caafa03723c2",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

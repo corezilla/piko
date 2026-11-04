@@ -13,7 +13,7 @@
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-11-03` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.3.1` |
+| Template Version | `3.4.0` |
 | Authority | piko |
 | Authors | corezilla |
 | Created Date | 2026-11-03 |

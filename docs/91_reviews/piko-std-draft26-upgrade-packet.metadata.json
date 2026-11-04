@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "review.packet",
-  "template_version": "0.2.3",
-  "template_sha256": "6f5fb6b1b27e69aa31c9ee9dfcf909898b91726d7edd0ba9c9746426a2bdd2af",
+  "template_version": "0.3.0",
+  "template_sha256": "77eb3ed49456591c88112fc1b644347b88884ab0ad00ae6a9a2c396a7c8d4987",
   "template_conformance": "native",
   "tailoring_ref": null,
   "migration_map_ref": null,

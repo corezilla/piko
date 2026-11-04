@@ -13,7 +13,7 @@
 | Document Owner | Piko Architecture Owner |
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.system-mechanism` |
-| Template Version | `3.3.1` |
+| Template Version | `3.4.0` |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题

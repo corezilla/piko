@@ -16,7 +16,7 @@
 | Created Date | `2026-10-11` |
 | Last Modified Date | `2026-10-11` |
 | Template ID | `tests.system-case` |
-| Template Version | `2.4.15` |
+| Template Version | `2.4.16` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

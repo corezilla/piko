@@ -11,8 +11,8 @@
     "corezilla"
   ],
   "template_id": "tests.asset-design",
-  "template_version": "0.3.8",
-  "template_sha256": "99d7e2ce139d504b7b7fcd7a662899cb121326da232480dadbc135ee4506f6d5",
+  "template_version": "0.4.0",
+  "template_sha256": "d2b92a254af88269c978a96c6befd5ecc5a57927eb15fa6ae9f50231489f05e4",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

@@ -10,8 +10,8 @@
     "Claude"
   ],
   "template_id": "tests.unit-test-report",
-  "template_version": "0.3.13",
-  "template_sha256": "9d21901c35cae3daa3bddcec492abd1abd80240edea4e7d0b9565ce01ae5001d",
+  "template_version": "0.4.0",
+  "template_sha256": "4603a7db763c3d4f0193c94122e91ffcdccbbb1acb955b792f606184873039ce",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

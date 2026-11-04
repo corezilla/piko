@@ -16,7 +16,7 @@
 | Created Date | `2026-10-10` |
 | Last Modified Date | `2026-11-04` |
 | Template ID | `tests.unit-test-scheme` |
-| Template Version | `0.9.9` |
+| Template Version | `0.10.9` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

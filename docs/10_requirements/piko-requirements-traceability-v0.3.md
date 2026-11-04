@@ -16,7 +16,7 @@
 | Created Date | `2026-09-07` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `requirements.traceability` |
-| Template Version | `0.2.2` |
+| Template Version | `0.3.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |

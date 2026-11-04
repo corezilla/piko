@@ -11,8 +11,8 @@
     "opencode"
   ],
   "template_id": "design.system-mechanism",
-  "template_version": "3.3.1",
-  "template_sha256": "21e4851a04e35b37d813043413c16820fad8c29df899c935ec56a3488cffc7c3",
+  "template_version": "3.4.0",
+  "template_sha256": "f65683cdcd624105bccc719f1ef647a7d19dc04a2c5de511fcc9d8ca4a496bef",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

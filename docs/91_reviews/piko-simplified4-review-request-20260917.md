@@ -16,7 +16,7 @@
 | Created Date | `2026-09-17` |
 | Last Modified Date | `2026-09-25` |
 | Template ID | `review.packet` |
-| Template Version | `0.2.3` |
+| Template Version | `0.3.0` |
 | Template Conformance | `legacy-mapped` |
 | Tailoring Reference | none |
 | Migration Map Reference | docs/98_migration/piko-std-migration-map.md |

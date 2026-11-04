@@ -10,8 +10,8 @@
     "corezilla"
   ],
   "template_id": "management.project-plan",
-  "template_version": "0.2.2",
-  "template_sha256": "b4c50ce924f4ed8a665069b663ff97210edfbb33a5790c6f273c78c1b3085da8",
+  "template_version": "0.3.0",
+  "template_sha256": "a6322cb3bb3f2dc03dfa7043e0bac52ed28d36fadd7e21d641c22cccc1c23936",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,
