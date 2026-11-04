@@ -10,249 +10,249 @@
 
 **公式格数（§4）**：Σ(参数×必测类 3 ＋ 错误路径(throw>0 记 1) ＋ 状态分支(状态写>0 记 1) ＋ 资源释放(资源>0 记 1))
 
-| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 公式格数 |
-|---|---|---|---|--:|--:|--:|--:|--:|--:|
-| BOOT | `config.ts:26` | `validateToolRegistry` | fn/exported | 1 | 25 | 6 | 0 | 0 | 4 |
-| BOOT | `config.ts:56` | `gitHead` | fn/exported | 1 | 5 | 1 | 0 | 0 | 4 |
-| BOOT | `config.ts:70` | `validated` | fn/exported | 2 | 4 | 1 | 0 | 0 | 7 |
-| BOOT | `config.ts:86` | `loadConfig` | fn/exported | 2 | 16 | 3 | 0 | 0 | 7 |
-| BOOT | `config.ts:132` | `resolveSecret` | fn/exported | 1 | 4 | 2 | 0 | 0 | 4 |
-| BOOT | `durable-fs.ts:20` | `absolute` | method/private | 1 | 1 | 0 | 0 | 0 | 3 |
-| BOOT | `durable-fs.ts:21` | `sync` | method/private | 2 | 1 | 0 | 0 | 0 | 6 |
-| BOOT | `durable-fs.ts:25` | `exec` | method/public | 3 | 10 | 0 | 1 | 0 | 10 |
-| BOOT | `durable-fs.ts:88` | `writeFile` | method/public | 3 | 1 | 0 | 0 | 0 | 9 |
-| BOOT | `durable-fs.ts:93` | `appendFile` | method/public | 3 | 1 | 0 | 0 | 0 | 9 |
-| BOOT | `durable-fs.ts:98` | `renameFile` | method/public | 3 | 1 | 0 | 0 | 0 | 9 |
-| BOOT | `main.ts:16` | `runControlProcess` | fn/exported | 2 | 2 | 0 | 0 | 0 | 6 |
-| BOOT | `main.ts:55` | `main` | fn/exported | 2 | 3 | 0 | 0 | 0 | 6 |
-| IPC | `ipc.ts:49` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| IPC | `ipc.ts:50` | `apply` | method/public | 1 | 20 | 0 | 0 | 0 | 3 |
-| IPC | `ipc.ts:117` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| IPC | `ipc.ts:118` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| IPC | `ipc.ts:131` | `constructor` | ctor/public | 2 | 7 | 0 | 0 | 0 | 6 |
-| IPC | `ipc.ts:144` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 2 | 0 | 0 | 0 | 9 |
-| IPC | `supervisor.ts:20` | `constructor` | ctor/public | 4 | 0 | 0 | 0 | 0 | 12 |
-| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 14 | 0 | 7 | 2 | 2 |
-| IPC | `supervisor.ts:55` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | 2 |
-| IPC | `supervisor.ts:67` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | 3 |
-| IPC | `supervisor.ts:72` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | 1 |
-| IPC | `supervisor.ts:80` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | 3 |
-| IPC | `supervisor.ts:84` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| IPC | `supervisor.ts:88` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | 2 |
-| MATRIX | `matrix.ts:14` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 9 |
-| MATRIX | `matrix.ts:15` | `start` | method/public | 0 | 21 | 1 | 4 | 3 | 3 |
-| MATRIX | `matrix.ts:29` | `prepareEvent` | method/private | 1 | 15 | 0 | 0 | 0 | 3 |
-| MATRIX | `matrix.ts:48` | `auditMembership` | method/private | 0 | 4 | 0 | 0 | 0 | 0 |
-| MATRIX | `matrix.ts:63` | `isJoined` | method/public | 1 | 1 | 0 | 0 | 0 | 3 |
-| MATRIX | `matrix.ts:73` | `recordDiscussionAccessLost` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| MATRIX | `matrix.ts:79` | `processBatch` | method/private | 2 | 13 | 0 | 0 | 0 | 6 |
-| MATRIX | `matrix.ts:91` | `downloadMedia` | method/private | 3 | 29 | 8 | 0 | 0 | 10 |
-| MATRIX | `matrix.ts:101` | `verifyDiscussion` | method/public | 2 | 9 | 3 | 0 | 0 | 7 |
-| MATRIX | `matrix.ts:107` | `send` | method/public | 4 | 3 | 1 | 0 | 0 | 13 |
-| MATRIX | `matrix.ts:113` | `sendDiscussionReply` | method/public | 5 | 2 | 1 | 0 | 3 | 17 |
-| MATRIX | `matrix.ts:117` | `close` | method/public | 0 | 1 | 0 | 1 | 0 | 1 |
-| MATRIX | `matrix.ts:120` | `isPermanentMatrixError` | fn/exported | 1 | 16 | 0 | 0 | 0 | 3 |
-| OBS | `clock.ts:34` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| OBS | `clock.ts:35` | `now` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| OBS | `clock.ts:38` | `monotonic` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| OBS | `clock.ts:41` | `iso` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| OBS | `clock.ts:44` | `advance` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| OBS | `clock.ts:48` | `set` | method/public | 2 | 1 | 0 | 2 | 0 | 7 |
-| OBS | `observability.ts:44` | `redact` | fn/exported | 1 | 7 | 0 | 0 | 0 | 3 |
-| OBS | `observability.ts:62` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| OBS | `observability.ts:67` | `keep` | method/private | 1 | 0 | 0 | 0 | 0 | 3 |
-| OBS | `observability.ts:72` | `emit` | method/public | 2 | 10 | 0 | 0 | 0 | 6 |
-| OBS | `observability.ts:90` | `metric` | method/public | 5 | 16 | 0 | 0 | 0 | 15 |
-| OBS | `observability.ts:104` | `audit` | method/public | 1 | 3 | 0 | 0 | 0 | 3 |
-| OBS | `observability.ts:114` | `snapshot` | method/public | 1 | 1 | 0 | 0 | 0 | 3 |
-| OBS | `observability.ts:127` | `bump` | method/public | 2 | 2 | 0 | 0 | 0 | 6 |
-| OTHER | `remote-exec-tools.ts:99` | `splitRemoteCommand` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| OTHER | `remote-exec-tools.ts:106` | `createRemoteBashTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| OTHER | `remote-exec-tools.ts:114` | `execute` | method/public | 6 | 8 | 0 | 0 | 0 | 18 |
-| OTHER | `test-evidence.ts:42` | `buildRawResultRef` | fn/exported | 1 | 3 | 0 | 0 | 0 | 3 |
-| OTHER | `test-evidence.ts:65` | `isExecutionFailure` | fn/exported | 1 | 1 | 0 | 0 | 0 | 3 |
-| PI | `graphrag-client.ts:57` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | 13 |
-| PI | `graphrag-client.ts:93` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | 3 |
-| PI | `graphrag-client.ts:109` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 9 |
-| PI | `graphrag-client.ts:130` | `search` | method/public | 2 | 26 | 3 | 0 | 0 | 7 |
-| PI | `graphrag-tools.ts:85` | `validateDocSearchContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | 4 |
-| PI | `graphrag-tools.ts:109` | `createGraphragSearchTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `graphrag-tools.ts:122` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 19 |
-| PI | `mem0-client.ts:24` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | 13 |
-| PI | `mem0-client.ts:58` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | 3 |
-| PI | `mem0-client.ts:73` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| PI | `mem0-client.ts:88` | `search` | method/public | 3 | 24 | 3 | 0 | 0 | 10 |
-| PI | `mem0-client.ts:203` | `add` | method/public | 3 | 18 | 4 | 0 | 0 | 10 |
-| PI | `mem0-client.ts:299` | `pollForExtractedMemory` | method/private | 2 | 8 | 0 | 0 | 1 | 7 |
-| PI | `pi-runtime.ts:37` | `isProviderUnavailableMessage` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `pi-runtime.ts:42` | `discussionMessage` | fn/exported | 2 | 0 | 0 | 0 | 0 | 6 |
-| PI | `pi-runtime.ts:43` | `initialPrompt` | fn/exported | 3 | 1 | 0 | 0 | 0 | 9 |
-| PI | `pi-runtime.ts:44` | `normalizeRawUsage` | fn/exported | 1 | 14 | 0 | 0 | 0 | 3 |
-| PI | `pi-runtime.ts:55` | `buildSystemPrompt` | fn/exported | 3 | 5 | 0 | 0 | 0 | 9 |
-| PI | `pi-runtime.ts:114` | `constructor` | ctor/public | 8 | 20 | 2 | 5 | 0 | 26 |
-| PI | `pi-runtime.ts:150` | `model` | method/private | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `pi-runtime.ts:155` | `execute` | method/public | 6 | 118 | 5 | 0 | 3 | 20 |
-| PI | `pi-runtime.ts:326` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `provider-preflight.ts:1` | `preflightModelProvider` | fn/exported | 4 | 9 | 2 | 0 | 2 | 14 |
-| PI | `skill-prefetch.ts:114` | `cacheKey` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `skill-prefetch.ts:119` | `clearPrefetchCache` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `skill-prefetch.ts:124` | `prefetchCacheSize` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `skill-prefetch.ts:137` | `prefetchSkillContext` | fn/exported | 5 | 37 | 0 | 0 | 0 | 15 |
-| PI | `skill-prefetch.ts:229` | `withTimeout` | fn/exported | 2 | 0 | 0 | 0 | 3 | 7 |
-| PI | `skill-prefetch.ts:240` | `renderMemoryEntry` | fn/exported | 1 | 5 | 0 | 0 | 0 | 3 |
-| PI | `skill-prefetch.ts:249` | `renderDocEntry` | fn/exported | 1 | 6 | 0 | 0 | 0 | 3 |
-| PI | `skill-prefetch.ts:262` | `renderSkillContext` | fn/exported | 1 | 5 | 0 | 0 | 0 | 3 |
-| PI | `skill-tools.ts:101` | `validateContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | 4 |
-| PI | `skill-tools.ts:123` | `createMem0LookupTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `skill-tools.ts:136` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 19 |
-| PI | `skill-tools.ts:171` | `createMem0RecordTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `skill-tools.ts:184` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 19 |
-| PI | `tool-exec-policy.ts:21` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | 10 |
-| PI | `tool-exec-policy.ts:43` | `splitCommands` | fn/exported | 1 | 12 | 0 | 0 | 0 | 3 |
-| PI | `tool-exec-policy.ts:99` | `tokenize` | fn/exported | 1 | 12 | 0 | 0 | 0 | 3 |
-| PI | `tool-exec-policy.ts:143` | `parseExecutable` | fn/exported | 1 | 10 | 0 | 0 | 0 | 3 |
-| PI | `tool-exec-policy.ts:176` | `parseExecutables` | fn/exported | 1 | 4 | 0 | 0 | 0 | 3 |
-| PI | `tool-exec-policy.ts:193` | `assertExecutablesAllowed` | fn/exported | 2 | 5 | 1 | 0 | 0 | 7 |
-| PI | `tool-exec-policy.ts:213` | `assertRemoteExecutableAllowed` | fn/exported | 2 | 7 | 1 | 0 | 0 | 7 |
-| PI | `tool-exec-policy.ts:229` | `stripQuotes` | fn/exported | 1 | 5 | 0 | 0 | 0 | 3 |
-| PI | `tool-host-policy.ts:29` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | 10 |
-| PI | `tool-host-policy.ts:48` | `currentAllowlist` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `tool-host-policy.ts:52` | `enterNetworkScope` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| PI | `tool-host-policy.ts:56` | `exitNetworkScope` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 |
-| PI | `tool-host-policy.ts:74` | `makePolicyFetch` | fn/exported | 1 | 6 | 2 | 0 | 0 | 4 |
-| PI | `tool-host-policy.ts:109` | `installNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | 0 |
-| PI | `tool-host-policy.ts:121` | `restoreNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | 0 |
-| POLICY | `policy.ts:8` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| POLICY | `policy.ts:14` | `canonicalize` | method/private | 1 | 5 | 3 | 0 | 0 | 4 |
-| POLICY | `policy.ts:24` | `resolveWorkspace` | method/private | 1 | 3 | 1 | 0 | 0 | 4 |
-| POLICY | `policy.ts:31` | `validate` | method/public | 2 | 10 | 2 | 0 | 0 | 7 |
-| POLICY | `policy.ts:55` | `validateResult` | method/public | 1 | 5 | 2 | 0 | 0 | 4 |
-| POLICY | `policy.ts:65` | `within` | fn/exported | 3 | 5 | 0 | 0 | 0 | 9 |
-| POLICY | `task-equality.ts:3` | `normalizedTask` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| POLICY | `task-equality.ts:4` | `sameTask` | fn/exported | 2 | 0 | 0 | 0 | 0 | 6 |
-| POLICY | `workspace.ts:9` | `resolveWorkspace` | fn/exported | 2 | 2 | 1 | 0 | 0 | 7 |
-| POLICY | `workspace.ts:14` | `realpathNearestAncestor` | fn/exported | 1 | 3 | 1 | 0 | 0 | 4 |
-| POLICY | `workspace.ts:18` | `authorizePath` | fn/exported | 4 | 12 | 4 | 0 | 0 | 13 |
-| POLICY | `workspace.ts:32` | `collectOutputs` | fn/exported | 2 | 4 | 0 | 0 | 3 | 7 |
-| POLICY | `workspace.ts:41` | `ensureTaskDirs` | fn/exported | 2 | 6 | 0 | 0 | 0 | 6 |
-| REPO | `store.ts:44` | `constructor` | ctor/public | 2 | 1 | 0 | 2 | 1 | 8 |
-| REPO | `store.ts:52` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:56` | `migrate` | method/private | 0 | 0 | 0 | 2 | 0 | 1 |
-| REPO | `store.ts:170` | `tx` | method/private | 1 | 1 | 1 | 3 | 0 | 5 |
-| REPO | `store.ts:183` | `createOrGet` | method/public | 4 | 10 | 0 | 3 | 0 | 13 |
-| REPO | `store.ts:225` | `getTask` | method/public | 1 | 2 | 1 | 0 | 0 | 4 |
-| REPO | `store.ts:232` | `mutateRun` | method/public | 1 | 9 | 4 | 1 | 0 | 5 |
-| REPO | `store.ts:255` | `getRun` | method/public | 1 | 9 | 2 | 0 | 0 | 4 |
-| REPO | `store.ts:288` | `setInputStaging` | method/public | 2 | 1 | 1 | 1 | 0 | 8 |
-| REPO | `store.ts:295` | `setArtifactDelivery` | method/public | 2 | 1 | 1 | 1 | 0 | 8 |
-| REPO | `store.ts:299` | `inputStaging` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:304` | `tryClaimSlot` | method/public | 2 | 3 | 0 | 4 | 0 | 7 |
-| REPO | `store.ts:336` | `failAccessLostTasks` | method/public | 0 | 4 | 0 | 4 | 3 | 2 |
-| REPO | `store.ts:385` | `recoverOrphaned` | method/public | 2 | 5 | 0 | 3 | 0 | 7 |
-| REPO | `store.ts:403` | `readSlot` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:406` | `renewSlot` | method/public | 2 | 0 | 0 | 1 | 0 | 7 |
-| REPO | `store.ts:410` | `releaseSlot` | method/public | 2 | 0 | 0 | 1 | 0 | 7 |
-| REPO | `store.ts:416` | `scanNonTerminal` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:421` | `nextNeedingStaging` | method/public | 0 | 2 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:431` | `reserveModel` | method/public | 4 | 1 | 0 | 2 | 0 | 13 |
-| REPO | `store.ts:442` | `observeUsage` | method/public | 5 | 0 | 0 | 1 | 0 | 16 |
-| REPO | `store.ts:449` | `terminalModel` | method/public | 5 | 1 | 0 | 1 | 0 | 16 |
-| REPO | `store.ts:456` | `reserveTool` | method/public | 7 | 3 | 0 | 3 | 0 | 22 |
-| REPO | `store.ts:483` | `terminalTool` | method/public | 4 | 1 | 0 | 1 | 0 | 13 |
-| REPO | `store.ts:489` | `markTurn` | method/public | 5 | 2 | 0 | 1 | 0 | 16 |
-| REPO | `store.ts:494` | `pendingTurns` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:497` | `markDiscussionAccessLost` | method/public | 1 | 3 | 0 | 1 | 0 | 4 |
-| REPO | `store.ts:516` | `discussionAccessLost` | method/public | 1 | 2 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:519` | `recordProviderCall` | method/public | 6 | 0 | 0 | 1 | 0 | 19 |
-| REPO | `store.ts:524` | `recordMatrixEvent` | method/public | 4 | 1 | 0 | 1 | 0 | 13 |
-| REPO | `store.ts:528` | `ingestMatrixEvent` | method/public | 5 | 6 | 0 | 2 | 0 | 16 |
-| REPO | `store.ts:544` | `hasMatrixEvent` | method/public | 2 | 2 | 0 | 0 | 0 | 6 |
-| REPO | `store.ts:547` | `ingestMatrixBatch` | method/public | 2 | 7 | 0 | 3 | 0 | 7 |
-| REPO | `store.ts:567` | `discussionRoomsInUse` | method/public | 0 | 4 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:583` | `openDiscussionRuns` | method/public | 1 | 2 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:596` | `matrixCursor` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:599` | `setMatrixCursor` | method/public | 1 | 0 | 0 | 1 | 0 | 4 |
-| REPO | `store.ts:602` | `prepareMatrixSend` | method/public | 4 | 2 | 1 | 1 | 0 | 14 |
-| REPO | `store.ts:613` | `finishMatrixSend` | method/public | 2 | 0 | 0 | 1 | 0 | 7 |
-| REPO | `store.ts:616` | `unknownMatrixSend` | method/public | 1 | 0 | 0 | 1 | 0 | 4 |
-| REPO | `store.ts:619` | `tryCloseIntake` | method/public | 2 | 5 | 0 | 1 | 0 | 7 |
-| REPO | `store.ts:634` | `cancel` | method/public | 1 | 2 | 0 | 3 | 0 | 4 |
-| REPO | `store.ts:667` | `cancelRequested` | method/public | 1 | 3 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:670` | `generation` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:674` | `usageSoFar` | method/private | 1 | 8 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:692` | `rawUsage` | method/public | 1 | 6 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:711` | `knownActions` | method/public | 1 | 8 | 0 | 0 | 0 | 3 |
-| REPO | `store.ts:737` | `insertResult` | method/private | 1 | 0 | 0 | 1 | 3 | 5 |
-| REPO | `store.ts:745` | `publishResult` | method/public | 2 | 2 | 1 | 1 | 0 | 8 |
-| REPO | `store.ts:755` | `finish` | method/public | 2 | 9 | 2 | 3 | 0 | 8 |
-| REPO | `store.ts:780` | `finishQueued` | method/public | 1 | 5 | 1 | 2 | 0 | 5 |
-| REPO | `store.ts:795` | `result` | method/public | 1 | 3 | 2 | 0 | 0 | 4 |
-| REPO | `store.ts:804` | `purge` | method/public | 1 | 6 | 0 | 4 | 0 | 4 |
-| REPO | `store.ts:832` | `purgeExpired` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| REPO | `store.ts:855` | `asReader` | fn/exported | 1 | 0 | 0 | 0 | 0 | 3 |
-| SCHED | `scheduler.ts:10` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| SCHED | `scheduler.ts:15` | `acquire` | method/public | 1 | 1 | 0 | 0 | 0 | 3 |
-| SCHED | `scheduler.ts:21` | `recover` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| SCHED | `scheduler.ts:25` | `renew` | method/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| SCHED | `scheduler.ts:29` | `release` | method/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| SCHED | `scheduler.ts:33` | `read` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| SCHED | `scheduler.ts:37` | `identity` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| SCHED | `scheduler.ts:41` | `close` | method/public | 0 | 1 | 0 | 1 | 1 | 2 |
-| TAPI | `auth.ts:3` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| TAPI | `auth.ts:3` | `authenticate` | method/public | 1 | 6 | 2 | 0 | 0 | 4 |
-| TAPI | `server.ts:12` | `body` | fn/exported | 2 | 3 | 2 | 0 | 0 | 7 |
-| TAPI | `server.ts:27` | `send` | fn/exported | 4 | 0 | 0 | 0 | 0 | 12 |
-| TAPI | `server.ts:40` | `constructor` | ctor/public | 5 | 0 | 0 | 1 | 0 | 16 |
-| TAPI | `server.ts:49` | `create` | method/public | 5 | 4 | 1 | 0 | 0 | 16 |
-| TAPI | `server.ts:62` | `route` | method/private | 2 | 26 | 6 | 0 | 0 | 7 |
-| TAPI | `server.ts:110` | `listen` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| TAPI | `server.ts:119` | `close` | method/public | 0 | 1 | 0 | 0 | 0 | 0 |
-| TAPI | `server.ts:140` | `mapError` | fn/exported | 1 | 3 | 0 | 0 | 0 | 3 |
-| TRANSFER | `execution-facts.ts:53` | `record` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| TRANSFER | `execution-facts.ts:58` | `list` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| TRANSFER | `execution-facts.ts:63` | `last` | method/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| TRANSFER | `execution-facts.ts:67` | `clear` | method/public | 0 | 0 | 0 | 1 | 0 | 1 |
-| TRANSFER | `execution-facts.ts:78` | `statusFromErrorCode` | fn/exported | 1 | 5 | 0 | 0 | 0 | 3 |
-| TRANSFER | `remote-exec.ts:92` | `execRemote` | fn/exported | 4 | 39 | 2 | 0 | 1 | 14 |
-| TRANSFER | `remote-exec.ts:208` | `truncate` | fn/exported | 1 | 1 | 0 | 0 | 0 | 3 |
-| TRANSFER | `transfer.ts:15` | `run` | fn/exported | 3 | 2 | 0 | 0 | 1 | 10 |
-| TRANSFER | `transfer.ts:25` | `safeJoinIn` | fn/exported | 2 | 2 | 1 | 0 | 0 | 7 |
-| TRANSFER | `transfer.ts:31` | `safeJoin` | fn/exported | 3 | 2 | 1 | 0 | 0 | 10 |
-| TRANSFER | `transfer.ts:42` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| TRANSFER | `transfer.ts:53` | `scpKeyPath` | method/private | 0 | 7 | 1 | 2 | 2 | 3 |
-| TRANSFER | `transfer.ts:75` | `close` | method/public | 0 | 1 | 0 | 2 | 1 | 2 |
-| TRANSFER | `transfer.ts:83` | `stagingRoot` | accessor/public | 0 | 0 | 0 | 0 | 0 | 0 |
-| TRANSFER | `transfer.ts:87` | `assertAllowed` | method/private | 1 | 3 | 1 | 0 | 0 | 4 |
-| TRANSFER | `transfer.ts:94` | `scpArgs` | method/private | 3 | 3 | 0 | 0 | 0 | 9 |
-| TRANSFER | `transfer.ts:112` | `sshBaseArgs` | method/private | 1 | 6 | 2 | 0 | 0 | 4 |
-| TRANSFER | `transfer.ts:145` | `sshCommandArgs` | method/public | 2 | 0 | 0 | 0 | 0 | 6 |
-| TRANSFER | `transfer.ts:151` | `withRetry` | method/private | 1 | 4 | 1 | 0 | 1 | 5 |
-| TRANSFER | `transfer.ts:166` | `fetchInputs` | method/public | 3 | 15 | 3 | 0 | 3 | 11 |
-| TRANSFER | `transfer.ts:198` | `deliverArtifacts` | method/public | 5 | 14 | 1 | 0 | 1 | 17 |
-| TRANSFER | `transfer.ts:225` | `clearStaging` | method/public | 1 | 1 | 0 | 0 | 1 | 4 |
-| TYPES | `types.ts:233` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 9 |
-| USAGE | `semantic.ts:3` | `validateUsage` | fn/exported | 1 | 24 | 8 | 0 | 0 | 4 |
-| USAGE | `semantic.ts:14` | `emptyUsage` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 |
-| WORKER | `exec-process.ts:17` | `runExecutionProcess` | fn/exported | 2 | 16 | 0 | 0 | 2 | 7 |
-| WORKER | `tool-recovery.ts:31` | `fileState` | fn/exported | 3 | 7 | 3 | 0 | 0 | 10 |
-| WORKER | `tool-recovery.ts:43` | `isPlan` | fn/exported | 1 | 7 | 0 | 0 | 0 | 3 |
-| WORKER | `tool-recovery.ts:49` | `executeRecoverable` | fn/exported | 7 | 16 | 5 | 0 | 0 | 22 |
-| WORKER | `tool-recovery.ts:91` | `applyToolRecoveryPolicy` | fn/exported | 3 | 16 | 2 | 0 | 0 | 10 |
-| WORKER | `worker.ts:28` | `constructor` | ctor/public | 7 | 0 | 0 | 0 | 0 | 21 |
-| WORKER | `worker.ts:39` | `report` | method/private | 1 | 2 | 1 | 0 | 0 | 4 |
-| WORKER | `worker.ts:47` | `requestAbort` | method/public | 1 | 0 | 0 | 0 | 0 | 3 |
-| WORKER | `worker.ts:50` | `isAborted` | method/private | 1 | 1 | 0 | 0 | 0 | 3 |
-| WORKER | `worker.ts:54` | `start` | method/public | 0 | 0 | 0 | 1 | 0 | 1 |
-| WORKER | `worker.ts:58` | `loop` | method/private | 0 | 6 | 0 | 1 | 1 | 2 |
-| WORKER | `worker.ts:78` | `claimNext` | method/private | 0 | 3 | 0 | 0 | 0 | 0 |
-| WORKER | `worker.ts:87` | `stageInputs` | method/private | 1 | 7 | 0 | 0 | 2 | 4 |
-| WORKER | `worker.ts:125` | `reportPreconditionFailure` | method/private | 2 | 0 | 0 | 0 | 0 | 6 |
-| WORKER | `worker.ts:143` | `run` | method/private | 2 | 46 | 1 | 0 | 2 | 8 |
-| WORKER | `worker.ts:282` | `close` | method/public | 0 | 0 | 0 | 1 | 0 | 1 |
-| WORKER | `worker.ts:288` | `buildStats` | fn/exported | 2 | 2 | 0 | 0 | 0 | 6 |
-| WORKER | `worker.ts:299` | `aggregateUsage` | fn/exported | 2 | 12 | 0 | 0 | 0 | 6 |
-| WORKER | `worker.ts:320` | `sendDiscussionReplyWithRetry` | fn/exported | 6 | 14 | 2 | 0 | 1 | 20 |
+| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 义务旗标 | 公式格数 |
+|---|---|---|---|--:|--:|--:|--:|--:|---|--:|
+| BOOT | `config.ts:26` | `validateToolRegistry` | fn/exported | 1 | 25 | 6 | 0 | 0 | — | 4 |
+| BOOT | `config.ts:56` | `gitHead` | fn/exported | 1 | 5 | 1 | 0 | 0 | async | 4 |
+| BOOT | `config.ts:70` | `validated` | fn/exported | 2 | 4 | 1 | 0 | 0 | async,serial | 7 |
+| BOOT | `config.ts:86` | `loadConfig` | fn/exported | 2 | 16 | 3 | 0 | 0 | async,serial | 7 |
+| BOOT | `config.ts:132` | `resolveSecret` | fn/exported | 1 | 4 | 2 | 0 | 0 | async | 4 |
+| BOOT | `durable-fs.ts:20` | `absolute` | method/private | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| BOOT | `durable-fs.ts:21` | `sync` | method/private | 2 | 1 | 0 | 0 | 0 | async | 6 |
+| BOOT | `durable-fs.ts:25` | `exec` | method/public | 3 | 10 | 0 | 1 | 0 | async,clock | 10 |
+| BOOT | `durable-fs.ts:88` | `writeFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
+| BOOT | `durable-fs.ts:93` | `appendFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
+| BOOT | `durable-fs.ts:98` | `renameFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
+| BOOT | `main.ts:16` | `runControlProcess` | fn/exported | 2 | 2 | 0 | 0 | 0 | async | 6 |
+| BOOT | `main.ts:55` | `main` | fn/exported | 2 | 3 | 0 | 0 | 0 | async | 6 |
+| IPC | `ipc.ts:49` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| IPC | `ipc.ts:50` | `apply` | method/public | 1 | 20 | 0 | 0 | 0 | concur | 3 |
+| IPC | `ipc.ts:117` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| IPC | `ipc.ts:118` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | async | 3 |
+| IPC | `ipc.ts:131` | `constructor` | ctor/public | 2 | 7 | 0 | 0 | 0 | db | 6 |
+| IPC | `ipc.ts:144` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | async | 3 |
+| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 2 | 0 | 0 | 0 | — | 9 |
+| IPC | `supervisor.ts:20` | `constructor` | ctor/public | 4 | 0 | 0 | 0 | 0 | — | 12 |
+| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 14 | 0 | 7 | 2 | clock | 2 |
+| IPC | `supervisor.ts:55` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | clock | 2 |
+| IPC | `supervisor.ts:67` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| IPC | `supervisor.ts:72` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | — | 1 |
+| IPC | `supervisor.ts:80` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | clock | 3 |
+| IPC | `supervisor.ts:84` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| IPC | `supervisor.ts:88` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | async,clock | 2 |
+| MATRIX | `matrix.ts:14` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
+| MATRIX | `matrix.ts:15` | `start` | method/public | 0 | 21 | 1 | 4 | 3 | async,clock | 3 |
+| MATRIX | `matrix.ts:29` | `prepareEvent` | method/private | 1 | 15 | 0 | 0 | 0 | async | 3 |
+| MATRIX | `matrix.ts:48` | `auditMembership` | method/private | 0 | 4 | 0 | 0 | 0 | async | 0 |
+| MATRIX | `matrix.ts:63` | `isJoined` | method/public | 1 | 1 | 0 | 0 | 0 | async | 3 |
+| MATRIX | `matrix.ts:73` | `recordDiscussionAccessLost` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| MATRIX | `matrix.ts:79` | `processBatch` | method/private | 2 | 13 | 0 | 0 | 0 | async | 6 |
+| MATRIX | `matrix.ts:91` | `downloadMedia` | method/private | 3 | 29 | 8 | 0 | 0 | async | 10 |
+| MATRIX | `matrix.ts:101` | `verifyDiscussion` | method/public | 2 | 9 | 3 | 0 | 0 | async | 7 |
+| MATRIX | `matrix.ts:107` | `send` | method/public | 4 | 3 | 1 | 0 | 0 | async | 13 |
+| MATRIX | `matrix.ts:113` | `sendDiscussionReply` | method/public | 5 | 2 | 1 | 0 | 3 | async,serial | 17 |
+| MATRIX | `matrix.ts:117` | `close` | method/public | 0 | 1 | 0 | 1 | 0 | async | 1 |
+| MATRIX | `matrix.ts:120` | `isPermanentMatrixError` | fn/exported | 1 | 16 | 0 | 0 | 0 | — | 3 |
+| OBS | `clock.ts:34` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| OBS | `clock.ts:35` | `now` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| OBS | `clock.ts:38` | `monotonic` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| OBS | `clock.ts:41` | `iso` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| OBS | `clock.ts:44` | `advance` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| OBS | `clock.ts:48` | `set` | method/public | 2 | 1 | 0 | 2 | 0 | — | 7 |
+| OBS | `observability.ts:44` | `redact` | fn/exported | 1 | 7 | 0 | 0 | 0 | — | 3 |
+| OBS | `observability.ts:62` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| OBS | `observability.ts:67` | `keep` | method/private | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| OBS | `observability.ts:72` | `emit` | method/public | 2 | 10 | 0 | 0 | 0 | clock,concur | 6 |
+| OBS | `observability.ts:90` | `metric` | method/public | 5 | 16 | 0 | 0 | 0 | db | 15 |
+| OBS | `observability.ts:104` | `audit` | method/public | 1 | 3 | 0 | 0 | 0 | — | 3 |
+| OBS | `observability.ts:114` | `snapshot` | method/public | 1 | 1 | 0 | 0 | 0 | clock | 3 |
+| OBS | `observability.ts:127` | `bump` | method/public | 2 | 2 | 0 | 0 | 0 | db | 6 |
+| OTHER | `remote-exec-tools.ts:99` | `splitRemoteCommand` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| OTHER | `remote-exec-tools.ts:106` | `createRemoteBashTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,clock,serial | 3 |
+| OTHER | `remote-exec-tools.ts:114` | `execute` | method/public | 6 | 8 | 0 | 0 | 0 | async,clock,serial | 18 |
+| OTHER | `test-evidence.ts:42` | `buildRawResultRef` | fn/exported | 1 | 3 | 0 | 0 | 0 | — | 3 |
+| OTHER | `test-evidence.ts:65` | `isExecutionFailure` | fn/exported | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| PI | `graphrag-client.ts:57` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | — | 13 |
+| PI | `graphrag-client.ts:93` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
+| PI | `graphrag-client.ts:109` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
+| PI | `graphrag-client.ts:130` | `search` | method/public | 2 | 26 | 3 | 0 | 0 | async,serial | 7 |
+| PI | `graphrag-tools.ts:85` | `validateDocSearchContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | — | 4 |
+| PI | `graphrag-tools.ts:109` | `createGraphragSearchTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
+| PI | `graphrag-tools.ts:122` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
+| PI | `mem0-client.ts:24` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | — | 13 |
+| PI | `mem0-client.ts:58` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
+| PI | `mem0-client.ts:73` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| PI | `mem0-client.ts:88` | `search` | method/public | 3 | 24 | 3 | 0 | 0 | async,serial | 10 |
+| PI | `mem0-client.ts:203` | `add` | method/public | 3 | 18 | 4 | 0 | 0 | async,serial | 10 |
+| PI | `mem0-client.ts:299` | `pollForExtractedMemory` | method/private | 2 | 8 | 0 | 0 | 1 | async,clock | 7 |
+| PI | `pi-runtime.ts:37` | `isProviderUnavailableMessage` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| PI | `pi-runtime.ts:42` | `discussionMessage` | fn/exported | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| PI | `pi-runtime.ts:43` | `initialPrompt` | fn/exported | 3 | 1 | 0 | 0 | 0 | — | 9 |
+| PI | `pi-runtime.ts:44` | `normalizeRawUsage` | fn/exported | 1 | 14 | 0 | 0 | 0 | — | 3 |
+| PI | `pi-runtime.ts:55` | `buildSystemPrompt` | fn/exported | 3 | 5 | 0 | 0 | 0 | — | 9 |
+| PI | `pi-runtime.ts:114` | `constructor` | ctor/public | 8 | 20 | 2 | 5 | 0 | — | 26 |
+| PI | `pi-runtime.ts:150` | `model` | method/private | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `pi-runtime.ts:155` | `execute` | method/public | 6 | 118 | 5 | 0 | 3 | async,clock,serial,concur | 20 |
+| PI | `pi-runtime.ts:326` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | async | 0 |
+| PI | `provider-preflight.ts:1` | `preflightModelProvider` | fn/exported | 4 | 9 | 2 | 0 | 2 | async,clock | 14 |
+| PI | `skill-prefetch.ts:114` | `cacheKey` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| PI | `skill-prefetch.ts:119` | `clearPrefetchCache` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `skill-prefetch.ts:124` | `prefetchCacheSize` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `skill-prefetch.ts:137` | `prefetchSkillContext` | fn/exported | 5 | 37 | 0 | 0 | 0 | async,clock,db | 15 |
+| PI | `skill-prefetch.ts:229` | `withTimeout` | fn/exported | 2 | 0 | 0 | 0 | 3 | clock | 7 |
+| PI | `skill-prefetch.ts:240` | `renderMemoryEntry` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
+| PI | `skill-prefetch.ts:249` | `renderDocEntry` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
+| PI | `skill-prefetch.ts:262` | `renderSkillContext` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
+| PI | `skill-tools.ts:101` | `validateContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | — | 4 |
+| PI | `skill-tools.ts:123` | `createMem0LookupTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
+| PI | `skill-tools.ts:136` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
+| PI | `skill-tools.ts:171` | `createMem0RecordTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
+| PI | `skill-tools.ts:184` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
+| PI | `tool-exec-policy.ts:21` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | — | 10 |
+| PI | `tool-exec-policy.ts:43` | `splitCommands` | fn/exported | 1 | 12 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-exec-policy.ts:99` | `tokenize` | fn/exported | 1 | 12 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-exec-policy.ts:143` | `parseExecutable` | fn/exported | 1 | 10 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-exec-policy.ts:176` | `parseExecutables` | fn/exported | 1 | 4 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-exec-policy.ts:193` | `assertExecutablesAllowed` | fn/exported | 2 | 5 | 1 | 0 | 0 | — | 7 |
+| PI | `tool-exec-policy.ts:213` | `assertRemoteExecutableAllowed` | fn/exported | 2 | 7 | 1 | 0 | 0 | — | 7 |
+| PI | `tool-exec-policy.ts:229` | `stripQuotes` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-host-policy.ts:29` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | — | 10 |
+| PI | `tool-host-policy.ts:48` | `currentAllowlist` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `tool-host-policy.ts:52` | `enterNetworkScope` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-host-policy.ts:56` | `exitNetworkScope` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `tool-host-policy.ts:74` | `makePolicyFetch` | fn/exported | 1 | 6 | 2 | 0 | 0 | — | 4 |
+| PI | `tool-host-policy.ts:109` | `installNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | — | 0 |
+| PI | `tool-host-policy.ts:121` | `restoreNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | — | 0 |
+| POLICY | `policy.ts:8` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| POLICY | `policy.ts:14` | `canonicalize` | method/private | 1 | 5 | 3 | 0 | 0 | — | 4 |
+| POLICY | `policy.ts:24` | `resolveWorkspace` | method/private | 1 | 3 | 1 | 0 | 0 | — | 4 |
+| POLICY | `policy.ts:31` | `validate` | method/public | 2 | 10 | 2 | 0 | 0 | — | 7 |
+| POLICY | `policy.ts:55` | `validateResult` | method/public | 1 | 5 | 2 | 0 | 0 | — | 4 |
+| POLICY | `policy.ts:65` | `within` | fn/exported | 3 | 5 | 0 | 0 | 0 | — | 9 |
+| POLICY | `task-equality.ts:3` | `normalizedTask` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| POLICY | `task-equality.ts:4` | `sameTask` | fn/exported | 2 | 0 | 0 | 0 | 0 | serial | 6 |
+| POLICY | `workspace.ts:9` | `resolveWorkspace` | fn/exported | 2 | 2 | 1 | 0 | 0 | async | 7 |
+| POLICY | `workspace.ts:14` | `realpathNearestAncestor` | fn/exported | 1 | 3 | 1 | 0 | 0 | async | 4 |
+| POLICY | `workspace.ts:18` | `authorizePath` | fn/exported | 4 | 12 | 4 | 0 | 0 | async | 13 |
+| POLICY | `workspace.ts:32` | `collectOutputs` | fn/exported | 2 | 4 | 0 | 0 | 3 | async,serial | 7 |
+| POLICY | `workspace.ts:41` | `ensureTaskDirs` | fn/exported | 2 | 6 | 0 | 0 | 0 | async | 6 |
+| REPO | `store.ts:44` | `constructor` | ctor/public | 2 | 1 | 0 | 2 | 1 | db | 8 |
+| REPO | `store.ts:52` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:56` | `migrate` | method/private | 0 | 0 | 0 | 2 | 0 | db | 1 |
+| REPO | `store.ts:170` | `tx` | method/private | 1 | 1 | 1 | 3 | 0 | db | 5 |
+| REPO | `store.ts:183` | `createOrGet` | method/public | 4 | 10 | 0 | 3 | 0 | clock,serial,db,concur | 13 |
+| REPO | `store.ts:225` | `getTask` | method/public | 1 | 2 | 1 | 0 | 0 | serial,db | 4 |
+| REPO | `store.ts:232` | `mutateRun` | method/public | 1 | 9 | 4 | 1 | 0 | db,concur | 5 |
+| REPO | `store.ts:255` | `getRun` | method/public | 1 | 9 | 2 | 0 | 0 | clock,serial,db | 4 |
+| REPO | `store.ts:288` | `setInputStaging` | method/public | 2 | 1 | 1 | 1 | 0 | serial,db | 8 |
+| REPO | `store.ts:295` | `setArtifactDelivery` | method/public | 2 | 1 | 1 | 1 | 0 | serial,db | 8 |
+| REPO | `store.ts:299` | `inputStaging` | method/public | 1 | 0 | 0 | 0 | 0 | serial,db | 3 |
+| REPO | `store.ts:304` | `tryClaimSlot` | method/public | 2 | 3 | 0 | 4 | 0 | db,concur | 7 |
+| REPO | `store.ts:336` | `failAccessLostTasks` | method/public | 0 | 4 | 0 | 4 | 3 | serial,db,concur | 2 |
+| REPO | `store.ts:385` | `recoverOrphaned` | method/public | 2 | 5 | 0 | 3 | 0 | db,concur | 7 |
+| REPO | `store.ts:403` | `readSlot` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:406` | `renewSlot` | method/public | 2 | 0 | 0 | 1 | 0 | db,concur | 7 |
+| REPO | `store.ts:410` | `releaseSlot` | method/public | 2 | 0 | 0 | 1 | 0 | db,concur | 7 |
+| REPO | `store.ts:416` | `scanNonTerminal` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:421` | `nextNeedingStaging` | method/public | 0 | 2 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:431` | `reserveModel` | method/public | 4 | 1 | 0 | 2 | 0 | db | 13 |
+| REPO | `store.ts:442` | `observeUsage` | method/public | 5 | 0 | 0 | 1 | 0 | serial,db | 16 |
+| REPO | `store.ts:449` | `terminalModel` | method/public | 5 | 1 | 0 | 1 | 0 | db | 16 |
+| REPO | `store.ts:456` | `reserveTool` | method/public | 7 | 3 | 0 | 3 | 0 | db | 22 |
+| REPO | `store.ts:483` | `terminalTool` | method/public | 4 | 1 | 0 | 1 | 0 | db | 13 |
+| REPO | `store.ts:489` | `markTurn` | method/public | 5 | 2 | 0 | 1 | 0 | db | 16 |
+| REPO | `store.ts:494` | `pendingTurns` | method/public | 1 | 0 | 0 | 0 | 0 | db | 3 |
+| REPO | `store.ts:497` | `markDiscussionAccessLost` | method/public | 1 | 3 | 0 | 1 | 0 | serial,db | 4 |
+| REPO | `store.ts:516` | `discussionAccessLost` | method/public | 1 | 2 | 0 | 0 | 0 | db | 3 |
+| REPO | `store.ts:519` | `recordProviderCall` | method/public | 6 | 0 | 0 | 1 | 0 | db | 19 |
+| REPO | `store.ts:524` | `recordMatrixEvent` | method/public | 4 | 1 | 0 | 1 | 0 | db | 13 |
+| REPO | `store.ts:528` | `ingestMatrixEvent` | method/public | 5 | 6 | 0 | 2 | 0 | db | 16 |
+| REPO | `store.ts:544` | `hasMatrixEvent` | method/public | 2 | 2 | 0 | 0 | 0 | db | 6 |
+| REPO | `store.ts:547` | `ingestMatrixBatch` | method/public | 2 | 7 | 0 | 3 | 0 | db | 7 |
+| REPO | `store.ts:567` | `discussionRoomsInUse` | method/public | 0 | 4 | 0 | 0 | 0 | serial,db | 0 |
+| REPO | `store.ts:583` | `openDiscussionRuns` | method/public | 1 | 2 | 0 | 0 | 0 | serial,db | 3 |
+| REPO | `store.ts:596` | `matrixCursor` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:599` | `setMatrixCursor` | method/public | 1 | 0 | 0 | 1 | 0 | db | 4 |
+| REPO | `store.ts:602` | `prepareMatrixSend` | method/public | 4 | 2 | 1 | 1 | 0 | db | 14 |
+| REPO | `store.ts:613` | `finishMatrixSend` | method/public | 2 | 0 | 0 | 1 | 0 | db | 7 |
+| REPO | `store.ts:616` | `unknownMatrixSend` | method/public | 1 | 0 | 0 | 1 | 0 | db | 4 |
+| REPO | `store.ts:619` | `tryCloseIntake` | method/public | 2 | 5 | 0 | 1 | 0 | db,concur | 7 |
+| REPO | `store.ts:634` | `cancel` | method/public | 1 | 2 | 0 | 3 | 0 | db | 4 |
+| REPO | `store.ts:667` | `cancelRequested` | method/public | 1 | 3 | 0 | 0 | 0 | db | 3 |
+| REPO | `store.ts:670` | `generation` | method/public | 1 | 0 | 0 | 0 | 0 | db | 3 |
+| REPO | `store.ts:674` | `usageSoFar` | method/private | 1 | 8 | 0 | 0 | 0 | serial,db | 3 |
+| REPO | `store.ts:692` | `rawUsage` | method/public | 1 | 6 | 0 | 0 | 0 | serial,db | 3 |
+| REPO | `store.ts:711` | `knownActions` | method/public | 1 | 8 | 0 | 0 | 0 | db | 3 |
+| REPO | `store.ts:737` | `insertResult` | method/private | 1 | 0 | 0 | 1 | 3 | serial,db | 5 |
+| REPO | `store.ts:745` | `publishResult` | method/public | 2 | 2 | 1 | 1 | 0 | db,concur | 8 |
+| REPO | `store.ts:755` | `finish` | method/public | 2 | 9 | 2 | 3 | 0 | db,concur | 8 |
+| REPO | `store.ts:780` | `finishQueued` | method/public | 1 | 5 | 1 | 2 | 0 | db | 5 |
+| REPO | `store.ts:795` | `result` | method/public | 1 | 3 | 2 | 0 | 0 | serial,db | 4 |
+| REPO | `store.ts:804` | `purge` | method/public | 1 | 6 | 0 | 4 | 0 | serial,db | 4 |
+| REPO | `store.ts:832` | `purgeExpired` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| REPO | `store.ts:855` | `asReader` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| SCHED | `scheduler.ts:10` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| SCHED | `scheduler.ts:15` | `acquire` | method/public | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| SCHED | `scheduler.ts:21` | `recover` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| SCHED | `scheduler.ts:25` | `renew` | method/public | 2 | 0 | 0 | 0 | 0 | concur | 6 |
+| SCHED | `scheduler.ts:29` | `release` | method/public | 2 | 0 | 0 | 0 | 0 | concur | 6 |
+| SCHED | `scheduler.ts:33` | `read` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| SCHED | `scheduler.ts:37` | `identity` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| SCHED | `scheduler.ts:41` | `close` | method/public | 0 | 1 | 0 | 1 | 1 | — | 2 |
+| TAPI | `auth.ts:3` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
+| TAPI | `auth.ts:3` | `authenticate` | method/public | 1 | 6 | 2 | 0 | 0 | — | 4 |
+| TAPI | `server.ts:12` | `body` | fn/exported | 2 | 3 | 2 | 0 | 0 | async,serial | 7 |
+| TAPI | `server.ts:27` | `send` | fn/exported | 4 | 0 | 0 | 0 | 0 | serial | 12 |
+| TAPI | `server.ts:40` | `constructor` | ctor/public | 5 | 0 | 0 | 1 | 0 | — | 16 |
+| TAPI | `server.ts:49` | `create` | method/public | 5 | 4 | 1 | 0 | 0 | async,serial | 16 |
+| TAPI | `server.ts:62` | `route` | method/private | 2 | 26 | 6 | 0 | 0 | async,concur | 7 |
+| TAPI | `server.ts:110` | `listen` | method/public | 0 | 0 | 0 | 0 | 0 | async | 0 |
+| TAPI | `server.ts:119` | `close` | method/public | 0 | 1 | 0 | 0 | 0 | async | 0 |
+| TAPI | `server.ts:140` | `mapError` | fn/exported | 1 | 3 | 0 | 0 | 0 | concur | 3 |
+| TRANSFER | `execution-facts.ts:53` | `record` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| TRANSFER | `execution-facts.ts:58` | `list` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| TRANSFER | `execution-facts.ts:63` | `last` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| TRANSFER | `execution-facts.ts:67` | `clear` | method/public | 0 | 0 | 0 | 1 | 0 | — | 1 |
+| TRANSFER | `execution-facts.ts:78` | `statusFromErrorCode` | fn/exported | 1 | 5 | 0 | 0 | 0 | clock | 3 |
+| TRANSFER | `remote-exec.ts:92` | `execRemote` | fn/exported | 4 | 39 | 2 | 0 | 1 | async,clock | 14 |
+| TRANSFER | `remote-exec.ts:208` | `truncate` | fn/exported | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| TRANSFER | `transfer.ts:15` | `run` | fn/exported | 3 | 2 | 0 | 0 | 1 | async,clock | 10 |
+| TRANSFER | `transfer.ts:25` | `safeJoinIn` | fn/exported | 2 | 2 | 1 | 0 | 0 | — | 7 |
+| TRANSFER | `transfer.ts:31` | `safeJoin` | fn/exported | 3 | 2 | 1 | 0 | 0 | — | 10 |
+| TRANSFER | `transfer.ts:42` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| TRANSFER | `transfer.ts:53` | `scpKeyPath` | method/private | 0 | 7 | 1 | 2 | 2 | async | 3 |
+| TRANSFER | `transfer.ts:75` | `close` | method/public | 0 | 1 | 0 | 2 | 1 | — | 2 |
+| TRANSFER | `transfer.ts:83` | `stagingRoot` | accessor/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| TRANSFER | `transfer.ts:87` | `assertAllowed` | method/private | 1 | 3 | 1 | 0 | 0 | — | 4 |
+| TRANSFER | `transfer.ts:94` | `scpArgs` | method/private | 3 | 3 | 0 | 0 | 0 | async | 9 |
+| TRANSFER | `transfer.ts:112` | `sshBaseArgs` | method/private | 1 | 6 | 2 | 0 | 0 | async | 4 |
+| TRANSFER | `transfer.ts:145` | `sshCommandArgs` | method/public | 2 | 0 | 0 | 0 | 0 | async | 6 |
+| TRANSFER | `transfer.ts:151` | `withRetry` | method/private | 1 | 4 | 1 | 0 | 1 | async,clock | 5 |
+| TRANSFER | `transfer.ts:166` | `fetchInputs` | method/public | 3 | 15 | 3 | 0 | 3 | async | 11 |
+| TRANSFER | `transfer.ts:198` | `deliverArtifacts` | method/public | 5 | 14 | 1 | 0 | 1 | async,serial | 17 |
+| TRANSFER | `transfer.ts:225` | `clearStaging` | method/public | 1 | 1 | 0 | 0 | 1 | — | 4 |
+| TYPES | `types.ts:233` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
+| USAGE | `semantic.ts:3` | `validateUsage` | fn/exported | 1 | 24 | 8 | 0 | 0 | — | 4 |
+| USAGE | `semantic.ts:14` | `emptyUsage` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| WORKER | `exec-process.ts:17` | `runExecutionProcess` | fn/exported | 2 | 16 | 0 | 0 | 2 | async,clock | 7 |
+| WORKER | `tool-recovery.ts:31` | `fileState` | fn/exported | 3 | 7 | 3 | 0 | 0 | async,serial | 10 |
+| WORKER | `tool-recovery.ts:43` | `isPlan` | fn/exported | 1 | 7 | 0 | 0 | 0 | — | 3 |
+| WORKER | `tool-recovery.ts:49` | `executeRecoverable` | fn/exported | 7 | 16 | 5 | 0 | 0 | async,serial | 22 |
+| WORKER | `tool-recovery.ts:91` | `applyToolRecoveryPolicy` | fn/exported | 3 | 16 | 2 | 0 | 0 | async | 10 |
+| WORKER | `worker.ts:28` | `constructor` | ctor/public | 7 | 0 | 0 | 0 | 0 | — | 21 |
+| WORKER | `worker.ts:39` | `report` | method/private | 1 | 2 | 1 | 0 | 0 | async | 4 |
+| WORKER | `worker.ts:47` | `requestAbort` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
+| WORKER | `worker.ts:50` | `isAborted` | method/private | 1 | 1 | 0 | 0 | 0 | — | 3 |
+| WORKER | `worker.ts:54` | `start` | method/public | 0 | 0 | 0 | 1 | 0 | — | 1 |
+| WORKER | `worker.ts:58` | `loop` | method/private | 0 | 6 | 0 | 1 | 1 | async,clock,db,concur | 2 |
+| WORKER | `worker.ts:78` | `claimNext` | method/private | 0 | 3 | 0 | 0 | 0 | async,concur | 0 |
+| WORKER | `worker.ts:87` | `stageInputs` | method/private | 1 | 7 | 0 | 0 | 2 | async,clock | 4 |
+| WORKER | `worker.ts:125` | `reportPreconditionFailure` | method/private | 2 | 0 | 0 | 0 | 0 | async | 6 |
+| WORKER | `worker.ts:143` | `run` | method/private | 2 | 46 | 1 | 0 | 2 | async,clock,concur | 8 |
+| WORKER | `worker.ts:282` | `close` | method/public | 0 | 0 | 0 | 1 | 0 | async | 1 |
+| WORKER | `worker.ts:288` | `buildStats` | fn/exported | 2 | 2 | 0 | 0 | 0 | — | 6 |
+| WORKER | `worker.ts:299` | `aggregateUsage` | fn/exported | 2 | 12 | 0 | 0 | 0 | — | 6 |
+| WORKER | `worker.ts:320` | `sendDiscussionReplyWithRetry` | fn/exported | 6 | 14 | 2 | 0 | 1 | async,clock | 20 |
 
 **公式格数合计：1440**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。
 
@@ -263,6 +263,8 @@
 每行＝该函数的一个分支路径；Case 的维度坐标必须指到这里。
 
 ### `validateToolRegistry` — `config.ts:26`（BOOT，fn/exported，参数 1）
+
+参数：`tools: ToolRegistry`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -294,6 +296,8 @@
 
 ### `gitHead` — `config.ts:56`（BOOT，fn/exported，参数 1）
 
+参数：`repo: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 58 | if | `if (!head.startsWith("ref: "))` |
@@ -304,6 +308,8 @@
 
 ### `validated` — `config.ts:70`（BOOT，fn/exported，参数 2）
 
+参数：`value: unknown` · `schemaPath: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 72 | ?? | `(Ajv as any).default ?? Ajv` |
@@ -312,6 +318,8 @@
 | 76 | ! | `!ajv.validate(schema, value)` |
 
 ### `loadConfig` — `config.ts:86`（BOOT，fn/exported，参数 2）
+
+参数：`path: string` · `root: inferred?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -334,6 +342,8 @@
 
 ### `resolveSecret` — `config.ts:132`（BOOT，fn/exported，参数 1）
 
+参数：`ref: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 135 | if | `if (kind === "env")` |
@@ -343,17 +353,23 @@
 
 ### `absolute` — `durable-fs.ts:20`（BOOT，method/private，参数 1）
 
+参数：`path: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 20 | ternary | `? isAbsolute(path) :` |
 
 ### `sync` — `durable-fs.ts:21`（BOOT，method/private，参数 2）
 
+参数：`path: string` · `directory: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 22 | ternary | `? directory :` |
 
 ### `exec` — `durable-fs.ts:25`（BOOT，method/public，参数 3）
+
+参数：`command: string` · `options: ShellExecOptions | undefined` · `context: Context`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -370,11 +386,15 @@
 
 ### `writeFile` — `durable-fs.ts:88`（BOOT，method/public，参数 3）
 
+参数：`path: string` · `content: string|Uint8Array` · `context: Context`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 90 | if | `if (result.ok)` |
 
 ### `appendFile` — `durable-fs.ts:93`（BOOT，method/public，参数 3）
+
+参数：`path: string` · `content: string|Uint8Array` · `context: Context`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -382,11 +402,15 @@
 
 ### `renameFile` — `durable-fs.ts:98`（BOOT，method/public，参数 3）
 
+参数：`source: string` · `destination: string` · `context: Context`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 100 | if | `if (result.ok)` |
 
 ### `runControlProcess` — `main.ts:16`（BOOT，fn/exported，参数 2）
+
+参数：`configPath: string` · `root: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -395,6 +419,8 @@
 
 ### `main` — `main.ts:55`（BOOT，fn/exported，参数 2）
 
+参数：`argv: inferred?` · `env: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 56 | ?? | `argv[2] ?? env.PIKO_CONFIG ?? "config/runtime.json"` |
@@ -402,6 +428,8 @@
 | 57 | ?? | `import.meta.dirname ?? "."` |
 
 ### `apply` — `ipc.ts:50`（IPC，method/public，参数 1）
+
+参数：`fact: Fact`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -428,6 +456,8 @@
 
 ### `constructor` — `ipc.ts:131`（IPC，ctor/public，参数 2）
 
+参数：`send: (msg: unknown) => void` · `onCommand: (cmd: Command) => void?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 133 | if | `if (msg?.ipc === "outcome" && typeof msg.id === "number")` |
@@ -440,12 +470,16 @@
 
 ### `attachChildToHandler` — `ipc.ts:154`（IPC，fn/exported，参数 3）
 
+参数：`child: { on: Function; send?: Function }?` · `handler: FactHandler` · `onCommand: (cmd: Command) => void?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 157 | if | `if (msg?.ipc === "fact")` |
 | 157 | ?. | `msg?.ipc` |
 
 ### `spawn` — `supervisor.ts:27`（IPC，method/public，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -466,6 +500,8 @@
 
 ### `startWatchdog` — `supervisor.ts:55`（IPC，method/private，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 56 | if | `if (this.watchdog)` |
@@ -476,11 +512,15 @@
 
 ### `send` — `supervisor.ts:67`（IPC，method/public，参数 1）
 
+参数：`cmd: Command`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 68 | ?. | `this.channel?.send` |
 
 ### `kill` — `supervisor.ts:72`（IPC，method/public，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -488,11 +528,15 @@
 
 ### `unhealthy` — `supervisor.ts:80`（IPC，method/public，参数 1）
 
+参数：`windowMs: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 81 | && | `this.child !== null && this.clock.now() - this.lastHeartbea…` |
 
 ### `stop` — `supervisor.ts:88`（IPC，method/public，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -501,6 +545,8 @@
 | 92 | ! | `!this.child` |
 
 ### `start` — `matrix.ts:15`（MATRIX，method/public，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -528,6 +574,8 @@
 
 ### `prepareEvent` — `matrix.ts:29`（MATRIX，method/private，参数 1）
 
+参数：`event: MatrixEvent`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 30 | if | `if (event.getType()!=="m.room.message")` |
@@ -548,6 +596,8 @@
 
 ### `auditMembership` — `matrix.ts:48`（MATRIX，method/private，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 51 | loop | `loop (this.store.discussionRoomsInUse())` |
@@ -557,11 +607,15 @@
 
 ### `isJoined` — `matrix.ts:63`（MATRIX，method/public，参数 1）
 
+参数：`room: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 67 | catch | `catch ()` |
 
 ### `processBatch` — `matrix.ts:79`（MATRIX，method/private，参数 2）
+
+参数：`events: MatrixEvent[]` · `cursor: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -580,6 +634,8 @@
 | 88 | if | `if (item)` |
 
 ### `downloadMedia` — `matrix.ts:91`（MATRIX，method/private，参数 3）
+
+参数：`run: string` · `event: string` · `content: any`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -615,6 +671,8 @@
 
 ### `verifyDiscussion` — `matrix.ts:101`（MATRIX，method/public，参数 2）
 
+参数：`room: string` · `event: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 102 | if | `if (!this.client\|\|!this.started)` |
@@ -629,6 +687,8 @@
 
 ### `send` — `matrix.ts:107`（MATRIX，method/public，参数 4）
 
+参数：`room: string` · `txnId: string` · `body: string` · `replyTo: string?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 108 | if | `if (!this.client)` |
@@ -637,6 +697,8 @@
 
 ### `sendDiscussionReply` — `matrix.ts:113`（MATRIX，method/public，参数 5）
 
+参数：`run: string` · `room: string` · `event: string` · `turn: number` · `body: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 114 | if | `if (prepared.state==="Sent")` |
@@ -644,11 +706,15 @@
 
 ### `close` — `matrix.ts:117`（MATRIX，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 117 | if | `if (this.client)` |
 
 ### `isPermanentMatrixError` — `matrix.ts:120`（MATRIX，fn/exported，参数 1）
+
+参数：`error: unknown`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -671,11 +737,15 @@
 
 ### `set` — `clock.ts:48`（OBS，method/public，参数 2）
 
+参数：`wallIso: string` · `monoMs: number?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 50 | if | `if (monoMs !== undefined)` |
 
 ### `redact` — `observability.ts:44`（OBS，fn/exported，参数 1）
+
+参数：`fields: Record<string, unknown> | undefined`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -688,6 +758,8 @@
 | 51 | ternary | `? v === null :` |
 
 ### `emit` — `observability.ts:72`（OBS，method/public，参数 2）
+
+参数：`name: string` · `fields: Record<string, unknown>?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -703,6 +775,8 @@
 | 85 | catch | `catch ()` |
 
 ### `metric` — `observability.ts:90`（OBS，method/public，参数 5）
+
+参数：`id: string` · `op: MetricOp` · `value: number?` · `labels: Record<string, string>?` · `unit: inferred?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -725,6 +799,8 @@
 
 ### `audit` — `observability.ts:104`（OBS，method/public，参数 1）
 
+参数：`record: AuditRecord`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 106 | ?? | `record.task_id ?? null` |
@@ -733,11 +809,15 @@
 
 ### `snapshot` — `observability.ts:114`（OBS，method/public，参数 1）
 
+参数：`limit: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 116 | loop | `loop (this.counters)` |
 
 ### `bump` — `observability.ts:127`（OBS，method/public，参数 2）
+
+参数：`counter: string` · `delta: inferred?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -745,6 +825,8 @@
 | 130 | catch | `catch ()` |
 
 ### `execute` — `remote-exec-tools.ts:114`（OTHER，method/public，参数 6）
+
+参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -759,6 +841,8 @@
 
 ### `buildRawResultRef` — `test-evidence.ts:42`（OTHER，fn/exported，参数 1）
 
+参数：`input: { declaredOutputPaths: readonly string[]; outputs: readonly `
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 47 | && | `input.declaredOutputPaths.length > 0 && input.outputs.lengt…` |
@@ -767,11 +851,15 @@
 
 ### `isExecutionFailure` — `test-evidence.ts:65`（OTHER，fn/exported，参数 1）
 
+参数：`raw: RawResultRef`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 66 | || | `raw.report_missing \|\| raw.execution_failed` |
 
 ### `mapStatusToCode` — `graphrag-client.ts:93`（PI，fn/exported，参数 1）
+
+参数：`status: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -783,6 +871,8 @@
 | 98 | && | `status >= 500 && status < 600` |
 
 ### `search` — `graphrag-client.ts:130`（PI，method/public，参数 2）
+
+参数：`query: string` · `options: GraphRAGSearchOptions?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -815,6 +905,8 @@
 
 ### `validateDocSearchContext` — `graphrag-tools.ts:85`（PI，fn/exported，参数 1）
 
+参数：`context: DocSearchToolContext`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 86 | if | `if (!context.role \|\| context.role.trim() === "")` |
@@ -828,6 +920,8 @@
 
 ### `execute` — `graphrag-tools.ts:122`（PI，method/public，参数 6）
 
+参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 123 | ?? | `params.scope ?? "all"` |
@@ -835,6 +929,8 @@
 | 134 | if | `if (e instanceof GraphRAGApiError)` |
 
 ### `mapStatusToCode` — `mem0-client.ts:58`（PI，fn/exported，参数 1）
+
+参数：`status: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -846,6 +942,8 @@
 | 63 | && | `status >= 500 && status < 600` |
 
 ### `search` — `mem0-client.ts:88`（PI，method/public，参数 3）
+
+参数：`query: string` · `user_id: string` · `options: Mem0SearchOptions?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -876,6 +974,8 @@
 
 ### `add` — `mem0-client.ts:203`（PI，method/public，参数 3）
 
+参数：`messages: Array<{ role: "user" | "assistant"; content: string }>` · `user_id: string` · `metadata: Record<string, any>?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 209 | if | `if (!user_id \|\| user_id.trim() === "")` |
@@ -899,6 +999,8 @@
 
 ### `pollForExtractedMemory` — `mem0-client.ts:299`（PI，method/private，参数 2）
 
+参数：`user_id: string` · `query: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 304 | loop | `loop (Date.now() < deadline)` |
@@ -912,11 +1014,15 @@
 
 ### `initialPrompt` — `pi-runtime.ts:43`（PI，fn/exported，参数 3）
 
+参数：`task: TaskRequest` · `turn: DiscussionTurn?` · `timestamp: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 43 | ternary | `? turn :` |
 
 ### `normalizeRawUsage` — `pi-runtime.ts:44`（PI，fn/exported，参数 1）
+
+参数：`value: unknown`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -937,6 +1043,8 @@
 
 ### `buildSystemPrompt` — `pi-runtime.ts:55`（PI，fn/exported，参数 3）
 
+参数：`task: TaskRequest` · `identity: {role:string;name:string;memory?:MemoryConfig;doc_search?:Do?` · `skillContext: PrefetchedSkillContext?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 61 | if | `if (!identity)` |
@@ -946,6 +1054,8 @@
 | 85 | if | `if (identity.doc_search)` |
 
 ### `constructor` — `pi-runtime.ts:114`（PI，ctor/public，参数 8）
+
+参数：`config: RuntimeConfig` · `registry: ToolRegistry` · `store: TaskStore` · `channel: Channel` · `apiKey: string` · `mem0ApiKey: string?` · `graphragApiKey: string?` · `transfer: Transfer?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -971,6 +1081,8 @@
 | 142 | ?? | `Object.values(config.workspace.roots)[0]??process.cwd()` |
 
 ### `execute` — `pi-runtime.ts:155`（PI，method/public，参数 6）
+
+参数：`runId: string` · `epoch: number` · `task: TaskRequest` · `workspace: string` · `isCancelled: ()=>boolean` · `onDiscussionReply: (event:string,turn:number,body:string)=>Promise<void>?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1095,6 +1207,8 @@
 
 ### `preflightModelProvider` — `provider-preflight.ts:1`（PI，fn/exported，参数 4）
 
+参数：`base: string` · `key: string` · `timeout: number` · `model: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 4 | ternary | `? base.endsWith("/") :` |
@@ -1108,6 +1222,8 @@
 | 7 | ?. | `item?.id` |
 
 ### `prefetchSkillContext` — `skill-prefetch.ts:137`（PI，fn/exported，参数 5）
+
+参数：`query: string` · `identity: PrefetchIdentity | undefined` · `mem0: Mem0Adapter | undefined` · `graphrag: GraphRAGAdapter | undefined` · `opts: PrefetchOptions?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1151,6 +1267,8 @@
 
 ### `renderMemoryEntry` — `skill-prefetch.ts:240`（PI，fn/exported，参数 1）
 
+参数：`entry: Mem0SearchResult`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 241 | ?? | `entry.memory ?? ""` |
@@ -1160,6 +1278,8 @@
 | 245 | ternary | `? suffix :` |
 
 ### `renderDocEntry` — `skill-prefetch.ts:249`（PI，fn/exported，参数 1）
+
+参数：`entry: GraphRAGSearchResult`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1172,6 +1292,8 @@
 
 ### `renderSkillContext` — `skill-prefetch.ts:262`（PI，fn/exported，参数 1）
 
+参数：`context: PrefetchedSkillContext`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 265 | if | `if (context.skipped)` |
@@ -1181,6 +1303,8 @@
 | 277 | ternary | `? context.sources.docs === "unavailable" :` |
 
 ### `validateContext` — `skill-tools.ts:101`（PI，fn/exported，参数 1）
+
+参数：`context: SkillToolContext`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1195,6 +1319,8 @@
 
 ### `execute` — `skill-tools.ts:136`（PI，method/public，参数 6）
 
+参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 142 | ?? | `params.max_results ?? 5` |
@@ -1203,6 +1329,8 @@
 
 ### `execute` — `skill-tools.ts:184`（PI，method/public，参数 6）
 
+参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 194 | ?? | `params.tags ?? []` |
@@ -1210,6 +1338,8 @@
 | 208 | if | `if (e instanceof Mem0ApiError)` |
 
 ### `splitCommands` — `tool-exec-policy.ts:43`（PI，fn/exported，参数 1）
+
+参数：`command: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1228,6 +1358,8 @@
 
 ### `tokenize` — `tool-exec-policy.ts:99`（PI，fn/exported，参数 1）
 
+参数：`segment: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 105 | loop | `loop (segment)` |
@@ -1245,6 +1377,8 @@
 
 ### `parseExecutable` — `tool-exec-policy.ts:143`（PI，fn/exported，参数 1）
 
+参数：`segment: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 147 | loop | `loop (tokens.length > 0 && ENV_ASSIGNMENT.test(tokens[0…)` |
@@ -1260,6 +1394,8 @@
 
 ### `parseExecutables` — `tool-exec-policy.ts:176`（PI，fn/exported，参数 1）
 
+参数：`command: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 178 | loop | `loop (splitCommands(command))` |
@@ -1268,6 +1404,8 @@
 | 180 | ! | `!found.includes(executable)` |
 
 ### `assertExecutablesAllowed` — `tool-exec-policy.ts:193`（PI，fn/exported，参数 2）
+
+参数：`command: string` · `allowlist: readonly string[]`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1278,6 +1416,8 @@
 | 198 | ! | `!allowed.has(executable)` |
 
 ### `assertRemoteExecutableAllowed` — `tool-exec-policy.ts:213`（PI，fn/exported，参数 2）
+
+参数：`argv: readonly string[]` · `allowlist: readonly string[]`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1291,6 +1431,8 @@
 
 ### `stripQuotes` — `tool-exec-policy.ts:229`（PI，fn/exported，参数 1）
 
+参数：`value: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 230 | if | `if (value.length >= 2)` |
@@ -1300,6 +1442,8 @@
 | 233 | && | `first === "'" && last === "'"` |
 
 ### `makePolicyFetch` — `tool-host-policy.ts:74`（PI，fn/exported，参数 1）
+
+参数：`base: typeof fetch`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1312,17 +1456,23 @@
 
 ### `installNetworkPolicy` — `tool-host-policy.ts:109`（PI，fn/exported，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 110 | if | `if (previousFetch !== null)` |
 
 ### `restoreNetworkPolicy` — `tool-host-policy.ts:121`（PI，fn/exported，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 122 | if | `if (previousFetch !== null)` |
 
 ### `canonicalize` — `policy.ts:14`（POLICY，method/private，参数 1）
+
+参数：`rel: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1334,6 +1484,8 @@
 
 ### `resolveWorkspace` — `policy.ts:24`（POLICY，method/private，参数 1）
 
+参数：`workspaceRef: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 25 | ?? | `this.config.workspace.roots[workspaceRef] ?? this.config.wo…` |
@@ -1341,6 +1493,8 @@
 | 26 | ! | `!root` |
 
 ### `validate` — `policy.ts:31`（POLICY，method/public，参数 2）
+
+参数：`task: TaskRequest` · `_principal: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1357,6 +1511,8 @@
 
 ### `validateResult` — `policy.ts:55`（POLICY，method/public，参数 1）
 
+参数：`result: AgentResult`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 56 | if | `if (result.state === "Completed" && (result.partial \|\| result.failure !== n…)` |
@@ -1366,6 +1522,8 @@
 | 59 | && | `result.state === "Failed" && result.failure === null` |
 
 ### `within` — `policy.ts:65`（POLICY，fn/exported，参数 3）
+
+参数：`root: string` · `glob: string` · `path: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1377,12 +1535,16 @@
 
 ### `resolveWorkspace` — `workspace.ts:9`（POLICY，fn/exported，参数 2）
 
+参数：`ref: string` · `roots: Record<string,string>`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 10 | if | `if (!configured)` |
 | 10 | ! | `!configured` |
 
 ### `realpathNearestAncestor` — `workspace.ts:14`（POLICY，fn/exported，参数 1）
+
+参数：`p: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1391,6 +1553,8 @@
 | 16 | if | `if (parent===cur)` |
 
 ### `authorizePath` — `workspace.ts:18`（POLICY，fn/exported，参数 4）
+
+参数：`workspace: string` · `input: string` · `allowed: string[]` · `write: inferred?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1409,6 +1573,8 @@
 
 ### `collectOutputs` — `workspace.ts:32`（POLICY，fn/exported，参数 2）
 
+参数：`task: TaskRequest` · `workspace: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 34 | loop | `loop (task.output_paths)` |
@@ -1417,6 +1583,8 @@
 | 35 | catch | `catch ()` |
 
 ### `ensureTaskDirs` — `workspace.ts:41`（POLICY，fn/exported，参数 2）
+
+参数：`workspace: string` · `task: TaskRequest`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1429,17 +1597,23 @@
 
 ### `constructor` — `store.ts:44`（REPO，ctor/public，参数 2）
 
+参数：`path: string` · `busyMs: number`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 45 | if | `if (path !== ":memory:")` |
 
 ### `tx` — `store.ts:170`（REPO，method/private，参数 1）
 
+参数：`fn: () => T`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 176 | catch | `catch (e)` |
 
 ### `createOrGet` — `store.ts:183`（REPO，method/public，参数 4）
+
+参数：`task: TaskRequest` · `principal: string` · `capacity: number` · `triggerContent: string?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1456,12 +1630,16 @@
 
 ### `getTask` — `store.ts:225`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 227 | if | `if (!r)` |
 | 227 | ! | `!r` |
 
 ### `mutateRun` — `store.ts:232`（REPO，method/public，参数 1）
+
+参数：`command: FencedRunCommand`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1477,6 +1655,8 @@
 
 ### `getRun` — `store.ts:255`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 257 | if | `if (!r)` |
@@ -1491,17 +1671,23 @@
 
 ### `setInputStaging` — `store.ts:288`（REPO，method/public，参数 2）
 
+参数：`taskId: string` · `staging: InputStaging`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 293 | if | `if (r.changes === 0)` |
 
 ### `setArtifactDelivery` — `store.ts:295`（REPO，method/public，参数 2）
 
+参数：`taskId: string` · `delivery: ArtifactDelivery`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 297 | if | `if (r.changes === 0)` |
 
 ### `tryClaimSlot` — `store.ts:304`（REPO，method/public，参数 2）
+
+参数：`owner: string` · `boot: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1511,6 +1697,8 @@
 
 ### `failAccessLostTasks` — `store.ts:336`（REPO，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 348 | loop | `loop (rows)` |
@@ -1519,6 +1707,8 @@
 | 375 | if | `if (owned)` |
 
 ### `recoverOrphaned` — `store.ts:385`（REPO，method/public，参数 2）
+
+参数：`owner: string` · `boot: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1530,6 +1720,8 @@
 
 ### `nextNeedingStaging` — `store.ts:421`（REPO，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 427 | ?? | `r?.task_id ?? null` |
@@ -1537,17 +1729,23 @@
 
 ### `reserveModel` — `store.ts:431`（REPO，method/public，参数 4）
 
+参数：`taskId: string` · `op: string` · `step: string` · `attempt: number`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 436 | if | `if (ex)` |
 
 ### `terminalModel` — `store.ts:449`（REPO，method/public，参数 5）
 
+参数：`taskId: string` · `op: string` · `step: string` · `attempt: number` · `unknown: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 454 | ternary | `? unknown :` |
 
 ### `reserveTool` — `store.ts:456`（REPO，method/public，参数 7）
+
+参数：`taskId: string` · `op: string` · `id: string` · `name: string` · `effect: string` · `replay: string` · `contract: string?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1557,11 +1755,15 @@
 
 ### `terminalTool` — `store.ts:483`（REPO，method/public，参数 4）
 
+参数：`taskId: string` · `op: string` · `id: string` · `unknown: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 486 | ternary | `? unknown :` |
 
 ### `markTurn` — `store.ts:489`（REPO，method/public，参数 5）
+
+参数：`taskId: string` · `event: string` · `status: "QueuedInPi" | "Consumed" | "Abandoned"` · `entry: string?` · `op: string?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1569,6 +1771,8 @@
 | 492 | ?? | `op ?? null` |
 
 ### `markDiscussionAccessLost` — `store.ts:497`（REPO，method/public，参数 1）
+
+参数：`room: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1578,6 +1782,8 @@
 
 ### `discussionAccessLost` — `store.ts:516`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 517 | ! | `!!this.db.prepare("SELECT 1 FROM discussion_access_loss WHER…` |
@@ -1585,11 +1791,15 @@
 
 ### `recordMatrixEvent` — `store.ts:524`（REPO，method/public，参数 4）
 
+参数：`room: string` · `event: string` · `sender: string` · `txn: string?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 525 | ?? | `txn ?? null` |
 
 ### `ingestMatrixEvent` — `store.ts:528`（REPO，method/public，参数 5）
+
+参数：`room: string` · `event: string` · `sender: string` · `txn: string | undefined` · `turns: { task: string; visible: string }[]`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1602,12 +1812,16 @@
 
 ### `hasMatrixEvent` — `store.ts:544`（REPO，method/public，参数 2）
 
+参数：`room: string` · `event: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 545 | ! | `!!this.db.prepare("SELECT 1 FROM matrix_events WHERE room_id…` |
 | 545 | ! | `!this.db.prepare("SELECT 1 FROM matrix_events WHERE room_id=…` |
 
 ### `ingestMatrixBatch` — `store.ts:547`（REPO，method/public，参数 2）
+
+参数：`events: { room: string; event: string; sender: string; txn?: string;?` · `cursor: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1621,6 +1835,8 @@
 
 ### `discussionRoomsInUse` — `store.ts:567`（REPO，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 575 | ?. | `JSON.parse(x.task_json)?.discussion?.room_id` |
@@ -1630,6 +1846,8 @@
 
 ### `openDiscussionRuns` — `store.ts:583`（REPO，method/public，参数 1）
 
+参数：`room: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 589 | ?. | `JSON.parse(x.task_json).discussion?.room_id` |
@@ -1637,12 +1855,16 @@
 
 ### `prepareMatrixSend` — `store.ts:602`（REPO，method/public，参数 4）
 
+参数：`txn: string` · `taskId: string` · `turn: number` · `payloadSha: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 605 | if | `if (old)` |
 | 606 | if | `if (old.payload_sha256 !== payloadSha)` |
 
 ### `tryCloseIntake` — `store.ts:619`（REPO，method/public，参数 2）
+
+参数：`taskId: string` · `epoch: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1654,12 +1876,16 @@
 
 ### `cancel` — `store.ts:634`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 638 | if | `if (isTerminal(r.state))` |
 | 639 | if | `if (r.state === "Queued")` |
 
 ### `cancelRequested` — `store.ts:667`（REPO，method/public，参数 1）
+
+参数：`taskId: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1668,6 +1894,8 @@
 | 668 | ?. | `(this.db.prepare("SELECT cancel_requested FROM runs WHERE t…` |
 
 ### `usageSoFar` — `store.ts:674`（REPO，method/private，参数 1）
+
+参数：`taskId: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1682,6 +1910,8 @@
 
 ### `rawUsage` — `store.ts:692`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 698 | if | `if (value.cost && typeof value.input === "number" && typeof value.cacheRead…)` |
@@ -1692,6 +1922,8 @@
 | 699 | && | `value.cost && typeof value.input === "number"` |
 
 ### `knownActions` — `store.ts:711`（REPO，method/public，参数 1）
+
+参数：`taskId: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1706,12 +1938,16 @@
 
 ### `publishResult` — `store.ts:745`（REPO，method/public，参数 2）
 
+参数：`result: AgentResult` · `epoch: number`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 748 | if | `if (slot.task_id !== result.task_id \|\| slot.lease_epoch !== epoch)` |
 | 748 | || | `slot.task_id !== result.task_id \|\| slot.lease_epoch !== epo…` |
 
 ### `finish` — `store.ts:755`（REPO，method/public，参数 2）
+
+参数：`result: AgentResult` · `epoch: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1727,6 +1963,8 @@
 
 ### `finishQueued` — `store.ts:780`（REPO，method/public，参数 1）
 
+参数：`result: AgentResult`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 783 | if | `if (!r)` |
@@ -1737,6 +1975,8 @@
 
 ### `result` — `store.ts:795`（REPO，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 797 | if | `if (r)` |
@@ -1744,6 +1984,8 @@
 | 799 | ! | `!isTerminal(state)` |
 
 ### `purge` — `store.ts:804`（REPO，method/public，参数 1）
+
+参数：`scope: { task_id: string } | "all"`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1756,17 +1998,23 @@
 
 ### `acquire` — `scheduler.ts:15`（SCHED，method/public，参数 1）
 
+参数：`owner: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 17 | ternary | `? granted === "slot_busy" :` |
 
 ### `close` — `scheduler.ts:41`（SCHED，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 42 | if | `if (this.timer)` |
 
 ### `authenticate` — `auth.ts:3`（TAPI，method/public，参数 1）
+
+参数：`header: string|undefined`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1779,6 +2027,8 @@
 
 ### `body` — `server.ts:12`（TAPI，fn/exported，参数 2）
 
+参数：`req: IncomingMessage` · `max: inferred?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 15 | loop | `loop (req)` |
@@ -1786,6 +2036,8 @@
 | 23 | catch | `catch ("InvalidRequest", 400, "invalid JSON bo…)` |
 
 ### `create` — `server.ts:49`（TAPI，method/public，参数 5）
+
+参数：`config: RuntimeConfig` · `store: TaskStore` · `auth: BearerAuth` · `onCancel: (taskId: string, outcome: string) => void?` · `obs: Observability?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1795,6 +2047,8 @@
 | 58 | ! | `!x.validateTask` |
 
 ### `route` — `server.ts:62`（TAPI，method/private，参数 2）
+
+参数：`req: IncomingMessage` · `res: ServerResponse`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1827,11 +2081,15 @@
 
 ### `close` — `server.ts:119`（TAPI，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 120 | ternary | `? e :` |
 
 ### `mapError` — `server.ts:140`（TAPI，fn/exported，参数 1）
+
+参数：`error: unknown`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1840,6 +2098,8 @@
 | 144 | ternary | `? error instanceof Error :` |
 
 ### `statusFromErrorCode` — `execution-facts.ts:78`（TRANSFER，fn/exported，参数 1）
+
+参数：`code: string | undefined`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1850,6 +2110,8 @@
 | 87 | default | `default` |
 
 ### `execRemote` — `remote-exec.ts:92`（TRANSFER，fn/exported，参数 4）
+
+参数：`options: RemoteExecOptions` · `transfer: { sshCommandArgs(host: string, argv: readonly string[]): Pro` · `config: RuntimeConfig` · `spawn: RemoteSpawner?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1895,11 +2157,15 @@
 
 ### `truncate` — `remote-exec.ts:208`（TRANSFER，fn/exported，参数 1）
 
+参数：`value: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 209 | ternary | `? value.length > MAX_OUTPUT_BYTES :` |
 
 ### `run` — `transfer.ts:15`（TRANSFER，fn/exported，参数 3）
+
+参数：`cmd: string` · `args: string[]` · `signal: AbortSignal?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1908,6 +2174,8 @@
 
 ### `safeJoinIn` — `transfer.ts:25`（TRANSFER，fn/exported，参数 2）
 
+参数：`base: string` · `rel: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 28 | if | `if (relCheck.startsWith("..") \|\| isAbsolute(relCheck))` |
@@ -1915,12 +2183,16 @@
 
 ### `safeJoin` — `transfer.ts:31`（TRANSFER，fn/exported，参数 3）
 
+参数：`stagingRoot: string` · `taskId: string` · `rel: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 35 | if | `if (relCheck.startsWith("..") \|\| isAbsolute(relCheck))` |
 | 35 | || | `relCheck.startsWith("..") \|\| isAbsolute(relCheck)` |
 
 ### `scpKeyPath` — `transfer.ts:53`（TRANSFER，method/private，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1934,11 +2206,15 @@
 
 ### `close` — `transfer.ts:75`（TRANSFER，method/public，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 76 | if | `if (this.tempKey)` |
 
 ### `assertAllowed` — `transfer.ts:87`（TRANSFER，method/private，参数 1）
+
+参数：`target: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1948,6 +2224,8 @@
 
 ### `scpArgs` — `transfer.ts:94`（TRANSFER，method/private，参数 3）
 
+参数：`remote: string` · `local: string` · `direction: "pull" | "push"`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 97 | if | `if (this.config.transfer.port)` |
@@ -1955,6 +2233,8 @@
 | 99 | else | `args.push("--", local, remote);` |
 
 ### `sshBaseArgs` — `transfer.ts:112`（TRANSFER，method/private，参数 1）
+
+参数：`binary: "scp" | "ssh"`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1967,6 +2247,8 @@
 
 ### `withRetry` — `transfer.ts:151`（TRANSFER，method/private，参数 1）
 
+参数：`fn: () => Promise<T>`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 152 | ?? | `this.config.transfer.retry ?? { max_attempts: 3, base_delay…` |
@@ -1975,6 +2257,8 @@
 | 159 | if | `if (attempt < max_attempts)` |
 
 ### `fetchInputs` — `transfer.ts:166`（TRANSFER，method/public，参数 3）
+
+参数：`taskId: string` · `refs: InputRef[]` · `signal: AbortSignal?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -1996,6 +2280,8 @@
 
 ### `deliverArtifacts` — `transfer.ts:198`（TRANSFER，method/public，参数 5）
 
+参数：`taskId: string` · `outputPaths: string[]` · `target: ArtifactTarget` · `signal: AbortSignal?` · `baseDir: string?`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 199 | if | `if (!outputPaths.length \|\| !target)` |
@@ -2015,11 +2301,15 @@
 
 ### `clearStaging` — `transfer.ts:225`（TRANSFER，method/public，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 228 | catch | `catch ()` |
 
 ### `validateUsage` — `semantic.ts:3`（USAGE，fn/exported，参数 1）
+
+参数：`u: TokenUsage`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2050,6 +2340,8 @@
 
 ### `runExecutionProcess` — `exec-process.ts:17`（WORKER，fn/exported，参数 2）
 
+参数：`configPath: string` · `root: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 24 | if | `if (config.identity?.memory)` |
@@ -2071,6 +2363,8 @@
 
 ### `fileState` — `tool-recovery.ts:31`（WORKER，fn/exported，参数 3）
 
+参数：`env: ExecutionToolContext["env"]` · `path: string` · `context: Context`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 33 | if | `if (!info.ok)` |
@@ -2083,6 +2377,8 @@
 
 ### `isPlan` — `tool-recovery.ts:43`（WORKER，fn/exported，参数 1）
 
+参数：`value: JsonValue|undefined`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 44 | if | `if (!value\|\|typeof value!=="object"\|\|Array.isArray(value))` |
@@ -2094,6 +2390,8 @@
 | 46 | && | `plan.version===1&&typeof plan.before==="string"` |
 
 ### `executeRecoverable` — `tool-recovery.ts:49`（WORKER，fn/exported，参数 7）
+
+参数：`base: AgentHarnessTool<ExecutionToolContext>` · `toolCallId: string` · `params: any` · `onUpdate: any` · `toolContext: ExecutionToolContext` · `invocation: AgentHarnessToolInvocation` · `context: Context`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2116,6 +2414,8 @@
 
 ### `applyToolRecoveryPolicy` — `tool-recovery.ts:91`（WORKER，fn/exported，参数 3）
 
+参数：`base: AgentHarnessTool<ExecutionToolContext>` · `policy: ToolPolicy` · `registry: ToolRegistry`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 101 | ?? | `policy.permissions?.network_hosts ?? []` |
@@ -2137,6 +2437,8 @@
 
 ### `report` — `worker.ts:39`（WORKER，method/private，参数 1）
 
+参数：`fact: Fact`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 41 | if | `if (!outcome.ok)` |
@@ -2144,11 +2446,15 @@
 
 ### `isAborted` — `worker.ts:50`（WORKER，method/private，参数 1）
 
+参数：`taskId: string`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 51 | || | `this.aborted.has(taskId) \|\| this.store.cancelRequested(task…` |
 
 ### `loop` — `worker.ts:58`（WORKER，method/private，参数 0）
+
+参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2161,6 +2467,8 @@
 
 ### `claimNext` — `worker.ts:78`（WORKER，method/private，参数 0）
 
+参数：（无）
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 81 | if | `if (staging)` |
@@ -2168,6 +2476,8 @@
 | 83 | ! | `!grant` |
 
 ### `stageInputs` — `worker.ts:87`（WORKER，method/private，参数 1）
+
+参数：`taskId: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2180,6 +2490,8 @@
 | 119 | ternary | `? staging.state === "none" :` |
 
 ### `run` — `worker.ts:143`（WORKER，method/private，参数 2）
+
+参数：`taskId: string` · `epoch: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2232,12 +2544,16 @@
 
 ### `buildStats` — `worker.ts:288`（WORKER，fn/exported，参数 2）
 
+参数：`view: ReturnType<TaskStore["getRun"]>` · `outputs: AgentResult["outputs"]`
+
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 292 | ternary | `? view.started_at && view.finished_at :` |
 | 292 | && | `view.started_at && view.finished_at` |
 
 ### `aggregateUsage` — `worker.ts:299`（WORKER，fn/exported，参数 2）
+
+参数：`rows: any[]` · `attempts: number`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
@@ -2255,6 +2571,8 @@
 | 315 | ! | `!missing.includes(f)` |
 
 ### `sendDiscussionReplyWithRetry` — `worker.ts:320`（WORKER，fn/exported，参数 6）
+
+参数：`matrix: MatrixRuntime` · `taskId: string` · `roomId: string` · `eventId: string` · `turn: number` · `body: string`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|

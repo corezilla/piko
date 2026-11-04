@@ -128,10 +128,22 @@ for (const file of files) {
   const register = (node, kind, visibility, name) => {
     const body = node.body ?? node.initializer;
     if (!body) return;
+    const params = (node.parameters ?? node.initializer?.parameters ?? []).map((p) => ({
+      name: p.name.getText().replace(/\?$/, "").replace(/[{:[].*$/s, "").trim() || "<destructured>",
+      optional: !!p.questionToken || !!p.initializer || p.getText().includes("?"),
+      type: p.type ? p.type.getText().replace(/\s+/g, " ").slice(0, 60) : "inferred",
+    }));
+    const txt = body.getText();
     rows.push({
       module: MODULE_OF[file] ?? "OTHER",
       file, line: lineOf(node.getStart()), symbol: name, kind, visibility,
-      params: (node.parameters ?? node.initializer?.parameters ?? []).length,
+      params,
+      paramCount: params.length,
+      async: /^\s*(?:private\s+|protected\s+|public\s+|static\s+|readonly\s+|override\s+)*async\s|Promise<|await\s|\.then\(|\.catch\(/.test(node.getFullText().slice(0, 200) + txt.slice(0, 0)) || /\bawait\b/.test(txt) || /Promise<|\.then\(|\.catch\(/.test(node.getFullText().slice(0, 200)),
+      usesClock: /\b(clock|Date\.now|performance\.now|setTimeout|setInterval|deadline|elapsed|timeout)\b/i.test(txt),
+      serializes: /\b(JSON\.(parse|stringify)|serialize|deserialize|encode|decode|digest|createHash|canonical)\b/.test(txt),
+      touchesDb: /\b(db|stmt|prepare|\.run\(|\.get\(|\.all\()\b/.test(txt),
+      concurrency: /\b(lock|epoch|lease|claim|renew|fence|mutex|queue|slot)\b/i.test(txt),
       branches: branchesOf(body),
       throws: collect(body, [isThrow]),
       state: collect(body, [isState]),
@@ -165,7 +177,7 @@ for (const file of files) {
 
 rows.sort((a, b) => a.module.localeCompare(b.module) || a.file.localeCompare(b.file) || a.line - b.line);
 const T = rows.reduce((a, r) => {
-  a.units += 1; a.params += r.params; a.branches += r.branches.length;
+  a.units += 1; a.params += r.paramCount; a.branches += r.branches.length;
   a.throws += r.throws; a.state += r.state; a.resource += r.resource;
   return a;
 }, { units: 0, params: 0, branches: 0, throws: 0, state: 0, resource: 0 });
@@ -182,20 +194,22 @@ if (mdPath) {
     "> 每条 Case 的「维度坐标」必须能指到本表某行的一个分支路径。", "",
     `**合计**：${T.units} 个行为单元 · 参数 ${T.params} · 分支点 ${T.branches} · throw/reject ${T.throws} · 状态写 ${T.state} · 资源操作 ${T.resource}`, "",
     `**公式格数（§4）**：Σ(参数×必测类 3 ＋ 错误路径(throw>0 记 1) ＋ 状态分支(状态写>0 记 1) ＋ 资源释放(资源>0 记 1))`, "",
-    "| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 公式格数 |",
-    "|---|---|---|---|--:|--:|--:|--:|--:|--:|");
+    "| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 义务旗标 | 公式格数 |",
+    "|---|---|---|---|--:|--:|--:|--:|--:|---|--:|");
   let cells = 0;
   for (const r of rows) {
-    const c = r.params * 3 + (r.throws ? 1 : 0) + (r.state ? 1 : 0) + (r.resource ? 1 : 0);
+    const c = r.paramCount * 3 + (r.throws ? 1 : 0) + (r.state ? 1 : 0) + (r.resource ? 1 : 0);
     cells += c;
-    L.push(`| ${r.module} | \`${r.file}:${r.line}\` | \`${r.symbol}\` | ${r.kind}/${r.visibility} | ${r.params} | ${r.branches.length} | ${r.throws} | ${r.state} | ${r.resource} | ${c} |`);
+    const flags = [r.async && "async", r.usesClock && "clock", r.serializes && "serial", r.touchesDb && "db", r.concurrency && "concur"].filter(Boolean).join(",") || "—";
+    L.push(`| ${r.module} | \`${r.file}:${r.line}\` | \`${r.symbol}\` | ${r.kind}/${r.visibility} | ${r.paramCount} | ${r.branches.length} | ${r.throws} | ${r.state} | ${r.resource} | ${flags} | ${c} |`);
   }
   L.push("", `**公式格数合计：${cells}**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。`);
   L.push("", "---", "", "## 逐函数分支路径明细", "",
     "每行＝该函数的一个分支路径；Case 的维度坐标必须指到这里。", "");
   for (const r of rows) {
     if (!r.branches.length) continue;
-    L.push(`### \`${r.symbol}\` — \`${r.file}:${r.line}\`（${r.module}，${r.kind}/${r.visibility}，参数 ${r.params}）`, "",
+    L.push(`### \`${r.symbol}\` — \`${r.file}:${r.line}\`（${r.module}，${r.kind}/${r.visibility}，参数 ${r.paramCount}）`, "",
+      "参数：" + (r.params.map((x) => `\`${x.name}: ${x.type}${x.optional ? "?" : ""}\``).join(" · ") || "（无）"), "",
       "| 行 | 类型 | 条件 |", "|--:|---|---|");
     for (const b of r.branches) L.push(`| ${b.line} | ${b.kind} | \`${b.cond.replace(/\|/g, "\\|")}\` |`);
     L.push("");
