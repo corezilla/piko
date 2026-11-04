@@ -2478,10 +2478,12 @@
 两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3208 = **3360**。
 分卷全部 `待实现`：清单先行，脚本按清单编写（执行半随 `G-EXEC-UT-3` 与波次二排期）。
 
-**机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成）——
-全层 3,360 条逐条一行的清单（`case_id`/`module`/`symbol`/`type`/`cell`/`summary`/`site`/`granularity`/`status`），
-含汇总计数 `granularity_counts`、`status_counts`、`module_counts`、`category_counts`。
-计划 §3 前检与四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）按本文件复算，不手数表格。
+**机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成，勿手改）——
+全层 3,360 条逐条一行，含四方对账字段（`design`＝用例文档、`script`＝点名该 Case ID 的测试文件、
+`report`＝逐 Case Run 报告 JSON、`scheme`＝登记位置；未生成写「未完成」）与汇总计数
+（`granularity_counts`/`status_counts`/`module_counts`/`category_counts`/`field_counts`）。
+当前实况 `field_counts`：design 152 · **script 45** · **report 0** · scheme 3,360——四方对账不成立即在此可见
+（`G-EXEC-UT-3`）。计划 §3 前检与覆盖复算按本文件复算，不手数表格（STD `test-standard` §5 大分量层义务，`draft.128` 起）。
 
 ### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
 

@@ -75,6 +75,7 @@ This project is indexed by GitNexus as **piko** (29109 symbols, 84850 relationsh
 **Case 与脚本不是一回事**：登记的 Case 若在 `tests/` 里找不到自己的入口，就是占位。
 单元层粗粒度 152 条中只有 45 条带 Case ID，分卷 3,208 条全部待建（`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），
 系统层 21 条中 7 条（`G-EXEC-ST-1`）——四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）不成立。
+四方对账的机器权威源是 `docs/70_verification/unit/case-index.json`（生成，勿手改；`draft.128` 起大分量层义务）。
 
 ```bash
 python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .   # 覆盖门

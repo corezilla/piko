@@ -154,48 +154,94 @@ for (const [mod, list] of Object.entries(byMod)) {
 index.sort((a, b) => b.cases - a.cases);
 writeFileSync(`${VOLDIR}/case-index.json`, JSON.stringify({ generated: "2026-11-04", total, volumes: index }, null, 2));
 
-// full machine-readable Case list for the layer (LLMTier practice):
-// every registered Case, coarse (§6.1) and per-site (volumes), one row each.
+// full machine-readable Case index for the layer (STD test-standard §5
+// 大分量层义务, LLMTier shape): every registered Case, coarse (§6.1) and
+// per-site (volumes), one row each, with the four-way reconciliation fields
+// (design/script/report/scheme) read from disk — never hand-written.
+import { readdirSync as _rd } from "node:fs";
+const CASEDIR = "docs/70_verification/unit/cases";
+const caseDoc = (id) => existsSync(`${CASEDIR}/${id}.md`) ? `${CASEDIR}/${id}.md` : "未完成";
+// script = a test file that names the Case ID in its describe()/title
+const scriptMap = new Map();
+const scanTests = (dir) => {
+  for (const e of _rd(dir, { withFileTypes: true })) {
+    const f = `${dir}/${e.name}`;
+    if (e.isDirectory()) { if (e.name !== "reports" && e.name !== "node_modules") scanTests(f); continue; }
+    if (!/\.test\.ts$/.test(e.name)) continue;
+    for (const m of readFileSync(f, "utf8").matchAll(/UT-[A-Z]+-\d+/g))
+      if (!scriptMap.has(m[0])) scriptMap.set(m[0], f);
+  }
+};
+scanTests("tests");
+// report = per-Case Run 报告 JSON（STD 状态分层：执行结果只在 Run 报告）
+const reportMap = new Map();
+if (existsSync("tests/unit/reports")) {
+  const scanRuns = (dir) => {
+    for (const e of _rd(dir, { withFileTypes: true })) {
+      const f = `${dir}/${e.name}`;
+      if (e.isDirectory()) { scanRuns(f); continue; }
+      if (!e.name.endsWith(".json") || e.name.endsWith(".metadata.json")) continue;
+      const id = e.name.replace(/\.json$/, "");
+      if (/^UT-[A-Z]+-\d+$/.test(id)) reportMap.set(id, f);
+    }
+  };
+  scanRuns("tests/unit/reports");
+}
 // 实现状态的唯一权威是用例文档（STD 状态分层：方案只持有设计状态）
 const caseDocStatus = (id) => {
-  const f = `docs/70_verification/unit/cases/${id}.md`;
+  const f = `${CASEDIR}/${id}.md`;
   if (!existsSync(f)) return "Planned";
   const m = readFileSync(f, "utf8").match(/测试代码实现状态\*\*：`[A-Za-z_]+`\s*\/\s*`([A-Za-z_]+)`/);
   return m?.[1] ?? "Planned";
 };
+const SCHEME_PATH = "docs/70_verification/unit/unit-test-scheme.md";
+const rowFields = (id, schemePath) => ({
+  design: caseDoc(id),
+  script: scriptMap.get(id) ?? "未完成",
+  report: reportMap.get(id) ?? "未完成",
+  scheme: schemePath,
+});
 const coarse = [];
 for (let i = 1; i < blocks.length - 1; i += 2) {
   const mod = blocks[i], body = blocks[i + 1];
   const num = body.match(/^6\.1\.\d+\s+Case · UT-([A-Z]+)-(\d+)/m)?.[2]
     ?? body.match(/UT-[A-Z]+-(\d+)/)?.[1];
   if (!num) continue;
+  const id = `UT-${mod}-${num}`;
   const cells = [...body.matchAll(/维度格\s*`([^`]+)`/g)].map((m) => m[1]);
   coarse.push({
-    case_id: `UT-${mod}-${num}`, module: mod,
+    id, case_id: id, module: mod,
     symbol: body.match(/被测符号 `([^`]+)`/)?.[1] ?? null,
     type: body.match(/对象类型 `([^`]+)`/)?.[1] ?? null,
     cell: cells[0] ?? null,
     summary: clip(body.match(/责任摘要[^：]*：(.+)/)?.[1] ?? "", 200),
     granularity: "symbol-x-cell",
-    status: caseDocStatus(`UT-${mod}-${num}`),
+    status: caseDocStatus(id),
+    ...rowFields(id, SCHEME_PATH),
   });
 }
 const countBy = (list, key) => list.reduce((a, c) => ((a[c[key]] = (a[c[key]] ?? 0) + 1), a), {});
+const fieldCount = (list, key) => list.filter((c) => c[key] !== "未完成").length;
 const all = [
   ...coarse,
-  ...fresh.map((c) => ({ case_id: c.case_id, module: c.module, symbol: c.symbol,
+  ...fresh.map((c) => ({ id: c.case_id, case_id: c.case_id, module: c.module, symbol: c.symbol,
     type: c.type, cell: c.cell, summary: c.summary, site: c.site,
-    granularity: "per-site", status: "Planned" })),
+    granularity: "per-site", status: "Planned",
+    ...rowFields(c.case_id, `docs/70_verification/unit/volumes/unit-test-scheme-${c.module.toLowerCase()}.md`) })),
 ];
 const full = {
   document: "piko UT Case 索引", layer: "UT",
   generated_by: "scripts/derive-ut-cases-full.mjs",
-  note: "方案 §6.1（粗粒度）＋ §6.1A 分卷（逐站点）的机器可读全量清单；计划 §3 前检与四方对账按本文件复算。",
+  note: "本文件由脚本从磁盘登记生成，勿手改（STD test-standard §5 大分量层义务）。四方对账字段：design=用例文档存在；script=tests/ 下标题点名该 Case ID 的测试文件；report=逐 Case Run 报告 JSON（tests/unit/reports/**/<ID>.json）；scheme=该 Case 在方案/分卷里的登记位置。未生成的写字符串「未完成」，不用 null、不省略键。计划 §3 前检与四方对账按本文件复算，不手数表格。",
   total: all.length,
   granularity_counts: countBy(all, "granularity"),
   status_counts: countBy(all, "status"),
   module_counts: countBy(all, "module"),
   category_counts: countBy(all, "type"),
+  field_counts: {
+    design: fieldCount(all, "design"), script: fieldCount(all, "script"),
+    report: fieldCount(all, "report"), scheme: all.length,
+  },
   cases: all,
 };
 writeFileSync("docs/70_verification/unit/case-index.json", JSON.stringify(full, null, 2));

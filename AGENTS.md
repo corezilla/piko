@@ -14,7 +14,7 @@ This project follows **STD** (`/Users/ben/work/STD/`) for all documents and temp
 - **编写索引（必读）**: `/Users/ben/work/STD/docs/authoring-index.md` — 写或改任何文档前先读它。
   它按文档族列出该读哪些规范、哪些硬性义务必须满足、哪些 checklist 一定执行、结果怎么交。
   **不需要通读 STD 详细规范**，但**每一条都必须遵守**——与用哪个 agent、哪个模型、agent 怎么想**都无关**。
-- **覆盖门**: `/Users/ben/work/STD/scripts/validate-coverage --project-root .` — 三层方案都查：义务维度格未登记、或单元层 Case 数低于公式下界（136 受辖符号 × 1.5 = 204，现有 152；AST 枚举全集 241 → ≈362）就报红。
+- **覆盖门**: `/Users/ben/work/STD/scripts/validate-coverage --project-root .` — 三层方案都查：义务维度格未登记、单元层 Case 数低于公式下界（136 受辖符号 × 1.5 = 204，现有 3,360＝粗粒度 152＋分卷 3,208）、或大分量层缺机器可读 Case 索引 `case-index.json`（`draft.128` 起义务，`total` 必须与登记数一致）就报红。
   当前实况（2026-11-04，数字取自各方案 §5.2.1，与门一致）：
 
   | 层 | 义务格 | 已登记格 | 缺口 |

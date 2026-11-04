@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.127",
+  "std_version": "0.1.0-draft.128",
   "source_repository": "corezilla/STD",
-  "source_revision": "b36031dbc2414f993a23f6ba20c6238232274a8d",
+  "source_revision": "1497403c5d8784063d732932814c5bd8650dd113",
   "source_tag": null,
   "generated_at": "2026-11-04",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "65c47d1ac58ff84ed1d4382ecc4c1f4fb62976eb88c87f9532acfdcb8ed003c3"
+      "sha256": "2286ab1ab29597f23da614b5746536252b3d98d6647358f75b25128f650b1437"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "a6894f29938e41258ba27dc90207a831c0f6605b6f7c9f25b1841d3b7ffcfbd0"
+      "sha256": "0892488b5f447bca960eda39182e8da9486415697d6e851f3b55a32d0b097c5c"
     },
     {
       "path": "docs/adoption.md",
@@ -289,7 +289,7 @@
     {
       "path": "docs/authoring-index.md",
       "role": "guidance",
-      "sha256": "36dd9fd70e633c2e520e904d10ff49e421123f14b1405dd88ecd09f8f55e6043"
+      "sha256": "c9a5b3dd4dfd25d3e405f92270480b7d303a30650895f6a027ec5db1828b1a5e"
     },
     {
       "path": "docs/coding-standard.md",
@@ -422,6 +422,11 @@
       "sha256": "964696e545bc267b9f5cbdaed4bce2953667e904f4ef6e9705e2944b1de85906"
     },
     {
+      "path": "docs/examples/unit-case-index-example.json",
+      "role": "guidance",
+      "sha256": "ec829888a6bab5779a1b04dd8fb248920b0ae39188b67361306ecdccf7959caa"
+    },
+    {
       "path": "docs/examples/xfer-native.h",
       "role": "guidance",
       "sha256": "075df921fedb26b3cf3b0a8fe31a2f8b5e24acb4d5eeb06f3a0d18894363c16e"
@@ -499,7 +504,7 @@
     {
       "path": "docs/test-standard.md",
       "role": "guidance",
-      "sha256": "9104779dfc684c2989e62d6ad50faa217baf5ecc3c8364e88b0121c96f64bae0"
+      "sha256": "56d8d9f1564be11ef5a595166f179ca59ed5b87c974d26008133cd3be0574885"
     },
     {
       "path": "docs/upgrade-guide.md",
@@ -509,7 +514,7 @@
     {
       "path": "docs/verification-cycle-guide.md",
       "role": "guidance",
-      "sha256": "de44a57b709ffa89b219511316ba892a5e0ae4d2f425223ca86b7d59421d5c06"
+      "sha256": "3b509df541b043739c09638586663f482800f4273685db723750b6a224a06567"
     },
     {
       "path": "docs/versioning.md",
@@ -604,7 +609,7 @@
     {
       "path": "scripts/validate-coverage",
       "role": "tool",
-      "sha256": "4085d8da99a1c65a0cb340bbe61df750420ac0423e8ee195dcc3fd7ef8e807ef"
+      "sha256": "538828a8e829225ffbd369365fb18a2a4cce6519371f8953e83cf518aef70472"
     },
     {
       "path": "scripts/validate-design",

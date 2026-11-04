@@ -33,7 +33,8 @@ STD `docs/test-standard.md` §4 把 UT 分母写死为「ISD 受辖函数＝实�
    每个 throw 的 typed 错误格、每个状态写/资源操作对应的状态分支与释放格。
    一格一条 Case（STD「一格一 Case」）；Case 的责任摘要写明指向表内哪一行哪个分支。
    派生脚本同时产出**机器可读 Case 索引** `docs/70_verification/unit/case-index.json`
-   （全层逐条一行 + 汇总计数）——计划前检与四方对账按它复算，不手数表格。
+   （全层逐条一行，含四方对账字段 design/script/report/scheme 与汇总计数；STD `test-standard` §5
+   大分量层义务，`validate-coverage` 查 `total` 与登记数一致）——计划前检与四方对账按它复算，不手数表格。
 
 4. **复跑门**：`python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .`
    与 `npm run check:checklist`；门报的缺口与第 2 步登记的差集必须一致，不一致先修文档。
