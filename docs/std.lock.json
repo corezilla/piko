@@ -1,8 +1,8 @@
 {
   "schema_version": "std-lock.v1",
-  "std_version": "0.1.0-draft.125",
+  "std_version": "0.1.0-draft.126",
   "source_repository": "corezilla/STD",
-  "source_revision": "90877ce7891d273676315d51fd1bd52e671d2b62",
+  "source_revision": "207689f504e05483fbc04838637b210789eaa99d",
   "source_tag": null,
   "source_manifest_path": "docs/std-source-manifest.json",
   "adopted_at": "2026-11-04",

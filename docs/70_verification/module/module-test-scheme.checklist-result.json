@@ -1,0 +1,160 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.module-test-review-checklist",
+  "document_id": "module-test-scheme",
+  "document_version": "0.1.0-draft.2",
+  "total": 27,
+  "conformed": 19,
+  "items": [
+    {
+      "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
+      "result": "conformed",
+      "evidence": "方案 v0.1.0-draft.2、计划 v0.1.0-draft.2、用例集 47 份（docs/70_verification/module/cases/）；方案的 §8 联动规则记录了本轮传播路径"
+    },
+    {
+      "id": "§1 被审清单范围完整：方案、计划、用例集全部在册，抽样范围声明",
+      "result": "conformed",
+      "evidence": "docs/70_verification/module/ 下方案、计划、cases/（47 份 .md + 47 份 .metadata.json）、reports/ 全部在册；范围＝模块层全部 47 条 Case，非抽样"
+    },
+    {
+      "id": "§2 分母对齐：design.definition 验证项每条有家族行与 Case 入口或显式 N/A，无孤儿",
+      "result": "deviation",
+      "evidence": "方案 §7.1.5 登记 G-MT-DIM-1：§2.3 各对象类型共 26 个义务维度格，§6.1 只登记 7 格（27%），未登记 19 格，逐格列于 §5.2.1",
+      "deviation_id": "G-MT-DIM-1"
+    },
+    {
+      "id": "§2 边界替身清单逐 fake 写明替身点、注入计数与行为集；注入计数=0 判 INVALID 的规则在方案中",
+      "result": "deviation",
+      "evidence": "方案 §3.1 只登记了替身形态（fake）与契约文档 ID（FAKE-LLM / FAKE-MATRIX / FAKE-SCP），未逐 fake 写明替身点、注入计数与行为集，也未写「注入计数=0 判 INVALID」的规则——该规则在 §4 环境契约（tests.asset-design）中，方案未引用其条款",
+      "deviation_id": "G-MT-SUB-1"
+    },
+    {
+      "id": "§2 灰盒口径声明：模块内部单元真实、替身只出现在模块边界（与 UT 白盒区分）",
+      "result": "conformed",
+      "evidence": "方案 §3.1 决策理由：「模块层验证模块公开行为，边界依赖用真协议 fake；真实通道属系统层」；§2.3.4 的外部依赖失败型明确标注「边界替身」"
+    },
+    {
+      "id": "§2 七家族均已分配或显式排除（含理由）",
+      "result": "conformed",
+      "evidence": "方案 §5.1.1–§5.1.8 八个分类逐条给出适用性与裁剪依据；performance 与 endurance 在 §5.1.7/§5.1.8 记为 Tailored-N/A 并给依据"
+    },
+    {
+      "id": "§2 方案含「对象类型×必测维度展开表」（§2.3）：行覆盖本层对象类型、维度无缺漏、删行均附 tailoring 理由",
+      "result": "conformed",
+      "evidence": "方案 §2.3.1–§2.3.9 共 9 个对象类型，每行有「被测对象」「必测维度（展开规则）」「判定要点」「覆盖 Case / 缺口」四字段；流式/SSE 与热路径基线两行为 Tailored-N/A（展开规则为 —），理由写在「判定要点」行"
+    },
+    {
+      "id": "§2 §6.2–§6.4 分母齐：交互面元素格、功能→入口格、模块内写读格各有记录，100% 有 Case 或缺口，与用例集覆盖格坐标零差集",
+      "result": "conformed",
+      "evidence": "§6.2 登记 5 个端点面（每个有 Case 或 G-MT-DIM-1 缺口）；§6.3 登记 5 项模块功能 × 入口，每项指向 MT-TAPI-001..004 与 MT-OBS-001；§6.4 登记 4 个模块内写读对。跨模块写读按 STD 归 IT，已在 §6.4 末尾声明转出"
+    },
+    {
+      "id": "§2 Case 类型总账（类型×模块矩阵）可机器复算：合计＝登记数＝脚本数；每类型有枚举来源声明；实现率（已实现/待实现）入报告口径",
+      "result": "deviation",
+      "evidence": "合计＝登记数成立（§5.2.1 末列 9+5+12+4+4+5+8＝47，与 §6.1 的 47 条相等）；但「合计＝脚本数」不成立——47 条登记中只有 10 条的 Case ID 出现在 tests/ 与 src/ 的脚本里；每类型有枚举来源声明成立（§5.2.1 的「枚举来源（机器权威）」行）",
+      "deviation_id": "G-EXEC-MT-1"
+    },
+    {
+      "id": "§2 环境/脚本契约分卷（项目建立时）：方案 §3/§4 只引用其 ENV/约束 ID；初态构造仅经公开入口（直写即记问题）；替身边界与环境契约一致",
+      "result": "deviation",
+      "evidence": "方案 §4.1 引用了 ENV-UNIT 与 asset-design §3.1/§3.4 的契约文档 ID，但方案 §3 未登记脚本架构契约（tests.module-test-script-architecture），项目也未建立该分卷；「初态构造仅经公开入口」在方案中没有声明",
+      "deviation_id": "G-MT-ENV-1"
+    },
+    {
+      "id": "§3 被测入口＝模块公开接口，不直接调用私有内部实现替代公开路径",
+      "result": "conformed",
+      "evidence": "方案 §2.3 的被测对象列写的是公开端点与模块公开接口（POST /tasks、GET /diagnostics 等）；47 条 Case 的责任摘要均为「模块 X 的公开接口」，无一条以私有实现为入口"
+    },
+    {
+      "id": "§3 失败含义写明\"组装或公开契约破坏\"，不模糊到单点",
+      "result": "conformed",
+      "evidence": "§2.3 各行「判定要点」均写模块/公开契约层面的含义，如「写入要么全成功要么全回滚；重复写不产生第二份业务事实」「外部失败必须 typed 化并只降级自身，绝不反向控制业务或伪造成功」"
+    },
+    {
+      "id": "§3 并发类只复核组装路径（单点线程对偶已在 UT，声明不重跑）",
+      "result": "deviation",
+      "evidence": "方案 §2.3.7 组装并发型覆盖「并发领取×1 ＋ 租约续期 CAS×1 ＋ epoch 推进后旧 epoch 写入被拒×1」，其中「并发领取」与「租约续期 CAS」是单点逻辑，已由单元层 UT-SCHED-00x/UT-REPO-00x 承担；方案未声明「单点线程对偶已在 UT，本层不重跑」这一分载边界",
+      "deviation_id": "G-MT-SCOPE-1"
+    },
+    {
+      "id": "§3 Oracle 独立：判据来自契约/规格/冻结向量，不引用被测实现",
+      "result": "conformed",
+      "evidence": "用例集每份 Case 的「Oracle 与预期」段写明「以 docs/40_module_design/piko-<模块>-design.md 中对应 VRC 为唯一权威；本段只细化执行断言，冲突回溯设计修订」——判据来自设计文档而非实现"
+    },
+    {
+      "id": "§3 性能类＝模块热路径基线采样＋回归比对口径（对照上一 Run），无系统预算断言",
+      "result": "na",
+      "evidence": "模块设计未声明热路径微基线预算，§2.3.9 与 §5.1.7 均记为 Tailored-N/A，本层无性能类 Case，无预算断言可查"
+    },
+    {
+      "id": "§4 Step 序列表头尾固定（0 资产就位／1 环境搭建与检查／2 读清单／…作者填充／N+1 清理／N+2 生成报告），编号连续",
+      "result": "conformed",
+      "evidence": "docs/70_verification/module/module-test-plan.md 的 Step 表头尾为 Step 0 资产就位、Step 1 环境搭建与检查、Step 2 读清单，中段作者填充，尾段清理与生成报告，编号连续"
+    },
+    {
+      "id": "§4 每个 Step 可定位执行者与观察点；失败处置策略（不阻断/复现要求）与 scheme 一致",
+      "result": "conformed",
+      "evidence": "计划每条 Step 都带执行者与观察点列；失败处置为「不阻断后续但要求可复现」，与方案 §8 的联动规则一致"
+    },
+    {
+      "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
+      "result": "deviation",
+      "evidence": "用例集 47 份 Case 的「脚本 / 实现状态」字段全部写 Implemented，但只有 10 条的 Case ID 出现在脚本中；其余 37 条的脚本列指向的是模块级测试文件（如 tests/unit/store.test.ts），并非该 Case 的专属入口——即占位 Case 被登记为已实现",
+      "deviation_id": "G-EXEC-MT-1"
+    },
+    {
+      "id": "§4 Case 失败不阻断后续但要求可复现的策略与 scheme 一致",
+      "result": "conformed",
+      "evidence": "计划 §Step 的失败处置列写「不阻断后续，需复现」，与方案 §8 联动规则一致"
+    },
+    {
+      "id": "§5 不重复 UT 已断言的单点逻辑（引用 UT Case 入口，不重跑断言）",
+      "result": "deviation",
+      "evidence": "同 §3 并发类条目：§2.3.7 的「并发领取×1 ＋ 租约续期 CAS×1」与单元层 UT-SCHED-00x/UT-REPO-00x 重叠，方案未写明「引用 UT Case 入口、不重跑断言」",
+      "deviation_id": "G-MT-SCOPE-1"
+    },
+    {
+      "id": "§5 不测跨模块协议与子系统流程（排除声明存在，越层项记问题）",
+      "result": "conformed",
+      "evidence": "方案 §6.4 末尾明确「跨模块的写读不在本表……按 STD 归 tests.integration-test-scheme」；§2.3.4 外部依赖失败型的判定要点写「外部失败必须 typed 化并只降级自身，绝不反向控制业务」"
+    },
+    {
+      "id": "§5 全矩阵义务核销：每公开接口的错误类全枚举（合法/缺必填/非法/冲突/越权组合）在 MT 灭尽，未推给 IT/ST",
+      "result": "deviation",
+      "evidence": "§2.3.1 写型端点的义务格是「合法请求×1 ＋ 未知字段/非法值×1 ＋ 重复提交幂等×1 ＋ 目标缺失×1」，缺必填与冲突格未单列；§5.2.1 显示该型只登记 1 格（合法请求），其余 3 格未登记——未在 MT 灭尽",
+      "deviation_id": "G-MT-DIM-1"
+    },
+    {
+      "id": "§5 元素级呈现格全部落本层（MT），未同时登记到 ST；跨模块写读已转 IT（无子系统层转 ST）且本层无残留",
+      "result": "conformed",
+      "evidence": "§6.2 归属声明「元素级呈现矩阵的唯一归属层是本层（MT），不同时登记到 ST；ST 只留冒烟锚/真值锚」；§6.4 的跨模块写读已声明转出，无残留行"
+    },
+    {
+      "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应；撞车守卫（同 ID 多脚本）CI 红；分卷正文与入口索引零差集（分卷结构时）",
+      "result": "deviation",
+      "evidence": "登记↔用例集段面对账成立（47 ↔ 47，零差集）；但登记↔脚本不成立——47 条中只有 10 条 Case ID 出现在脚本里（实测 tests/、src/、scripts/ 全量扫描）；Run 报告条目未逐 Case 对应。撞车守卫与分卷零差集本项目不适用（未建分卷）",
+      "deviation_id": "G-EXEC-MT-1"
+    },
+    {
+      "id": "§6 （逐条登记，见下表）",
+      "result": "deviation",
+      "evidence": "方案 §7.1 登记了 6 条裁决（G-MT-DIM-1 / 逐 Case 文档 / 升级兼容 / 控件面 / 成本护栏 / 性能预算 / 长稳），但本轮 checklist 新发现 4 条未登记的偏差（G-MT-SUB-1、G-EXEC-MT-1、G-MT-ENV-1、G-MT-SCOPE-1）",
+      "deviation_id": "G-MT-SUB-1"
+    },
+    {
+      "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
+      "result": "deviation",
+      "evidence": "本方案尚无 Review Decision 文档（docs/70_verification/module/reports/ 下只有 Run 报告，无 review-decision.json），故 Verdict、未关闭 Critical 计数与放行范围三者尚不存在，无从对账",
+      "deviation_id": "G-MT-DEC-1"
+    },
+    {
+      "id": "§7 放行范围落到家族/Case 粒度，能据此裁剪下轮实施",
+      "result": "deviation",
+      "evidence": "无 Review Decision 文档，放行范围未落到家族/Case 粒度；§5.2.1 的类型分布与 §7.1 的缺口编号可作为裁剪依据，但尚不是一份放行声明",
+      "deviation_id": "G-MT-DEC-1"
+    }
+  ],
+  "executed_at": "2026-11-04T13:40:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}

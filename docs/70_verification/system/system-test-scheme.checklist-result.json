@@ -1,0 +1,179 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.system-test-review-checklist",
+  "document_id": "system-test-scheme",
+  "document_version": "0.1.0-draft.2",
+  "total": 31,
+  "conformed": 22,
+  "items": [
+    {
+      "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
+      "result": "conformed",
+      "evidence": "方案 v0.1.0-draft.2、计划 v0.1.0-draft.2、用例集 21 份（docs/70_verification/system/cases/）"
+    },
+    {
+      "id": "§1 被审清单范围完整：方案、计划、用例集全部在册，抽样范围声明",
+      "result": "conformed",
+      "evidence": "docs/70_verification/system/ 下方案、计划、cases/（21 份 .md + 21 份 .metadata.json）、reports/ 全部在册；范围＝系统层全部 21 条 Case，非抽样"
+    },
+    {
+      "id": "§2 分母对齐：端到端流程、系统对外接口、系统约束预算、机制端到端保证各有家族行；需求承接无孤儿且已附 requirements-review-checklist 评审结论版本",
+      "result": "deviation",
+      "evidence": "E2E/对外接口/机制锚点各有家族行（§2.3.1、§2.3.6）；但系统约束预算（性能）无家族行（§2.3.7 Tailored-N/A），且 §2.3.6 的 9 份机制文档（MECH-RUN/CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL/TRANSFER/TESTEXEC）只有 MECH-RUN 由 ST-EXEC-001 承担，其余 8 份的端到端保证未登记 → §7.1.12 G-ST-DIM-1；requirements-review-checklist 的评审结论版本未附",
+      "deviation_id": "G-ST-DIM-1"
+    },
+    {
+      "id": "§2 七家族齐全，absence/负向红线探测家族有登记：每条负向需求（shall 不/禁止/不得出现）有对应 Case 或显式 N/A",
+      "result": "deviation",
+      "evidence": "§2.3 有 18 个对象类型（含 absence 红线 §2.3.12、准入/队列 §2.3.16、上游依赖失败 §2.3.15），家族齐全；但 §2.3.15 的四格中「认证失败」「超时/限流」「部分失败」未登记，§2.3.16 的「队列满拒绝」「依赖未就绪拒绝」未登记 → G-ST-DIM-1",
+      "deviation_id": "G-ST-DIM-1"
+    },
+    {
+      "id": "§2 环境分层 ENV 实例与契约登记齐（预生产真实环境/独立存储/fake/受控时钟），缺环境标 BLOCKED 不静默跳过",
+      "result": "deviation",
+      "evidence": "方案 §4.1 只登记了一个环境类型 ENV-LOOPBACK（真 Piko 组件＋本机 fake LLMTier＋真 SQLite），引用 asset-design §3.1/§3.4；未登记受控时钟环境类型（时钟在 MT 层有 FAKE-CLK），也未写「缺环境标 BLOCKED 不静默跳过」的降级规则——该规则在 §7.1.5/7.1.6 的 Gap 裁决里但不在 §4 环境契约条款中",
+      "deviation_id": "G-ST-ENV-1"
+    },
+    {
+      "id": "§2 §6.1/§6.2 是系统级索引＋真值/冒烟锚：元素级 Case 指向 MT，§6.1 暴露面全集与 MT/ST Case 对账差集=0",
+      "result": "conformed",
+      "evidence": "§6.1 暴露面清单登记 Piko 的 5 个对外入口（4 项 HTTP operation＋operator 维护面），逐条指向 ST-APP-001..004 与 ST-OPS-001/ST-OBS-001；§6.2 登记对外响应数据项的真值锚并指明「元素级呈现矩阵归 MT」；§2.5 记录本项目无 UI"
+    },
+    {
+      "id": "§2 §6.3/§6.4 分母齐：功能→入口格、跨子系统/系统级写读格各有记录，100% 有 Case 或缺口",
+      "result": "conformed",
+      "evidence": "§6.3 登记 6 个功能入口格（CAP-SUBMIT/STATUS/CANCEL/RESULT/DIAG/PURGE），每格有 Case；§6.4 登记 4 个系统级写读对，每对有 Case；两表均 100% 有 Case 或缺口"
+    },
+    {
+      "id": "§2 规模自检：Case 总量 vs 分母公式格数——明显偏低即分母漏登（Critical），不得以\"bug 少\"解释",
+      "result": "conformed",
+      "evidence": "方案 §5.2.1 记录义务 35 格 / 已登记 18 格（51%），未登记 17 格逐格列出并归入 G-ST-DIM-1；§2.0 记录 21 条 Case 相对 §2.3 的量级并说明差距来源，未以「bug 少」解释"
+    },
+    {
+      "id": "§2 分卷结构（大分量项目建立时）：入口 §2.0 分卷表与各分卷合计可复算零差集；契约分卷（环境/脚本架构/公共资产）落位登记；每 Case 只落一个面分卷",
+      "result": "na",
+      "evidence": "本项目未建立分卷结构——§2.0 记录 Piko 为小分量（21 条 Case，远低于 STD 大分量阈值），不适用"
+    },
+    {
+      "id": "§2 登记状态与实现率：每维度实现率表（分母/已实现/待实现）合计＝登记数；待实现有排期清入计划；「全绿」类结论仅带限定语（禁未限定范围通过率表述）",
+      "result": "deviation",
+      "evidence": "方案 §5.2.1 只记了「义务格/已登记格」，没有「已实现/待实现」的实现率维度；§6.1 的每行也只带「设计状态」，未带 STD §6 要求的二值登记状态（已实现/待实现）",
+      "deviation_id": "G-ST-IMPL-1"
+    },
+    {
+      "id": "§2 环境契约（项目建立时）：逐环境类就绪判据可机器执行（含最小真实冒烟，列表可见≠可用）；类独立判定（A 挂不连 B 算挂）；降级走 BLOCKED/SKIP 不静默换环境；复位/写后恢复义务登记",
+      "result": "deviation",
+      "evidence": "方案 §4.1 引用 asset-design 的契约文档 ID，但本层未逐环境类登记「就绪判据可机器执行」「类独立判定」「复位/写后恢复义务」三项——这三项在 §4.1 中没有条款",
+      "deviation_id": "G-ST-ENV-1"
+    },
+    {
+      "id": "§3 每 Case 黑盒边界三清单（布景入口／观察点／未用内部状态自查）填写完整，布景只走公开入口",
+      "result": "conformed",
+      "evidence": "方案 §2.3.1 的判定要点写「黑盒三清单齐（布景只走公开入口／观察点只用公开查询／未用内部状态自查）」；21 份用例文档每份的「步骤与观察点」段都走公开 HTTP 入口"
+    },
+    {
+      "id": "§3 断言只取外部可观察事实（协议响应/流帧/公开查询/权威存储），无进程内断言",
+      "result": "conformed",
+      "evidence": "§6.2.1 记「全部自动断言（JSON 字段级）」，断言对象是 HTTP 响应体与权威存储；用例文档的 Oracle 段以设计 VRC 为唯一权威，不引用被测实现的内部状态"
+    },
+    {
+      "id": "§3 Oracle 分层引用正确（L1 协议结构／L2 统计／L3 语义），预算数字来自设计预算而非被测系统自证",
+      "result": "conformed",
+      "evidence": "本层无性能/统计预算 Case（§2.3.7 性能预算 Tailored-N/A，§5.1.7 同），L2 统计类断言不适用；L1 协议结构断言全部来自 contract §1/§3 的字段与状态码"
+    },
+    {
+      "id": "§3 非功能类槽齐：负载模型（追溯预算依据）、时序控制（固定种子/受控时钟）、正确性与预算判据分列、测量隔离",
+      "result": "na",
+      "evidence": "本层无性能/负载类 Case（性能预算与 endurance 均 Tailored-N/A，见 §7.1.3/§7.1.4），负载模型与预算判据槽不适用"
+    },
+    {
+      "id": "§3 难触发场景布景＝真实依赖或模拟器/数据构造资产（asset-design 引用），非内部插桩",
+      "result": "conformed",
+      "evidence": "§3.1 替身登记 LLMTier 为 fake 并引用 asset-design 契约 `FAKE-LLM`；§4.1 环境类型引用 asset-design §3.1/§3.4 的契约文档 ID，未使用内部插桩"
+    },
+    {
+      "id": "§3 维度表闭合：方案 §2.3 每类型全格有 Case 或缺口；抽查 Case 均填「维度坐标」且可回指表行——坐标空缺 = Critical",
+      "result": "conformed",
+      "evidence": "§2.3 的 18 个类型逐行有「覆盖 Case / 缺口」字段；§6.1 的 21 条登记行**每条都填了「维度坐标（§2.3 行×格）」**（对象类型＋维度格名），可回指 §2.3 表行；抽样 ST-APP-001/ST-DATA-003/ST-OBS-001 三条，坐标均与 §2.3 的展开规则格名一致"
+    },
+    {
+      "id": "§3 四方 1:1 对账：方案/分卷登记 Case ID ↔ Case 文档 ↔ 脚本 ↔ Run 报告条目一一互对应；撞车守卫在 CI；公共过程引用可命中资产分卷登记（内复制正文即记问题）",
+      "result": "deviation",
+      "evidence": "登记↔Case 文档对账成立（21 ↔ 21，零差集）；但登记↔脚本不成立——21 条中只有 **7 条**的 Case ID 出现在 tests/ 与 src/ 的脚本中（实测全量扫描），其余 14 条的「脚本」列指向共享测试文件而非该 Case 的专属入口",
+      "deviation_id": "G-EXEC-ST-1"
+    },
+    {
+      "id": "§4 Step 序列表头尾固定（0 资产就位／1 环境搭建与检查／2 读清单／…作者填充／N+1 清理／N+2 生成报告），编号连续",
+      "result": "conformed",
+      "evidence": "docs/70_verification/system/system-test-plan.md 的 Step 编号 0–7 连续，表头尾为资产就位／环境搭建与检查／读清单与生成报告"
+    },
+    {
+      "id": "§4 每个 Step 可定位执行者与观察点；失败处置策略（不阻断/复现要求）与 scheme 一致",
+      "result": "conformed",
+      "evidence": "计划每条 Step 带执行者与观察点列，失败处置为「不阻断后续但要求可复现」，与方案 §8 的联动规则一致"
+    },
+    {
+      "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
+      "result": "deviation",
+      "evidence": "21 份用例文档的「实现状态」字段全部写 `Implemented`，但只有 7 条的 Case ID 出现在脚本里——其余 14 条的脚本列指向共享测试文件，占位 Case 被登记为已实现",
+      "deviation_id": "G-EXEC-ST-1"
+    },
+    {
+      "id": "§4 真实系统对接前检记录齐（环境契约、凭证、回退方案、计费确认）",
+      "result": "deviation",
+      "evidence": "§7.1.5 与 §7.1.6 把 ST-LLM-002（真模型）与 ST-MX-001（Matrix）记为 Gap，理由正是「无可自动化入口」「需本地 Synapse 与房间准备脚本」——即真实系统对接的前检尚未齐；凭证与回退方案无记录",
+      "deviation_id": "G-ST-DIM-1"
+    },
+    {
+      "id": "§4 成本预算口径登记（计费类系统给上限与止损规则），测量值落 report §3.1 的判定链存在",
+      "result": "na",
+      "evidence": "Piko 无外部计费系统（contract §3 无 Cost），§7.1.2 记 Tailored-N/A，不适用"
+    },
+    {
+      "id": "§5 不重复下层已验断言，只做端到端口径（下层→ST 不重跑声明与承接入口齐）",
+      "result": "conformed",
+      "evidence": "§6.2 写明「完整「数据项×行类别×呈现变体」呈现矩阵归 MT」，本层只记跨观察点真值锚；§6.4 写明跨模块写读按 STD 归 IT、本层只登记系统级写读对"
+    },
+    {
+      "id": "§5 ST 不单列元素 Case；模块内/子系统内写读未上浮本层（错层记问题）",
+      "result": "conformed",
+      "evidence": "§6.2 明确元素级呈现格归 MT、本层只记真值子集；§6.4 的 4 个写读对全部标注「跨子系统/系统级（本层）」，跨模块的写读声明转 IT"
+    },
+    {
+      "id": "§5 性能预算判定权威在本层（下层只有基线回归，无系统预算判定泄漏到下层）",
+      "result": "conformed",
+      "evidence": "本层无性能预算格（§2.3.7 Tailored-N/A）；模块层 §2.3.9 热路径基线也是 optional 无预算口径，无预算判定泄漏"
+    },
+    {
+      "id": "§5 与子系统层交接清晰：跨子系统业务在本层、单子系统内部流程不在本层重跑",
+      "result": "conformed",
+      "evidence": "Piko 无 subsystem（system-design §4：0 个 subsystem），§6.4 开头写明「Piko 无 subsystem，系统直接含 11 个模块」，跨模块写读归 IT、本层只做系统级"
+    },
+    {
+      "id": "§5 层级错位扫描：ST 清单中不得出现参数非法/缺失/类型类 Case（应已在 UT/MT 全灭）；出现即记问题并查下层对应格是否缺失",
+      "result": "conformed",
+      "evidence": "逐条核对 21 条登记行：3 条 `negative` 分类分别是 ST-APP-005（同 task_id 幂等/TaskConflict/tombstone）、ST-APP-006（tombstone 永不复用）、ST-DATA-002（上游拉取失败 → 零调用 Failed），均为**系统级负向**，非参数类非法/缺失/类型断言；参数类断言未在本层出现"
+    },
+    {
+      "id": "§6 （逐条登记，见下表）",
+      "result": "deviation",
+      "evidence": "方案 §7.1 登记了 9 条裁决，但本轮 checklist 新发现 3 条未登记的偏差（G-ST-ENV-1、G-ST-IMPL-1、G-EXEC-ST-1）",
+      "deviation_id": "G-ST-ENV-1"
+    },
+    {
+      "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
+      "result": "deviation",
+      "evidence": "本方案尚无 Review Decision 文档（docs/70_verification/system/reports/ 下只有 Run 报告，无 review-decision.json），三者尚不存在，无从对账",
+      "deviation_id": "G-ST-DEC-1"
+    },
+    {
+      "id": "§7 放行范围落到家族/Case 粒度，能据此裁剪下轮实施",
+      "result": "deviation",
+      "evidence": "无 Review Decision 文档，放行范围未落到家族/Case 粒度；§5.2.1 的类型分布与 §7.1.12 的缺口编号可作为裁剪依据，但尚不是一份放行声明",
+      "deviation_id": "G-ST-DEC-1"
+    }
+  ],
+  "executed_at": "2026-11-04T13:45:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}

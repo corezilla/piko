@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `module-test-plan` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.module-test-plan` |
 | Template Version | `0.11.0` |
 | Template Conformance | `tailored` |
@@ -68,7 +68,7 @@
 
 #### 1.1 构成项 · 模块方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`module-test-scheme` v0.1.0-draft.1（`docs/70_verification/module/module-test-scheme.md`）；§1.1 登记 11 个模块 ＋ 共享 IPC 的公开面，§6 登记 **47 条 `MT-<模块>-NNN` Case**（模块公开面 × STD §2.3 对象类型，只取实际适用类型）；环境类型 `ENV-UNIT`（方案 §4.1）。
+**文档 / 入口（Document ID 或缺口）**：`module-test-scheme` v0.1.0-draft.2（`docs/70_verification/module/module-test-scheme.md`）；§1.1 登记 11 个模块 ＋ 共享 IPC 的公开面，§6 登记 **47 条 `MT-<模块>-NNN` Case**（模块公开面 × STD §2.3 对象类型，只取实际适用类型）；环境类型 `ENV-UNIT`（方案 §4.1）。
 
 **覆盖责任摘要**：模块层以**模块公开接口**为被测对象，按 STD 规定的 9 类接口类型（写型端点/读型端点/流式SSE/外部依赖失败/准入队列/配置热变更/组装并发/资源清理/热路径基线）展开；不适用的类型按 §7 裁决为 N/A，不凑数。模块分布：BOOT 3、IPC 4、MATRIX 5、OBS 5、PI 3、POLICY 3、REPO 6、SCHED 3、TAPI 4、TRANSFER 5、USAGE 2、WORKER 4。
 
@@ -323,7 +323,7 @@
 
 **动作**：读取方案清单并按优先级排序
 
-**输入 / 依据**：`module-test-scheme` v0.1.0-draft.1 §6（11 条 `MT-*-001`，含分类、优先级与设计状态）与 §2.1 家族判定规则
+**输入 / 依据**：`module-test-scheme` v0.1.0-draft.2 §6（11 条 `MT-*-001`，含分类、优先级与设计状态）与 §2.1 家族判定规则
 
 **产出**：执行队列＝按模块依赖顺序（M000 bootstrap → M001 task-api → M002 policy → M003 repository → M004/M005 → M006/M007 → M008/M009/M010）排序的条目，每条＝`MT-*-001` ＋ 可执行入口（文件＋vitest 选择器）＋ ENV 实例编号 ＋ 对应 VRC 区间；`Gap` 状态的 Case 进队列但预置为 `BLOCKED` 占位，不删除。
 

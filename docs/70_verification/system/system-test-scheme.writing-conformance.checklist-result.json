@@ -1,0 +1,124 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.writing-conformance-checklist",
+  "document_id": "system-test-scheme",
+  "document_version": "0.1.0-draft.2",
+  "total": 22,
+  "conformed": 20,
+  "items": [
+    {
+      "id": "§1 被审文件、commit 与渲染目标登记完整",
+      "result": "conformed",
+      "evidence": "被审文件＝docs/70_verification/system/system-test-scheme.md v0.1.0-draft.2；渲染目标＝Markdown（GitHub 风格）；commit 见 sidecar reviewed_commit"
+    },
+    {
+      "id": "§1 机械扫描已运行（见 §2），结果文件在案",
+      "result": "conformed",
+      "evidence": "STD scripts/validate-writing-format --mode document 对本文件与 system-test-plan.md 全量运行：2 file(s), 0 error(s)"
+    },
+    {
+      "id": "§2 validate-writing-format --mode template（模板）或 --mode document（项目文档）全量运行且 0 error",
+      "result": "conformed",
+      "evidence": "同上，0 error"
+    },
+    {
+      "id": "§2 C9 宽表警告逐条裁决：登记矩阵/状态矩阵可保留，其余转固定格式段落",
+      "result": "conformed",
+      "evidence": "全文表格列数实测：超 6 列者 0 张；§5.2.1 维度矩阵（6 列）、§6.2 端点表（5 列）、§6.5 补登记表（3 列）均在阈值内，且均为登记矩阵，按规则保留"
+    },
+    {
+      "id": "§2 新发现的排版陷阱回流扫描器（新增错误码），不依赖个人记性",
+      "result": "na",
+      "evidence": "本轮未发现新的排版陷阱；扫描器 C1–C13 未新增错误码"
+    },
+    {
+      "id": "§3 一级章号连续、无缺号重号；### 小节编号与所在章一致",
+      "result": "conformed",
+      "evidence": "H2 章号 1–8 连续；§2.0–2.5、§3–§8 各小节编号与所在章一致，无指向不存在章的引用"
+    },
+    {
+      "id": "§3 记录标题带 X.Y(.Z) 且节内从 1 连续（骨架与灰示例共用序列）",
+      "result": "conformed",
+      "evidence": "§2.0–2.5、§3.1、§4.1、§5.1.1–5.1.8、§5.2.1、§6.1、§6.2.1、§6.3.1–6.3.6、§6.4.1–6.4.4、§6.5.1–6.5.3、§7.1.1–7.1.17、附录 A.1 各节记录编号从 1 连续。§6.1 的 22 条记录共享 `6.1` 序列（`#### 6.1.N Case · <ID>`），按 STD 格式规范 §3「动态登记以自身 ID 为唯一锚，编号只是陈列序」不再逐条递增"
+    },
+    {
+      "id": "§3 叙述标题≤2级、记录型用三级——层级语义与 design-writing-guide §3 一致",
+      "result": "conformed",
+      "evidence": "章用 ##、叙述小节用 ###、记录用 ####，无四级标题；§6.1 暴露面、§6.3 功能入口、§6.4 写读对、§6.5 补登记等登记型内容未用表格行堆叠"
+    },
+    {
+      "id": "§3 交叉引用（§x.y）指向的节真实存在且编号一致（本层迁移后曾出现 §2.1→§2.3 类失配）",
+      "result": "conformed",
+      "evidence": "全文 §x.y 引用逐条核对：§2.3、§5.2、§6.1–§6.5、§7.1 均存在且编号一致；§7.1.9/§7.1.10/§7.1.11 的引用与 §2.3.14/§2.3.17/§2.3.18 的 Tailored-N/A 行一一对应"
+    },
+    {
+      "id": "§4 标题后空行接正文、一级标题前后空两行（design-writing-guide §3）",
+      "result": "conformed",
+      "evidence": "扫描器 C3 报 0 error"
+    },
+    {
+      "id": "§4 span 行与其后的表格/标题行之间有空行（抽查三处渲染）",
+      "result": "conformed",
+      "evidence": "抽查 §5.2.1 表格前、§6.3.1 记录前、§6.5.1 记录前共三处，编写建议块与其后的表格/标题之间均有空行"
+    },
+    {
+      "id": "§4 灰示例标题为字面文本或加粗，无失效块语法",
+      "result": "conformed",
+      "evidence": "全文无残留 ```example 围栏（§1 格式说明行中的 ```example 为字面文本，非围栏）；无失效块语法"
+    },
+    {
+      "id": "§4 长表格不存在（超 6 列即问：是否应为记录）",
+      "result": "conformed",
+      "evidence": "实测超 6 列的表格行 0 处"
+    },
+    {
+      "id": "§5 每个可填节有针对本节的编写建议（`\"如实登记\"` 类空洞口号建议按缺陷记，见 C12）",
+      "result": "conformed",
+      "evidence": "§2.0–§2.5、§3、§4、§5.1–§5.2、§6–§8、附录 A 各节均保留模板的编写建议块；项目自撰内容未替换建议块"
+    },
+    {
+      "id": "§5 示例全部标注（虚构）且与本文档教学体系一致（不串层：unit 示例不出现在 MT 文档）",
+      "result": "conformed",
+      "evidence": "模板的灰示例已在实例化时整块剥离，无残留；正文引用的设计来源均为 piko 真实文件（docs/20_system_design/piko-system-design.md、interfaces/error-codes/error-blocker-catalog-v0.3.json）"
+    },
+    {
+      "id": "§5 无 `<!-- 交付自查/TODO -->` 注释占位（模板正文）；交付自查以蓝色建议行呈现",
+      "result": "conformed",
+      "evidence": "全文无 `<!-- TODO -->` 与 `<!-- 交付自查 -->` 注释；§6/§7/§8/附录 A 的「交付自查」以引用块建议行呈现"
+    },
+    {
+      "id": "§5 生成实例实测：剥离后无灰残留、无 `</span></span>` 类残片",
+      "result": "conformed",
+      "evidence": "扫描器 C7（span 吞块级语法）报 0 error；文档内 </span> 出现 0 次"
+    },
+    {
+      "id": "§6 登记表/状态矩阵保留表格形态且列头自解释；其余表格已转记录",
+      "result": "conformed",
+      "evidence": "§5.2.1 维度矩阵、§2.4 影响面表、§2.5 UI 模式表均为登记矩阵且列头自解释；§6.3/§6.4/§6.5/§7.1 的登记内容用 #### 记录块"
+    },
+    {
+      "id": "§6 记录段落字段名加粗、字段间空行、记录组间空行（可一眼分组）",
+      "result": "conformed",
+      "evidence": "§6.1 的 21 条 Case 记录每条六个加粗字段行（含新增的「维度坐标」），字段间空行，记录组间双空行"
+    },
+    {
+      "id": "§6 每张图后有文字说明与来源/Current 标注（design-writing-guide §4）",
+      "result": "na",
+      "evidence": "本方案无插图；环境拓扑图在 docs/70_verification/diagrams/tests/system-env-topology.svg，由 plans/assets 侧引用"
+    },
+    {
+      "id": "§7 （逐条以记录块登记，见下）",
+      "result": "conformed",
+      "evidence": "§7.1 逐条登记 17 条裁决记录（7.1.1–7.1.17），每条含「裁决」「依据」「Owner / 恢复条件」三字段，无「建议完善」式空话"
+    },
+    {
+      "id": "§8 Review Verdict：",
+      "result": "deviation",
+      "evidence": "本方案未产出 Review Decision 文档（docs/70_verification/system/reports/ 下只有 Run 报告，无 review-decision.json），故无 Review Verdict 字段值——该缺口已登记为 §7.1.17 的 G-ST-DEC-1",
+      "deviation_id": "G-ST-DEC-1"
+    }
+  ],
+  "executed_at": "2026-11-04T13:55:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}

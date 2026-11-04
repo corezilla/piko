@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `module-test-scheme` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.module-test-scheme` |
 | Template Version | `0.8.11` |
 | Template Conformance | `tailored` |
@@ -23,10 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/module/module-test-scheme.md` |
 | Supersedes | none |
-| Std Conformance Total | 0 |
-| Std Conformance Passed | 0 |
-| Checklist Total | 0 |
-| Checklist Conformed | 0 |
+| Std Conformance Total | 14 |
+| Std Conformance Passed | 12 |
+| Checklist Total | 49 |
+| Checklist Conformed | 38 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板**绑定单个模块**（模块对象 ID：⟨绑定后填写⟩）——模块层方案与用例集均一模块一份，多模块项目逐模块实例化到 `docs/70_verification/module/ 下 `⟨模块短名⟩-module-test-scheme.md``，对应模块用例集（tests.module-case）引用本方案。模块测试方案，与 design.definition（模块设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.module-case）。
@@ -354,11 +354,86 @@
 >
 > **完成条件**：分类体系可裁剪可追溯，每个适用分类在 §6 清单中至少有 Case 或缺口。
 
-#### 5.1 分类 · normal / boundary / negative / concurrency / recovery / security / performance / endurance
+#### 5.1.1 分类 · normal
 
 **本阶段适用性**：适用
 
-**裁剪依据**：normal/boundary/negative/concurrency/recovery/security 有对应 Case（见 §6）；performance/endurance 走 §7 Tailored-N/A
+**裁剪依据**：§2.1.1 的 `module-contract` 家族方法；§6.1 的「写型端点/命令 × 合法请求」「读型端点 × 存在」两格承担主路径
+
+#### 5.1.2 分类 · boundary
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.1 边界值选型；§6.1 的「准入/队列 × 容量 N−1」与「外部依赖失败 × 不可达」是本层的边界格
+
+#### 5.1.3 分类 · negative
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.2 反例驱动；§6.1 的「配置热变更 × 变更生效」含非法值拒绝分支
+
+#### 5.1.4 分类 · concurrency
+
+**本阶段适用性**：适用（仅顺序交错）
+
+**裁剪依据**：§2.2.3 顺序交错；§6.1 的「组装并发 × 并发对偶」一格。真实多进程竞争归系统层（`ST-*`）
+
+#### 5.1.5 分类 · recovery
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.4 资源归还；§6.1 的「资源清理 × 正常释放」一格
+
+#### 5.1.6 分类 · security
+
+**本阶段适用性**：适用（冒烟级）
+
+**裁剪依据**：§2.2.6 路径逃逸/凭据/脱敏冒烟；完整鉴权面由模块层用例集与契约层承接（§7 裁决）
+
+#### 5.1.7 分类 · performance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：§2.3.9「热路径基线」记为 optional，模块设计未声明微基线预算，无阈值可比对；性能预算归系统层 `ST-*`（裁决见 §7.1）
+
+#### 5.1.8 分类 · endurance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：长稳验证需连续运行时长与真实资源压测，属系统层范围；模块层按设计边界不涉及（裁决见 §7.1）
+
+### 5.2 覆盖维度词表登记（大分量登记适用）
+
+> **本节目的**：把本层实际 Case 类型词表（§2.3 对象类型 × 必测维度格）登记一处，供类型×模块矩阵与实现率统计。
+>
+> **完成条件**：Σ 各维度分母＝登记 Case 数；每维度可复算自 §2.3 的展开规则。
+
+#### 5.2.1 维度 · 对象类型 × 维度格
+
+**枚举来源（机器权威）**：§2.3 各对象类型的「必测维度（展开规则）」行——展开规则是义务格的权威定义。
+
+**本轮分母**：下表「义务格」＝§2.3 展开规则要求的格数；「已登记格」＝§6.1 实际登记该格的 Case 数。**一行 Case 只登记一格**（STD §6「一格一 Case」）。
+
+| 对象类型 | 义务格 | 已登记格 | 已登记的格 | 未登记的格 | §6.1 Case 数 |
+|---|---|---|---|---|---|
+| 写型端点/命令 | 4 | 1 | 合法请求 | 未知字段/非法值、重复提交幂等、目标缺失 | 9 |
+| 读型端点 | 4 | 1 | 存在 | 不存在、终态/非终态、鉴权缺失 | 5 |
+| 外部依赖失败（边界替身） | 4 | 1 | 不可达 | 认证失败、限流/超时、部分失败 | 12 |
+| 准入/队列 | 5 | 1 | 容量 N−1 | 容量 N、容量 N+1、并发领取唯一性、退避 | 4 |
+| 配置热变更 | 3 | 1 | 变更生效 | 变更后旧状态不被破坏、非法值显式拒绝 | 4 |
+| 组装并发 | 3 | 1 | 并发对偶 | 租约续期 CAS、陈旧 epoch 被 fence | 5 |
+| 资源清理 | 3 | 1 | 正常释放 | 异常中途释放、重复清理幂等 | 8 |
+| 流式/SSE | 0 | 0 | — | — | 0（§5.1 裁剪） |
+| 热路径基线 | 0 | 0 | — | — | 0（§5.1 裁剪） |
+| **合计** | **26** | **7** | — | **19** | **47** |
+
+**维度覆盖实况**：义务 26 格，已登记 7 格（**27%**）。未登记的 19 格按 STD §6「未实现与 NOT_RUN 不删」登记为待排期缺口，汇总为 `G-MT-DIM-1`（Owner＝测试工程，最晚 Gate＝模块层 Gate）。
+
+**与 §6.1 的一致性**：§6.1 登记 47 条 Case，按类型分布为「外部依赖失败 12 / 写型端点 9 / 资源清理 8 / 组装并发 5 / 读型端点 5 / 配置热变更 4 / 准入队列 4」＝47，与上表「§6.1 Case 数」列逐行相等。
+
+**「已登记格 7」的读法**：每条 Case 在 §6.1 的责任摘要里**只登记一格**（该类型的首个维度格），
+其余格名是该类型的义务清单，供对照用。因此 47 条 Case 覆盖 7 格，不是 47 格——按 STD「一格一 Case」，
+补齐 19 格需要**新增 19 条 Case**，不是改写现有行。
 
 
 ## 6. 覆盖分母与 Case 清单
@@ -937,6 +1012,68 @@
 **上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-WORKER-004.md`
 
 
+### 6.2 交互面与参数分母（元素级）
+
+> **本节目的**：把控件/展示项/命令/端点做成可数分母。
+>
+> **必须写清楚**：从设计侧清单机器枚举，逐格登记并指向 §6.1 清单的 Case ID 或具名缺口。
+
+Piko **无 UI 控件面**（§7.1 已裁剪 `Tailored-N/A —— Piko 无 UI 控件面`），但**有对外端点面**。端点清单取自
+`piko-task-api-design.md` §3「UI、CLI、服务端点或设备操作面」与 §9.1 的接口合同，逐条枚举：
+
+| 端点（设计侧来源） | 所属模块 | 参数必测类 | §6.1 Case | 状态 |
+|---|---|---|---|---|
+| `POST /tasks` | M001 `task-api` | `task_id`、`instruction`、`workspace_ref`、`permissions`、`output_paths`（`input_refs`/`artifact_target`/`discussion` 可选） | `MT-TAPI-001`（合法请求） | 已登记 1 格；非法请求/缺字段未登记 → `G-MT-DIM-1` |
+| `GET /tasks/:task_id` | M001 `task-api` | `task_id` | `MT-TAPI-002`（存在） | 已登记 1 格；不存在/越权读未登记 → `G-MT-DIM-1` |
+| `POST /tasks/:task_id:cancel` | M001 `task-api` | `task_id` | `MT-TAPI-003` | 已登记 |
+| `GET /tasks/:task_id/result` | M001 `task-api` | `task_id` | `MT-TAPI-004` | 已登记 |
+| `GET /diagnostics`（operator 面，鉴权只读） | M009 `observability` | 无（凭据在 header） | `MT-OBS-001` | 已登记 |
+
+**归属**：元素级呈现矩阵的唯一归属层是本层（MT），不同时登记到 ST；ST 只留冒烟锚/真值锚。
+
+### 6.3 功能→入口分母（模块功能）
+
+> **本节目的**：任何模块功能只要对外暴露入口，其功能 Case 必须把全部实际入口走一遍。
+>
+> **必须写清楚**：从设计侧功能→入口映射枚举，逐功能登记「功能 × 实际入口」，每格指向 Case ID 或缺口。
+
+Piko 的模块功能对外只暴露**一项入口面：HTTP 四项 operation**（`system-design` §5.1）＋ 一项 operator
+诊断面。逐功能登记：
+
+| 模块功能 | 实际入口 | §6.1 Case | 状态 |
+|---|---|---|---|
+| 提交任务 | `POST /tasks` | `MT-TAPI-001` | 已登记 |
+| 查询任务状态 | `GET /tasks/:task_id` | `MT-TAPI-002` | 已登记 |
+| 取消任务 | `POST /tasks/:task_id:cancel` | `MT-TAPI-003` | 已登记 |
+| 取回结果 | `GET /tasks/:task_id/result` | `MT-TAPI-004` | 已登记 |
+| 运维诊断 | `GET /diagnostics` | `MT-OBS-001` | 已登记 |
+
+**无一功能只测一个入口而被漏掉**：本项目每个对外功能**只有一个** HTTP 入口（Piko 无 CLI、无 UI、
+无第二个 protocol 入口），因此「全部实际入口」＝单项，一一对应即闭合。若日后 Piko 增加第二个
+入口（如 CLI），本表必须补行。
+
+**只测内部实现即缺格**：11 个模块中只有 M001/M009 对外暴露入口，其余 9 个模块的功能通过 M001/M003
+的内部端口被消费——它们的功能 Case 在本层的模块内部行为（`MT-<模块>-00N`）里断言，不在本表重复登记。
+
+### 6.4 写读一致性分母（模块内）
+
+> **本节目的**：把「不跨模块边界的 A 写→B 读」做成可数分母——跨模块的写读不在本层。
+>
+> **必须写清楚**：从 design 状态写读传播登记枚举本模块内「写入口 × 读回入口」，每对指向 Case ID 或缺口。
+
+模块内的写读对（同模块内的两个入口，同一次运行内读回一致）：
+
+| 写入口 | 读回入口 | §6.1 Case | 状态 |
+|---|---|---|---|
+| `POST /tasks`（写 `runs` 行） | `GET /tasks/:task_id` | `MT-TAPI-001` / `MT-TAPI-002` | 已登记 |
+| `POST /tasks`（写 `runs` 行） | `GET /tasks/:task_id/result` | `MT-TAPI-001` / `MT-TAPI-004` | 已登记 |
+| `POST /tasks/:task_id:cancel`（写 `cancel_requested`） | `GET /tasks/:task_id` | `MT-TAPI-003` / `MT-TAPI-002` | 已登记 |
+| `POST /tasks`（写 `results` 行，经 M003） | `GET /tasks/:task_id/result` | `MT-REPO-00N` / `MT-TAPI-004` | 已登记 |
+
+**跨模块的写读不在本表**：M001→M003 的 `runs`/`results` 落库一致性、transfer 的产出投递→结果回收
+属跨模块，按 STD 归 `tests.integration-test-scheme`（本项目无 subsystem 层，转系统层 `ST-*`）。
+
+
 ## 7. 不适用与缺口裁决
 
 > **本节目的**：区分“不适用”与“尚未设计”。
@@ -984,6 +1121,56 @@
 **裁决（Tailored-N/A 或 Gap）**：Gap —— 存量 schema 升级路径未定案
 
 **Owner / 恢复条件**：Owner M003
+
+#### 7.1.7 裁决 · 维度格未登记（`G-MT-DIM-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **26 个义务维度格**，§6.1 实际只登记 **7 格**（覆盖率 27%），未登记 **19 格**（逐格列于 §5.2.1）。Owner＝测试工程；恢复条件＝按 §6「一格一 Case」逐格补登记（补 19 条即维度覆盖达 100%），并同步 §5.2 的分母
+
+#### 7.1.8 裁决 · 元素级呈现矩阵归属
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 无 UI 控件与展示项
+
+**依据 · Owner · 恢复条件**：Piko 是无界面的服务进程（HTTP＋scp 两面），模块设计未声明任何控件/数据项清单，元素级呈现矩阵不适用。Owner＝—；若日后引入 UI 需先改设计并补 §6.2 登记
+
+#### 7.1.9 裁决 · 逐 Case 文档（已关闭）
+
+**裁决（Tailored-N/A 或 Gap）**：已关闭
+
+**依据 · Owner · 恢复条件**：47 份 `tests.module-case` 文档齐备（`docs/70_verification/module/cases/`），与 §6.1 的 47 条登记行一一对应
+
+
+#### 7.1.10 裁决 · 边界替身清单粒度不足（`G-MT-SUB-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§3.1 只登记了替身形态（`fake`）与契约文档 ID（`FAKE-LLM` / `FAKE-MATRIX` / `FAKE-SCP`），未逐 fake 写明**替身点、注入计数与行为集**，也未写「注入计数=0 判 INVALID」的规则——该规则在 `tests.asset-design` 的环境契约里，方案未引用其条款。Owner＝测试工程；恢复条件＝按 STD `review.module-test-review-checklist` §2 逐 fake 补三字段并引用资产契约的 INVALID 条款
+
+#### 7.1.11 裁决 · 脚本与登记未四方对账（`G-EXEC-MT-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§6.1 登记 47 条 Case、用例集 47 份文档齐备，但只有 **10 条**的 Case ID 出现在 `tests/` / `src/` / `scripts/` 的脚本中（实测全量扫描）——其余 37 条的「脚本 / 实现状态」列指向模块级测试文件而非该 Case 的专属入口，即**占位 Case 被登记为 `Implemented`**。Owner＝测试工程；恢复条件＝为每条 Case 建立可定位到 Case ID 的脚本入口（或把该 Case 的登记状态改为 `待实现`），并使「登记数＝脚本数」成立
+
+#### 7.1.12 裁决 · 环境/脚本契约分卷未建立（`G-MT-ENV-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§4.1 引用了 `ENV-UNIT` 与 `asset-design` 的契约文档 ID，但项目未建立 `tests.module-test-environment` 与 `tests.module-test-script-architecture` 两份分卷契约；方案 §3/§4 亦未声明「初态构造仅经公开入口」。Owner＝测试工程；恢复条件＝按 STD 的分卷结构建立两份契约文档并在方案中只引用其 ID
+
+#### 7.1.13 裁决 · 与单元层的分载边界未声明（`G-MT-SCOPE-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§2.3.7 组装并发型的「并发领取×1 ＋ 租约续期 CAS×1」是**单点逻辑**，已由单元层 `UT-SCHED-00x` / `UT-REPO-00x` 承担；方案未写明「单点线程对偶已在 UT，本层只复核组装路径、不重跑断言」，因此越层重复未在方案侧被排除。Owner＝测试工程；恢复条件＝在 §2.3.7 与 §3 中声明该分载边界并引用 UT Case 入口
+
+
+#### 7.1.14 裁决 · 评审决定未产出（`G-MT-DEC-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：本方案尚无 `tests.module-test-review` 的 Review Decision 文档，Verdict、未关闭 Critical 计数与放行范围三者尚不存在，放行范围也未落到家族/Case 粒度。Owner＝测试工程；恢复条件＝按 STD `review.module-test-review-checklist` §6–§7 产出 Issue Log 与 Review Decision，放行范围落到家族/Case 粒度
 
 
 ## 8. 文档联动与清单变更规则

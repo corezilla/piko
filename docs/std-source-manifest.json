@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.125",
+  "std_version": "0.1.0-draft.126",
   "source_repository": "corezilla/STD",
-  "source_revision": "90877ce7891d273676315d51fd1bd52e671d2b62",
+  "source_revision": "207689f504e05483fbc04838637b210789eaa99d",
   "source_tag": null,
   "generated_at": "2026-11-04",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "3f3ce87157b5f954e4bae0ced49c7e66a2a5a6c0f5d545ce0a50781bd4117d74"
+      "sha256": "cee75cb89d607a1e5c803ffb46a45982f571343bbcb3c33254dcc3d8acfb565e"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "7afb531ce553acaf6976ac988b3021f48f6d4c3a5c4fc7ba32786b58bd0cc5f4"
+      "sha256": "64a9232594790562134a61bc5dcf515eea3026c28de28d9d0b5eb4f8a2ed4463"
     },
     {
       "path": "docs/adoption.md",
@@ -499,7 +499,7 @@
     {
       "path": "docs/test-standard.md",
       "role": "guidance",
-      "sha256": "8406909ef09885f763bac20d1f7b7da546e33cc8bc8dc770073775be3256de43"
+      "sha256": "9104779dfc684c2989e62d6ad50faa217baf5ecc3c8364e88b0121c96f64bae0"
     },
     {
       "path": "docs/upgrade-guide.md",
@@ -604,7 +604,7 @@
     {
       "path": "scripts/validate-coverage",
       "role": "tool",
-      "sha256": "ee97ead8b12cebdd735600e2dc304647862179e1a8baa2520e520ae6a93dccf3"
+      "sha256": "ed75a5ada668f927bd2cc46c5e4c380f34434817f5ab3e09b9dd86a727a1197b"
     },
     {
       "path": "scripts/validate-design",

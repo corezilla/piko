@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-test-plan` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.system-test-plan` |
 | Template Version | `0.10.13` |
 | Template Conformance | `tailored` |
@@ -68,7 +68,7 @@
 
 #### 1.1 构成项 · 系统方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`system-test-scheme` v0.1.0-draft.1（`docs/70_verification/system/system-test-scheme.md`），绑定父设计 `system-design` v0.12.0-draft.1；方案 §6 登记 21 条 `ST-*` Case（`ST-APP-001..006`、`ST-SEC-001`、`ST-DATA-001..005`、`ST-PROC-001/002`、`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001/002`、`ST-MX-001`、`ST-OBS-001`、`ST-OPS-001`）。
+**文档 / 入口（Document ID 或缺口）**：`system-test-scheme` v0.1.0-draft.2（`docs/70_verification/system/system-test-scheme.md`），绑定父设计 `system-design` v0.12.0-draft.1；方案 §6 登记 21 条 `ST-*` Case（`ST-APP-001..006`、`ST-SEC-001`、`ST-DATA-001..005`、`ST-PROC-001/002`、`ST-EXEC-001`、`ST-REC-001`、`ST-LLM-001/002`、`ST-MX-001`、`ST-OBS-001`、`ST-OPS-001`）。
 
 **覆盖责任摘要**：系统层 Case 清单与设计状态的唯一登记处；本计划只引用方案版本与 Case ID。已核对的方案事实：21 条 Case 全部为 `Implemented`，逐 Case 文档齐备（`docs/70_verification/system/cases/` 21 份），每份含 STD 要求的 §1 五字段与 §1.1 逐维度对账表。
 
@@ -342,7 +342,7 @@
 
 **动作**：读取方案清单并按优先级排序
 
-**输入 / 依据**：`system-test-scheme` v0.1.0-draft.1 §6（21 条 `ST-*`，含分类与优先级）与 §2.1 家族判定规则
+**输入 / 依据**：`system-test-scheme` v0.1.0-draft.2 §6（21 条 `ST-*`，含分类与优先级）与 §2.1 家族判定规则
 
 **产出**：执行队列＝按 `P0 → P1 → P2` 排序的条目，每条＝Case ID ＋ 可执行入口（文件＋vitest 选择器）＋ ENV 实例编号 ＋ 对应 `VRC-ST-xxx`；`Gap` 状态的 Case 进队列但预置为 `BLOCKED` 占位，不删除。
 

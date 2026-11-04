@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-test-scheme` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-10-10` |
+| Last Modified Date | `2026-11-04` |
 | Template ID | `tests.system-test-scheme` |
 | Template Version | `0.8.18` |
 | Template Conformance | `tailored` |
@@ -23,10 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/system/system-test-scheme.md` |
 | Supersedes | none |
-| Std Conformance Total | 0 |
-| Std Conformance Passed | 0 |
-| Checklist Total | 0 |
-| Checklist Conformed | 0 |
+| Std Conformance Total | 14 |
+| Std Conformance Passed | 12 |
+| Checklist Total | 53 |
+| Checklist Conformed | 42 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板是系统测试方案，与 design.software-system（系统设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.system-case）；黑盒边界纪律、真实系统 Oracle 分层、对接前检与工具资产化方法见系统测试指南（STD `docs/ai-guides/system-testing.md`，见锁定的 `docs/std.lock.json` 所指 STD 版本），不在本模板重复。
@@ -73,6 +73,23 @@
 
 
 ## 2. 测试方法与测试设计技术
+
+### 2.0 分卷结构（大分量项目适用）
+
+> **本节目的**：Case 登记规模超约 200 时，方案按**被测面**拆为「1 入口 + N 面分卷 + 契约分卷」，防单文件爆炸与清单漂移。
+
+**本项目不适用分卷**：本层登记 21 条 Case，远低于约 200 的分卷阈值，全部登记在本入口文档内。
+若日后 Case 数越过阈值，按下述结构拆分（`volume_of_document_id` 指向入口，分卷不嵌套）：
+
+| 分卷 | Document ID | 面 | 范围 | Case 家族与数 |
+|---|---|---|---|---|
+| 入口 | `system-test-scheme` | — | 清单总账、维度词表、裁决 | 全量登记与分类 |
+| 面分卷 | ⟨待建⟩ | ⟨被测面⟩ | 该面的 Case 登记 | ⟨家族 × 数⟩ |
+| 契约分卷 | `tests.system-test-environment` | — | ENV 类型、装配、就绪判据 | 无 Case |
+| 契约分卷 | `tests.system-test-script-architecture` | — | 脚本目录、硬约束、公共库 | 无 Case |
+| 契约分卷 | `tests.system-test-assets` | — | 公共过程/库索账/维度→件映射 | 无 Case |
+
+
 
 > **本节目的**：固定系统层"怎么测"的方法论——单元层测试设计技术比较单一（mock 为主），上游测试常**多方法共存**，需逐一描述与边界。
 >
@@ -178,159 +195,261 @@
 
 #### 2.3.1 对象类型 · E2E 业务流
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §3.6.2 的 5 条用户任务（派 Run / 查状态 / 取消 / 读结果 / 读诊断），入口见 §8.1
 
-每角色×主旅程 ＋ 异常出口各×1
+**必测维度（展开规则）**：每主旅程×1 ＋ 每主旅程异常出口×1 ＋ 幂等重放×1 ＋ 跨旅程状态可见性×1
 
 **判定要点**：
 
-黑盒三清单齐（布景只走公开入口）
+黑盒三清单齐（布景只走公开入口／观察点只用公开查询／未用内部状态自查）
 
-
-`配置→使用→停用全旅程`
+**覆盖 Case / 缺口**：`ST-EXEC-001`（端到端闭环，已登记）；异常出口、幂等重放、跨旅程可见性格未登记 → `G-ST-DIM-1`
 
 #### 2.3.2 对象类型 · 控件面（§6.1 网格）
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— Piko 无 UI 控件面（`system-design` §3.6、§8.4）
 
-每控件冒烟锚 ＋ 危险控件双击/连点
+**必测维度（展开规则）**：—
 
 **判定要点**：
 
-可观察结果指向公开查询
+无控件即无控件面；公开面只有 HTTP 四项 operation 与 operator 两项维护入口，登记在 §6.1 暴露面清单
 
-
-`双击提交恰 1 次调用`
+**覆盖 Case / 缺口**：—（裁决见 §7.1.1）
 
 #### 2.3.3 对象类型 · 数据面（§6.2 网格）
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §7.2 业务数据结构与 §6.5 数据面搬运；响应数据项见 §6.2.1
 
-数据项×行类别×变体逐格
+**必测维度（展开规则）**：round-trip 逐值对账×1 ＋ 搬运失败不改终态×1 ＋ 投递幂等×1 ＋ 白名单外拒绝×1
 
 **判定要点**：
 
-逐值对账（条 8），类别外同值=Critical
+跨观察点逐值对账；呈现值＝权威存储（`system-design` §7.10 一致性策略）
 
-
-`候选行两列同名→矩阵判`
+**覆盖 Case / 缺口**：`ST-DATA-001`（round-trip，已登记）；失败不改终态、投递幂等、白名单拒绝已由 `ST-DATA-002/004/005` 承担但未按本型登记 → `G-ST-DIM-1`
 
 #### 2.3.4 对象类型 · 权限矩阵
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §13.1 身份边界与 contract §2 授权；错误目录 `Unauthorized` / `ScopeDenied`
 
-token 类×端点类抽样全覆盖
+**必测维度（展开规则）**：token 类×端点类抽样×1 ＋ 401 路径×1 ＋ 403 路径×1
 
 **判定要点**：
 
-401/403 语义与文案
+401/403 语义与文案可辨；内部 fence 码不得外泄为客户端码
 
-
-`data token→admin 403`
+**覆盖 Case / 缺口**：`ST-SEC-001`（鉴权收口，已登记）；401 与 403 分别成格未登记 → `G-ST-DIM-1`
 
 #### 2.3.5 对象类型 · 真实通道
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：P0↔P1 本地 IPC 与 P1→Pi / LLMTier / Matrix / scp 外部通道（`system-design` §8.2）
 
-UI/CLI 显示＝权威存储（同运行）
+**必测维度（展开规则）**：通道可达×1 ＋ 通道失败 typed 化×1 ＋ 半截数据不得形成终态×1
 
 **判定要点**：
 
-跨观察点，不经内部状态
+跨观察点对账，不经内部状态；通道失败不得反向控制业务或伪造成功
 
-
-`页面数字=GET 响应`
+**覆盖 Case / 缺口**：`ST-LLM-001`（LLMTier 通道，已登记）；通道失败与半截数据格未登记 → `G-ST-DIM-1`
 
 #### 2.3.6 对象类型 · 系统机制锚点
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §3.5 的 9 份机制文档（MECH-RUN/CONFIG/STARTUP/USAGE/MATRIX/RECOVERY/CANCEL/TRANSFER/TESTEXEC）
 
-每机制端到端保证×1
+**必测维度（展开规则）**：每机制端到端保证×1
 
 **判定要点**：
 
-复现与修复分开记录
+复现与修复分开记录；机制保证按执行位置进入本层分母，不单独立测试模板
 
-
-`准入保证高压下不丢`
+**覆盖 Case / 缺口**：`ST-EXEC-001`（MECH-RUN 闭环，已登记）；其余 8 份机制的端到端保证未登记 → `G-ST-DIM-1`
 
 #### 2.3.7 对象类型 · 性能预算
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— `system-design` §11.1 未声明系统性能预算
 
-每预算数字×统计口径
+**必测维度（展开规则）**：—
 
 **判定要点**：
 
-§3.1 判定链，预算出自设计
+无预算口径即无预算格；不以覆盖率为由强造阈值（裁决见 §7.1.3）
 
-
-`p95/吞吐/峰值内存`
+**覆盖 Case / 缺口**：—（裁决见 §7.1.3）
 
 #### 2.3.8 对象类型 · 成本护栏（optional：外部计费系统必选）
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— contract §3 无 Cost，无外部计费系统
 
-计费类：上限触发与止损
+**必测维度（展开规则）**：—
 
 **判定要点**：
 
-超限行为可观察
+无计费面即无成本格（裁决见 §7.1.2）
 
-
-`超预算→拒绝非静默`
+**覆盖 Case / 缺口**：—（裁决见 §7.1.2）
 
 #### 2.3.9 对象类型 · 恢复/灾备
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：MECH-RECOVERY（`system-design` §6.4 停止/取消/重启与异常恢复）
 
-kill/磁盘满/上游断
+**必测维度（展开规则）**：恢复扫描×1 ＋ 补写×1 ＋ 幂等重放×1
 
 **判定要点**：
 
-恢复完成判据分开
+恢复完成判据分开；恢复后不得重跑 Pi，已发布 Result generation 冻结
 
-
-`断连→readyz 回绿+新请求`
+**覆盖 Case / 缺口**：`ST-REC-001`（恢复扫描，已登记）；补写与幂等重放格未登记 → `G-ST-DIM-1`
 
 #### 2.3.10 对象类型 · 安全样本
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §13.1 与 M010 transfer 白名单（`known_hosts` / `target_allowlist`）
 
-注入/敏感数据/脱敏 grep
+**必测维度（展开规则）**：路径逃逸×1 ＋ 凭据脱敏×1 ＋ 审计留痕×1
 
 **判定要点**：
 
-零泄漏观察点（响应+日志+存储）
+零泄漏观察点（响应＋日志＋存储）；敏感值不得进 config/DB/Result/log
 
-
-`prompt 注入样本拒绝`
+**覆盖 Case / 缺口**：`ST-DATA-005`（白名单与路径逃逸，已登记）；凭据脱敏与审计留痕格未登记 → `G-ST-DIM-1`
 
 #### 2.3.11 对象类型 · 升级兼容（optional：有存量数据/配置时）
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：M003 Task Store 的 SQLite schema 与 retention 策略（`system-design` §7.11、§10.4）
 
-旧数据/旧配置迁移×1
+**必测维度（展开规则）**：旧 schema 迁移×1 ＋ 迁移后读回一致×1
 
 **判定要点**：
 
-迁移有验证记录
+迁移有验证记录；迁移路径未定案时按缺口记，不得静默通过
 
-
-`v1 存储 v2 读`
+**覆盖 Case / 缺口**：Gap —— 存量 schema 升级路径未定案（裁决见 §7.1.8）
 
 #### 2.3.12 对象类型 · absence 红线
 
-**必测维度（展开规则）**：
+**被测对象（系统功能/入口归属）**：`system-design` §8.1 声明的四项 operation 与 contract §1 的负面要求（tombstone 永不复活）
 
-旧路径/未声明字段探测
+**必测维度（展开规则）**：未声明路径 404×1 ＋ tombstone 410 且 `task_id` 永不复用×1
 
 **判定要点**：
 
-按需求负向逐条
+按需求负向逐条；已删除的路径不得复活
 
+**覆盖 Case / 缺口**：`ST-APP-006`（tombstone，已登记）；未声明路径 404 格未登记 → `G-ST-DIM-1`
 
-`legacy /call→404`
+#### 2.3.13 对象类型 · 可观测性/诊断（optional：无运维/诊断面时写 N/A）
+
+**被测对象（系统功能/入口归属）**：M009 observability；诊断面 `GET /diagnostics`（`src/server.ts`）与 `audit_events` 表
+
+**必测维度（展开规则）**：诊断面可达且鉴权×1 ＋ 审计事件落库×1 ＋ 指标与日志三出口内容×1
+
+**判定要点**：
+
+诊断面须鉴权；输出不得含明文凭据；只读不改业务状态
+
+**覆盖 Case / 缺口**：`ST-OBS-001`（诊断面可达，已登记）；审计落库与三出口内容格未登记 → `G-ST-DIM-1`
+
+#### 2.3.14 对象类型 · 流式/SSE
+
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— Piko 对外四项 operation 均为请求-响应，不暴露 SSE；内部 LLMTier SSE 通道归 §2.3.5 真实通道
+
+**必测维度（展开规则）**：—
+
+**判定要点**：
+
+Piko 对外无长连接读端点；LLMTier SSE 事件序在通道型 Case 断言
+
+**覆盖 Case / 缺口**：—（裁决见 §7.1.9）
+
+#### 2.3.15 对象类型 · 上游依赖失败
+
+**被测对象（系统功能/入口归属）**：LLMTier（模型）、Matrix homeserver（讨论）、scp 对端（数据面）、Secret provider（凭据）
+
+**必测维度（展开规则）**：依赖不可达×1 ＋ 认证失败×1 ＋ 超时/限流×1 ＋ 部分失败×1
+
+**判定要点**：
+
+依赖失败必须产出明确失败事实（typed 错误码），不得伪装成成功
+
+**覆盖 Case / 缺口**：`ST-MX-001`（membership 丢失 → `DiscussionAccessLost`，已登记）；其余三类依赖失败格未登记 → `G-ST-DIM-1`
+
+#### 2.3.16 对象类型 · 准入/队列/限流
+
+**被测对象（系统功能/入口归属）**：M004 scheduler 的 slot 准入与队列容量；错误目录 `QueueFull` / `DependencyUnavailable`
+
+**必测维度（展开规则）**：准入放行×1 ＋ 队列满拒绝×1 ＋ 依赖未就绪拒绝×1
+
+**判定要点**：
+
+拒绝须带可辨错误码与 `retry-after`，不得静默排队或丢弃
+
+**覆盖 Case / 缺口**：`ST-PROC-001`（并发受理，已登记）；队列满与依赖未就绪两格未登记 → `G-ST-DIM-1`
+
+#### 2.3.17 对象类型 · 并发编辑（乐观并发）
+
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— Piko 的并发由 lease epoch fencing 承担（`system-design` §5.1），无资源编辑冲突
+
+**必测维度（展开规则）**：—
+
+**判定要点**：
+
+并发语义归 §2.3.6 机制锚点与 `ST-PROC-001/002`，不重复立型
+
+**覆盖 Case / 缺口**：—（裁决见 §7.1.10）
+
+#### 2.3.18 对象类型 · 分页/边界
+
+**被测对象（系统功能/入口归属）**：Tailored-N/A —— Piko 的四项 HTTP operation 均无分页参数（contract §1）
+
+**必测维度（展开规则）**：—
+
+**判定要点**：
+
+无分页面即无分页格；参数边界归 UT/MT 层
+
+**覆盖 Case / 缺口**：—（裁决见 §7.1.11）
+
+### 2.4 影响面全覆盖原则（建议）
+
+> **本节目的**：固定"一个功能要检查它影响到的所有面"——一项功能通过 ≠ 其 API 返回正确。
+>
+> **必须写清楚**：系统层每个功能都会外溢到多个面；列出本项目功能的典型**影响面**，并要求功能 Case 在步骤中覆盖该功能的**全部影响面**；只覆盖单面视为断言不足。
+
+Piko 的系统功能外溢到的**影响面**（取自 `system-design` §3.4 的进程/职责划分与 §5.1 的四项 operation）：
+
+| 影响面 | 本项目的具体面 | 承接 Case |
+|---|---|---|
+| 路由候选 | HTTP 路由与错误收口（404/400/401/409/410/429/503） | `ST-APP-005`、`ST-APP-006` |
+| 就绪探针 | 启动就绪顺序（`bootstrap` S1–S8）与就绪后才受理 | `ST-APP-001` |
+| 对外接口 | 四项 HTTP operation 的响应体与状态码 | `ST-APP-001..004` |
+| 用量 | `Usage` 聚合与冻结 | `ST-LLM-001`、`ST-LLM-002` |
+| 审计 | `audit` 事件写入与脱敏 | `ST-OBS-001` |
+| 日志 | 结构化日志与级别 | `ST-OBS-001` |
+| 诊断 | `GET /diagnostics` 快照 | `ST-OBS-001` |
+| 数据面 | 输入拉取 / 产出投递（scp） | `ST-DATA-001..005` |
+| 对话面 | Matrix discussion intake / reply | `ST-MX-001` |
+| 恢复 | 恢复扫描与补写 | `ST-REC-001` |
+
+**要求**：`ST-APP-001`（提交）不是只断言「返回 202」——它必须同时覆盖「就绪探针」「用量」「审计」三个面，
+否则该 Case 断言不足。各 Case 当前覆盖的影响面登记在 §6.1 的责任摘要里。
+
+### 2.5 UI 类测试方法（按行为模式）
+
+> **本节目的**：把 UI 行为按**模式**固定下来——每种模式规定"构造什么状态 → 做什么操作 → 断言什么 DOM → 断言什么网络调用 → 什么证据"。
+>
+> **必须写清楚**：至少覆盖以下模式及其"必须断言"与证据。
+
+**本项目无 UI**：Piko 是无界面的服务进程，§2.3.2 的「控件面」对象类型与 §6.1 的暴露面清单都据此裁剪
+（§7.1 已登记 `Tailored-N/A —— Piko 无 UI 控件面`）。因此本节不列 UI 行为模式。
+
+若日后引入 UI，按下表补齐（**必须断言**与**证据**两列不得省略）：
+
+| 模式 | 构造什么状态 | 做什么操作 | 必须断言 | 证据 |
+|---|---|---|---|---|
+| 数据变体渲染 | 元素数据项的各等价类/边界/变体 | 加载页面 | DOM 呈现值＝权威存储逐值相等 | DOM 快照 + 后端查询结果 |
+| 控件交互 | 正常态/禁用态/边界态 | 点击/输入 | 触发的网络调用与参数正确；后端落库值正确 | 网络调用记录 + 后端读回 |
+| 输入溢出 | 超长/特殊字符/空 | 输入 | 显示截断/占位/报错符合设计 | DOM 快照 |
+| 错误态 | 依赖失败态 | 操作 | 错误提示与后端错误码一致 | DOM + 后端 |
 
 ## 3. 替身使用策略与边界
 
@@ -379,11 +498,94 @@ kill/磁盘满/上游断
 >
 > **完成条件**：分类体系可裁剪可追溯，每个适用分类在 §6 清单中至少有 Case 或缺口。
 
-#### 5.1 分类 · normal / boundary / negative / concurrency / recovery / security / performance / endurance
+#### 5.1.1 分类 · normal
 
-**本阶段适用性**：适用/Tailored-N/A/不在本层
+**本阶段适用性**：适用
 
-**裁剪依据**：`对照本节"必须写清楚"填一条实际事实`
+**裁剪依据**：§2.2.7 等价类划分；§6.1 的 `ST-APP-001..004`、`ST-DATA-001`、`ST-EXEC-001`、`ST-MX-001`、`ST-OPS-001` 承担主路径
+
+#### 5.1.2 分类 · boundary
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.1 边界值；§6.1 的 `ST-APP-005`（容量/参数边界）与 `ST-DATA-002`
+
+#### 5.1.3 分类 · negative
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.2 反例驱动；§6.1 的 `ST-APP-006`（非法输入）与 `ST-DATA-002`（缺失输入）
+
+#### 5.1.4 分类 · concurrency
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.3 顺序交错；§6.1 的 `ST-PROC-001`/`ST-PROC-002`（并发受理与 lease epoch）
+
+#### 5.1.5 分类 · recovery
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.4 资源归还；§6.1 的 `ST-REC-001`（恢复扫描与补写）
+
+#### 5.1.6 分类 · security
+
+**本阶段适用性**：适用
+
+**裁剪依据**：§2.2.6 鉴权/注入/脱敏冒烟；§6.1 的 `ST-SEC-001`、`ST-DATA-005`
+
+#### 5.1.7 分类 · performance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：§2.3.7「性能预算」记为 optional，系统设计未声明微基线预算，无阈值可比对（裁决见 §7.1）
+
+#### 5.1.8 分类 · endurance
+
+**本阶段适用性**：`Tailored-N/A`
+
+**裁剪依据**：长稳验证需连续运行时长与真实资源压测，超出本轮验证范围（裁决见 §7.1）
+
+### 5.2 覆盖维度词表登记（分卷结构适用）
+
+> **本节目的**：把本层实际覆盖维度词表登记一处，供分卷与 §6 总账按维度统计实现率。
+>
+> **完成条件**：词表与 §2.3 对象类型表、§6 登记三处一致；同一 Case 属多维度时按各维度分按时、只登记一次。
+
+#### 5.2.1 维度 · 对象类型 × 维度格
+
+**枚举来源（机器权威）**：§2.3 各对象类型的「必测维度（展开规则）」行。
+
+**本轮分母**：下表「义务格」＝§2.3 展开规则要求的格数；「已登记格」＝§6.1 实际登记该格的 Case 数。
+
+| 对象类型 | 义务格 | 已登记格 | 已登记的格 | 未登记的格 | §6.1 Case 数 |
+|---|---|---|---|---|---|
+| E2E 业务流 | 4 | 4 | 每主旅程、异常出口、幂等重放、跨旅程可见性 | — | 7 |
+| 控件面（§6.1 网格） | 0 | 0 | — | — | 0（无 UI，§7.1.1 裁剪） |
+| 数据面（§6.2 网格） | 4 | 3 | round-trip 逐值对账、搬运失败不改终态、投递幂等 | 白名单外拒绝 | 3 |
+| 权限矩阵 | 3 | 1 | 401 路径 | 403 路径、token×端点抽样 | 1 |
+| 真实通道 | 3 | 3 | 通道可达、通道失败 typed 化、半截数据不成终态 | — | 3 |
+| 系统机制锚点 | 1 | 1 | 每机制端到端保证 | — | 1 |
+| 性能预算 | 0 | 0 | — | — | 0（§7.1.3 裁剪） |
+| 成本护栏 | 0 | 0 | — | — | 0（§7.1.2 裁剪） |
+| 恢复/灾备 | 3 | 1 | 恢复扫描 | 补写、幂等重放 | 1 |
+| 安全样本 | 3 | 1 | 路径逃逸 | 凭据脱敏、审计留痕 | 1 |
+| 升级兼容 | 2 | 0 | — | 旧 schema 迁移、迁移后读回一致 | 0（§7.1.8 Gap） |
+| absence 红线 | 2 | 1 | tombstone 410 且 `task_id` 永不复用 | 未声明路径 404 | 1 |
+| 可观测性/诊断 | 3 | 1 | 诊断面可达且鉴权 | 审计事件落库、三出口内容 | 1 |
+| 流式/SSE | 0 | 0 | — | — | 0（§7.1.9 裁剪） |
+| 上游依赖失败 | 4 | 1 | 依赖不可达 | 认证失败、超时/限流、部分失败 | 1 |
+| 准入/队列/限流 | 3 | 1 | 准入放行 | 队列满拒绝、依赖未就绪 | 1 |
+| 并发编辑（乐观并发） | 0 | 0 | — | — | 0（§7.1.10 裁剪） |
+| 分页/边界 | 0 | 0 | — | — | 0（§7.1.11 裁剪） |
+| **合计** | **35** | **18** | — | **17** | **21** |
+
+**维度覆盖实况**：义务 35 格，已登记 18 格（**51%**）。未登记的 17 格按 STD §6「未实现与 NOT_RUN 不删」
+登记为待排期缺口，汇总为 `G-ST-DIM-1`（Owner＝测试工程，最晚 Gate＝系统层 Gate）。
+
+**与 §6.1 的一致性**：§6.1 登记 21 条 Case，按族分布为 `APP` 6 / `DATA` 5 / `LLM` 2 / `PROC` 2 /
+`SEC` 1 / `EXEC` 1 / `MX` 1 / `OBS` 1 / `OPS` 1 / `REC` 1 ＝ 21，与上表「§6.1 Case 数」列合计相等。
+每条 Case 在 §2.3 中**只属一个对象类型**（面分卷唯一归属），按各维度分计时**只登记一次**。
 
 
 ## 6. 覆盖分母与 Case 清单
@@ -400,6 +602,8 @@ kill/磁盘满/上游断
 #### 6.1.1 Case · ST-APP-001
 
 **来源 ID / 固定版本**：`system-design` §8.1 `POST /tasks`
+
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `每主旅程×1`（该 Case 只登记本行 1 格）
 
 **设计验证项 ID**：`VRC-ST-001`
 
@@ -419,6 +623,8 @@ kill/磁盘满/上游断
 
 **来源 ID / 固定版本**：`system-design` §8.1 `GET /tasks/{task_id}`
 
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `跨旅程状态可见性×1`（该 Case 只登记本行 1 格）
+
 **设计验证项 ID**：`VRC-ST-002`
 
 **Case ID**：`ST-APP-002`
@@ -436,6 +642,8 @@ kill/磁盘满/上游断
 #### 6.1.3 Case · ST-APP-003
 
 **来源 ID / 固定版本**：`system-design` §8.1 `POST …:cancel`
+
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `每主旅程异常出口×1`（该 Case 只登记本行 1 格）
 
 **设计验证项 ID**：`VRC-ST-003`
 
@@ -455,6 +663,8 @@ kill/磁盘满/上游断
 
 **来源 ID / 固定版本**：`system-design` §8.1 `GET …/result`
 
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `每主旅程×1`（该 Case 只登记本行 1 格）
+
 **设计验证项 ID**：`VRC-ST-004`
 
 **Case ID**：`ST-APP-004`
@@ -473,6 +683,8 @@ kill/磁盘满/上游断
 
 **来源 ID / 固定版本**：需求 PK-15 / contract §1
 
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `幂等重放×1`（该 Case 只登记本行 1 格）
+
 **设计验证项 ID**：`VRC-ST-005`
 
 **Case ID**：`ST-APP-005`
@@ -488,6 +700,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-APP-005.md`
 
 #### 6.1.6 Case · ST-APP-006
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `absence 红线` 的维度格 `tombstone 410 且 task_id 永不复用×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-19 / `system-design` §7.11
 
@@ -507,6 +723,10 @@ kill/磁盘满/上游断
 
 #### 6.1.7 Case · ST-SEC-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `权限矩阵` 的维度格 `401 路径×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-18 / `system-design` §8.1
 
 **设计验证项 ID**：`VRC-ST-007`
@@ -524,6 +744,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-001.md`
 
 #### 6.1.8 Case · ST-DATA-001
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `数据面（§6.2 网格）` 的维度格 `round-trip 逐值对账×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-21 / `system-design` §6.5
 
@@ -543,6 +767,10 @@ kill/磁盘满/上游断
 
 #### 6.1.9 Case · ST-DATA-002
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `数据面（§6.2 网格）` 的维度格 `搬运失败不改终态×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-001`
 
 **设计验证项 ID**：`VRC-ST-009`
@@ -560,6 +788,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-002.md`
 
 #### 6.1.10 Case · ST-DATA-003
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `数据面（§6.2 网格）` 的维度格 `投递幂等×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-002`
 
@@ -579,6 +811,10 @@ kill/磁盘满/上游断
 
 #### 6.1.11 Case · ST-DATA-004
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `真实通道` 的维度格 `通道失败 typed 化×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-21 / `CON-XFER-003`
 
 **设计验证项 ID**：`VRC-ST-011`
@@ -596,6 +832,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-004.md`
 
 #### 6.1.12 Case · ST-DATA-005
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `安全样本` 的维度格 `路径逃逸×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-21 / `system-design` §13.1
 
@@ -615,6 +855,10 @@ kill/磁盘满/上游断
 
 #### 6.1.13 Case · ST-PROC-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `准入/队列/限流` 的维度格 `准入放行×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-22 / `system-design` §5.1
 
 **设计验证项 ID**：`VRC-ST-013`
@@ -632,6 +876,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-PROC-001.md`
 
 #### 6.1.14 Case · ST-PROC-002
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `真实通道` 的维度格 `半截数据不得形成终态×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-22 / `system-design` §8.2
 
@@ -651,6 +899,10 @@ kill/磁盘满/上游断
 
 #### 6.1.15 Case · ST-EXEC-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `系统机制锚点` 的维度格 `每机制端到端保证×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-16 / MECH-RUN
 
 **设计验证项 ID**：`VRC-ST-015`
@@ -668,6 +920,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-EXEC-001.md`
 
 #### 6.1.16 Case · ST-REC-001
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `恢复/灾备` 的维度格 `恢复扫描×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-12 / MECH-RECOVERY
 
@@ -687,6 +943,10 @@ kill/磁盘满/上游断
 
 #### 6.1.17 Case · ST-LLM-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `真实通道` 的维度格 `通道可达×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-09 / MECH-USAGE
 
 **设计验证项 ID**：`VRC-ST-017`
@@ -704,6 +964,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-LLM-001.md`
 
 #### 6.1.18 Case · ST-LLM-002
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `每主旅程×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：需求 PK-03 / MECH-RUN
 
@@ -723,6 +987,10 @@ kill/磁盘满/上游断
 
 #### 6.1.19 Case · ST-MX-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `上游依赖失败` 的维度格 `依赖不可达×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-08 / MECH-MATRIX
 
 **设计验证项 ID**：`VRC-ST-019`
@@ -741,6 +1009,10 @@ kill/磁盘满/上游断
 
 #### 6.1.20 Case · ST-OBS-001
 
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `可观测性/诊断（optional：无运维/诊断面时写 N/A）` 的维度格 `诊断面可达且鉴权×1`（该 Case 只登记本行 1 格）
+
 **来源 ID / 固定版本**：需求 PK-11 / MECH-STARTUP
 
 **设计验证项 ID**：`VRC-ST-020`
@@ -758,6 +1030,10 @@ kill/磁盘满/上游断
 **上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-OBS-001.md`
 
 #### 6.1.21 Case · ST-OPS-001
+
+**来源 ID / 固定版本**：
+
+**维度坐标（§2.3 行×格）**：对象类型 `E2E 业务流` 的维度格 `每主旅程×1`（该 Case 只登记本行 1 格）
 
 **来源 ID / 固定版本**：`CAP-PURGE` / `system-design` §8.1
 
@@ -816,6 +1092,165 @@ kill/磁盘满/上游断
 **断言方式 · Case / 缺口**：全部自动断言（JSON 字段级）；`ST-APP-001/002/004`、`ST-DATA-001..004`、`ST-EXEC-001`、`ST-LLM-001`
 
 
+### 6.3 功能→入口分母（系统功能·E2E）
+
+> **本节目的**：任何系统功能只要对外暴露入口，其 E2E Case 必须把全部实际入口走一遍。
+>
+> **必须写清楚**：从设计侧功能→入口映射（`design.software-system` §3.6.2→§8.4）枚举，逐功能登记「功能 × 实际入口」，作为 §2.3.1 E2E 业务流的检查项；每格指向 Case ID 或缺口；只测一个入口、或只测内部实现即缺格。
+>
+> **完成条件**：`Σ(系统功能 × 该功能实际入口)` 每格有 Case 或缺口；入口映射缺失按设计缺口记 Critical。
+
+Piko 的系统功能来自 `system-design` §3.6 的 CAP 表（6 项）与 §3.6.2 的用户任务表（5 项）。
+逐功能 × 实际入口登记：
+
+#### 6.3.1 功能入口格 · CAP-SUBMIT（派一个新 Run）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-SUBMIT` / §3.6.2「派一个新 Run」
+
+**入口**：`POST /tasks`（§8.1，OpenAPI operationId `createTask`）
+
+**Case / 缺口 · 状态**：`ST-APP-001`；登记/覆盖/已设计
+
+#### 6.3.2 功能入口格 · CAP-STATUS（查一个 Run 的当前状态）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-STATUS` / §3.6.2「查一个 Run 的当前状态」
+
+**入口**：`GET /tasks/{task_id}`（§8.1，operationId `getTask`）
+
+**Case / 缺口 · 状态**：`ST-APP-002`；登记/覆盖/已设计
+
+#### 6.3.3 功能入口格 · CAP-CANCEL（取消一个 Run）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-CANCEL` / §3.6.2「取消一个 Run」
+
+**入口**：`POST /tasks/{task_id}:cancel`（§8.1，operationId `cancelTask`）
+
+**Case / 缺口 · 状态**：`ST-APP-003`；登记/覆盖/已设计
+
+#### 6.3.4 功能入口格 · CAP-RESULT（读取 Run 的稳定结果）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-RESULT` / §3.6.2「读取 Run 的稳定结果」
+
+**入口**：`GET /tasks/{task_id}/result`（§8.1，operationId `getTaskResult`）
+
+**Case / 缺口 · 状态**：`ST-APP-004`；登记/覆盖/已设计
+
+#### 6.3.5 功能入口格 · CAP-DIAG（读取实例诊断快照）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-DIAG` / §3.6.2「读取实例诊断快照」
+
+**入口**：`GET /diagnostics`（§8.1 Operator Diagnostics；实现见 `src/server.ts`，不在 OpenAPI 契约内）
+
+**Case / 缺口 · 状态**：`ST-OBS-001`；登记/覆盖/已设计
+
+#### 6.3.6 功能入口格 · CAP-PURGE（运维清理）
+
+**功能 ID · 固定版本**：`system-design` §3.6 `CAP-PURGE`
+
+**入口**：Operator Purge（§8.1；入口由 ops 文档定义，当前实现为 `TaskStore.purge`，见 `src/store.ts`）
+
+**Case / 缺口 · 状态**：`ST-OPS-001`；登记/覆盖/已设计
+
+**功能→入口闭合说明**：Piko 的每个系统功能**只有一个**对外入口（Piko 无 CLI、无 UI、无第二个 protocol 入口），
+因此「全部实际入口」＝单项，6 项功能 × 1 入口 ＝ 6 格，逐格有 Case，**无功能只测一个入口而被漏掉**。
+若日后 Piko 增加第二个入口（如 CLI），本表必须补行。
+
+**与 §6.1 暴露面的关系**：§6.1 登记的是「面」（端点+参数），本表登记的是「功能 × 该功能的入口」。
+`CAP-DIAG` 的 `GET /diagnostics` 与 `CAP-PURGE` 的 Operator Purge 在 §6.1 暴露面清单中只登记了
+`ST-OBS-001`/`ST-OPS-001`，两处指向同一 Case，不重复计数。
+
+### 6.4 写读一致性分母（跨子系统/系统级）
+
+> **本节目的**：把跨子系统/系统级的 A 写→B 读做成可数分母——不跨模块的写读归 MT，子系统内跨模块归 IT。
+>
+> **必须写清楚**：从 design 状态写读传播登记（系统机制效果链）枚举「写入口 × 读回入口」，按范围只登记跨子系统/系统级对；每对指向 Case ID 或缺口，断言取同运行跨观察点逐值对账（§2.3.5 真实通道）。
+>
+> **完成条件**：`Σ(跨子系统/系统级写 × 读回入口)` 每对有 Case 或缺口；模块内或子系统内写读登记在本层即错层记问题。
+
+Piko 无 subsystem（`system-design` §4：0 个 subsystem），系统直接含 11 个模块。按 STD 的分载规则，
+**跨模块**的写读归 `IT`（本项目无 subsystem 黑盒层，跨模块白盒集成由 `tests/integration-*` 承担），
+本层只登记**系统级**的写读对——即经公开 HTTP 入口写入、经另一个公开入口读回的状态。
+
+#### 6.4.1 写读对 · `POST /tasks` → `GET /tasks/{task_id}`
+
+**传播范围**：跨子系统/系统级（本层）
+
+**权威 · 固定版本**：`system-design` §8.1 `createTask` / `getTask`（`TaskView` 由 `tasks`/`runs` 表派生）
+
+**Case / 缺口 · 状态**：`ST-APP-001` / `ST-APP-002`；登记/覆盖/已设计
+
+#### 6.4.2 写读对 · `POST /tasks` → `GET /tasks/{task_id}/result`
+
+**传播范围**：跨子系统/系统级（本层）
+
+**权威 · 固定版本**：`system-design` §8.1 `createTask` / `getTaskResult`；Result generation 由 M003 冻结
+
+**Case / 缺口 · 状态**：`ST-APP-001` / `ST-APP-004`；登记/覆盖/已设计
+
+#### 6.4.3 写读对 · `POST /tasks/{task_id}:cancel` → `GET /tasks/{task_id}`
+
+**传播范围**：跨子系统/系统级（本层）
+
+**权威 · 固定版本**：`system-design` §8.1 `cancelTask` / `getTask`（`cancel_requested` 与 `state` 落 `runs` 表）
+
+**Case / 缺口 · 状态**：`ST-APP-003` / `ST-APP-002`；登记/覆盖/已设计
+
+#### 6.4.4 写读对 · `POST /tasks` → `GET /diagnostics`
+
+**传播范围**：跨子系统/系统级（本层）
+
+**权威 · 固定版本**：`system-design` §8.1 `createTask` / Operator Diagnostics（队列深度与 state counts 由 `runs` 表派生）
+
+**Case / 缺口 · 状态**：`ST-APP-001` / `ST-OBS-001`；登记/覆盖/已设计
+
+**不在本层的写读对**：M001→M003 的 `runs`/`results` 落库一致性、M010 transfer 的产出投递→结果回收，
+属**跨模块**传播，按 STD 归 `tests.integration-test-scheme`（本项目无 subsystem 层，转 IT 层）。
+
+### 6.5 机器枚举补登记（一格一 Case）
+
+> **本节目的**：§6.1–§6.4 之外，对**机器可枚举**的补充面逐条补登记，防止"没登记＝没有缺口"。
+>
+> **必须写清楚**：从机器权威源（错误目录 `ERR-*`、端点函数清单、参数注册表、CLI help、schema 字段）枚举出补充格，一格一条记录，指向 Case ID 或具名缺口。
+>
+> **完成条件**：枚举源与 §6 清单对账零差集；每格有 Case 或缺口。
+
+Piko 的机器权威源是 `interfaces/error-codes/error-blocker-catalog-v0.3.json` 的
+`operation_status_codes`（operation × HTTP 状态 → 错误码）与 `errors`（11 个 typed 错误码）。
+逐条枚举：
+
+#### 6.5.1 补登记 · `createTask` 的 7 个 operation×状态×错误码格
+
+**来源（机器权威）**：错误目录 `createTask`（`interfaces/error-codes/error-blocker-catalog-v0.3.json`）
+
+**格 / 条目**：400 `InvalidRequest`；401 `Unauthorized`；403 `ScopeDenied`；409 `TaskConflict`；409 `InvalidDiscussionContext`；410 `Gone`；429 `QueueFull`；503 `DependencyUnavailable`（共 8 个 operation×状态格）
+
+**Case / 缺口 · 状态**：`ST-APP-005`（409 `TaskConflict`、410 `Gone`）、`ST-APP-006`（410 tombstone）、`ST-SEC-001`（401 收口）；`400 InvalidRequest` / `403 ScopeDenied` / `409 InvalidDiscussionContext` / `429 QueueFull` / `503 DependencyUnavailable` 五格未登记 → `G-ST-DIM-1`
+
+#### 6.5.2 补登记 · `getTask` / `cancelTask` 的 4 个错误码格
+
+**来源（机器权威）**：错误目录 `getTask`、`cancelTask`
+
+**格 / 条目**：401 `Unauthorized`；403 `ScopeDenied`；404 `NotFound`；410 `Gone`（两 operation 同集，共 4 格）
+
+**Case / 缺口 · 状态**：`ST-SEC-001`（401 收口）、`ST-APP-006`（410）；403 与 404 两格未登记 → `G-ST-DIM-1`
+
+#### 6.5.3 补登记 · `getTaskResult` 的 5 个错误码格
+
+**来源（机器权威）**：错误目录 `getTaskResult`
+
+**格 / 条目**：401 `Unauthorized`；403 `ScopeDenied`；404 `NotFound`；409 `TaskNotTerminal`；410 `Gone`；500 `ResultUnavailable`（共 6 格）
+
+**Case / 缺口 · 状态**：`ST-APP-004`（409 `TaskNotTerminal`）、`ST-SEC-001`（401 收口）；403 / 404 / 410 / 500 四格未登记 → `G-ST-DIM-1`
+
+**枚举源对账**：错误目录的 11 个 typed 错误码中，`InvalidRequest`、`ScopeDenied`、`NotFound`、
+`InvalidDiscussionContext`、`QueueFull`、`ResultUnavailable`、`DependencyUnavailable` 尚未有本层 Case
+逐码承载；`Unauthorized`、`Gone`、`TaskConflict`、`TaskNotTerminal` 已由上列 Case 承担。
+**逐码缺口**并入 `G-ST-DIM-1`，与 §5.2 的 17 个未登记维度格同批排期——不因"同一批 Case 顺带覆盖"
+就当作已登记。
+
+**错误码格的分层**：参数类非法断言（400 `InvalidRequest`）按 STD §4 分层归 `MT`/`UT`，
+本层只做系统级冒烟与端到端收口；上表逐码登记是为了**不漏**，不是要求 ST 层逐码复制全矩阵。
+
 ## 7. 不适用与缺口裁决
 
 > **本节目的**：区分“不适用”与“尚未设计”。
@@ -830,9 +1265,9 @@ kill/磁盘满/上游断
 
 #### 7.1.1 裁决 · 控件面
 
-**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 为无 UI 服务（`system-design` §3.6）；公开面仅 HTTP + operator
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 为无 UI 服务（`system-design` §3.6、§8.4）；公开面仅 HTTP 四项 operation ＋ operator 两项维护入口
 
-**Owner / 恢复条件**：—（若引入 UI 需重开 §6.1）
+**Owner / 恢复条件**：—（若引入 UI 需重开 §6.1 暴露面清单并补 §6.2 呈现矩阵）
 
 #### 7.1.2 裁决 · 成本护栏（Cost）
 
@@ -875,6 +1310,60 @@ kill/磁盘满/上游断
 **裁决（Tailored-N/A 或 Gap）**：Gap —— 存量 Task Store 的 schema 升级路径未定案
 
 **Owner / 恢复条件**：Owner M003 / 设计评审
+
+#### 7.1.9 裁决 · 流式/SSE
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 对外四项 operation 均为请求-响应，不暴露 SSE（`system-design` §8.1）；内部 LLMTier SSE 通道的事件序在「真实通道」型 Case 断言（`ST-LLM-001`）
+
+**Owner / 恢复条件**：—
+
+#### 7.1.10 裁决 · 并发编辑（乐观并发）
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 的并发语义由 lease epoch fencing 承担（`system-design` §5.1），无资源编辑冲突模型；并发语义归「系统机制锚点」与 `ST-PROC-001/002`，不重复立型
+
+**Owner / 恢复条件**：—
+
+#### 7.1.11 裁决 · 分页/边界
+
+**裁决（Tailored-N/A 或 Gap）**：Tailored-N/A —— Piko 的四项 HTTP operation 均无分页参数（contract §1）；参数边界归 UT/MT 层
+
+**Owner / 恢复条件**：—
+
+#### 7.1.12 裁决 · 维度格未登记（`G-ST-DIM-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **35 个义务维度格**，§6.1 实际只登记 **18 格**（覆盖率 51%），未登记 **17 格**（逐格列于 §5.2.1）。另 §6.5 的机器枚举补登记另有 **7 个错误码格**未逐码承载（`InvalidRequest`、`ScopeDenied`、`NotFound`、`InvalidDiscussionContext`、`QueueFull`、`ResultUnavailable`、`DependencyUnavailable`）。Owner＝测试工程；恢复条件＝按 §6「一格一 Case」逐格补登记（补 17 格即维度覆盖达 100%），错误码格按 §6.5 的分层口径补 MT/UT 侧承载并在本层登记冒烟锚，同步 §5.2 的分母
+
+#### 7.1.13 裁决 · 逐 Case 文档
+
+**裁决（Tailored-N/A 或 Gap）**：已关闭 —— 21 份 `tests.system-case` 文档齐备（`docs/70_verification/system/cases/`），与 §6.1 的 21 条登记行一一对应
+
+**Owner / 恢复条件**：—
+
+#### 7.1.14 裁决 · 环境契约条款不全（`G-ST-ENV-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§4.1 只登记了 `ENV-LOOPBACK` 一个环境类型并引用 asset-design 的契约 ID，但未逐环境类登记「就绪判据可机器执行（含最小真实冒烟，列表可见≠可用）」「类独立判定（A 挂不连 B 算挂）」「降级走 BLOCKED/SKIP 不静默换环境」「复位/写后恢复义务」四条条款；受控时钟环境类型亦未登记。Owner＝测试工程；恢复条件＝按 STD `review.system-test-review-checklist` §2 的环境契约条款逐条补入 §4
+
+#### 7.1.15 裁决 · 登记状态（已实现/待实现）缺位（`G-ST-IMPL-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§6.1 的每条登记行只带「设计状态」，未带 STD §6 要求的二值**登记状态**（`已实现`＝脚本＋用例文档齐备／`待实现`＝分母占位）；§5.2.1 因此也没有「已实现/待实现」的实现率列。Owner＝测试工程；恢复条件＝逐行补登记状态并出实现率表，实现率数字进 Run 报告覆盖复算
+
+#### 7.1.16 裁决 · 脚本与登记未四方对账（`G-EXEC-ST-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：§6.1 登记 21 条 Case、用例集 21 份文档齐备，但只有 **7 条**的 Case ID 出现在 `tests/` / `src/` / `scripts/` 的脚本中（实测全量扫描）——其余 14 条的「脚本」列指向共享测试文件而非该 Case 的专属入口，即**占位 Case 被登记为 `Implemented`**。Owner＝测试工程；恢复条件＝为每条 Case 建立可定位到 Case ID 的脚本入口（或把该 Case 的登记状态改为 `待实现`），并使「登记数＝脚本数」成立
+
+#### 7.1.17 裁决 · 评审决定未产出（`G-ST-DEC-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：本方案尚无 `tests.system-test-review` 决定的 Review Decision 文档，Verdict、未关闭 Critical 计数与放行范围三者尚不存在，放行范围也未落到家族/Case 粒度。Owner＝测试工程；恢复条件＝按 STD `review.system-test-review-checklist` §6–§7 产出 Issue Log 与 Review Decision，放行范围落到家族/Case 粒度
 
 
 ## 8. 文档联动与清单变更规则
