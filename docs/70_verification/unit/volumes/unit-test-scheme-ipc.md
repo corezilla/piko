@@ -9,33 +9,33 @@
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
-| `UT-IPC-013` | `constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `handler: FactHandler` 的 `每等价类合法值` 类（ipc.ts:117） | 待实现 |
-| `UT-IPC-014` | `constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `handler: FactHandler` 的 `边界(上/下/零/空/满)` 类（ipc.ts:117） | 待实现 |
-| `UT-IPC-015` | `constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `非法值` | 参数 `handler: FactHandler` 的 `非法值` 类（ipc.ts:117） | 待实现 |
+| `UT-IPC-013` | `LocalChannel.constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `handler: FactHandler` 的 `每等价类合法值` 类（ipc.ts:117） | 待实现 |
+| `UT-IPC-014` | `LocalChannel.constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `handler: FactHandler` 的 `边界(上/下/零/空/满)` 类（ipc.ts:117） | 待实现 |
+| `UT-IPC-015` | `LocalChannel.constructor`（`ipc.ts:117`） | `纯函数/无副作用` × `非法值` | 参数 `handler: FactHandler` 的 `非法值` 类（ipc.ts:117） | 待实现 |
 | `UT-IPC-016` | `report`（`ipc.ts:118`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `fact: Fact` 的 `每等价类合法值` 类（ipc.ts:118） | 待实现 |
 | `UT-IPC-017` | `report`（`ipc.ts:118`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `fact: Fact` 的 `边界(上/下/零/空/满)` 类（ipc.ts:118） | 待实现 |
 | `UT-IPC-018` | `report`（`ipc.ts:118`） | `纯函数/无副作用` × `非法值` | 参数 `fact: Fact` 的 `非法值` 类（ipc.ts:118） | 待实现 |
-| `UT-IPC-019` | `report`（`ipc.ts:118`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1（无显式 throw，被调方拒绝必须 typed 化上抛；ipc.ts:118） | 待实现 |
+| `UT-IPC-019` | `report`（`ipc.ts:118`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1：被调方 `被调方` 拒绝必须 typed 化上抛（ipc.ts:118） | 待实现 |
 | `UT-IPC-020` | `report`（`ipc.ts:118`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L119 值 `this.handler.apply(fact)` 逐值断言（ipc.ts） | 待实现 |
-| `UT-IPC-021` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `send: (msg: unknown) => void` 的 `每等价类合法值` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-022` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `send: (msg: unknown) => void` 的 `边界(上/下/零/空/满)` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-023` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `非法值` | 参数 `send: (msg: unknown) => void` 的 `非法值` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-024` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `onCommand: (cmd: Command) => void` 的 `每等价类合法值` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-025` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `onCommand: (cmd: Command) => void` 的 `边界(上/下/零/空/满)` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-026` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `非法值` | 参数 `onCommand: (cmd: Command) => void` 的 `非法值` 类（ipc.ts:131） | 待实现 |
-| `UT-IPC-027` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `onCommand` 缺省/显式两态（ipc.ts:131） | 待实现 |
-| `UT-IPC-028` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `if (msg?.ipc === "outcome" && typeof msg.id =…`（if；ipc.ts） | 待实现 |
-| `UT-IPC-029` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `msg?.ipc === "outcome" && typeof msg.id === "…`（&&；ipc.ts） | 待实现 |
-| `UT-IPC-030` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `msg?.ipc`（?.；ipc.ts） | 待实现 |
-| `UT-IPC-031` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L135 `if (resolve)`（if；ipc.ts） | 待实现 |
-| `UT-IPC-032` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `if (msg?.ipc === "command" && onCommand)`（if；ipc.ts） | 待实现 |
-| `UT-IPC-033` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `msg?.ipc === "command" && onCommand`（&&；ipc.ts） | 待实现 |
-| `UT-IPC-034` | `constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `msg?.ipc`（?.；ipc.ts） | 待实现 |
-| `UT-IPC-035` | `constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L139 值 `（无值 return：提前退出）` 逐值断言（ipc.ts） | 待实现 |
+| `UT-IPC-021` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `send: (msg: unknown) => void` 的 `每等价类合法值` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-022` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `send: (msg: unknown) => void` 的 `边界(上/下/零/空/满)` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-023` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `非法值` | 参数 `send: (msg: unknown) => void` 的 `非法值` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-024` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `onCommand: (cmd: Command) => void` 的 `每等价类合法值` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-025` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `onCommand: (cmd: Command) => void` 的 `边界(上/下/零/空/满)` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-026` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `非法值` | 参数 `onCommand: (cmd: Command) => void` 的 `非法值` 类（ipc.ts:131） | 待实现 |
+| `UT-IPC-027` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `onCommand` 缺省/显式两态（ipc.ts:131） | 待实现 |
+| `UT-IPC-028` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `if (msg?.ipc === "outcome" && typeof msg.id =…`（if；ipc.ts） | 待实现 |
+| `UT-IPC-029` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `msg?.ipc === "outcome" && typeof msg.id === "…`（&&；ipc.ts） | 待实现 |
+| `UT-IPC-030` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L133 `msg?.ipc`（?.；ipc.ts） | 待实现 |
+| `UT-IPC-031` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L135 `if (resolve)`（if；ipc.ts） | 待实现 |
+| `UT-IPC-032` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `if (msg?.ipc === "command" && onCommand)`（if；ipc.ts） | 待实现 |
+| `UT-IPC-033` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `msg?.ipc === "command" && onCommand`（&&；ipc.ts） | 待实现 |
+| `UT-IPC-034` | `ProcessChannel.constructor`（`ipc.ts:131`） | `状态分支` × `合法迁移` | 分支 L141 `msg?.ipc`（?.；ipc.ts） | 待实现 |
+| `UT-IPC-035` | `ProcessChannel.constructor`（`ipc.ts:131`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L139 值 `（无值 return：提前退出）` 逐值断言（ipc.ts） | 待实现 |
 | `UT-IPC-036` | `report`（`ipc.ts:144`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `fact: Fact` 的 `每等价类合法值` 类（ipc.ts:144） | 待实现 |
 | `UT-IPC-037` | `report`（`ipc.ts:144`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `fact: Fact` 的 `边界(上/下/零/空/满)` 类（ipc.ts:144） | 待实现 |
 | `UT-IPC-038` | `report`（`ipc.ts:144`） | `纯函数/无副作用` × `非法值` | 参数 `fact: Fact` 的 `非法值` 类（ipc.ts:144） | 待实现 |
-| `UT-IPC-039` | `report`（`ipc.ts:144`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1（无显式 throw，被调方拒绝必须 typed 化上抛；ipc.ts:144） | 待实现 |
+| `UT-IPC-039` | `report`（`ipc.ts:144`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1：被调方 `被调方` 拒绝必须 typed 化上抛（ipc.ts:144） | 待实现 |
 | `UT-IPC-040` | `report`（`ipc.ts:144`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L146 值 `new Promise((resolve) => { this.pending…` 逐值断言（ipc.ts） | 待实现 |
 | `UT-IPC-041` | `attachChildToHandler`（`ipc.ts:154`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `child: { on: Function; send?: Function }` 的 `每等价类合法值` 类（ipc.ts:154） | 待实现 |
 | `UT-IPC-042` | `attachChildToHandler`（`ipc.ts:154`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `child: { on: Function; send?: Function }` 的 `边界(上/下/零/空/满)` 类（ipc.ts:154） | 待实现 |
@@ -52,9 +52,9 @@
 | `UT-IPC-053` | `attachChildToHandler`（`ipc.ts:154`） | `状态分支` × `合法迁移` | 分支 L157 `msg?.ipc`（?.；ipc.ts） | 待实现 |
 | `UT-IPC-054` | `attachChildToHandler`（`ipc.ts:154`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L160 值 `（无值 return：提前退出）` 逐值断言（ipc.ts） | 待实现 |
 | `UT-IPC-055` | `attachChildToHandler`（`ipc.ts:154`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L164 值 `{ send }` 逐值断言（ipc.ts） | 待实现 |
-| `UT-IPC-056` | `constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `store: TaskStore` 的 `每等价类合法值` 类（ipc.ts:49） | 待实现 |
-| `UT-IPC-057` | `constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（ipc.ts:49） | 待实现 |
-| `UT-IPC-058` | `constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `非法值` | 参数 `store: TaskStore` 的 `非法值` 类（ipc.ts:49） | 待实现 |
+| `UT-IPC-056` | `FactHandler.constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `store: TaskStore` 的 `每等价类合法值` 类（ipc.ts:49） | 待实现 |
+| `UT-IPC-057` | `FactHandler.constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（ipc.ts:49） | 待实现 |
+| `UT-IPC-058` | `FactHandler.constructor`（`ipc.ts:49`） | `纯函数/无副作用` × `非法值` | 参数 `store: TaskStore` 的 `非法值` 类（ipc.ts:49） | 待实现 |
 | `UT-IPC-059` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `fact: Fact` 的 `每等价类合法值` 类（ipc.ts:50） | 待实现 |
 | `UT-IPC-060` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `fact: Fact` 的 `边界(上/下/零/空/满)` 类（ipc.ts:50） | 待实现 |
 | `UT-IPC-061` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `非法值` | 参数 `fact: Fact` 的 `非法值` 类（ipc.ts:50） | 待实现 |
@@ -96,20 +96,20 @@
 | `UT-IPC-097` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L99 值 `{ ok: true, value: grant }` 逐值断言（ipc.ts） | 待实现 |
 | `UT-IPC-098` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L102 值 `{ ok: false, error: `unknown fact ${(fa…` 逐值断言（ipc.ts） | 待实现 |
 | `UT-IPC-099` | `apply`（`ipc.ts:50`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L105 值 `{ ok: false, error: error instanceof Er…` 逐值断言（ipc.ts） | 待实现 |
-| `UT-IPC-100` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `env: NodeJS.ProcessEnv` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-101` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `env: NodeJS.ProcessEnv` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-102` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `env: NodeJS.ProcessEnv` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-103` | `constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `恰好通过` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `恰好通过` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-104` | `constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `+1 拒绝` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-105` | `constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `−1 通过` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `−1 通过` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-106` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-107` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `facts: FactHandler` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-108` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `facts: FactHandler` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-109` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `facts` 缺省/显式两态（supervisor.ts:20） | 待实现 |
-| `UT-IPC-110` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `clock: Clock` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-111` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `clock: Clock` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-112` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `clock: Clock` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
-| `UT-IPC-113` | `constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `clock` 缺省/显式两态（supervisor.ts:20） | 待实现 |
+| `UT-IPC-100` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `env: NodeJS.ProcessEnv` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-101` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `env: NodeJS.ProcessEnv` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-102` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `env: NodeJS.ProcessEnv` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-103` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `恰好通过` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `恰好通过` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-104` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `+1 拒绝` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-105` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `数值/长度上限参数` × `−1 通过` | 参数 `onExit: (code: number \| null, signal: NodeJS.Signals \| null) => void` 的 `−1 通过` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-106` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-107` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `facts: FactHandler` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-108` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `facts: FactHandler` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-109` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `facts` 缺省/显式两态（supervisor.ts:20） | 待实现 |
+| `UT-IPC-110` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `clock: Clock` 的 `每等价类合法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-111` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `clock: Clock` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-112` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `非法值` | 参数 `clock: Clock` 的 `非法值` 类（supervisor.ts:20） | 待实现 |
+| `UT-IPC-113` | `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `clock` 缺省/显式两态（supervisor.ts:20） | 待实现 |
 | `UT-IPC-114` | `spawn`（`supervisor.ts:27`） | `状态分支` × `合法迁移` | 分支 L28 `if (this.stopped)`（if；supervisor.ts） | 待实现 |
 | `UT-IPC-115` | `spawn`（`supervisor.ts:27`） | `状态分支` × `合法迁移` | 分支 L32 `if (this.facts)`（if；supervisor.ts） | 待实现 |
 | `UT-IPC-116` | `spawn`（`supervisor.ts:27`） | `状态分支` × `合法迁移` | 分支 L36 `if (msg?.type === "heartbeat" \|\| msg?.fact?.k…`（if；supervisor.ts） | 待实现 |
@@ -160,19 +160,19 @@
 | `UT-IPC-161` | `stop`（`supervisor.ts:88`） | `状态分支` × `合法迁移` | 分支 L90 `if (this.watchdog)`（if；supervisor.ts） | 待实现 |
 | `UT-IPC-162` | `stop`（`supervisor.ts:88`） | `状态分支` × `合法迁移` | 分支 L92 `if (!this.child)`（if；supervisor.ts） | 待实现 |
 | `UT-IPC-163` | `stop`（`supervisor.ts:88`） | `状态分支` × `合法迁移` | 分支 L92 `!this.child`（!；supervisor.ts） | 待实现 |
-| `UT-IPC-164` | `stop`（`supervisor.ts:88`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1（无显式 throw，被调方拒绝必须 typed 化上抛；supervisor.ts:88） | 待实现 |
+| `UT-IPC-164` | `stop`（`supervisor.ts:88`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #1：被调方 `被调方` 拒绝必须 typed 化上抛（supervisor.ts:88） | 待实现 |
 | `UT-IPC-165` | `stop`（`supervisor.ts:88`） | `状态分支` × `合法迁移` | 状态写 L89 → `this.stopped`（supervisor.ts） | 待实现 |
 | `UT-IPC-166` | `stop`（`supervisor.ts:88`） | `状态分支` × `合法迁移` | 状态写 L91 → `this.watchdog`（supervisor.ts） | 待实现 |
 | `UT-IPC-167` | `stop`（`supervisor.ts:88`） | `资源获取/释放` × `正常释放` | 资源操作 L90 `clearInterval`（supervisor.ts） | 待实现 |
 | `UT-IPC-168` | `stop`（`supervisor.ts:88`） | `资源获取/释放` × `获取失败路径` | 资源操作 L95 `setTimeout`（supervisor.ts） | 待实现 |
 | `UT-IPC-169` | `stop`（`supervisor.ts:88`） | `资源获取/释放` × `正常释放` | 资源操作 L100 `clearTimeout`（supervisor.ts） | 待实现 |
 | `UT-IPC-170` | `stop`（`supervisor.ts:88`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L92 值 `（无值 return：提前退出）` 逐值断言（supervisor.ts） | 待实现 |
-| `UT-IPC-171` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `空` | 参数 `code: string` 的 `空` 类（types.ts:233） | 待实现 |
-| `UT-IPC-172` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `超长` | 参数 `code: string` 的 `超长` 类（types.ts:233） | 待实现 |
-| `UT-IPC-173` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `code: string` 的 `注入字符` 类（types.ts:233） | 待实现 |
-| `UT-IPC-174` | `constructor`（`types.ts:233`） | `数值/长度上限参数` × `恰好通过` | 参数 `status: number` 的 `恰好通过` 类（types.ts:233） | 待实现 |
-| `UT-IPC-175` | `constructor`（`types.ts:233`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `status: number` 的 `+1 拒绝` 类（types.ts:233） | 待实现 |
-| `UT-IPC-176` | `constructor`（`types.ts:233`） | `数值/长度上限参数` × `−1 通过` | 参数 `status: number` 的 `−1 通过` 类（types.ts:233） | 待实现 |
-| `UT-IPC-177` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `空` | 参数 `message: string` 的 `空` 类（types.ts:233） | 待实现 |
-| `UT-IPC-178` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `超长` | 参数 `message: string` 的 `超长` 类（types.ts:233） | 待实现 |
-| `UT-IPC-179` | `constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `message: string` 的 `注入字符` 类（types.ts:233） | 待实现 |
+| `UT-IPC-171` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `空` | 参数 `code: string` 的 `空` 类（types.ts:233） | 待实现 |
+| `UT-IPC-172` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `超长` | 参数 `code: string` 的 `超长` 类（types.ts:233） | 待实现 |
+| `UT-IPC-173` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `code: string` 的 `注入字符` 类（types.ts:233） | 待实现 |
+| `UT-IPC-174` | `PikoError.constructor`（`types.ts:233`） | `数值/长度上限参数` × `恰好通过` | 参数 `status: number` 的 `恰好通过` 类（types.ts:233） | 待实现 |
+| `UT-IPC-175` | `PikoError.constructor`（`types.ts:233`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `status: number` 的 `+1 拒绝` 类（types.ts:233） | 待实现 |
+| `UT-IPC-176` | `PikoError.constructor`（`types.ts:233`） | `数值/长度上限参数` × `−1 通过` | 参数 `status: number` 的 `−1 通过` 类（types.ts:233） | 待实现 |
+| `UT-IPC-177` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `空` | 参数 `message: string` 的 `空` 类（types.ts:233） | 待实现 |
+| `UT-IPC-178` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `超长` | 参数 `message: string` 的 `超长` 类（types.ts:233） | 待实现 |
+| `UT-IPC-179` | `PikoError.constructor`（`types.ts:233`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `message: string` 的 `注入字符` 类（types.ts:233） | 待实现 |

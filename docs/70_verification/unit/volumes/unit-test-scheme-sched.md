@@ -9,12 +9,12 @@
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
-| `UT-SCHED-006` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `store: TaskStore` 的 `每等价类合法值` 类（scheduler.ts:10） | 待实现 |
-| `UT-SCHED-007` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（scheduler.ts:10） | 待实现 |
-| `UT-SCHED-008` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `非法值` | 参数 `store: TaskStore` 的 `非法值` 类（scheduler.ts:10） | 待实现 |
-| `UT-SCHED-009` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `config: RuntimeConfig` 的 `每等价类合法值` 类（scheduler.ts:10） | 待实现 |
-| `UT-SCHED-010` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `config: RuntimeConfig` 的 `边界(上/下/零/空/满)` 类（scheduler.ts:10） | 待实现 |
-| `UT-SCHED-011` | `constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `非法值` | 参数 `config: RuntimeConfig` 的 `非法值` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-006` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `store: TaskStore` 的 `每等价类合法值` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-007` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-008` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `非法值` | 参数 `store: TaskStore` 的 `非法值` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-009` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `config: RuntimeConfig` 的 `每等价类合法值` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-010` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `config: RuntimeConfig` 的 `边界(上/下/零/空/满)` 类（scheduler.ts:10） | 待实现 |
+| `UT-SCHED-011` | `Scheduler.constructor`（`scheduler.ts:10`） | `纯函数/无副作用` × `非法值` | 参数 `config: RuntimeConfig` 的 `非法值` 类（scheduler.ts:10） | 待实现 |
 | `UT-SCHED-012` | `acquire`（`scheduler.ts:15`） | `字符串/路径/枚举输入` × `空` | 参数 `owner: string` 的 `空` 类（scheduler.ts:15） | 待实现 |
 | `UT-SCHED-013` | `acquire`（`scheduler.ts:15`） | `字符串/路径/枚举输入` × `超长` | 参数 `owner: string` 的 `超长` 类（scheduler.ts:15） | 待实现 |
 | `UT-SCHED-014` | `acquire`（`scheduler.ts:15`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `owner: string` 的 `注入字符` 类（scheduler.ts:15） | 待实现 |

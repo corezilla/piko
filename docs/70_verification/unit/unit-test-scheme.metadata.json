@@ -12,8 +12,8 @@
     "Claude"
   ],
   "template_id": "tests.unit-test-scheme",
-  "template_version": "0.10.9",
-  "template_sha256": "88400ac66d218513e6d5462c031caa8080f223415da9dcdc5a9b6ad61500478f",
+  "template_version": "4.1.0",
+  "template_sha256": "96a01ff47d516aeba2e3a59e55ee418bf95b684de4d197888a9e985cb0eed492",
   "template_conformance": "tailored",
   "tailoring_ref": "piko-std-tailoring-v0.1",
   "migration_map_ref": null,

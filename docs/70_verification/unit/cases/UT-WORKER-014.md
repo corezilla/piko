@@ -1,53 +1,56 @@
 <!-- STD_DOCUMENT_COVER_BEGIN -->
 # Piko Case UT-WORKER-014
 
-> **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 入口：[项目采用说明与标准导航](../../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
-
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `UT-WORKER-014` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
-| Authors | Claude |
-| Created Date | `2026-11-04` |
-| Last Modified Date | `2026-11-04` |
+| Authors | opencode |
+| Created Date | `2026-11-05` |
+| Last Modified Date | `2026-11-05` |
 | Template ID | `tests.unit-case` |
-| Template Version | `3.1.0` |
-| Template Conformance | `tailored` |
-| Tailoring Reference | piko-std-tailoring-v0.1 |
-| Migration Map Reference | none |
-| Repository | `corezilla/piko` |
-| Canonical Path | `docs/70_verification/unit/cases/UT-WORKER-014.md` |
-| Supersedes | none |
+| Template Version | `3.3.0` |
+| Template Conformance | `native` |
 | Std Conformance Total | 0 |
 | Std Conformance Passed | 0 |
 | Checklist Total | 0 |
 | Checklist Conformed | 0 |
-<!-- STD_DOCUMENT_COVER_END -->
-> **编写建议**：本文档是**单个模块的单元测试用例集**：本 Case 由 `scripts/derive-ut-cases.mjs` 从
-> `docs/70_verification/unit/ut-denominator.md`（AST 枚举表，机器权威）派生登记；段落指向表内具体行。
+| Tailoring Reference | none |
+| Migration Map Reference | none |
+| Repository | `corezilla/piko` |
+| Canonical Path | `docs/70_verification/unit/cases/UT-WORKER-014.md` |
+| Supersedes | none |
 
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+>
+> Std Conformance Total / Std Conformance Passed：STD 文档编写规范（索引 §3）检查了几条、遵守了几条。
+> Checklist Total / Checklist Conformed：本篇模板的评审清单执行了几项、遵守了几项。两者是不同的检查，未执行填 0。
+<!-- STD_DOCUMENT_COVER_END -->
 ### 模板定位：方案、用例集与计划的边界
 
-- **Case＝固定段落块**：§3 一个 `#### UT-WORKER-014` 段落，七字段与顺序固定。
-- **测试脚本的唯一依据**：编码者按本文档写测试代码；段落锚点＝脚本名（文件名＝Case ID）。
-- **不预填结果**：本集持有实现状态；执行状态与 Verdict 只在 Run 报告。
+- **一 Case 一文档**：本文档只承载**一个** Case；七字段固定顺序（可写"不适用"，不可删字段）。
+- **一 Case 一脚本**：配套脚本文件名＝Case ID；公共 fixture/替身/断言调用公共脚本，不在本文件复制。
+- **测试脚本的唯一依据**：编码者按本文档写测试代码，不需要回读方案或设计正文猜测意图；段落锚点＝脚本名。
+- **不预填结果**：本文档持有实现状态；执行状态与 Verdict 只在 Run 报告。
 
 ### 状态语义：实现状态
 
-- **测试代码实现状态**：`Planned`——唯一权威：本文档 §1 总账与 §4；禁止：计划中的测试函数冒充可执行入口。
+- **测试代码实现状态**：`Planned` / `Implemented`——唯一权威：本文档 §1 总账与 §4；禁止：计划中的测试函数冒充可执行入口。
 - **执行状态**：`NOT_RUN` / `BLOCKED` / `INVALID`——唯一权威：Run 报告；禁止：在本文档预填执行或判定。
-- **实际判定 Verdict**：`PASS` / `FAIL`——唯一权威：仅 Run 报告。
+- **实际判定 Verdict**：`PASS` / `FAIL`——唯一权威：仅 Run 报告；禁止：在本文档预填 Actual 或 Verdict。
 
 ## 1. 集合概览与维度总账
 
+绑定方案：`unit-test-scheme`；本 Case 的唯一登记位置：方案 §6.1 清单行（粗粒度登记）。
+
 #### 1.1 总账 · UT-WORKER-014
 
-对象函数：`aggregateUsage`（WORKER 模块，`src/worker.ts:299`）
+对象函数：`aggregateUsage`（`worker.ts:299`，fn/exported）
 
 维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `多上限各自成套`
 
@@ -57,31 +60,57 @@
 
 #### 2.1 前提 · ENV-UNIT
 
-版本 / 来源：`tests.asset-design` §3.1（内存 SQLite＋受控时钟 `FAKE-CLK`）
+版本 / 来源：`docs/70_verification/assets/asset-design.md`（ENV-UNIT 装配；替身 `FAKE-LLM`/`FAKE-MATRIX`/`FAKE-SCP`、受控时钟 `FAKE-CLK`、种子 `SEEDS` 同册——本 Case 只引用，不复述）
 
-影响 Case：全部
+影响 Case：本 Case
 
-## 3. 用例（固定段落块，按对象分组）
+## 3. 用例（固定段落块）
 
-#### 3.1 UT-WORKER-014 · `aggregateUsage` 在 `数值/长度上限参数` 类型下的 `多上限各自成套` 格
+#### 3.1 UT-WORKER-014 · `aggregateUsage` × `数值/长度上限参数` × `多上限各自成套`（波次一粗粒度登记；worker.ts:299）
 
-**责任 / 明确不测**：被测符号 `aggregateUsage`（`src/worker.ts:299`，AST 枚举表行），对象类型 `数值/长度上限参数`，本 Case 只登记维度格 `多上限各自成套`（STD「一格一 Case」）；`aggregateUsage` × `数值/长度上限参数` 格 `多上限各自成套`（波次一：补齐 §2.3 未登记格；worker.ts:299，分支 12 点）。不测同符号其他格（兄弟 Case 承担）、不测模块整体行为。
+**责任 / 明确不测**：
 
-**维度坐标（方案 §2.3 行×格）**：`aggregateUsage` × `数值/长度上限参数`；本 Case 登记格＝`多上限各自成套`；枚举表该行分支 12 点、throw 0 处。
+验证 `aggregateUsage`（`worker.ts:299`）在 `数值/长度上限参数` × `多上限各自成套` 这一格上的行为与设计声明一致（`aggregateUsage` × `数值/长度上限参数` × `多上限各自成套`（波次一粗粒度登记；worker.ts:299））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
-**输入构造**：按 `数值/长度上限参数` 的展开规则构造 `多上限各自成套` 格所需输入（取值冻结或给生成规则）；替身与受控时钟见本集 §2。
+**维度坐标（方案 §2.3 行×格）**：
 
-**步骤与观察点**：建立 `ENV-UNIT` → 调用 `aggregateUsage` → 观察本格对应的返回值、typed 错误码、持久化副作用与资源释放。
+`aggregateUsage` × `数值/长度上限参数` × `多上限各自成套`。
 
-**Oracle 与预期**：以 `docs/40_module_design/piko-worker-design.md` 中对应 `VRC` 为唯一权威；本段只细化执行断言，冲突回溯设计修订。
+**输入构造**：
 
-**错误路径 / 清理**：失败必须 typed 化；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。
+见 §3.1 步骤 1——取值全部写死或给生成规则（含边界常量时给出具体数），无隐含依赖。
 
-**脚本 / 实现状态**：`待建（tests/unit/UT-WORKER-014.test.ts，文件名＝Case ID）` · `Planned`
+**步骤与观察点**：
+
+**步骤 1**——动作：按 `多上限各自成套` 格构造输入——参数：`rows: any[]`、`attempts: number`；源码校验：`if (rows.length !== attempts || rows.some((r) => typeof r[key] !== "number")) { sums[field] = null;…`；`rows.length !== attempts || rows.some((r) => typeof r[key] !== "number")`；`if (attempts === 0) { return { source: "PiModelResponses", quality: "Complete", input_tokens: 0, ou…`
+
+观察点：输入就绪，取值全部写死或给生成规则
+
+**步骤 2**——动作：调用 aggregateUsage(…)（worker.ts:299）
+
+观察点：返回值/错误/副作用/资源释放
+
+**步骤 3**——动作：逐分支断言：L300 if；L306 loop；L308 if；L311 else 等 12 点
+
+观察点：每个分支路径的可观测结果与设计一致
+
+**步骤 4**——动作：断言无残留：状态写/资源/持久化副作用与设计一致
+
+观察点：断言全部通过；失败含义＝该格语义失真
+
+**Oracle 与预期**：
+
+以 `docs/40_module_design/piko-worker-design.md` 与其 ISD（`docs/50_implementation_design/piko-worker-impl.isd.md`）中 `aggregateUsage` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+
+**错误路径 / 清理**：
+
+失败必须 typed 化且保真传播；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。
+
+**脚本 / 实现状态**：
+
+`tests/unit/cases/UT-WORKER-014.test.ts` · `Planned`
 
 ## 4. 集合状态汇总与缺口
 
-- **实现状态分布**：`Planned` 1 ／ `Implemented` 0（本集为波次一新登记，脚本待建）
-- **缺口清单（格＋Owner＋最晚关闭 Gate）**：`UT-WORKER-014` 格 `数值/长度上限参数`×`多上限各自成套` 已登记、脚本未建；Owner＝测试工程；最晚关闭 Gate＝模块层 Gate（随 `G-EXEC-UT-3` 同批）
-
-> **交付自查**：总账与方案 §6.1 登记行一致；段落七字段完整；脚本文件名与段落锚点一致；无预填执行结果。
+- **实现状态**：`Planned`（与 §1 一致）
+- **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）

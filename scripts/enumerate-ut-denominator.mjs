@@ -64,6 +64,23 @@ for (const file of files) {
   const text = readFileSync(path, "utf8");
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ESNext, true);
   const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
+  // in-file numeric constants: `const MAX = 4096` — boundary values for params
+  const constNums = new Map();
+  {
+    const walkC = (k) => {
+      if (ts.isVariableDeclaration(k) && ts.isIdentifier(k.name) && k.initializer && ts.isNumericLiteral(k.initializer))
+        constNums.set(k.name.getText(), k.initializer.getText());
+      ts.forEachChild(k, walkC);
+    };
+    ts.forEachChild(sf, walkC);
+  }
+  // resolve a numeric expression: literal or in-file const name
+  const numVal = (e) => {
+    if (!e) return null;
+    const s = e.getText().replace(/\s+/g, " ").trim();
+    if (/^\d+$/.test(s)) return s;
+    return constNums.get(s) ?? null;
+  };
   const clip = (s, n = 72) => {
     s = s.replace(/\s+/g, " ").trim();
     return s.length > n ? s.slice(0, n - 1) + "…" : s;
@@ -77,7 +94,10 @@ for (const file of files) {
       if (ts.isMethodDeclaration(k) || ts.isConstructorDeclaration(k) ||
           ts.isClassDeclaration(k) || ts.isFunctionDeclaration(k)) return;
       if (ts.isIfStatement(k)) {
-        out.push({ line: lineOf(k.getStart()), kind: "if", cond: `if (${clip(k.expression.getText())})` });
+        const first = (b) => b ? clip(b.getText().slice(0, 120), 110) : null;
+        out.push({ line: lineOf(k.getStart()), kind: "if", cond: `if (${clip(k.expression.getText())})`,
+          then: first(ts.isBlock(k.thenStatement) ? k.thenStatement.statements[0] : k.thenStatement),
+          els: first(k.elseStatement ? (ts.isBlock(k.elseStatement) ? k.elseStatement.statements[0] : k.elseStatement) : null) });
         if (k.elseStatement) out.push({ line: lineOf(k.elseStatement.getStart()), kind: "else", cond: clip(k.elseStatement.getText(), 40) });
       } else if (ts.isConditionalExpression(k)) {
         out.push({ line: lineOf(k.getStart()), kind: "ternary", cond: `? ${clip(k.condition.getText(), 50)} :` });
@@ -135,7 +155,7 @@ for (const file of files) {
       const expr = ts.isThrowStatement(k) ? k.expression : k.expression;
       const code = expr?.getText().match(/new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ??
         expr?.getText().match(/Promise\.reject\(\s*new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ?? "reject";
-      return { kind: "throw", code, guard: guardOf(k) };
+      return { kind: "throw", code, guard: guardOf(k), stmt: clip(expr?.getText() ?? k.getText(), 110) };
     }
     if (ts.isCallExpression(k) && k.expression.getText().endsWith("Promise.reject"))
       return { kind: "throw", code: "reject", guard: guardOf(k) };
@@ -143,9 +163,9 @@ for (const file of files) {
   };
   const isState = (k) => {
     if (ts.isBinaryExpression(k) && k.operatorToken.kind === ts.SyntaxKind.EqualsToken && k.left.getText().startsWith("this."))
-      return { kind: "state", target: k.left.getText() };
+      return { kind: "state", target: k.left.getText(), stmt: clip(k.getText(), 110) };
     if (ts.isCallExpression(k) && /\.(run|exec|save)\(/.test(k.expression.getText() + "("))
-      return { kind: "state", target: "db" };
+      return { kind: "state", target: "db", stmt: clip(k.getText(), 110) };
     return null;
   };
   const isReturn = (k) => {
@@ -159,18 +179,51 @@ for (const file of files) {
   const isResource = (k) => {
     if (!ts.isCallExpression(k)) return null;
     const m = k.expression.getText().match(/^(readFileSync|writeFileSync|appendFileSync|mkdirSync|rmSync|unlinkSync|renameSync|copyFileSync|statSync|existsSync|openSync|spawn|execFile|execFileSync|fork|setTimeout|setInterval|clearTimeout|clearInterval|createHash|createCipheriv|createDecipheriv|publicKey|privateKey)\b/);
-    return m ? { kind: "resource", op: m[1] } : null;
+    return m ? { kind: "resource", op: m[1], stmt: clip(k.getText(), 110) } : null;
   };
 
   const register = (node, kind, visibility, name) => {
-    const body = node.body ?? node.initializer;
+    // a variable statement carries its initializer on the declaration, not on
+    // the statement — reading node.initializer there silently dropped every
+    // object-literal unit (export const systemClock: Clock = { ... }).
+    const body = node.body ?? node.initializer ??
+      (node.declarationList?.declarations?.[0]?.initializer ?? null);
     if (!body) return;
-    const params = (node.parameters ?? node.initializer?.parameters ?? []).map((p) => ({
-      name: p.name.getText().replace(/\?$/, "").replace(/[{:[].*$/s, "").trim() || "<destructured>",
-      optional: !!p.questionToken || !!p.initializer || p.getText().includes("?"),
-      type: p.type ? p.type.getText().replace(/\s+/g, " ").slice(0, 60) : "inferred",
-    }));
-    const txt = body.getText();
+    const txt0 = body.getText();
+    const params = (node.parameters ?? node.initializer?.parameters ?? []).map((p) => {
+      const name = p.name.getText().replace(/\?$/, "").replace(/[{:[].*$/s, "").trim() || "<destructured>";
+      // statements that validate this param: mention it AND compare/throw
+      const stmts = [];
+      const walkP = (k) => {
+        if (ts.isMethodDeclaration(k) || ts.isClassDeclaration(k) || ts.isFunctionDeclaration(k)) return;
+        if ((ts.isIfStatement(k) || ts.isThrowStatement(k) || ts.isBinaryExpression(k) &&
+             [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(k.operatorToken.kind)) &&
+             new RegExp(`\\b${name.replace(/[^\w]/g, "")}\\b`).test(k.getText()) && stmts.length < 3)
+          stmts.push(clip(k.getText(), 110));
+        ts.forEachChild(k, walkP);
+      };
+      if (/^\w+$/.test(name)) ts.forEachChild(body, walkP);
+      // boundary literals compared against the param (x > 4096 / x.length >= MAX)
+      const bounds = [];
+      const walkB = (k) => {
+        if (ts.isBinaryExpression(k) &&
+            [ts.SyntaxKind.GreaterThanToken, ts.SyntaxKind.GreaterThanEqualsToken, ts.SyntaxKind.LessThanToken,
+             ts.SyntaxKind.LessThanEqualsToken].includes(k.operatorToken.kind) &&
+            new RegExp(`\\b${name}\\b`).test(k.left.getText())) {
+          const v = numVal(k.right);
+          if (v && !bounds.includes(v)) bounds.push(v);
+        }
+        ts.forEachChild(k, walkB);
+      };
+      if (/^\w+$/.test(name)) ts.forEachChild(body, walkB);
+      return {
+        name,
+        optional: !!p.questionToken || !!p.initializer || p.getText().includes("?"),
+        type: p.type ? p.type.getText().replace(/\s+/g, " ").slice(0, 60) : "inferred",
+        checks: stmts, bounds,
+      };
+    });
+    const txt = txt0;
     rows.push({
       module: MODULE_OF[file] ?? "OTHER",
       file, line: lineOf(node.getStart()), symbol: name, kind, visibility,
@@ -201,16 +254,36 @@ for (const file of files) {
       const vis = mods.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword) ? "private"
         : mods.some((m) => m.kind === ts.SyntaxKind.ProtectedKeyword) ? "protected" : "public";
       register(node, "method", vis, node.name.getText());
-    } else if (ts.isConstructorDeclaration(node)) register(node, "ctor", "public", "constructor");
+    } else if (ts.isConstructorDeclaration(node)) {
+      const cls = node.parent && ts.isClassDeclaration(node.parent) ? node.parent.name?.getText() ?? "<anon>" : "<anon>";
+      register(node, "ctor", "public", `${cls}.constructor`);
+    }
     else if (ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node))
       register(node, "accessor", "public", (node.getText().match(/\b(get|set)\s+(\w+)/) ?? [])[2] ?? "<anon>");
     else if (ts.isVariableStatement(node)) {
-      const d = node.declarationList.declarations[0];
-      const init = d?.initializer;
-      if (init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) {
-        const mods = ts.getModifiers(node.declarationList) ?? [];
-        const vis = mods.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ? "exported" : "module-private";
-        register(node.declarationList, "fn", vis, d.name.getText());
+      for (const d of node.declarationList.declarations) {
+        const init = d?.initializer;
+        if (!init) continue;
+        // an object literal that implements a behaviour (e.g. `export const systemClock: Clock = { ... }`)
+        // carries its behaviour in its property functions — register each of
+        // them as a unit (`systemClock.now`), the way class methods are units.
+        if (ts.isObjectLiteralExpression(init)) {
+          const mods = ts.getModifiers(node.declarationList) ?? [];
+          const vis = mods.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ? "exported" : "module-private";
+          for (const prop of init.properties) {
+            if (!ts.isPropertyAssignment(prop)) continue;
+            const pi = prop.initializer;
+            if (!pi || !(ts.isArrowFunction(pi) || ts.isFunctionExpression(pi))) continue;
+            const name = prop.name.getText().replace(/^["'`]|["'`]$/g, "");
+            register(prop, "fn", vis, `${d.name.getText()}.${name}`);
+          }
+          continue;
+        }
+        if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) {
+          const mods = ts.getModifiers(node.declarationList) ?? [];
+          const vis = mods.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ? "exported" : "module-private";
+          register(node.declarationList, "fn", vis, d.name.getText());
+        }
       }
     }
     ts.forEachChild(node, walk);

@@ -1,15 +1,15 @@
 {
   "schema_version": "std-source-manifest.v1",
-  "std_version": "0.1.0-draft.128",
+  "std_version": "0.1.0-draft.130",
   "source_repository": "corezilla/STD",
-  "source_revision": "1497403c5d8784063d732932814c5bd8650dd113",
+  "source_revision": "1f8cebd0f8e2935d3c2c5c3f83c15edee168e479",
   "source_tag": null,
-  "generated_at": "2026-11-04",
+  "generated_at": "2026-11-05",
   "artifacts": [
     {
       "path": "README.md",
       "role": "guidance",
-      "sha256": "2286ab1ab29597f23da614b5746536252b3d98d6647358f75b25128f650b1437"
+      "sha256": "1b52b00ca31ab290ffa2d808717b2b8ca025ab65991baec7254e37558e6a3e30"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -19,7 +19,7 @@
     {
       "path": "VERSION",
       "role": "guidance",
-      "sha256": "0892488b5f447bca960eda39182e8da9486415697d6e851f3b55a32d0b097c5c"
+      "sha256": "d7fbd6c62b92556bf991aa2da17b5153c8d0defc226f4056f0e9279a7c0ea402"
     },
     {
       "path": "docs/adoption.md",
@@ -119,7 +119,7 @@
     {
       "path": "docs/ai-guides/verification.md",
       "role": "guidance",
-      "sha256": "f8d37469703dad7decaba9998985fcaa455a9332106ae4b1f9cd3aeb269b07b4"
+      "sha256": "e6e488c1aa83b4ad21c32c34e8565d052bbe885892ca29642d0504f51d748430"
     },
     {
       "path": "docs/ai-system-design-authoring-guide.md",
@@ -289,7 +289,7 @@
     {
       "path": "docs/authoring-index.md",
       "role": "guidance",
-      "sha256": "c9a5b3dd4dfd25d3e405f92270480b7d303a30650895f6a027ec5db1828b1a5e"
+      "sha256": "893158d411b05cd8dc7b38402d4be6327ddabc7b7594ddd832aab61e6d4ba39f"
     },
     {
       "path": "docs/coding-standard.md",
@@ -664,7 +664,7 @@
     {
       "path": "templates/catalog.json",
       "role": "template",
-      "sha256": "1c374208e6c2a68a008bbbb5846cd43f0381d3727a233c24f2a6ff42005cfff9"
+      "sha256": "570100da6507faf5cf158783430ab1fb5548df6545f32f2024761c7f7f6bd7a2"
     },
     {
       "path": "templates/contracts/contract-specification.md",
@@ -1369,7 +1369,7 @@
     {
       "path": "templates/tests/unit-case.md",
       "role": "template",
-      "sha256": "4c51e6ad2872e79e10d7445ba59add7a12d6559ece1150d9360958c8f4cbf5d1"
+      "sha256": "2123f374b9e0354bc5d141af68aea4f57021ffa5e780ae2d64cf0255755d86a3"
     },
     {
       "path": "templates/tests/unit-test-assets.md",
@@ -1394,7 +1394,7 @@
     {
       "path": "templates/tests/unit-test-scheme.md",
       "role": "template",
-      "sha256": "88400ac66d218513e6d5462c031caa8080f223415da9dcdc5a9b6ad61500478f"
+      "sha256": "96a01ff47d516aeba2e3a59e55ee418bf95b684de4d197888a9e985cb0eed492"
     },
     {
       "path": "templates/tests/unit-test-script-architecture.md",

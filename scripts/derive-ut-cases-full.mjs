@@ -56,9 +56,10 @@ const ISD = {
 
 const cases = [];
 for (const r of rows) {
-  const add = (type, cell, summary) => cases.push({
+  const add = (type, cell, summary, detail) => cases.push({
     module: r.module, symbol: r.symbol, type, cell,
-    summary, site: `${r.file}:${r.line}`,
+    summary, site: `${r.file}:${r.line}`, file: r.file, line: r.line,
+    kind: r.kind, visibility: r.visibility, async: r.async, detail: detail ?? null,
   });
 
   // 1) params x 3 mandatory classes
@@ -70,11 +71,16 @@ for (const r of rows) {
         ? ["空", "超长", "注入字符"]
         : ["每等价类合法值", "边界(上/下/零/空/满)", "非法值"];
     for (const cell of classes)
-      add(typ, cell, `参数 \`${p.name}: ${p.type}\` 的 \`${cell}\` 类（${r.file}:${r.line}）`);
-    if (p.optional) add(typ, "未知枚举", `可选参数 \`${p.name}\` 缺省/显式两态（${r.file}:${r.line}）`);
+      add(typ, cell, `参数 \`${p.name}: ${p.type}\` 的 \`${cell}\` 类（${r.file}:${r.line}）`,
+        { what: "param", param: p.name, ptype: p.type, poptional: !!p.optional });
+    if (p.optional) add(typ, "未知枚举", `可选参数 \`${p.name}\` 缺省/显式两态（${r.file}:${r.line}）`,
+      { what: "param-optional", param: p.name, ptype: p.type });
   }
-  // 2) branch sites
+  // 2) branch sites — an if whose then-side is a throw IS the throw site
+  // (counting it twice inflates the denominator with a duplicate Case)
+  const throwLines = new Set(r.throwSites.map((s) => s.line));
   for (const b of r.branches) {
+    if (b.kind === "if" && b.then && /^throw\b/.test(b.then) && throwLines.has(b.line)) continue;
     const typ = b.kind === "catch" ? "错误路径"
       : r.concurrency && /epoch|lease|claim|lock|slot|timer/.test(b.cond) ? "并发/可重入"
       : r.usesClock && /timer|timeout|deadline|elapsed|now|Date/.test(b.cond) ? "时间域行为"
@@ -83,29 +89,35 @@ for (const r of rows) {
       : typ === "并发/可重入" ? "并发对偶/交错"
       : typ === "时间域行为" ? "超时边界 ±1 tick"
       : /^(if|ternary|case|default|loop|!|&&|\|\||\?\?|\?\.)$/.test(b.kind) && b.kind !== "else" ? "合法迁移" : "每个非法迁移拒绝";
-    add(typ, cell, `分支 L${b.line} \`${clip(b.cond, 46)}\`（${b.kind}；${r.file}）`);
+    add(typ, cell, `分支 L${b.line} \`${clip(b.cond, 46)}\`（${b.kind}；${r.file}）`,
+      { what: "branch", bline: b.line, bkind: b.kind, bcond: b.cond });
   }
   // 3) throw sites; async units without one still owe rejection propagation
   for (const s of r.throwSites)
-    add("错误路径", `每个 typed 错误码`, `throw L${s.line} \`${s.code}\`（守卫 \`${clip(s.guard, 40)}\`；${r.file}）`);
+    add("错误路径", `每个 typed 错误码`, `throw L${s.line} \`${s.code}\`（守卫 \`${clip(s.guard, 40)}\`；${r.file}）`,
+      { what: "throw", tline: s.line, code: s.code, guard: s.guard });
   if (r.async && r.throwSites.length === 0) {
-    const awaits = [...r.bodyText.matchAll(/await ([\w$.()\[\]{}'"`+ ,?!:]{0,60}?)[;)\n]/g)].length;
-    const n = Math.max(awaits, 1);
+    const awaits = [...r.bodyText.matchAll(/await ([\w$.()\[\]{}'"`+ ,?!:]{0,60}?)[;)\n]/g)].map((m) => m[1].trim());
+    const n = Math.max(awaits.length, 1);
     for (let k = 0; k < n; k += 1)
-      add("错误路径", `每个 typed 错误码`, `await 拒绝传播 #${k + 1}（无显式 throw，被调方拒绝必须 typed 化上抛；${r.file}:${r.line}）`);
+      add("错误路径", `每个 typed 错误码`, `await 拒绝传播 #${k + 1}：被调方 \`${awaits[k] ?? "被调方"}\` 拒绝必须 typed 化上抛（${r.file}:${r.line}）`,
+        { what: "reject", awaitIndex: k + 1, target: awaits[k] ?? null });
   }
   // 4) state-write sites
   for (const s of r.stateSites)
     add(s.target === "db" ? "持久化/序列化" : "状态分支",
       s.target === "db" ? "round-trip" : "合法迁移",
-      `状态写 L${s.line} → \`${s.target}\`（${r.file}）`);
+      `状态写 L${s.line} → \`${s.target}\`（${r.file}）`,
+      { what: "state", sline: s.line, target: s.target });
   // 5) resource-op sites
   for (const s of r.resourceSites)
     add("资源获取/释放", /^(rmSync|unlinkSync|clearTimeout|clearInterval|close|kill)$/.test(s.op) ? "正常释放" : "获取失败路径",
-      `资源操作 L${s.line} \`${s.op}\`（${r.file}）`);
+      `资源操作 L${s.line} \`${s.op}\`（${r.file}）`,
+      { what: "resource", rline: s.line, op: s.op });
   // 6) return sites
   for (const s of r.returnSites)
-    add("纯函数/无副作用", "每等价类合法值", `返回站点 L${s.line} 值 \`${clip(s.value, 40)}\` 逐值断言（${r.file}）`);
+    add("纯函数/无副作用", "每等价类合法值", `返回站点 L${s.line} 值 \`${clip(s.value, 40)}\` 逐值断言（${r.file}）`,
+      { what: "return", retline: s.line, value: s.value });
 }
 
 // Wave 2 is per-site: a coarse wave-1 row registering symbol x cell once does
@@ -168,7 +180,12 @@ const scanTests = (dir) => {
     const f = `${dir}/${e.name}`;
     if (e.isDirectory()) { if (e.name !== "reports" && e.name !== "node_modules") scanTests(f); continue; }
     if (!/\.test\.ts$/.test(e.name)) continue;
-    for (const m of readFileSync(f, "utf8").matchAll(/UT-[A-Z]+-\d+/g))
+    const text = readFileSync(f, "utf8");
+    // a registered skeleton (test.todo, STATUS: skeleton) is NOT a script entry:
+    // counting it would inflate the four-way reconciliation this file exists
+    // to make honest (STD unit-case: 禁止计划中的测试函数冒充可执行入口).
+    if (/STATUS: skeleton/.test(text)) continue;
+    for (const m of text.matchAll(/UT-[A-Z]+-\d+/g))
       if (!scriptMap.has(m[0])) scriptMap.set(m[0], f);
   }
 };
@@ -245,5 +262,6 @@ const full = {
   cases: all,
 };
 writeFileSync("docs/70_verification/unit/case-index.json", JSON.stringify(full, null, 2));
+writeFileSync("/tmp/ut-cases-full.json", JSON.stringify({ generated: "2026-11-05", total: fresh.length, cases: fresh }, null, 2));
 console.log(`derived ${total} new Cases across ${index.length} volumes`);
 for (const v of index) console.log(`  ${String(v.cases).padStart(4)}  ${v.module}`);

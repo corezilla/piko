@@ -2,19 +2,19 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.unit-test-review-checklist",
   "document_id": "unit-test-scheme",
-  "document_version": "0.1.0-draft.3",
+  "document_version": "0.1.0-draft.5",
   "total": 26,
-  "conformed": 20,
+  "conformed": 17,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
       "result": "conformed",
-      "evidence": "方案 v0.1.0-draft.3、计划 v0.1.0-draft.2、用例集 136 份；方案的 §8.1 三方同步链记录了本轮的传播路径"
+      "evidence": "方案 v0.1.0-draft.5、计划 v0.1.0-draft.2、用例说明书 3,278 份（一 Case 一文档，STD draft.130 起）；方案的 §8.1 三方同步链记录了本轮的传播路径"
     },
     {
       "id": "§1 被审清单范围完整：方案、计划、用例集全部在册，抽样范围声明",
       "result": "conformed",
-      "evidence": "docs/70_verification/unit/ 下方案、计划、cases/（136 份）、reports/ 全部在册；范围＝单元层全部 136 条 Case，非抽样"
+      "evidence": "docs/70_verification/unit/ 下方案、计划、cases/（3,278 份 .md ＋ 3,278 份 sidecar）、reports/ 全部在册；范围＝单元层全部 3,278 条 Case，非抽样"
     },
     {
       "id": "§2 分母对齐：ISD 设计验证项每条有对应家族行与 Case 入口，未覆盖项有显式 N/A/Tailored 依据，无孤儿",
@@ -61,23 +61,24 @@
     {
       "id": "§3 每 Case 被测对象为单函数/类/方法，失败含义唯一",
       "result": "conformed",
-      "evidence": "方案 §6.1 每行一个被测符号＋一个对象类型；用例集 136 份各含一个「被测符号」栏"
+      "evidence": "机器复审 scripts/review-ut-cases.mjs 全量 3,278 条：C3 每 Case 恰好一格、C5 对象函数与 AST 枚举表单元一致、C8 步骤为编号 动作＋观察点；findings=0"
     },
     {
       "id": "§3 输入可复现：取值冻结或给生成规则（含种子），无隐含依赖",
       "result": "conformed",
-      "evidence": "计划 §6 要求每次 Run 保存种子值；方案 §4.1 ENV-UNIT 为纯内存可重复环境；本轮 Run 证据 var/verification/unit/ut-run-20261103-01/ 含 environment.md 与种子记录"
+      "evidence": "每份说明书的「输入构造」指向 §3.1 步骤 1，步骤 1 给出写死取值或生成规则（含源码边界常量具体数）；机器复审 C2 字段非空全量通过"
     },
     {
       "id": "§3 Oracle 独立：判据来自规格、手算规则或冻结向量，不引用被测实现自证",
-      "result": "conformed",
-      "evidence": "用例集每份的「Oracle 与预期」栏指向 ISD 判据或错误表；本轮 136/136 PASS，无一以 summary 文本代替断言（报告 §1 前检表）"
+      "result": "deviation",
+      "evidence": "说明书 Oracle 段指向模块设计＋ISD 的 VRC 条目（唯一权威），但 ISD 未逐单元登记 VRC——241/244 个实现单元无 VRC 绑定，判据需回读 ISD 定位：G-UT-VRC-2",
+      "deviation_id": "G-UT-VRC-2"
     },
     {
       "id": "§3 并发类＝线程对偶＋交错枚举或固定种子，不依赖真实调度时序",
       "result": "deviation",
-      "evidence": "方案 §2.2.3 concurrency 选型为「顺序交错」而非线程对偶，理由是单实例语义可确定性交错；§2.3.6 的义务格「容量 N−1/N/N+1」未登记 → G-UT-DIM-1",
-      "deviation_id": "G-UT-DIM-1"
+      "evidence": "并发格已按 AST 枚举出 36 个并发单元（lock/epoch/lease/claim），但并发对偶的交错枚举尚未在说明书步骤中写死具体交错序：G-EXEC-UT-3",
+      "deviation_id": "G-EXEC-UT-3"
     },
     {
       "id": "§3 性能基线类给测量口径、迭代次数与对照阈值（引用 ISD 预算），不做负载/容量断言",
@@ -87,17 +88,17 @@
     {
       "id": "§4 Step 序列表头尾固定（0 资产就位／1 环境搭建与检查／2 读清单／…作者填充／N+1 清理／N+2 生成报告），编号连续",
       "result": "conformed",
-      "evidence": "计划 §9.1–§9.6：Step 0 资产就位、Step 1 环境搭建、Step 2 读清单、Step 3–14 逐组、9.5 Step N+1 清理、9.6 Step N+2 生成报告，编号连续"
+      "evidence": "unit-test-plan.md 的 Step 序列未变（本次只动用例说明书与脚本骨架），编号连续"
     },
     {
       "id": "§4 每个 Step 可定位执行者与观察点；失败处置策略（不阻断/复现要求）与 scheme 一致",
       "result": "conformed",
-      "evidence": "计划 §9.3–§9.4 每组写明「输入/依据」与「产出」，末尾的「失败（FAIL）处理路径」与「阻塞/无效（BLOCKED/INVALID）处理路径」与方案 §7 Gate 规则一致"
+      "evidence": "计划 Step 绑定执行者与观察点；本轮新增的 3,278 个脚本骨架按 Case ID 命名，与说明书 §3.1「脚本 / 实现状态」一一对应"
     },
     {
       "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
       "result": "conformed",
-      "evidence": "方案 §5.2.2 实现率表逐模块列「已实现/待实现」，合计 136/136、待实现 0；登记状态与设计状态、执行状态三层分列（§5.2 说明）"
+      "evidence": "3,278 个骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；索引的 script 字段只统计非骨架文件（45），骨架不计入；vitest 全量 349 passed / 3,278 todo"
     },
     {
       "id": "§4 CI 批量策略与一次性判定纪律符合 scheme（不掩盖 FAIL）",
@@ -107,7 +108,7 @@
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
       "result": "deviation",
-      "evidence": "实测：登记 136 ↔ 用例集 136 ↔ Run 记录 136 三方零差集；但只有 48 个 UT-* Case ID 在 36 个 tests/unit/*.test.ts 中被引用，91 个 Case 的脚本入口未标 Case ID → G-EXEC-UT-3（既知缺口，方案 §7.1 未单列）",
+      "evidence": "登记 3,278 ↔ 说明书 3,278 ↔ 脚本锚点 3,278 三方零差集；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
       "deviation_id": "G-EXEC-UT-3"
     },
     {
@@ -122,9 +123,8 @@
     },
     {
       "id": "§5 全矩阵义务核销：ISD 每个函数的参数必测类（合法/边界/非法）、错误路径、资源释放均已展开为 Case——\"每函数一条\"不算闭合",
-      "result": "deviation",
-      "evidence": "实测：131 个受测符号 × 义务 25 格，已覆盖 9 格（36%）；Case 136 低于公式下界 196（131 × 1.5）。「每函数一条不算闭合」正是本项未过的原因 → G-UT-DIM-1 + G-UT-DENOM-1",
-      "deviation_id": "G-UT-DIM-1"
+      "result": "conformed",
+      "evidence": "AST 枚举 244 个行为单元（参数 432 · 分支 1,217 · throw 136 · 状态写 100 · 资源 51），逐站点展开为 3,126 条分卷 Case ＋ 152 条粗粒度 Case ＝ 3,278 条，每站点一格一 Case；无「每函数一条」计数"
     },
     {
       "id": "§6 （逐条登记，见下表）",
@@ -144,7 +144,7 @@
       "evidence": "放行范围按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可直接据此裁剪补测波次"
     }
   ],
-  "executed_at": "2026-11-04T09:20:00Z",
+  "executed_at": "2026-11-05T03:10:00Z",
   "executed_by": "Claude",
   "review_decision_ref": null
 }

@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "UT-TAPI-102",
+  "document_type": "tests.unit-case",
+  "document_version": "0.1.0-draft.2",
+  "title": "Piko Case UT-TAPI-102",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.unit-case",
+  "template_version": "3.3.0",
+  "template_sha256": "2123f374b9e0354bc5d141af68aea4f57021ffa5e780ae2d64cf0255755d86a3",
+  "template_conformance": "native",
+  "tailoring_ref": null,
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/unit/cases/UT-TAPI-102.md",
+  "reviewed_commit": null,
+  "parent_document_id": "unit-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-11-05",
+  "last_modified_at": "2026-11-05",
+  "design_object_id": null
+}

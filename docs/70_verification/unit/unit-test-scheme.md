@@ -16,7 +16,7 @@
 | Created Date | `2026-10-10` |
 | Last Modified Date | `2026-11-04` |
 | Template ID | `tests.unit-test-scheme` |
-| Template Version | `0.10.9` |
+| Template Version | `4.1.0` |
 | Template Conformance | `tailored` |
 | Tailoring Reference | piko-std-tailoring-v0.1 |
 | Migration Map Reference | none |
@@ -596,11 +596,11 @@
 | `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 11 | 4 |
 | **合计** | — | — | **152** | **136** | **16** |
 
-**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **136/152 已实现，实现率 89%**——16 条波次一新 Case 为 `Planned`（用例文档已建、脚本待建）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **152/3,278 已实现，实现率 4.6%**——3,126 条波次二逐站点 Case 为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
 
-**分卷登记另计 3208 条**（§6.1A，逐站点粒度，全部 `待实现`）——实现率只按 §6.1 的 152 条粗粒度登记计算。
+**分卷登记另计 3,126 条**（§6.1A，逐站点粒度，全部 `待实现`）——实现率按全层 3,278 条计。
 
-**「实现率 89%」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。波次一后后者满格、前者缺 16 条脚本，是本轮的真实状态。
+**「实现率 4.6%」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,278 条 Case 全部有一份说明书（文档齐），但除 45 条外只有骨架脚本（脚本缺），是本轮的真实状态。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -722,7 +722,7 @@
 
 #### 6.1 Case · UT-BOOT-009
 
-**责任摘要（要测什么／边界在哪）**：被测符号 `systemClock`（BOOT）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
+**责任摘要（要测什么／边界在哪）**：被测符号 `systemClock.now`（BOOT，`src/clock.ts:26`）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
 
 **来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
 
@@ -2454,28 +2454,28 @@
 > **本节目的**：Case 数远超几十时按 STD 分卷结构登记——入口方案只留分卷索引，
 > 全量登记行在各分卷；本入口与分卷合计必须可机器复算（`scripts/derive-ut-cases-full.mjs` 生成）。
 
-**枚举与派生链（机器权威）**：`src/` --AST--> `ut-denominator.md`（241 单元 / 3,117 站点）
+**枚举与派生链（机器权威）**：`src/` --AST--> `ut-denominator.md`（244 单元 / 3,118 义务格）
 --派生--> `volumes/unit-test-scheme-<模块>.md`（每站点一条 Case，责任摘要写明测哪个站点）。
 
 | 分卷 | 文件 | Case 数 | 登记状态 |
 |---|---|--:|---|
-| `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 860 | 待实现 |
-| `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 612 | 待实现 |
-| `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 377 | 待实现 |
-| `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 287 | 待实现 |
-| `MATRIX` | [unit-test-scheme-matrix.md](volumes/unit-test-scheme-matrix.md) | 226 | 待实现 |
-| `BOOT` | [unit-test-scheme-boot.md](volumes/unit-test-scheme-boot.md) | 199 | 待实现 |
+| `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 853 | 待实现 |
+| `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 601 | 待实现 |
+| `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 367 | 待实现 |
+| `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 280 | 待实现 |
+| `MATRIX` | [unit-test-scheme-matrix.md](volumes/unit-test-scheme-matrix.md) | 213 | 待实现 |
+| `BOOT` | [unit-test-scheme-boot.md](volumes/unit-test-scheme-boot.md) | 190 | 待实现 |
 | `IPC` | [unit-test-scheme-ipc.md](volumes/unit-test-scheme-ipc.md) | 167 | 待实现 |
-| `POLICY` | [unit-test-scheme-policy.md](volumes/unit-test-scheme-policy.md) | 155 | 待实现 |
-| `TAPI` | [unit-test-scheme-tapi.md](volumes/unit-test-scheme-tapi.md) | 139 | 待实现 |
-| `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 118 | 待实现 |
+| `POLICY` | [unit-test-scheme-policy.md](volumes/unit-test-scheme-policy.md) | 145 | 待实现 |
+| `TAPI` | [unit-test-scheme-tapi.md](volumes/unit-test-scheme-tapi.md) | 131 | 待实现 |
+| `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 119 | 待实现 |
 | `SCHED` | [unit-test-scheme-sched.md](volumes/unit-test-scheme-sched.md) | 34 | 待实现 |
-| `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 34 | 待实现 |
-| **合计** | — | **3208** | 全部 `待实现`（`Planned`） |
+| `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 26 | 待实现 |
+| **合计** | — | **3126** | 全部 `待实现`（`Planned`） |
 
 **与 §6.1 的关系**：§6.1 的 152 条是**粗粒度符号×类型登记**（波次一，含 16 条补齐义务格的新行）；
 本分卷是**逐站点细粒度登记**（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条）。
-两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3208 = **3360**。
+两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3126 = **3278**。
 分卷全部 `待实现`：清单先行，脚本按清单编写（执行半随 `G-EXEC-UT-3` 与波次二排期）。
 
 **机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成，勿手改）——
@@ -2596,13 +2596,13 @@
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **241 个行为单元**（函数＋方法＋访问器，含私有成员；参数 432 · 分支点 1,216 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1 的 131 个被测符号中仅 1 个（`systemClock`，导出 const 对象）不在表内（命名粒度）；反向差集更大——**表内 71 个单元未被任何 Case 命名**。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，即使按保守系数 1.5×241≈**362 条 Case** 计，当前 136 条也远低于下界。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
+**依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,126 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,278 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,278 条已越下界（但**登记数不等于覆盖**：脚本与执行半仍空，见 `G-EXEC-UT-3`）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
 
 #### 7.1.12 裁决 · 分支路径无逐路径证据（`G-UT-BRANCH-1`）
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：枚举表逐函数登记了全部 **1,216 个内部分支点**（if/else、三元、switch、循环、catch、`&&||??.`、取反，逐条带行号与条件原文，见同表「逐函数分支路径明细」）。现有 136 条 Case 的维度坐标只到「格」粒度，**没有任何一条指向表内某个具体分支路径**；仓库此前无覆盖率工具，「分支是否被走到」不可证。已装 `@vitest/coverage-v8`，但 `src/*.test.ts` 走 `tsx --test`（node:test），vitest 覆盖率对其不可见——首轮数字只能作下界。Owner＝测试工程；恢复条件＝①新增 Case 的维度坐标写明表内行（函数×分支）；②两个 runner 的覆盖率合并进 Run 报告覆盖复算；③分支覆盖率随 `G-EXEC-UT-3` 同批（模块层 Gate 前）给出实测值
+**依据 · Owner · 恢复条件**：枚举表逐函数登记了全部 **1,217 个内部分支点**（if/else、三元、switch、循环、catch、`&&||??.`、取反，逐条带行号与条件原文，见同表「逐函数分支路径明细」）。波次二 3,126 条分卷 Case 的维度坐标已指到表内具体站点（分支行号＋条件原文），**逐路径登记半已闭合**；但「分支是否被走到」仍不可证——仓库此前无覆盖率工具。已装 `@vitest/coverage-v8`，但 `src/*.test.ts` 走 `tsx --test`（node:test），vitest 覆盖率对其不可见——首轮数字只能作下界。Owner＝测试工程；恢复条件＝①新增 Case 的维度坐标写明表内行（函数×分支）；②两个 runner 的覆盖率合并进 Run 报告覆盖复算；③分支覆盖率随 `G-EXEC-UT-3` 同批（模块层 Gate 前）给出实测值
 
 
 
@@ -2784,12 +2784,12 @@
 | 缺口 | 内容 | 最晚 Gate |
 |---|---|---|
 | `G-UT-DENOM-1` | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖 | 下次方案升版 |
-| `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（16 条新 Case 脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
+| `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,278 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 152 个 Case 中 107 个无专属脚本入口（91 存量＋16 波次一新增，四方对账不全） | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 241 个行为单元；波次二已按站点粒度全量登记 3,208 条分卷 Case（§6.1A），全部待实现 | 脚本随波次二排期 |
-| `G-UT-BRANCH-1` | 1,216 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
+| `G-EXEC-UT-3` | 3,278 个 Case 全部只有骨架脚本（`STATUS: skeleton` ＋ `test.todo`），真断言 45 条；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,126 条分卷 Case（§6.1A）＋152 条粗粒度＝3,278，全部待实现 | 脚本随波次二排期 |
+| `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
 

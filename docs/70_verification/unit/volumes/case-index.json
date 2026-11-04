@@ -1,35 +1,35 @@
 {
   "generated": "2026-11-04",
-  "total": 3208,
+  "total": 3126,
   "volumes": [
     {
       "module": "PI",
-      "cases": 860,
+      "cases": 853,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-pi.md"
     },
     {
       "module": "REPO",
-      "cases": 612,
+      "cases": 601,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-repo.md"
     },
     {
       "module": "WORKER",
-      "cases": 377,
+      "cases": 367,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-worker.md"
     },
     {
       "module": "TRANSFER",
-      "cases": 287,
+      "cases": 280,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-transfer.md"
     },
     {
       "module": "MATRIX",
-      "cases": 226,
+      "cases": 213,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-matrix.md"
     },
     {
       "module": "BOOT",
-      "cases": 199,
+      "cases": 190,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-boot.md"
     },
     {
@@ -39,17 +39,17 @@
     },
     {
       "module": "POLICY",
-      "cases": 155,
+      "cases": 145,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-policy.md"
     },
     {
       "module": "TAPI",
-      "cases": 139,
+      "cases": 131,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-tapi.md"
     },
     {
       "module": "OBS",
-      "cases": 118,
+      "cases": 119,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-obs.md"
     },
     {
@@ -59,7 +59,7 @@
     },
     {
       "module": "USAGE",
-      "cases": 34,
+      "cases": 26,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-usage.md"
     }
   ]
