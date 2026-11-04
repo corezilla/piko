@@ -174,7 +174,7 @@ const maxNum = {};
 for (const m of scheme.matchAll(/^#### 6\.1 Case · UT-([A-Z]+)-(\d+)\s*$/gm))
   maxNum[m[1]] = Math.max(maxNum[m[1]] ?? 0, +m[2]);
 const seq = {};
-for (const d of derived.sort((a, b) => a.module.localeCompare(b.module) || a.line - b.line)) {
+for (const d of derived.sort((a, b) => (a.wave - b.wave) || a.module.localeCompare(b.module) || a.line - b.line)) {
   seq[d.module] = (seq[d.module] ?? maxNum[d.module] ?? 0) + 1;
   d.case_id = `UT-${d.module}-${String(seq[d.module]).padStart(3, "0")}`;
 }

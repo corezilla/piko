@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -552,23 +552,23 @@
 
 | 对象类型 | 义务格 | 已登记格 | 已登记的格 | 未登记的格 | §6.1 Case 数 |
 |---|---|---|---|---|---|
-| 纯函数/无副作用 | 3 | 1 | 每等价类合法值 | 边界(上/下/零/空/满)、非法值 | 21 |
-| 数值/长度上限参数 | 4 | 1 | 恰好通过 | +1 拒绝、−1 通过、多上限各自成套 | 3 |
-| 字符串/路径/枚举输入 | 5 | 1 | 空 | 超长、注入字符、未知枚举、路径穿越 | 5 |
+| 纯函数/无副作用 | 3 | 3 | 每等价类合法值、边界(上/下/零/空/满)、非法值 | — | 23 |
+| 数值/长度上限参数 | 4 | 4 | +1 拒绝、−1 通过、多上限各自成套、恰好通过 | — | 6 |
+| 字符串/路径/枚举输入 | 5 | 5 | 未知枚举、注入字符、空、超长、路径穿越 | — | 9 |
 | 错误路径 | 1 | 1 | 每个 typed 错误码 | — | 18 |
-| 资源获取/释放 | 3 | 1 | 获取失败路径 | 正常释放、异常中途释放 | 14 |
-| 并发/可重入 | 2 | 1 | 并发对偶/交错 | 交错枚举（容量 N−1/N/N+1） | 14 |
-| 状态分支 | 2 | 1 | 合法迁移 | 每个非法迁移拒绝 | 37 |
-| 时间域行为 | 2 | 1 | 超时边界 ±1 tick | 定时器触发序 | 9 |
-| 持久化/序列化 | 3 | 1 | round-trip | 截断/损坏、版本不符 | 15 |
-| 性能微基线 | 0 | 0 | — | — | 0（§5.1.7 Tailored-N/A） |
-| **合计** | **25** | **9** | — | **16** | **136** |
+| 资源获取/释放 | 3 | 3 | 异常中途释放、正常释放、获取失败路径 | — | 16 |
+| 并发/可重入 | 2 | 2 | 交错枚举（容量 N−1/N/N+1）、并发对偶/交错 | — | 15 |
+| 状态分支 | 2 | 2 | 合法迁移、每个非法迁移拒绝 | — | 38 |
+| 时间域行为 | 2 | 2 | 定时器触发序、超时边界 ±1 tick | — | 10 |
+| 持久化/序列化 | 3 | 3 | round-trip、截断/损坏、版本不符 | — | 17 |
+| 性能微基线 | 0 | 0 | — | — | 0 |
+| **合计** | **25** | **25** | — | — | **152** |
 
-**维度覆盖实况**：义务 25 格，已登记 9 格，**维度覆盖率 36%**。未登记的 16 格按 STD §6「未实现与 NOT_RUN 不删」登记为**待排期缺口**，汇总为 §7.1 的 `G-UT-DIM-1`，Owner＝测试工程。
+**维度覆盖实况**：义务 25 格，已登记 25 格，**维度覆盖率 100%**（波次一：16 个未登记格已由 `scripts/derive-ut-cases.mjs` 从枚举表派生补齐，2026-11-04）。`G-UT-DIM-1` 的**登记半**已闭合；**执行半**（新 Case 的脚本）随 `G-EXEC-UT-3` 同批。
 
-**「已登记格 9」的读法**：每条 Case 在 §6.1 的责任摘要里**只登记一格**（该类型的首个维度格），
-其余格名是该类型的义务清单，供对照用。因此 136 条 Case 覆盖 9 格，不是 136 格——按 STD「一格一 Case」，
-补齐 16 格需要**新增 16 条 Case**，不是改写现有行。
+**「已登记格」的读法**：每条 Case 在 §6.1 的责任摘要里**只登记一格**（该类型的首个维度格），
+其余格名是该类型的义务清单，供对照用。波次一新增 16 条 Case 逐格补齐 §2.3 全部义务格；
+「格已登记」不等于「脚本已存在」——新 Case 全部为 `Planned`，脚本义务随 `G-EXEC-UT-3`。
 
 #### 5.2.2 维度 · 被测面（模块前缀）
 
@@ -578,27 +578,27 @@
 逐名对账；模块↔ISD 基线映射见 §1.1。**分母不许从已写的 Case 反推**（STD `docs/test-standard.md` §4）——
 本表就是那个不许反推的源。
 
-**本轮分母**：136 条 Case 的模块分布。
+**本轮分母**：152 条 Case 的模块分布（登记状态二值：`已实现`＝脚本＋用例文档齐备／`待实现`＝分母占位）。
 
 | 前缀 | 模块 | ISD 基线 | Case 数 | 已实现 | 待实现 |
 |---|---|---|---|---|---|
 | `UT-BOOT` | bootstrap | `piko-bootstrap-impl.isd.md` | 10 | 10 | 0 |
-| `UT-IPC` | 共享 IPC | `src/ipc.ts`（无独立 ISD） | 10 | 10 | 0 |
-| `UT-MATRIX` | matrix-runtime | `piko-matrix-adapter-impl.isd.md` | 11 | 11 | 0 |
-| `UT-OBS` | observability | `piko-observability-impl.isd.md` | 7 | 7 | 0 |
-| `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 7 | 7 | 0 |
+| `UT-IPC` | 共享 IPC | `src/ipc.ts`（无独立 ISD） | 12 | 10 | 2 |
+| `UT-MATRIX` | matrix-runtime | `piko-matrix-adapter-impl.isd.md` | 13 | 11 | 2 |
+| `UT-OBS` | observability | `piko-observability-impl.isd.md` | 8 | 7 | 1 |
+| `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 12 | 7 | 5 |
 | `UT-POLICY` | policy | `piko-policy-impl.isd.md` | 11 | 11 | 0 |
 | `UT-REPO` | task-repository | `piko-task-repository-impl.isd.md` | 51 | 51 | 0 |
 | `UT-SCHED` | scheduler | `piko-scheduler-impl.isd.md` | 5 | 5 | 0 |
-| `UT-TAPI` | task-api | `piko-task-api-impl.isd.md` | 3 | 3 | 0 |
-| `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 8 | 8 | 0 |
+| `UT-TAPI` | task-api | `piko-task-api-impl.isd.md` | 4 | 3 | 1 |
+| `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 9 | 8 | 1 |
 | `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 2 | 0 |
-| `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 11 | 11 | 0 |
-| **合计** | — | — | **136** | **136** | **0** |
+| `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 11 | 4 |
+| **合计** | — | — | **152** | **136** | **16** |
 
-**实现率**：按 §6「登记状态 `已实现`（脚本＋用例文档齐备）／`待实现`」二值随每行登记，本轮 **136/136 已实现，实现率 100%**（每个 Case 都有同名 `tests.unit-case` 文档 ＋ 可执行入口文件）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3），本轮为 100%，无需 §7 裁决说明。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **136/152 已实现，实现率 89%**——16 条波次一新 Case 为 `Planned`（用例文档已建、脚本待建）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
 
-**「实现率 100%」与「维度覆盖 38%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。前者满格、后者缺 15 格，是本轮的真实状态——登记的分母本身还不完整。
+**「实现率 89%」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。波次一后后者满格、前者缺 16 条脚本，是本轮的真实状态。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -862,6 +862,30 @@
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-010.md`
 
+#### 6.1 Case · UT-IPC-011
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `spawn`（IPC）在对象类型 `时间域行为` 下的维度格 `定时器触发序`（该 Case 只登记本行 1 格）、`超时边界 ±1 tick`；`spawn` × `时间域行为` 格 `定时器触发序`（波次一：补齐 §2.3 未登记格；supervisor.ts:27，分支 14 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`时间域行为` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-011.md`
+
+#### 6.1 Case · UT-IPC-012
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `apply`（IPC）在对象类型 `状态分支` 下的维度格 `每个非法迁移拒绝`（该 Case 只登记本行 1 格）、`合法迁移`；`apply` × `状态分支` 格 `每个非法迁移拒绝`（波次一：补齐 §2.3 未登记格；ipc.ts:50，分支 20 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-bootstrap-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`状态分支` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-IPC-012.md`
+
 #### 6.1 Case · UT-MATRIX-001
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `auditMembership`（MATRIX）在对象类型 `时间域行为` 下的维度格 `超时边界 ±1 tick`（该 Case 只登记本行 1 格）、`定时器触发序`；只测该符号该类型
@@ -994,6 +1018,30 @@
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-011.md`
 
+#### 6.1 Case · UT-MATRIX-012
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `start`（MATRIX）在对象类型 `资源获取/释放` 下的维度格 `正常释放`（该 Case 只登记本行 1 格）、`获取失败路径`、`异常中途释放`；`start` × `资源获取/释放` 格 `正常释放`（波次一：补齐 §2.3 未登记格；matrix.ts:15，分支 21 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`资源获取/释放` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-012.md`
+
+#### 6.1 Case · UT-MATRIX-013
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `downloadMedia`（MATRIX）在对象类型 `字符串/路径/枚举输入` 下的维度格 `未知枚举`（该 Case 只登记本行 1 格）、`空`、`超长`、`注入字符`、`路径穿越`；`downloadMedia` × `字符串/路径/枚举输入` 格 `未知枚举`（波次一：补齐 §2.3 未登记格；matrix.ts:91，分支 29 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-matrix-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-MATRIX-013.md`
+
 #### 6.1 Case · UT-OBS-001
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `audit`（OBS）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
@@ -1078,6 +1126,18 @@
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-007.md`
 
+#### 6.1 Case · UT-OBS-008
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `metric`（OBS）在对象类型 `数值/长度上限参数` 下的维度格 `+1 拒绝`（该 Case 只登记本行 1 格）、`恰好通过`、`−1 通过`、`多上限各自成套`；`metric` × `数值/长度上限参数` 格 `+1 拒绝`（波次一：补齐 §2.3 未登记格；observability.ts:90，分支 16 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-observability-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`数值/长度上限参数` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-OBS-008.md`
+
 #### 6.1 Case · UT-PI-001
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `discussionMessage`（PI）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
@@ -1161,6 +1221,66 @@
 **设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-007.md`
+
+#### 6.1 Case · UT-PI-008
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `search`（PI）在对象类型 `持久化/序列化` 下的维度格 `截断/损坏`（该 Case 只登记本行 1 格）、`round-trip`、`版本不符`；`search` × `持久化/序列化` 格 `截断/损坏`（波次一：补齐 §2.3 未登记格；mem0-client.ts:88，分支 24 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`持久化/序列化` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-008.md`
+
+#### 6.1 Case · UT-PI-009
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `search`（PI）在对象类型 `字符串/路径/枚举输入` 下的维度格 `路径穿越`（该 Case 只登记本行 1 格）、`空`、`超长`、`注入字符`、`未知枚举`；`search` × `字符串/路径/枚举输入` 格 `路径穿越`（波次一：补齐 §2.3 未登记格；graphrag-client.ts:130，分支 26 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-009.md`
+
+#### 6.1 Case · UT-PI-010
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `prefetchSkillContext`（PI）在对象类型 `字符串/路径/枚举输入` 下的维度格 `注入字符`（该 Case 只登记本行 1 格）、`空`、`超长`、`未知枚举`、`路径穿越`；`prefetchSkillContext` × `字符串/路径/枚举输入` 格 `注入字符`（波次一：补齐 §2.3 未登记格；skill-prefetch.ts:137，分支 37 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-010.md`
+
+#### 6.1 Case · UT-PI-011
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `execute`（PI）在对象类型 `纯函数/无副作用` 下的维度格 `边界(上/下/零/空/满)`（该 Case 只登记本行 1 格）、`每等价类合法值`、`非法值`；`execute` × `纯函数/无副作用` 格 `边界(上/下/零/空/满)`（波次一：补齐 §2.3 未登记格；pi-runtime.ts:155，分支 118 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`纯函数/无副作用` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-011.md`
+
+#### 6.1 Case · UT-PI-012
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `add`（PI）在对象类型 `持久化/序列化` 下的维度格 `版本不符`（该 Case 只登记本行 1 格）、`round-trip`、`截断/损坏`；`add` × `持久化/序列化` 格 `版本不符`（波次一：补齐 §2.3 未登记格；mem0-client.ts:203，分支 18 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-pi-adapter-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`持久化/序列化` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-PI-012.md`
 
 #### 6.1 Case · UT-POLICY-001
 
@@ -2002,6 +2122,18 @@
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-003.md`
 
+#### 6.1 Case · UT-TAPI-004
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `route`（TAPI）在对象类型 `并发/可重入` 下的维度格 `交错枚举（容量 N−1/N/N+1）`（该 Case 只登记本行 1 格）、`并发对偶/交错`；`route` × `并发/可重入` 格 `交错枚举（容量 N−1/N/N+1）`（波次一：补齐 §2.3 未登记格；server.ts:62，分支 26 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-task-api-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`并发/可重入` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TAPI-004.md`
+
 #### 6.1 Case · UT-TRANSFER-001
 
 **责任摘要（要测什么／边界在哪）**：被测符号 `assertAllowed`（TRANSFER）在对象类型 `错误路径` 下的维度格 `每个 typed 错误码`（该 Case 只登记本行 1 格）、`错误保真传播`、`内部错误不上抛为客户端码`；只测该符号该类型
@@ -2097,6 +2229,18 @@
 **设计状态**：`Designed`
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-008.md`
+
+#### 6.1 Case · UT-TRANSFER-009
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `execRemote`（TRANSFER）在对象类型 `字符串/路径/枚举输入` 下的维度格 `超长`（该 Case 只登记本行 1 格）、`空`、`注入字符`、`未知枚举`、`路径穿越`；`execRemote` × `字符串/路径/枚举输入` 格 `超长`（波次一：补齐 §2.3 未登记格；remote-exec.ts:92，分支 39 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-transfer-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`字符串/路径/枚举输入` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-TRANSFER-009.md`
 
 #### 6.1 Case · UT-USAGE-001
 
@@ -2255,6 +2399,54 @@
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-011.md`
 
 
+#### 6.1 Case · UT-WORKER-012
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `runExecutionProcess`（WORKER）在对象类型 `资源获取/释放` 下的维度格 `异常中途释放`（该 Case 只登记本行 1 格）、`获取失败路径`、`正常释放`；`runExecutionProcess` × `资源获取/释放` 格 `异常中途释放`（波次一：补齐 §2.3 未登记格；exec-process.ts:17，分支 16 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`资源获取/释放` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-012.md`
+
+#### 6.1 Case · UT-WORKER-013
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `run`（WORKER）在对象类型 `纯函数/无副作用` 下的维度格 `非法值`（该 Case 只登记本行 1 格）、`每等价类合法值`、`边界(上/下/零/空/满)`；`run` × `纯函数/无副作用` 格 `非法值`（波次一：补齐 §2.3 未登记格；worker.ts:143，分支 46 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`纯函数/无副作用` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-013.md`
+
+#### 6.1 Case · UT-WORKER-014
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `aggregateUsage`（WORKER）在对象类型 `数值/长度上限参数` 下的维度格 `多上限各自成套`（该 Case 只登记本行 1 格）、`恰好通过`、`+1 拒绝`、`−1 通过`；`aggregateUsage` × `数值/长度上限参数` 格 `多上限各自成套`（波次一：补齐 §2.3 未登记格；worker.ts:299，分支 12 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`数值/长度上限参数` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-014.md`
+
+#### 6.1 Case · UT-WORKER-015
+
+**责任摘要（要测什么／边界在哪）**：被测符号 `sendDiscussionReplyWithRetry`（WORKER）在对象类型 `数值/长度上限参数` 下的维度格 `−1 通过`（该 Case 只登记本行 1 格）、`恰好通过`、`+1 拒绝`、`多上限各自成套`；`sendDiscussionReplyWithRetry` × `数值/长度上限参数` 格 `−1 通过`（波次一：补齐 §2.3 未登记格；worker.ts:320，分支 14 点）；只测该符号该类型
+
+**来源 ID / 固定版本 · VRC**：`docs/50_implementation_design/piko-worker-impl.isd.md` · 该模块 VRC
+
+**分类 · 优先级**：`数值/长度上限参数` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-015.md`
+
 ### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
 
 > **本节目的**：展示 §6 登记行在用例集中展开成的固定格式段落，供作者预判对应关系。
@@ -2342,7 +2534,7 @@
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **25 个义务维度格**，§6.1 实际只登记 **9 格**（每个 Case 登记 1 格，见 §5.2.1），未登记 **16 格**：纯函数（边界、非法值）、数值上限（+1 拒绝、−1 通过、多上限各自成套）、字符串/路径（超长、注入字符、未知枚举、路径穿越）、资源获取/释放（正常释放、异常中途释放）、并发/可重入（交错枚举容量三点）、状态分支（每个非法迁移拒绝）、时间域行为（定时器触发序）、持久化/序列化（截断/损坏、版本不符）。Owner＝测试工程；恢复条件＝按 §6.2「一格一 Case」逐格补登记（补 16 条即维度覆盖达 100%），并同步 §5.2 的分母
+**依据 · Owner · 恢复条件**：**登记半已关闭**（2026-11-04 波次一）。§2.3 的 **25 个义务维度格**已由 §6.1 逐格登记（136＋16＝152 条，见 §5.2.1）；16 条新 Case 由 `scripts/derive-ut-cases.mjs` 从枚举表派生，用例文档已建、状态 `Planned`。**执行半未关闭**：新 Case 的脚本待建，随 `G-EXEC-UT-3` 同批（Owner＝测试工程；最晚 Gate＝模块层 Gate）
 
 #### 7.1.8 裁决 · 导出但无 Case 的 `src/` 符号（`G-UT-DENOM-2`）
 
@@ -2547,23 +2739,23 @@
 | `review.writing-conformance-checklist` | 22 | 21 | `docs/70_verification/unit/unit-test-scheme.writing-conformance.checklist-result.json` |
 | STD 编写规范（STD 编写索引 §3.1 的 U1–U14） | 14 | 11 | 见上两份结果文件的 `evidence` 列 |
 
-**Review Verdict**：`部分放行` —— 放行「已登记的 136 条 Case 的执行」，**不放行「单元层已全覆盖」的结论**。
+**Review Verdict**：`部分放行` —— 放行「已登记且 `Implemented` 的 136 条 Case 的执行」；16 条波次一新 Case 仅登记（`Planned`），**不放行「单元层已全覆盖」的结论**。
 
 **未关闭 Critical 计数**：7
 
 | 缺口 | 内容 | 最晚 Gate |
 |---|---|---|
 | `G-UT-DENOM-1` | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖 | 下次方案升版 |
-| `G-UT-DIM-1` | 25 个义务维度格只登记 9 格（36%），16 格未登记 | 下次方案升版 |
+| `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（16 条新 Case 脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 136 个 Case 中 91 个的脚本入口未标 Case ID（四方对账不全） | 模块层 Gate 前 |
+| `G-EXEC-UT-3` | 152 个 Case 中 107 个无专属脚本入口（91 存量＋16 波次一新增，四方对账不全） | 模块层 Gate 前 |
 | `G-UT-DENOM-3` | AST 枚举表 241 个行为单元，71 个未被任何 Case 命名；公式格数 1,440，保守下界 ≈362 条 vs 现有 136 | 下一轮补测波次 |
 | `G-UT-BRANCH-1` | 1,216 个内部分支点无一被 Case 逐路径指向；分支覆盖率此前不可证（coverage 工具本轮已接入） | 模块层 Gate 前 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
 
 **机器门**：`python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .` —— 当前报
-`coverage.cells-missing`（缺 16 格）与 `coverage.below-formula`（136 < 196）。**门第一次能拦住本层**。
+`coverage.below-formula`（152 < 196；波次一后 `cells-missing` 已消除）。**门第一次能拦住本层**。
 分母枚举门：`node scripts/enumerate-ut-denominator.mjs --md docs/70_verification/unit/ut-denominator.md`
 —— 241 单元 / 1,216 分支点，与 §5.2.2 的枚举来源对账（技能 `.claude/skills/ut-denominator`）。
