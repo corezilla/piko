@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -572,7 +572,11 @@
 
 #### 5.2.2 维度 · 被测面（模块前缀）
 
-**枚举来源（机器权威）**：§6.1 登记行的 Case ID 前缀；模块↔ISD 基线映射见 §1.1。
+**枚举来源（机器权威）**：`docs/70_verification/unit/ut-denominator.md` —— 由
+`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举的**行为单元全集**（241 个：函数＋方法＋访问器，
+含私有成员；逐单元列参数数、全部分支点、throw/状态写/资源操作数）。§6.1 登记行的「被测符号」栏与本表
+逐名对账；模块↔ISD 基线映射见 §1.1。**分母不许从已写的 Case 反推**（STD `docs/test-standard.md` §4）——
+本表就是那个不许反推的源。
 
 **本轮分母**：136 条 Case 的模块分布。
 
@@ -2358,6 +2362,20 @@
 
 **依据 · Owner · 恢复条件**：§6.1 中 **12 个被测符号名在 `src/` 里不存在**（用例集写的是 ISD 声明名或旧名，实现用的是另一名），逐项对照见 `unit-test-report` §3.2.2。已确认全部是命名漂移而非未实现行为。Owner＝模块设计 ＋ 测试工程；恢复条件＝要么改用例集的「被测符号」栏为实现真实名，要么改 ISD 使两者一致。**其中 `bindToolProfile` 需要设计层确认**：ISD §5.1.8 声明 `bindToolProfile(profile, registry) -> BoundToolProfile`，实现是 `validateToolRegistry(tools)` 校验整个注册表（行为等价，粒度不同）
 
+#### 7.1.11 裁决 · 行为单元全集未入分母（`G-UT-DENOM-3`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **241 个行为单元**（函数＋方法＋访问器，含私有成员；参数 432 · 分支点 1,216 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1 的 131 个被测符号中仅 1 个（`systemClock`，导出 const 对象）不在表内（命名粒度）；反向差集更大——**表内 71 个单元未被任何 Case 命名**。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，即使按保守系数 1.5×241≈**362 条 Case** 计，当前 136 条也远低于下界。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
+
+#### 7.1.12 裁决 · 分支路径无逐路径证据（`G-UT-BRANCH-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：枚举表逐函数登记了全部 **1,216 个内部分支点**（if/else、三元、switch、循环、catch、`&&||??.`、取反，逐条带行号与条件原文，见同表「逐函数分支路径明细」）。现有 136 条 Case 的维度坐标只到「格」粒度，**没有任何一条指向表内某个具体分支路径**；仓库此前无覆盖率工具，「分支是否被走到」不可证。已装 `@vitest/coverage-v8`，但 `src/*.test.ts` 走 `tsx --test`（node:test），vitest 覆盖率对其不可见——首轮数字只能作下界。Owner＝测试工程；恢复条件＝①新增 Case 的维度坐标写明表内行（函数×分支）；②两个 runner 的覆盖率合并进 Run 报告覆盖复算；③分支覆盖率随 `G-EXEC-UT-3` 同批（模块层 Gate 前）给出实测值
+
+
+
 
 ## 8. 文档联动与登记变更规则
 
@@ -2531,7 +2549,7 @@
 
 **Review Verdict**：`部分放行` —— 放行「已登记的 136 条 Case 的执行」，**不放行「单元层已全覆盖」的结论**。
 
-**未关闭 Critical 计数**：5
+**未关闭 Critical 计数**：7
 
 | 缺口 | 内容 | 最晚 Gate |
 |---|---|---|
@@ -2540,8 +2558,12 @@
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
 | `G-EXEC-UT-3` | 136 个 Case 中 91 个的脚本入口未标 Case ID（四方对账不全） | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 241 个行为单元，71 个未被任何 Case 命名；公式格数 1,440，保守下界 ≈362 条 vs 现有 136 | 下一轮补测波次 |
+| `G-UT-BRANCH-1` | 1,216 个内部分支点无一被 Case 逐路径指向；分支覆盖率此前不可证（coverage 工具本轮已接入） | 模块层 Gate 前 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
 
 **机器门**：`python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .` —— 当前报
-`coverage.cells-missing`（缺 15 格）与 `coverage.below-formula`（136 < 196）。**门第一次能拦住本层**。
+`coverage.cells-missing`（缺 16 格）与 `coverage.below-formula`（136 < 196）。**门第一次能拦住本层**。
+分母枚举门：`node scripts/enumerate-ut-denominator.mjs --md docs/70_verification/unit/ut-denominator.md`
+—— 241 单元 / 1,216 分支点，与 §5.2.2 的枚举来源对账（技能 `.claude/skills/ut-denominator`）。
