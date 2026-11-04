@@ -1,18 +1,66 @@
 /**
- * Case ID: UT-USAGE-005  ·  STATUS: skeleton
+ * Case ID: UT-USAGE-005  ·  STATUS: real
  *
- * 责任：参数 `u: TokenUsage` 的 `超长` 类（semantic.ts:3）
- * 维度坐标：`validateUsage` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `USAGE`）
+ * 责任：参数 `u: TokenUsage` 的 `边界(上/下/零/空/满)` 类（semantic.ts:3）
+ * 维度坐标：`validateUsage` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `USAGE`）
  * 用例文档：docs/70_verification/unit/cases/UT-USAGE-005.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { validateUsage } from "../../../src/semantic.js";
+import type { TokenUsage } from "../../../src/types.js";
 
-describe("UT-USAGE-005 · validateUsage（semantic.ts:3）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `u: TokenUsage`，其余参数取合法等价类（semantic.ts:3）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → validateUsage(/* 参数 */) → 逐值断言（Oracle：UT-USAGE-005 用例文档 §3）
+const base: TokenUsage = {
+  source: "PiModelResponses",
+  quality: "Complete",
+  input_tokens: 10,
+  output_tokens: 5,
+  total_tokens: 15,
+  cache_read_tokens: 0,
+  cache_write_tokens: 0,
+  reasoning_tokens: 0,
+  model_attempts: 2,
+  usage_observed_attempts: 2,
+  missing_fields: [],
+};
+
+describe("UT-USAGE-005 · validateUsage · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("accepts the zero boundary (all counters and tokens at zero)", () => {
+    // 步骤 1：全部数值字段取下界 0
+    const input: TokenUsage = {
+      ...base,
+      input_tokens: 0,
+      output_tokens: 0,
+      total_tokens: 0,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
+      reasoning_tokens: 0,
+      model_attempts: 0,
+      usage_observed_attempts: 0,
+    };
+
+    // 步骤 2：调用 validateUsage
+    // 步骤 3：断言零边界被接受
+    expect(() => validateUsage(input)).not.toThrow();
+  });
+
+  it("accepts the equal boundary (cache usage exactly equals input_tokens)", () => {
+    // 步骤 1：cache_read_tokens 与 cache_write_tokens 各自恰好等于 input_tokens（上界）
+    const input: TokenUsage = {
+      ...base,
+      input_tokens: 10,
+      output_tokens: 5,
+      total_tokens: 15,
+      cache_read_tokens: 10,
+      cache_write_tokens: 10,
+    };
+
+    // 步骤 2：调用 validateUsage
+    // 步骤 3：断言恰好等于上界不被拒绝（严格大于才拒绝）
+    expect(() => validateUsage(input)).not.toThrow();
+  });
+
+  it("accepts the reasoning upper boundary (reasoning_tokens exactly equals output_tokens)", () => {
+    const input: TokenUsage = { ...base, output_tokens: 5, reasoning_tokens: 5 };
+    expect(() => validateUsage(input)).not.toThrow();
+  });
 });

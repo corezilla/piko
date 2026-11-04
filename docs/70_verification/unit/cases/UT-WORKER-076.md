@@ -52,7 +52,7 @@
 
 对象函数：`isExecutionFailure`（`test-evidence.ts:65`，fn/exported）
 
-维度格（方案 §2.3 行×格）：`字符串/路径/枚举输入` × `超长`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `边界(上/下/零/空/满)`
 
 实现状态：`Planned`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-WORKER-076 · 参数 `raw: RawResultRef` 的 `超长` 类（test-evidence.ts:65）
+#### 3.1 UT-WORKER-076 · 参数 `raw: RawResultRef` 的 `边界(上/下/零/空/满)` 类（test-evidence.ts:65）
 
 **责任 / 明确不测**：
 
-验证 `isExecutionFailure`（`test-evidence.ts:65`）在 `字符串/路径/枚举输入` × `超长` 这一格上的行为与设计声明一致（参数 `raw: RawResultRef` 的 `超长` 类（test-evidence.ts:65））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `isExecutionFailure`（`test-evidence.ts:65`）在 `纯函数/无副作用` × `边界(上/下/零/空/满)` 这一格上的行为与设计声明一致（参数 `raw: RawResultRef` 的 `边界(上/下/零/空/满)` 类（test-evidence.ts:65））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`isExecutionFailure` × `字符串/路径/枚举输入` × `超长`。
+`isExecutionFailure` × `纯函数/无副作用` × `边界(上/下/零/空/满)`。
 
 **输入构造**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `超长` 类构造参数 `raw: RawResultRef`：长度 2×上限 的字符串（上限取该参数在源码中的比较常量，无则 4096）；其余参数取合法等价类。该参数在源码中的校验语句：`raw.report_missing || raw.execution_failed`
+**步骤 1**——动作：按 `边界(上/下/零/空/满)` 类构造参数 `raw: RawResultRef`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数在源码中的校验语句：`raw.report_missing || raw.execution_failed`
 
 观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
@@ -90,7 +90,7 @@
 
 观察点：返回值或抛出的错误
 
-**步骤 3**——动作：断言：被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
+**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
 
 观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
 

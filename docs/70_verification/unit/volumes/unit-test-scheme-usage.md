@@ -5,14 +5,14 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：26**（对象类型分布：纯函数/无副作用 1；字符串/路径/枚举输入 3；状态分支 14；错误路径 8）
+**本卷 Case 数：26**（对象类型分布：纯函数/无副作用 4；状态分支 14；错误路径 8）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
 | `UT-USAGE-003` | `emptyUsage`（`semantic.ts:14`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L14 值 `{source:"PiModelResponses",quality:"Com…` 逐值断言（semantic.ts） | 待实现 |
-| `UT-USAGE-004` | `validateUsage`（`semantic.ts:3`） | `字符串/路径/枚举输入` × `空` | 参数 `u: TokenUsage` 的 `空` 类（semantic.ts:3） | 待实现 |
-| `UT-USAGE-005` | `validateUsage`（`semantic.ts:3`） | `字符串/路径/枚举输入` × `超长` | 参数 `u: TokenUsage` 的 `超长` 类（semantic.ts:3） | 待实现 |
-| `UT-USAGE-006` | `validateUsage`（`semantic.ts:3`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `u: TokenUsage` 的 `注入字符` 类（semantic.ts:3） | 待实现 |
+| `UT-USAGE-004` | `validateUsage`（`semantic.ts:3`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `u: TokenUsage` 的 `每等价类合法值` 类（semantic.ts:3） | 待实现 |
+| `UT-USAGE-005` | `validateUsage`（`semantic.ts:3`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `u: TokenUsage` 的 `边界(上/下/零/空/满)` 类（semantic.ts:3） | 待实现 |
+| `UT-USAGE-006` | `validateUsage`（`semantic.ts:3`） | `纯函数/无副作用` × `非法值` | 参数 `u: TokenUsage` 的 `非法值` 类（semantic.ts:3） | 待实现 |
 | `UT-USAGE-007` | `validateUsage`（`semantic.ts:3`） | `状态分支` × `合法迁移` | 分支 L6 `loop (fields)`（loop；semantic.ts） | 待实现 |
 | `UT-USAGE-008` | `validateUsage`（`semantic.ts:3`） | `状态分支` × `合法迁移` | 分支 L7 `u.quality === "Complete" && (known.length !==…`（&&；semantic.ts） | 待实现 |
 | `UT-USAGE-009` | `validateUsage`（`semantic.ts:3`） | `状态分支` × `合法迁移` | 分支 L7 `known.length !== 6 \|\| u.usage_observed_attemp…`（\|\|；semantic.ts） | 待实现 |

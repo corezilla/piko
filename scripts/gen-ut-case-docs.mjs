@@ -50,6 +50,15 @@ const coarseCases = [];
 let list = [...cases, ...coarseCases];
 if (limit > 0) list = list.slice(0, limit);
 
+// 实现状态的唯一权威是用例文档 §1 总账与 §4 —— 但脚本的真假由脚本自己
+// 声明（STATUS: real / skeleton）。文档与脚本必须同向，不能一个说实现、
+// 一个还是骨架。
+const scriptStatus = (id) => {
+  const f = `tests/unit/cases/${id}.test.ts`;
+  if (!existsSync(f)) return "Planned";
+  return /STATUS: real/.test(readFileSync(f, "utf8")) ? "Implemented" : "Planned";
+};
+
 const MODULE_OF = {
   BOOT: "piko-bootstrap", IPC: "piko-bootstrap", MATRIX: "piko-matrix-adapter",
   OBS: "piko-observability", PI: "piko-pi-adapter", POLICY: "piko-policy",
@@ -182,6 +191,7 @@ for (const c of list) {
   const path = `docs/70_verification/unit/cases/${c.case_id}.md`;
   const unit = unitOf.get(`${c.file}:${c.line}:${c.symbol}`) ??
     rows.find((r) => r.file === c.file && r.symbol === c.symbol);
+  const status = scriptStatus(c.case_id);
   const S = stepsFor(c, unit);
   const call = c.kind === "ctor" ? `构造 \`${c.symbol}\`` : `调用 \`${c.symbol}\``;
   const L = [
@@ -210,7 +220,7 @@ for (const c of list) {
     ``,
     `维度格（方案 §2.3 行×格）：\`${c.type}\` × \`${c.cell}\``,
     ``,
-    `实现状态：\`Planned\``,
+    `实现状态：\`${status}\``,
     ``,
     `## 2. 公共前提与替身矩阵`,
     ``,
@@ -250,11 +260,11 @@ for (const c of list) {
     ``,
     `**脚本 / 实现状态**：`,
     ``,
-    `\`tests/unit/cases/${c.case_id}.test.ts\` · \`Planned\``,
+    `\`tests/unit/cases/${c.case_id}.test.ts\` · \`${status}\``,
     ``,
     `## 4. 集合状态汇总与缺口`,
     ``,
-    `- **实现状态**：\`Planned\`（与 §1 一致）`,
+    `- **实现状态**：\`${status}\`（与 §1 一致）`,
     `- **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → \`G-EXEC-UT-3\`（Piko QA，波次二排期内）`,
     ``,
   ];

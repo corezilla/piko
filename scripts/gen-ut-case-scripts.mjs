@@ -102,7 +102,12 @@ function body(c) {
 let made = 0, skipped = 0;
 for (const c of list) {
   const path = join(DIR, `${c.case_id}.test.ts`);
-  if (existsSync(path) && !force) { skipped += 1; continue; }
+  if (existsSync(path) && !force) {
+    // a hand-written script (STATUS: real) is never overwritten by the
+    // skeleton generator; a stale skeleton is rewritten
+    const prev = readFileSync(path, "utf8");
+    if (/STATUS: real/.test(prev)) { skipped += 1; continue; }
+  }
   const L = [
     `/**`,
     ` * Case ID: ${c.case_id}  ·  STATUS: skeleton`,

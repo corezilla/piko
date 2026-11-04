@@ -42,7 +42,18 @@ const taken = (sym, mod, cell) => existing.get(`${sym}::${mod}`)?.has(cell) ?? f
 const NUM = /^(number|bigint|DurationMs|Count|Bytes|Ms|Port|Timestamp|number\[\])$/i;
 const STR = /^(string|RelPath|Path|Ref|Id|Token|Sha256|Cursor|RoomId|EventId|TxnId|Enum|Buffer|Uint8Array)/i;
 const isNum = (t) => NUM.test(t) || /\bnumber\b/.test(t);
-const isStr = (t) => STR.test(t) || /\bstring\b|Path|Ref|Id|Token|Sha|Cursor/.test(t);
+// A named object type (TokenUsage, TaskStore, PrefetchIdentity) is not a
+// string: the "空/超长/注入字符" classes do not apply to it. The old rule
+// matched on "Token|Id" inside a CamelCase type name and filed three
+// object parameters under the string classes.
+const PRIMITIVES = /^(string|number|boolean|bigint|symbol|unknown|any|never|void|null|undefined|Buffer|Uint8Array|ArrayBuffer|Date|RegExp)$/;
+const isStr = (t) => {
+  if (PRIMITIVES.test(t)) return t === "string" || t === "Buffer" || t === "Uint8Array" || t === "ArrayBuffer";
+  if (/^[A-Z][A-Za-z0-9]*$/.test(t)) return false;            // named type
+  if (/\bstring\b/.test(t)) return true;
+  // branded string aliases only (RelPath / Sha256 / Token ...)
+  return /^(RelPath|Path|Ref|Id|Token|Sha256|Cursor|RoomId|EventId|TxnId|Enum)$/.test(t);
+};
 const clip = (s, n = 58) => { s = s.replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 
 const ISD = {
@@ -204,12 +215,15 @@ if (existsSync("tests/unit/reports")) {
   };
   scanRuns("tests/unit/reports");
 }
-// 实现状态的唯一权威是用例文档（STD 状态分层：方案只持有设计状态）
+// 实现状态的唯一权威是用例文档 §1 总账行（STD 状态分层：方案只持有设计状态）。
+// The 状态语义 note in the template lists both candidate words, so reading it
+// would report "Planned" for every document — read the ledger row instead.
 const caseDocStatus = (id) => {
   const f = `${CASEDIR}/${id}.md`;
   if (!existsSync(f)) return "Planned";
-  const m = readFileSync(f, "utf8").match(/测试代码实现状态\*\*：`[A-Za-z_]+`\s*\/\s*`([A-Za-z_]+)`/);
-  return m?.[1] ?? "Planned";
+  const text = readFileSync(f, "utf8");
+  const row = text.match(/^实现状态：`([A-Za-z_]+)`\s*$/m);
+  return row?.[1] ?? "Planned";
 };
 const SCHEME_PATH = "docs/70_verification/unit/unit-test-scheme.md";
 const rowFields = (id, schemePath) => ({
@@ -243,7 +257,7 @@ const all = [
   ...coarse,
   ...fresh.map((c) => ({ id: c.case_id, case_id: c.case_id, module: c.module, symbol: c.symbol,
     type: c.type, cell: c.cell, summary: c.summary, site: c.site,
-    granularity: "per-site", status: "Planned",
+    granularity: "per-site", status: caseDocStatus(c.case_id),
     ...rowFields(c.case_id, `docs/70_verification/unit/volumes/unit-test-scheme-${c.module.toLowerCase()}.md`) })),
 ];
 const full = {

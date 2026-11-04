@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：367**（对象类型分布：字符串/路径/枚举输入 51；状态分支 142；错误路径 38；资源获取/释放 8；纯函数/无副作用 111；时间域行为 2；数值/长度上限参数 9；并发/可重入 5；持久化/序列化 1）
+**本卷 Case 数：367**（对象类型分布：字符串/路径/枚举输入 48；状态分支 142；错误路径 38；资源获取/释放 8；纯函数/无副作用 114；时间域行为 2；数值/长度上限参数 9；并发/可重入 5；持久化/序列化 1）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -68,9 +68,9 @@
 | `UT-WORKER-072` | `buildRawResultRef`（`test-evidence.ts:42`） | `状态分支` × `合法迁移` | 分支 L49 `fact.status !== "exited" \|\| (fact.exit_code !…`（\|\|；test-evidence.ts） | 待实现 |
 | `UT-WORKER-073` | `buildRawResultRef`（`test-evidence.ts:42`） | `状态分支` × `合法迁移` | 分支 L49 `fact.exit_code !== null && fact.exit_code !==…`（&&；test-evidence.ts） | 待实现 |
 | `UT-WORKER-074` | `buildRawResultRef`（`test-evidence.ts:42`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L51 值 `{ outputs: [...input.outputs], executio…` 逐值断言（test-evidence.ts） | 待实现 |
-| `UT-WORKER-075` | `isExecutionFailure`（`test-evidence.ts:65`） | `字符串/路径/枚举输入` × `空` | 参数 `raw: RawResultRef` 的 `空` 类（test-evidence.ts:65） | 待实现 |
-| `UT-WORKER-076` | `isExecutionFailure`（`test-evidence.ts:65`） | `字符串/路径/枚举输入` × `超长` | 参数 `raw: RawResultRef` 的 `超长` 类（test-evidence.ts:65） | 待实现 |
-| `UT-WORKER-077` | `isExecutionFailure`（`test-evidence.ts:65`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `raw: RawResultRef` 的 `注入字符` 类（test-evidence.ts:65） | 待实现 |
+| `UT-WORKER-075` | `isExecutionFailure`（`test-evidence.ts:65`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `raw: RawResultRef` 的 `每等价类合法值` 类（test-evidence.ts:65） | 待实现 |
+| `UT-WORKER-076` | `isExecutionFailure`（`test-evidence.ts:65`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `raw: RawResultRef` 的 `边界(上/下/零/空/满)` 类（test-evidence.ts:65） | 待实现 |
+| `UT-WORKER-077` | `isExecutionFailure`（`test-evidence.ts:65`） | `纯函数/无副作用` × `非法值` | 参数 `raw: RawResultRef` 的 `非法值` 类（test-evidence.ts:65） | 待实现 |
 | `UT-WORKER-078` | `isExecutionFailure`（`test-evidence.ts:65`） | `状态分支` × `合法迁移` | 分支 L66 `raw.report_missing \|\| raw.execution_failed`（\|\|；test-evidence.ts） | 待实现 |
 | `UT-WORKER-079` | `isExecutionFailure`（`test-evidence.ts:65`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L66 值 `raw.report_missing \|\| raw.execution_fai…` 逐值断言（test-evidence.ts） | 待实现 |
 | `UT-WORKER-080` | `fileState`（`tool-recovery.ts:31`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `env: ExecutionToolContext["env"]` 的 `每等价类合法值` 类（tool-recovery.ts:31） | 待实现 |

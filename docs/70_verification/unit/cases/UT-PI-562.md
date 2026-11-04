@@ -52,7 +52,7 @@
 
 对象函数：`prefetchSkillContext`（`skill-prefetch.ts:137`，fn/exported）
 
-维度格（方案 §2.3 行×格）：`字符串/路径/枚举输入` × `注入字符`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
 
 实现状态：`Planned`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-PI-562 · 参数 `identity: PrefetchIdentity | undefined` 的 `注入字符` 类（skill-prefetch.ts:137）
+#### 3.1 UT-PI-562 · 参数 `identity: PrefetchIdentity | undefined` 的 `非法值` 类（skill-prefetch.ts:137）
 
 **责任 / 明确不测**：
 
-验证 `prefetchSkillContext`（`skill-prefetch.ts:137`）在 `字符串/路径/枚举输入` × `注入字符` 这一格上的行为与设计声明一致（参数 `identity: PrefetchIdentity | undefined` 的 `注入字符` 类（skill-prefetch.ts:137））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `prefetchSkillContext`（`skill-prefetch.ts:137`）在 `纯函数/无副作用` × `非法值` 这一格上的行为与设计声明一致（参数 `identity: PrefetchIdentity | undefined` 的 `非法值` 类（skill-prefetch.ts:137））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`prefetchSkillContext` × `字符串/路径/枚举输入` × `注入字符`。
+`prefetchSkillContext` × `纯函数/无副作用` × `非法值`。
 
 **输入构造**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `注入字符` 类构造参数 `identity: PrefetchIdentity | undefined`：含 `../` 与绝对路径的穿越串；含控制字符与 SQL/命令元字符的注入串；超长＋注入组合串；其余参数取合法等价类。该参数在源码中的校验语句：`if (!identity) return empty("no_identity");`
+**步骤 1**——动作：按 `非法值` 类构造参数 `identity: PrefetchIdentity | undefined`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数在源码中的校验语句：`if (!identity) return empty("no_identity");`
 
 观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 

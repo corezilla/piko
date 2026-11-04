@@ -1,8 +1,8 @@
 /**
  * Case ID: UT-PI-554  ·  STATUS: skeleton
  *
- * 责任：参数 `identity: PrefetchIdentity` 的 `注入字符` 类（skill-prefetch.ts:114）
- * 维度坐标：`cacheKey` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `PI`）
+ * 责任：参数 `identity: PrefetchIdentity` 的 `非法值` 类（skill-prefetch.ts:114）
+ * 维度坐标：`cacheKey` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-554.md（脚本的唯一依据）
  *
  * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
@@ -11,8 +11,8 @@
 import { describe, test } from "vitest";
 
 describe("UT-PI-554 · cacheKey（skill-prefetch.ts:114）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `identity: PrefetchIdentity`，其余参数取合法等价类（skill-prefetch.ts:114）
+  test.todo("纯函数/无副作用 × 非法值");
+  // 输入构造：按 `非法值` 类构造 `identity: PrefetchIdentity`，其余参数取合法等价类（skill-prefetch.ts:114）
   // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
   // 待实现：构造输入 → cacheKey(/* 参数 */) → 逐值断言（Oracle：UT-PI-554 用例文档 §3）
 });

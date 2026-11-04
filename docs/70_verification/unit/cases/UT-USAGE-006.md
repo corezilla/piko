@@ -52,9 +52,9 @@
 
 对象函数：`validateUsage`（`semantic.ts:3`，fn/exported）
 
-维度格（方案 §2.3 行×格）：`字符串/路径/枚举输入` × `注入字符`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
 
-实现状态：`Planned`
+实现状态：`Implemented`
 
 ## 2. 公共前提与替身矩阵
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-USAGE-006 · 参数 `u: TokenUsage` 的 `注入字符` 类（semantic.ts:3）
+#### 3.1 UT-USAGE-006 · 参数 `u: TokenUsage` 的 `非法值` 类（semantic.ts:3）
 
 **责任 / 明确不测**：
 
-验证 `validateUsage`（`semantic.ts:3`）在 `字符串/路径/枚举输入` × `注入字符` 这一格上的行为与设计声明一致（参数 `u: TokenUsage` 的 `注入字符` 类（semantic.ts:3））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `validateUsage`（`semantic.ts:3`）在 `纯函数/无副作用` × `非法值` 这一格上的行为与设计声明一致（参数 `u: TokenUsage` 的 `非法值` 类（semantic.ts:3））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`validateUsage` × `字符串/路径/枚举输入` × `注入字符`。
+`validateUsage` × `纯函数/无副作用` × `非法值`。
 
 **输入构造**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `注入字符` 类构造参数 `u: TokenUsage`：含 `../` 与绝对路径的穿越串；含控制字符与 SQL/命令元字符的注入串；超长＋注入组合串；其余参数取合法等价类。该参数在源码中的校验语句：`if (u.usage_observed_attempts > u.model_attempts) throw new Error("usage observed attempts exceed m…`；`if ((u[f] === null) !== missing.has(f)) throw new Error(`usage missing mismatch: ${f}`);`；`if (u.quality === "Complete" && (known.length !== 6 || u.usage_observed_attempts !== u.model_attemp…`
+**步骤 1**——动作：按 `非法值` 类构造参数 `u: TokenUsage`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数在源码中的校验语句：`if (u.usage_observed_attempts > u.model_attempts) throw new Error("usage observed attempts exceed m…`；`if ((u[f] === null) !== missing.has(f)) throw new Error(`usage missing mismatch: ${f}`);`；`if (u.quality === "Complete" && (known.length !== 6 || u.usage_observed_attempts !== u.model_attemp…`
 
 观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
@@ -104,9 +104,9 @@
 
 **脚本 / 实现状态**：
 
-`tests/unit/cases/UT-USAGE-006.test.ts` · `Planned`
+`tests/unit/cases/UT-USAGE-006.test.ts` · `Implemented`
 
 ## 4. 集合状态汇总与缺口
 
-- **实现状态**：`Planned`（与 §1 一致）
+- **实现状态**：`Implemented`（与 §1 一致）
 - **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）

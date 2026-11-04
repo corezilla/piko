@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：853**（对象类型分布：字符串/路径/枚举输入 139；纯函数/无副作用 246；状态分支 377；错误路径 53；数值/长度上限参数 25；时间域行为 2；资源获取/释放 9；并发/可重入 2）
+**本卷 Case 数：853**（对象类型分布：字符串/路径/枚举输入 133；纯函数/无副作用 252；状态分支 377；错误路径 53；数值/长度上限参数 25；时间域行为 2；资源获取/释放 9；并发/可重入 2）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -548,17 +548,17 @@
 | `UT-PI-549` | `preflightModelProvider`（`provider-preflight.ts:1`） | `错误路径` × `每个 typed 错误码` | throw L7 `reject`（守卫 `if (!Array.isArray(payload?.data)\|\|!pay…`；provider-preflight.ts） | 待实现 |
 | `UT-PI-550` | `preflightModelProvider`（`provider-preflight.ts:1`） | `资源获取/释放` × `获取失败路径` | 资源操作 L2 `setTimeout`（provider-preflight.ts） | 待实现 |
 | `UT-PI-551` | `preflightModelProvider`（`provider-preflight.ts:1`） | `资源获取/释放` × `正常释放` | 资源操作 L8 `clearTimeout`（provider-preflight.ts） | 待实现 |
-| `UT-PI-552` | `cacheKey`（`skill-prefetch.ts:114`） | `字符串/路径/枚举输入` × `空` | 参数 `identity: PrefetchIdentity` 的 `空` 类（skill-prefetch.ts:114） | 待实现 |
-| `UT-PI-553` | `cacheKey`（`skill-prefetch.ts:114`） | `字符串/路径/枚举输入` × `超长` | 参数 `identity: PrefetchIdentity` 的 `超长` 类（skill-prefetch.ts:114） | 待实现 |
-| `UT-PI-554` | `cacheKey`（`skill-prefetch.ts:114`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `identity: PrefetchIdentity` 的 `注入字符` 类（skill-prefetch.ts:114） | 待实现 |
+| `UT-PI-552` | `cacheKey`（`skill-prefetch.ts:114`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `identity: PrefetchIdentity` 的 `每等价类合法值` 类（skill-prefetch.ts:114） | 待实现 |
+| `UT-PI-553` | `cacheKey`（`skill-prefetch.ts:114`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `identity: PrefetchIdentity` 的 `边界(上/下/零/空/满)` 类（skill-prefetch.ts:114） | 待实现 |
+| `UT-PI-554` | `cacheKey`（`skill-prefetch.ts:114`） | `纯函数/无副作用` × `非法值` | 参数 `identity: PrefetchIdentity` 的 `非法值` 类（skill-prefetch.ts:114） | 待实现 |
 | `UT-PI-555` | `cacheKey`（`skill-prefetch.ts:114`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L115 值 ``${identity.role}\|${identity.userId}\|${…` 逐值断言（skill-prefetch.ts） | 待实现 |
 | `UT-PI-556` | `prefetchCacheSize`（`skill-prefetch.ts:124`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L125 值 `cache.size` 逐值断言（skill-prefetch.ts） | 待实现 |
 | `UT-PI-557` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `空` | 参数 `query: string` 的 `空` 类（skill-prefetch.ts:137） | 待实现 |
 | `UT-PI-558` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `超长` | 参数 `query: string` 的 `超长` 类（skill-prefetch.ts:137） | 待实现 |
 | `UT-PI-559` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `query: string` 的 `注入字符` 类（skill-prefetch.ts:137） | 待实现 |
-| `UT-PI-560` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `空` | 参数 `identity: PrefetchIdentity \| undefined` 的 `空` 类（skill-prefetch.ts:137） | 待实现 |
-| `UT-PI-561` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `超长` | 参数 `identity: PrefetchIdentity \| undefined` 的 `超长` 类（skill-prefetch.ts:137） | 待实现 |
-| `UT-PI-562` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `identity: PrefetchIdentity \| undefined` 的 `注入字符` 类（skill-prefetch.ts:137） | 待实现 |
+| `UT-PI-560` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `identity: PrefetchIdentity \| undefined` 的 `每等价类合法值` 类（skill-prefetch.ts:137） | 待实现 |
+| `UT-PI-561` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `identity: PrefetchIdentity \| undefined` 的 `边界(上/下/零/空/满)` 类（skill-prefetch.ts:137） | 待实现 |
+| `UT-PI-562` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `非法值` | 参数 `identity: PrefetchIdentity \| undefined` 的 `非法值` 类（skill-prefetch.ts:137） | 待实现 |
 | `UT-PI-563` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `mem0: Mem0Adapter \| undefined` 的 `每等价类合法值` 类（skill-prefetch.ts:137） | 待实现 |
 | `UT-PI-564` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `mem0: Mem0Adapter \| undefined` 的 `边界(上/下/零/空/满)` 类（skill-prefetch.ts:137） | 待实现 |
 | `UT-PI-565` | `prefetchSkillContext`（`skill-prefetch.ts:137`） | `纯函数/无副作用` × `非法值` | 参数 `mem0: Mem0Adapter \| undefined` 的 `非法值` 类（skill-prefetch.ts:137） | 待实现 |

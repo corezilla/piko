@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：280**（对象类型分布：纯函数/无副作用 82；错误路径 24；状态分支 98；字符串/路径/枚举输入 64；时间域行为 1；资源获取/释放 11）
+**本卷 Case 数：280**（对象类型分布：纯函数/无副作用 85；错误路径 24；状态分支 98；字符串/路径/枚举输入 61；时间域行为 1；资源获取/释放 11）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -157,9 +157,9 @@
 | `UT-TRANSFER-155` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `空` | 参数 `taskId: string` 的 `空` 类（transfer.ts:166） | 待实现 |
 | `UT-TRANSFER-156` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `超长` | 参数 `taskId: string` 的 `超长` 类（transfer.ts:166） | 待实现 |
 | `UT-TRANSFER-157` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `taskId: string` 的 `注入字符` 类（transfer.ts:166） | 待实现 |
-| `UT-TRANSFER-158` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `空` | 参数 `refs: InputRef[]` 的 `空` 类（transfer.ts:166） | 待实现 |
-| `UT-TRANSFER-159` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `超长` | 参数 `refs: InputRef[]` 的 `超长` 类（transfer.ts:166） | 待实现 |
-| `UT-TRANSFER-160` | `fetchInputs`（`transfer.ts:166`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `refs: InputRef[]` 的 `注入字符` 类（transfer.ts:166） | 待实现 |
+| `UT-TRANSFER-158` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `refs: InputRef[]` 的 `每等价类合法值` 类（transfer.ts:166） | 待实现 |
+| `UT-TRANSFER-159` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `refs: InputRef[]` 的 `边界(上/下/零/空/满)` 类（transfer.ts:166） | 待实现 |
+| `UT-TRANSFER-160` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `非法值` | 参数 `refs: InputRef[]` 的 `非法值` 类（transfer.ts:166） | 待实现 |
 | `UT-TRANSFER-161` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `signal: AbortSignal` 的 `每等价类合法值` 类（transfer.ts:166） | 待实现 |
 | `UT-TRANSFER-162` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `signal: AbortSignal` 的 `边界(上/下/零/空/满)` 类（transfer.ts:166） | 待实现 |
 | `UT-TRANSFER-163` | `fetchInputs`（`transfer.ts:166`） | `纯函数/无副作用` × `非法值` | 参数 `signal: AbortSignal` 的 `非法值` 类（transfer.ts:166） | 待实现 |
