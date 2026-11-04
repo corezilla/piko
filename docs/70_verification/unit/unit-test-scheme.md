@@ -2478,6 +2478,11 @@
 两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3208 = **3360**。
 分卷全部 `待实现`：清单先行，脚本按清单编写（执行半随 `G-EXEC-UT-3` 与波次二排期）。
 
+**机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成）——
+全层 3,360 条逐条一行的清单（`case_id`/`module`/`symbol`/`type`/`cell`/`summary`/`site`/`granularity`/`status`），
+含汇总计数 `granularity_counts`、`status_counts`、`module_counts`、`category_counts`。
+计划 §3 前检与四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）按本文件复算，不手数表格。
+
 ### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
 
 > **本节目的**：展示 §6 登记行在用例集中展开成的固定格式段落，供作者预判对应关系。

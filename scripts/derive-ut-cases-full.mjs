@@ -17,7 +17,7 @@
  * Output: per-module volume files (registry tables) + JSON index.
  * Usage: node scripts/derive-ut-cases-full.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const { rows } = JSON.parse(readFileSync("/tmp/ut-denominator.json", "utf8"));
@@ -153,5 +153,51 @@ for (const [mod, list] of Object.entries(byMod)) {
 }
 index.sort((a, b) => b.cases - a.cases);
 writeFileSync(`${VOLDIR}/case-index.json`, JSON.stringify({ generated: "2026-11-04", total, volumes: index }, null, 2));
+
+// full machine-readable Case list for the layer (LLMTier practice):
+// every registered Case, coarse (§6.1) and per-site (volumes), one row each.
+// 实现状态的唯一权威是用例文档（STD 状态分层：方案只持有设计状态）
+const caseDocStatus = (id) => {
+  const f = `docs/70_verification/unit/cases/${id}.md`;
+  if (!existsSync(f)) return "Planned";
+  const m = readFileSync(f, "utf8").match(/测试代码实现状态\*\*：`[A-Za-z_]+`\s*\/\s*`([A-Za-z_]+)`/);
+  return m?.[1] ?? "Planned";
+};
+const coarse = [];
+for (let i = 1; i < blocks.length - 1; i += 2) {
+  const mod = blocks[i], body = blocks[i + 1];
+  const num = body.match(/^6\.1\.\d+\s+Case · UT-([A-Z]+)-(\d+)/m)?.[2]
+    ?? body.match(/UT-[A-Z]+-(\d+)/)?.[1];
+  if (!num) continue;
+  const cells = [...body.matchAll(/维度格\s*`([^`]+)`/g)].map((m) => m[1]);
+  coarse.push({
+    case_id: `UT-${mod}-${num}`, module: mod,
+    symbol: body.match(/被测符号 `([^`]+)`/)?.[1] ?? null,
+    type: body.match(/对象类型 `([^`]+)`/)?.[1] ?? null,
+    cell: cells[0] ?? null,
+    summary: clip(body.match(/责任摘要[^：]*：(.+)/)?.[1] ?? "", 200),
+    granularity: "symbol-x-cell",
+    status: caseDocStatus(`UT-${mod}-${num}`),
+  });
+}
+const countBy = (list, key) => list.reduce((a, c) => ((a[c[key]] = (a[c[key]] ?? 0) + 1), a), {});
+const all = [
+  ...coarse,
+  ...fresh.map((c) => ({ case_id: c.case_id, module: c.module, symbol: c.symbol,
+    type: c.type, cell: c.cell, summary: c.summary, site: c.site,
+    granularity: "per-site", status: "Planned" })),
+];
+const full = {
+  document: "piko UT Case 索引", layer: "UT",
+  generated_by: "scripts/derive-ut-cases-full.mjs",
+  note: "方案 §6.1（粗粒度）＋ §6.1A 分卷（逐站点）的机器可读全量清单；计划 §3 前检与四方对账按本文件复算。",
+  total: all.length,
+  granularity_counts: countBy(all, "granularity"),
+  status_counts: countBy(all, "status"),
+  module_counts: countBy(all, "module"),
+  category_counts: countBy(all, "type"),
+  cases: all,
+};
+writeFileSync("docs/70_verification/unit/case-index.json", JSON.stringify(full, null, 2));
 console.log(`derived ${total} new Cases across ${index.length} volumes`);
 for (const v of index) console.log(`  ${String(v.cases).padStart(4)}  ${v.module}`);
