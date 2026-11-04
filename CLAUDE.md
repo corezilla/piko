@@ -60,14 +60,25 @@ This project is indexed by GitNexus as **piko** (29109 symbols, 84850 relationsh
 | 层 | 方案 | 受辖符号 | UT 分母下界（×1.5） | 实际 Case | 状态 |
 |---|---|---|---|---|---|
 | 单元 | `docs/70_verification/unit/unit-test-scheme.md` | 131（含 104 私有成员） | **197** | 136 | **不达标** → `G-UT-DENOM-1` |
-| 单元（维度格） | 同上 | 义务 24 格 | — | 已覆盖 **9** 格 | **不达标** → `G-UT-DIM-1` |
+
+三层方案各自的**维度格**分母（每格一条 Case；数字取自各方案 §5.2.1，与覆盖门一致）：
+
+| 层 | 方案 | 义务格 | 已登记格 | 缺口 |
+|---|---|---|---|---|
+| 单元 | `unit-test-scheme.md` | 25 | 9 | 16 → `G-UT-DIM-1` |
+| 模块 | `module-test-scheme.md` | 26 | 7 | 19 → `G-MT-DIM-1` |
+| 系统 | `system-test-scheme.md` | 35 | 18 | 17 → `G-ST-DIM-1` |
+
+**"每函数一条不算闭合"**（STD `templates/review/unit-test-review-checklist.md` §5）：
+每函数 × 参数必测类（合法/边界/非法）+ 错误路径 + 资源释放，逐格一 Case。
+
+**Case 与脚本不是一回事**：登记的 Case 若在 `tests/` 里找不到自己的入口，就是占位。
+单元层 136 条中只有 45 条带 Case ID（`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），
+系统层 21 条中 7 条（`G-EXEC-ST-1`）——四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）不成立。
 
 ```bash
 python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .   # 覆盖门
 python3 /Users/ben/work/STD/scripts/validate-checklist --project-root .  # checklist 结果门
 python3 /Users/ben/work/STD/scripts/validate-design --project-root . --baseline docs/std-validation-baseline.json
 ```
-
-**"每函数一条不算闭合"**（STD `templates/review/unit-test-review-checklist.md` §5）：
-每函数 × 参数必测类（合法/边界/非法）+ 错误路径 + 资源释放，逐格一 Case。
 

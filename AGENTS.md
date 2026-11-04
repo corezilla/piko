@@ -14,7 +14,18 @@ This project follows **STD** (`/Users/ben/work/STD/`) for all documents and temp
 - **编写索引（必读）**: `/Users/ben/work/STD/docs/authoring-index.md` — 写或改任何文档前先读它。
   它按文档族列出该读哪些规范、哪些硬性义务必须满足、哪些 checklist 一定执行、结果怎么交。
   **不需要通读 STD 详细规范**，但**每一条都必须遵守**——与用哪个 agent、哪个模型、agent 怎么想**都无关**。
-- **覆盖门**: `/Users/ben/work/STD/scripts/validate-coverage --project-root .` — 单元层 Case 数低于公式下界就报红。
+- **覆盖门**: `/Users/ben/work/STD/scripts/validate-coverage --project-root .` — 三层方案都查：义务维度格未登记、或单元层 Case 数低于公式下界（131 受辖符号 × 1.5 = 197，现有 136）就报红。
+  当前实况（2026-11-04，数字取自各方案 §5.2.1，与门一致）：
+
+  | 层 | 义务格 | 已登记格 | 缺口 |
+  |---|---|---|---|
+  | 单元 | 25 | 9 | `G-UT-DIM-1` |
+  | 模块 | 26 | 7 | `G-MT-DIM-1` |
+  | 系统 | 35 | 18 | `G-ST-DIM-1` |
+
+  **登记的 Case 不等于可执行的 Case**：单元层 136 条中只有 45 条在 `tests/` 里有自己的入口
+  （`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），系统层 21 条中 7 条（`G-EXEC-ST-1`）。
+  四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）目前**不成立**，按缺口登记，不要当作已覆盖。
 - **checklist 结果门**: `/Users/ben/work/STD/scripts/validate-checklist --project-root .` — 校验 `*.checklist-result.json`。
 
 ## 2. Template Selection
