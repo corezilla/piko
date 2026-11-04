@@ -59,13 +59,13 @@ This project is indexed by GitNexus as **piko** (29109 symbols, 84850 relationsh
 
 | 层 | 方案 | 受辖符号 | UT 分母下界（×1.5） | 实际 Case | 状态 |
 |---|---|---|---|---|---|
-| 单元 | `docs/70_verification/unit/unit-test-scheme.md` | 136（含私有成员；AST 枚举全集 241，见 `ut-denominator.md`） | **204**（136×1.5；按枚举全集 ≈362） | 152 | **不达标** → `G-UT-DENOM-1/3` |
+| 单元 | `unit-test-scheme.md` | 136（AST 枚举全集 241，见 `ut-denominator.md`） | 204（粗粒度）/ **3,117**（逐站点） | 152＋分卷 3,208＝**3,360** | 粗粒度达标；分卷全部待实现 |
 
 三层方案各自的**维度格**分母（每格一条 Case；数字取自各方案 §5.2.1，与覆盖门一致）：
 
 | 层 | 方案 | 义务格 | 已登记格 | 缺口 |
 |---|---|---|---|---|
-| 单元 | `unit-test-scheme.md` | 25 | 25（波次一后 100%；16 条 `Planned` 待脚本） | 执行半 → `G-EXEC-UT-3` |
+| 单元 | `unit-test-scheme.md` | 25 | 25（100%；粗粒度 16＋分卷 3,208 条全部待实现） | 脚本 → `G-EXEC-UT-3` |
 | 模块 | `module-test-scheme.md` | 26 | 7 | 19 → `G-MT-DIM-1` |
 | 系统 | `system-test-scheme.md` | 35 | 18 | 17 → `G-ST-DIM-1` |
 
@@ -73,7 +73,7 @@ This project is indexed by GitNexus as **piko** (29109 symbols, 84850 relationsh
 每函数 × 参数必测类（合法/边界/非法）+ 错误路径 + 资源释放，逐格一 Case。
 
 **Case 与脚本不是一回事**：登记的 Case 若在 `tests/` 里找不到自己的入口，就是占位。
-单元层 152 条中只有 45 条带 Case ID（`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），
+单元层粗粒度 152 条中只有 45 条带 Case ID，分卷 3,208 条全部待建（`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），
 系统层 21 条中 7 条（`G-EXEC-ST-1`）——四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）不成立。
 
 ```bash

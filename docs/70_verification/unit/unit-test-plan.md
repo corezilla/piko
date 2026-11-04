@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-plan` |
-| Document Version | `0.1.0-draft.3` |
+| Document Version | `0.1.0-draft.4` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -68,11 +68,11 @@
 
 #### 1.1 构成项 · 单元方案 ×1
 
-**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.4（`docs/70_verification/unit/unit-test-scheme.md`）；方案 §1.1 登记 11 个模块 ＋ 共享 IPC，并把被测符号拆成**三个集合**——A·ISD §5.1 接口符号 51 个、B·`src/` 实际导出符号 161 个、C·Case 命名的被测符号 131 个（A − 登记 = 0，A − Case = 31 项无 Case）；§6.1 登记 **152 条 `UT-*` Case**（模块 × 被测符号 × 对象类型；波次一 2026-11-04 补齐 §2.3 全部 25 个义务格，其中 16 条为 `Planned`）；环境类型 `ENV-UNIT`（方案 §4）。
+**文档 / 入口（Document ID 或缺口）**：`unit-test-scheme` v0.1.0-draft.5（`docs/70_verification/unit/unit-test-scheme.md`）；方案 §1.1 登记 11 个模块 ＋ 共享 IPC，并把被测符号拆成**三个集合**——A·ISD §5.1 接口符号 51 个、B·`src/` 实际导出符号 161 个、C·Case 命名的被测符号 131 个（A − 登记 = 0，A − Case = 31 项无 Case）；§6.1 登记 **152 条 `UT-*` Case** ＋ §6.1A 分卷登记 **3,208 条**（逐站点粒度，全部 `待实现`；波次一补齐 §2.3 全部 25 个义务格）——本层合计 **3,360 条**；环境类型 `ENV-UNIT`（方案 §4）。
 
-**覆盖责任摘要**：单元层以**被测符号**为最小被测对象，方案 §6.1 的 152 条 Case 由「模块 × 被测符号 × §2.3 对象类型」展开得到，每条 Case 登记**一个**维度格（不是全部格）。§2.3 的展开规则共定义 **25 个义务维度格**，波次一后**已全部登记（100%）**；其中 16 条新 Case 的脚本待建（`Planned`），执行半随 `G-EXEC-UT-3`。每条 Case 的来源是同名实现设计文档与其 VRC。
+**覆盖责任摘要**：单元层以**被测符号**为最小被测对象，方案 §6.1 的 152 条粗粒度 Case ＋ §6.1A 分卷 3,208 条逐站点 Case（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条，源＝`ut-denominator.md` AST 枚举表）。§2.3 的 25 个义务维度格已全部登记（100%）；分卷全部 `待实现`，脚本按清单编写，执行半随 `G-EXEC-UT-3` 与波次二排期。每条 Case 的来源是同名实现设计文档与其 VRC。
 
-**条目状态**：`Planned` —— 方案与用例集已固定版本（152 份 `tests.unit-case`；136 `Implemented` ＋ 16 `Planned`，实现率 89%）；执行状态与 Verdict 只在本计划产出的 Run 报告持有。
+**条目状态**：`Planned` —— 方案与用例集已固定版本（粗粒度 152 份 `tests.unit-case`：136 `Implemented` ＋ 16 `Planned`，实现率 89%；分卷 3,208 条仅登记未建文档与脚本）；执行状态与 Verdict 只在本计划产出的 Run 报告持有。
 
 #### 1.2 构成项 · Case 文档 ×N（按方案清单）
 
@@ -322,7 +322,7 @@
 
 **动作**：读取方案清单并按优先级排序
 
-**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.4 §6.1（136 条 `UT-<模块>-NNN`，含来源 ISD、对象类型、维度格、优先级与设计状态）、§1.1 三集合对账、§2.1 家族方法记录与 §2.2 选型记录、§5.2 维度分母
+**输入 / 依据**：`unit-test-scheme` v0.1.0-draft.5 §6.1（136 条 `UT-<模块>-NNN`，含来源 ISD、对象类型、维度格、优先级与设计状态）、§1.1 三集合对账、§2.1 家族方法记录与 §2.2 选型记录、§5.2 维度分母
 
 **产出**：执行队列＝按模块顺序（bootstrap → task-api → policy → task-repository → scheduler/worker → pi-adapter/usage → matrix-adapter/observability/transfer）排序的条目，每条＝`UT-*-001` ＋ 入口文件＋vitest 选择器 ＋ ENV 实例编号 ＋ VRC 区间；`Gap` 状态的 Case 进队列但预置为 `BLOCKED` 占位，不删除。
 
@@ -457,7 +457,7 @@
 
 **分母口径说明**：真实分母 **136 条**，全部 `PASS`。方案 §6.1 登记 136 条 Case，与用例集 `docs/70_verification/unit/cases/` 下 136 份文档一一对应。本计划 §1.1 / §3.1 / §3.2 / §4.1 / §7 正文原写的「236 条」是模板数字（136 条真 Case ＋ 100 条模板示例），**已在本轮随方案升版统一为 136**。
 
-**方案升版引入的新缺口**（`unit-test-scheme` v0.1.0-draft.4，随 STD 模板补齐 §5.2 维度词表与 §2.1/§5.1 家族记录后暴露）：
+**方案升版引入的新缺口**（`unit-test-scheme` v0.1.0-draft.5，随 STD 模板补齐 §5.2 维度词表与 §2.1/§5.1 家族记录后暴露）：
 
 | 缺口 | Owner | 内容 | 最晚 Gate | 状态 |
 |---|---|---|---|---|

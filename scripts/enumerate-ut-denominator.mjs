@@ -49,10 +49,11 @@ const MODULE_OF = {
   "tool-exec-policy.ts": "PI", "tool-host-policy.ts": "PI",
   "skill-prefetch.ts": "PI", "skill-tools.ts": "PI", "pi-runtime.ts": "PI",
   "matrix.ts": "MATRIX",
-  "transfer.ts": "TRANSFER", "remote-exec.ts": "TRANSFER", "execution-facts.ts": "TRANSFER",
+  "transfer.ts": "TRANSFER", "remote-exec.ts": "TRANSFER", "remote-exec-tools.ts": "TRANSFER",
+  "execution-facts.ts": "WORKER", "test-evidence.ts": "WORKER",
   "observability.ts": "OBS", "clock.ts": "OBS",
   "graphrag-client.ts": "PI", "graphrag-tools.ts": "PI", "mem0-client.ts": "PI",
-  "types.ts": "TYPES",
+  "types.ts": "IPC",
 };
 
 const files = readdirSync(SRC).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).sort();
@@ -104,26 +105,62 @@ for (const file of files) {
   };
 
   const collect = (node, tests) => {
-    let n = 0;
+    const sites = [];
     const walk = (k) => {
       if (ts.isMethodDeclaration(k) || ts.isClassDeclaration(k) || ts.isFunctionDeclaration(k)) {
-        // still count statements of THIS unit that sit before the nested decl?
         // nested class members are separate units; skip their bodies
         if (ts.isMethodDeclaration(k) || ts.isClassDeclaration(k)) return;
       }
-      for (const test of tests) if (test(k)) n += 1;
+      for (const test of tests) { const s = test(k); if (s) sites.push({ line: lineOf(k.getStart()), ...s }); }
       ts.forEachChild(k, walk);
     };
     ts.forEachChild(node, walk);
-    return n;
+    return sites;
   };
-  const isThrow = (k) => ts.isThrowStatement(k) || k.kind === ts.SyntaxKind.ThrowExpression ||
-    (ts.isCallExpression(k) && k.expression.getText().endsWith("Promise.reject"));
-  const isState = (k) =>
-    (ts.isBinaryExpression(k) && k.operatorToken.kind === ts.SyntaxKind.EqualsToken && k.left.getText().startsWith("this.")) ||
-    (ts.isCallExpression(k) && /\.(run|exec|save)\(/.test(k.expression.getText() + "("));
-  const isResource = (k) => ts.isCallExpression(k) &&
-    /^(readFileSync|writeFileSync|appendFileSync|mkdirSync|rmSync|unlinkSync|renameSync|copyFileSync|statSync|existsSync|openSync|spawn|execFile|execFileSync|fork|setTimeout|setInterval|clearTimeout|clearInterval|createHash|createCipheriv|createDecipheriv|publicKey|privateKey)\b/.test(k.expression.getText());
+  // the guard condition a throw sits in, when there is one
+  const guardOf = (k) => {
+    for (let a = k.parent; a; a = a.parent) {
+      if (ts.isIfStatement(a)) return `if (${clip(a.expression.getText(), 56)})`;
+      if (ts.isConditionalExpression(a)) return `? ${clip(a.condition.getText(), 56)} :`;
+      if (ts.isCatchClause(a)) return "catch";
+      if (ts.isBinaryExpression(a) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(a.operatorToken.kind))
+        return clip(a.getText(), 56);
+      if (ts.isBlock(a) && a.parent && (ts.isForStatement(a.parent) || ts.isForOfStatement(a.parent) || ts.isWhileStatement(a.parent)))
+        return `loop (${clip(a.parent.expression?.getText() ?? "", 48)})`;
+    }
+    return "unconditional";
+  };
+  const isThrow = (k) => {
+    if (ts.isThrowStatement(k) || k.kind === ts.SyntaxKind.ThrowExpression) {
+      const expr = ts.isThrowStatement(k) ? k.expression : k.expression;
+      const code = expr?.getText().match(/new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ??
+        expr?.getText().match(/Promise\.reject\(\s*new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ?? "reject";
+      return { kind: "throw", code, guard: guardOf(k) };
+    }
+    if (ts.isCallExpression(k) && k.expression.getText().endsWith("Promise.reject"))
+      return { kind: "throw", code: "reject", guard: guardOf(k) };
+    return null;
+  };
+  const isState = (k) => {
+    if (ts.isBinaryExpression(k) && k.operatorToken.kind === ts.SyntaxKind.EqualsToken && k.left.getText().startsWith("this."))
+      return { kind: "state", target: k.left.getText() };
+    if (ts.isCallExpression(k) && /\.(run|exec|save)\(/.test(k.expression.getText() + "("))
+      return { kind: "state", target: "db" };
+    return null;
+  };
+  const isReturn = (k) => {
+    if (!ts.isReturnStatement(k)) return null;
+    const e = k.expression;
+    if (!e) return { kind: "return", value: "（无值 return：提前退出）" };
+    let v = e.getText().replace(/\s+/g, " ").trim();
+    if (v.length > 46) v = v.slice(0, 45) + "…";
+    return { kind: "return", value: v };
+  };
+  const isResource = (k) => {
+    if (!ts.isCallExpression(k)) return null;
+    const m = k.expression.getText().match(/^(readFileSync|writeFileSync|appendFileSync|mkdirSync|rmSync|unlinkSync|renameSync|copyFileSync|statSync|existsSync|openSync|spawn|execFile|execFileSync|fork|setTimeout|setInterval|clearTimeout|clearInterval|createHash|createCipheriv|createDecipheriv|publicKey|privateKey)\b/);
+    return m ? { kind: "resource", op: m[1] } : null;
+  };
 
   const register = (node, kind, visibility, name) => {
     const body = node.body ?? node.initializer;
@@ -139,16 +176,22 @@ for (const file of files) {
       file, line: lineOf(node.getStart()), symbol: name, kind, visibility,
       params,
       paramCount: params.length,
+      returnSites: collect(body, [isReturn]),
+      throwSites: collect(body, [isThrow]),
+      stateSites: collect(body, [isState]),
+      resourceSites: collect(body, [isResource]),
       async: /^\s*(?:private\s+|protected\s+|public\s+|static\s+|readonly\s+|override\s+)*async\s|Promise<|await\s|\.then\(|\.catch\(/.test(node.getFullText().slice(0, 200) + txt.slice(0, 0)) || /\bawait\b/.test(txt) || /Promise<|\.then\(|\.catch\(/.test(node.getFullText().slice(0, 200)),
       usesClock: /\b(clock|Date\.now|performance\.now|setTimeout|setInterval|deadline|elapsed|timeout)\b/i.test(txt),
       serializes: /\b(JSON\.(parse|stringify)|serialize|deserialize|encode|decode|digest|createHash|canonical)\b/.test(txt),
       touchesDb: /\b(db|stmt|prepare|\.run\(|\.get\(|\.all\()\b/.test(txt),
       concurrency: /\b(lock|epoch|lease|claim|renew|fence|mutex|queue|slot)\b/i.test(txt),
+      bodyText: body.getText().slice(0, 20000),
       branches: branchesOf(body),
-      throws: collect(body, [isThrow]),
-      state: collect(body, [isState]),
-      resource: collect(body, [isResource]),
+      throws: 0, state: 0, resource: 0, returns: 0, // filled below from sites
     });
+    const last = rows[rows.length - 1];
+    last.throws = last.throwSites.length; last.state = last.stateSites.length;
+    last.resource = last.resourceSites.length; last.returns = last.returnSites.length;
   };
 
   const walk = (node) => {
@@ -178,9 +221,9 @@ for (const file of files) {
 rows.sort((a, b) => a.module.localeCompare(b.module) || a.file.localeCompare(b.file) || a.line - b.line);
 const T = rows.reduce((a, r) => {
   a.units += 1; a.params += r.paramCount; a.branches += r.branches.length;
-  a.throws += r.throws; a.state += r.state; a.resource += r.resource;
+  a.throws += r.throws; a.state += r.state; a.resource += r.resource; a.returns += r.returns;
   return a;
-}, { units: 0, params: 0, branches: 0, throws: 0, state: 0, resource: 0 });
+}, { units: 0, params: 0, branches: 0, throws: 0, state: 0, resource: 0, returns: 0 });
 
 if (jsonPath) writeFileSync(jsonPath, JSON.stringify({ totals: T, rows }, null, 2));
 
@@ -192,16 +235,16 @@ if (mdPath) {
     "> 口径＝STD `docs/test-standard.md` §4「ISD 受辖函数」＝实现侧函数＋方法全集（含私有成员与访问器）。",
     "> 本表是 UT 分母的**枚举源**：方案 §1.1/§5.2 的符号集与本表对账，差集必须为零；",
     "> 每条 Case 的「维度坐标」必须能指到本表某行的一个分支路径。", "",
-    `**合计**：${T.units} 个行为单元 · 参数 ${T.params} · 分支点 ${T.branches} · throw/reject ${T.throws} · 状态写 ${T.state} · 资源操作 ${T.resource}`, "",
-    `**公式格数（§4）**：Σ(参数×必测类 3 ＋ 错误路径(throw>0 记 1) ＋ 状态分支(状态写>0 记 1) ＋ 资源释放(资源>0 记 1))`, "",
-    "| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 义务旗标 | 公式格数 |",
-    "|---|---|---|---|--:|--:|--:|--:|--:|---|--:|");
+    `**合计**：${T.units} 个行为单元 · 参数 ${T.params} · 分支点 ${T.branches} · throw/reject ${T.throws} · 状态写 ${T.state} · 资源操作 ${T.resource} · 返回站点 ${T.returns}`, "",
+    `**逐站点义务格（本层分母）**：Σ(参数×必测类 3 ＋ 分支 ＋ throw 站点 ＋ 状态写站点 ＋ 资源操作站点 ＋ 返回站点)`, "",
+    "| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支 | throw | 状态写 | 资源 | 返回 | 义务旗标 | 格数 |",
+    "|---|---|---|---|--:|--:|--:|--:|--:|--:|---|--:|");
   let cells = 0;
   for (const r of rows) {
-    const c = r.paramCount * 3 + (r.throws ? 1 : 0) + (r.state ? 1 : 0) + (r.resource ? 1 : 0);
+    const c = r.paramCount * 3 + r.branches.length + r.throws + r.state + r.resource + r.returns;
     cells += c;
     const flags = [r.async && "async", r.usesClock && "clock", r.serializes && "serial", r.touchesDb && "db", r.concurrency && "concur"].filter(Boolean).join(",") || "—";
-    L.push(`| ${r.module} | \`${r.file}:${r.line}\` | \`${r.symbol}\` | ${r.kind}/${r.visibility} | ${r.paramCount} | ${r.branches.length} | ${r.throws} | ${r.state} | ${r.resource} | ${flags} | ${c} |`);
+    L.push(`| ${r.module} | \`${r.file}:${r.line}\` | \`${r.symbol}\` | ${r.kind}/${r.visibility} | ${r.paramCount} | ${r.branches.length} | ${r.throws} | ${r.state} | ${r.resource} | ${r.returns} | ${flags} | ${c} |`);
   }
   L.push("", `**公式格数合计：${cells}**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。`);
   L.push("", "---", "", "## 逐函数分支路径明细", "",

@@ -1,0 +1,66 @@
+{
+  "generated": "2026-11-04",
+  "total": 3208,
+  "volumes": [
+    {
+      "module": "PI",
+      "cases": 860,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-pi.md"
+    },
+    {
+      "module": "REPO",
+      "cases": 612,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-repo.md"
+    },
+    {
+      "module": "WORKER",
+      "cases": 377,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-worker.md"
+    },
+    {
+      "module": "TRANSFER",
+      "cases": 287,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-transfer.md"
+    },
+    {
+      "module": "MATRIX",
+      "cases": 226,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-matrix.md"
+    },
+    {
+      "module": "BOOT",
+      "cases": 199,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-boot.md"
+    },
+    {
+      "module": "IPC",
+      "cases": 167,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-ipc.md"
+    },
+    {
+      "module": "POLICY",
+      "cases": 155,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-policy.md"
+    },
+    {
+      "module": "TAPI",
+      "cases": 139,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-tapi.md"
+    },
+    {
+      "module": "OBS",
+      "cases": 118,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-obs.md"
+    },
+    {
+      "module": "SCHED",
+      "cases": 34,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-sched.md"
+    },
+    {
+      "module": "USAGE",
+      "cases": 34,
+      "file": "docs/70_verification/unit/volumes/unit-test-scheme-usage.md"
+    }
+  ]
+}

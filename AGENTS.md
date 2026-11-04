@@ -23,8 +23,8 @@ This project follows **STD** (`/Users/ben/work/STD/`) for all documents and temp
   | 模块 | 26 | 7 | `G-MT-DIM-1` |
   | 系统 | 35 | 18 | `G-ST-DIM-1` |
 
-  **登记的 Case 不等于可执行的 Case**：单元层 152 条中只有 45 条在 `tests/` 里有自己的入口
-  （`G-EXEC-UT-3`；波次一新增 16 条全部待建脚本），模块层 47 条中 10 条（`G-EXEC-MT-1`），系统层 21 条中 7 条（`G-EXEC-ST-1`）。
+  **登记的 Case 不等于可执行的 Case**：单元层 152 条粗粒度中只有 45 条在 `tests/` 里有自己的入口，
+  分卷 3,208 条全部待建（`G-EXEC-UT-3`），模块层 47 条中 10 条（`G-EXEC-MT-1`），系统层 21 条中 7 条（`G-EXEC-ST-1`）。
   四方对账（登记 ↔ 用例文档 ↔ 脚本 ↔ Run 报告）目前**不成立**，按缺口登记，不要当作已覆盖。
 - **checklist 结果门**: `/Users/ben/work/STD/scripts/validate-checklist --project-root .` — 校验 `*.checklist-result.json`。
 

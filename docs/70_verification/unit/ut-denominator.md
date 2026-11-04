@@ -6,255 +6,255 @@
 > 本表是 UT 分母的**枚举源**：方案 §1.1/§5.2 的符号集与本表对账，差集必须为零；
 > 每条 Case 的「维度坐标」必须能指到本表某行的一个分支路径。
 
-**合计**：241 个行为单元 · 参数 432 · 分支点 1216 · throw/reject 136 · 状态写 100 · 资源操作 51
+**合计**：241 个行为单元 · 参数 432 · 分支点 1216 · throw/reject 136 · 状态写 100 · 资源操作 51 · 返回站点 318
 
-**公式格数（§4）**：Σ(参数×必测类 3 ＋ 错误路径(throw>0 记 1) ＋ 状态分支(状态写>0 记 1) ＋ 资源释放(资源>0 记 1))
+**逐站点义务格（本层分母）**：Σ(参数×必测类 3 ＋ 分支 ＋ throw 站点 ＋ 状态写站点 ＋ 资源操作站点 ＋ 返回站点)
 
-| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支点 | throw | 状态写 | 资源 | 义务旗标 | 公式格数 |
-|---|---|---|---|--:|--:|--:|--:|--:|---|--:|
-| BOOT | `config.ts:26` | `validateToolRegistry` | fn/exported | 1 | 25 | 6 | 0 | 0 | — | 4 |
-| BOOT | `config.ts:56` | `gitHead` | fn/exported | 1 | 5 | 1 | 0 | 0 | async | 4 |
-| BOOT | `config.ts:70` | `validated` | fn/exported | 2 | 4 | 1 | 0 | 0 | async,serial | 7 |
-| BOOT | `config.ts:86` | `loadConfig` | fn/exported | 2 | 16 | 3 | 0 | 0 | async,serial | 7 |
-| BOOT | `config.ts:132` | `resolveSecret` | fn/exported | 1 | 4 | 2 | 0 | 0 | async | 4 |
-| BOOT | `durable-fs.ts:20` | `absolute` | method/private | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| BOOT | `durable-fs.ts:21` | `sync` | method/private | 2 | 1 | 0 | 0 | 0 | async | 6 |
-| BOOT | `durable-fs.ts:25` | `exec` | method/public | 3 | 10 | 0 | 1 | 0 | async,clock | 10 |
-| BOOT | `durable-fs.ts:88` | `writeFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
-| BOOT | `durable-fs.ts:93` | `appendFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
-| BOOT | `durable-fs.ts:98` | `renameFile` | method/public | 3 | 1 | 0 | 0 | 0 | async | 9 |
-| BOOT | `main.ts:16` | `runControlProcess` | fn/exported | 2 | 2 | 0 | 0 | 0 | async | 6 |
-| BOOT | `main.ts:55` | `main` | fn/exported | 2 | 3 | 0 | 0 | 0 | async | 6 |
-| IPC | `ipc.ts:49` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| IPC | `ipc.ts:50` | `apply` | method/public | 1 | 20 | 0 | 0 | 0 | concur | 3 |
-| IPC | `ipc.ts:117` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| IPC | `ipc.ts:118` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | async | 3 |
-| IPC | `ipc.ts:131` | `constructor` | ctor/public | 2 | 7 | 0 | 0 | 0 | db | 6 |
-| IPC | `ipc.ts:144` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | async | 3 |
-| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 2 | 0 | 0 | 0 | — | 9 |
-| IPC | `supervisor.ts:20` | `constructor` | ctor/public | 4 | 0 | 0 | 0 | 0 | — | 12 |
-| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 14 | 0 | 7 | 2 | clock | 2 |
-| IPC | `supervisor.ts:55` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | clock | 2 |
-| IPC | `supervisor.ts:67` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| IPC | `supervisor.ts:72` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | — | 1 |
-| IPC | `supervisor.ts:80` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | clock | 3 |
-| IPC | `supervisor.ts:84` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| IPC | `supervisor.ts:88` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | async,clock | 2 |
-| MATRIX | `matrix.ts:14` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
-| MATRIX | `matrix.ts:15` | `start` | method/public | 0 | 21 | 1 | 4 | 3 | async,clock | 3 |
-| MATRIX | `matrix.ts:29` | `prepareEvent` | method/private | 1 | 15 | 0 | 0 | 0 | async | 3 |
-| MATRIX | `matrix.ts:48` | `auditMembership` | method/private | 0 | 4 | 0 | 0 | 0 | async | 0 |
-| MATRIX | `matrix.ts:63` | `isJoined` | method/public | 1 | 1 | 0 | 0 | 0 | async | 3 |
-| MATRIX | `matrix.ts:73` | `recordDiscussionAccessLost` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| MATRIX | `matrix.ts:79` | `processBatch` | method/private | 2 | 13 | 0 | 0 | 0 | async | 6 |
-| MATRIX | `matrix.ts:91` | `downloadMedia` | method/private | 3 | 29 | 8 | 0 | 0 | async | 10 |
-| MATRIX | `matrix.ts:101` | `verifyDiscussion` | method/public | 2 | 9 | 3 | 0 | 0 | async | 7 |
-| MATRIX | `matrix.ts:107` | `send` | method/public | 4 | 3 | 1 | 0 | 0 | async | 13 |
-| MATRIX | `matrix.ts:113` | `sendDiscussionReply` | method/public | 5 | 2 | 1 | 0 | 3 | async,serial | 17 |
-| MATRIX | `matrix.ts:117` | `close` | method/public | 0 | 1 | 0 | 1 | 0 | async | 1 |
-| MATRIX | `matrix.ts:120` | `isPermanentMatrixError` | fn/exported | 1 | 16 | 0 | 0 | 0 | — | 3 |
-| OBS | `clock.ts:34` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| OBS | `clock.ts:35` | `now` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| OBS | `clock.ts:38` | `monotonic` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| OBS | `clock.ts:41` | `iso` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| OBS | `clock.ts:44` | `advance` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| OBS | `clock.ts:48` | `set` | method/public | 2 | 1 | 0 | 2 | 0 | — | 7 |
-| OBS | `observability.ts:44` | `redact` | fn/exported | 1 | 7 | 0 | 0 | 0 | — | 3 |
-| OBS | `observability.ts:62` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| OBS | `observability.ts:67` | `keep` | method/private | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| OBS | `observability.ts:72` | `emit` | method/public | 2 | 10 | 0 | 0 | 0 | clock,concur | 6 |
-| OBS | `observability.ts:90` | `metric` | method/public | 5 | 16 | 0 | 0 | 0 | db | 15 |
-| OBS | `observability.ts:104` | `audit` | method/public | 1 | 3 | 0 | 0 | 0 | — | 3 |
-| OBS | `observability.ts:114` | `snapshot` | method/public | 1 | 1 | 0 | 0 | 0 | clock | 3 |
-| OBS | `observability.ts:127` | `bump` | method/public | 2 | 2 | 0 | 0 | 0 | db | 6 |
-| OTHER | `remote-exec-tools.ts:99` | `splitRemoteCommand` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| OTHER | `remote-exec-tools.ts:106` | `createRemoteBashTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,clock,serial | 3 |
-| OTHER | `remote-exec-tools.ts:114` | `execute` | method/public | 6 | 8 | 0 | 0 | 0 | async,clock,serial | 18 |
-| OTHER | `test-evidence.ts:42` | `buildRawResultRef` | fn/exported | 1 | 3 | 0 | 0 | 0 | — | 3 |
-| OTHER | `test-evidence.ts:65` | `isExecutionFailure` | fn/exported | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| PI | `graphrag-client.ts:57` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | — | 13 |
-| PI | `graphrag-client.ts:93` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
-| PI | `graphrag-client.ts:109` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
-| PI | `graphrag-client.ts:130` | `search` | method/public | 2 | 26 | 3 | 0 | 0 | async,serial | 7 |
-| PI | `graphrag-tools.ts:85` | `validateDocSearchContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | — | 4 |
-| PI | `graphrag-tools.ts:109` | `createGraphragSearchTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
-| PI | `graphrag-tools.ts:122` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
-| PI | `mem0-client.ts:24` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | — | 13 |
-| PI | `mem0-client.ts:58` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
-| PI | `mem0-client.ts:73` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| PI | `mem0-client.ts:88` | `search` | method/public | 3 | 24 | 3 | 0 | 0 | async,serial | 10 |
-| PI | `mem0-client.ts:203` | `add` | method/public | 3 | 18 | 4 | 0 | 0 | async,serial | 10 |
-| PI | `mem0-client.ts:299` | `pollForExtractedMemory` | method/private | 2 | 8 | 0 | 0 | 1 | async,clock | 7 |
-| PI | `pi-runtime.ts:37` | `isProviderUnavailableMessage` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| PI | `pi-runtime.ts:42` | `discussionMessage` | fn/exported | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| PI | `pi-runtime.ts:43` | `initialPrompt` | fn/exported | 3 | 1 | 0 | 0 | 0 | — | 9 |
-| PI | `pi-runtime.ts:44` | `normalizeRawUsage` | fn/exported | 1 | 14 | 0 | 0 | 0 | — | 3 |
-| PI | `pi-runtime.ts:55` | `buildSystemPrompt` | fn/exported | 3 | 5 | 0 | 0 | 0 | — | 9 |
-| PI | `pi-runtime.ts:114` | `constructor` | ctor/public | 8 | 20 | 2 | 5 | 0 | — | 26 |
-| PI | `pi-runtime.ts:150` | `model` | method/private | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| PI | `pi-runtime.ts:155` | `execute` | method/public | 6 | 118 | 5 | 0 | 3 | async,clock,serial,concur | 20 |
-| PI | `pi-runtime.ts:326` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | async | 0 |
-| PI | `provider-preflight.ts:1` | `preflightModelProvider` | fn/exported | 4 | 9 | 2 | 0 | 2 | async,clock | 14 |
-| PI | `skill-prefetch.ts:114` | `cacheKey` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| PI | `skill-prefetch.ts:119` | `clearPrefetchCache` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| PI | `skill-prefetch.ts:124` | `prefetchCacheSize` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| PI | `skill-prefetch.ts:137` | `prefetchSkillContext` | fn/exported | 5 | 37 | 0 | 0 | 0 | async,clock,db | 15 |
-| PI | `skill-prefetch.ts:229` | `withTimeout` | fn/exported | 2 | 0 | 0 | 0 | 3 | clock | 7 |
-| PI | `skill-prefetch.ts:240` | `renderMemoryEntry` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
-| PI | `skill-prefetch.ts:249` | `renderDocEntry` | fn/exported | 1 | 6 | 0 | 0 | 0 | — | 3 |
-| PI | `skill-prefetch.ts:262` | `renderSkillContext` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
-| PI | `skill-tools.ts:101` | `validateContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | — | 4 |
-| PI | `skill-tools.ts:123` | `createMem0LookupTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
-| PI | `skill-tools.ts:136` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
-| PI | `skill-tools.ts:171` | `createMem0RecordTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | async,serial | 3 |
-| PI | `skill-tools.ts:184` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | async,serial | 19 |
-| PI | `tool-exec-policy.ts:21` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | — | 10 |
-| PI | `tool-exec-policy.ts:43` | `splitCommands` | fn/exported | 1 | 12 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-exec-policy.ts:99` | `tokenize` | fn/exported | 1 | 12 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-exec-policy.ts:143` | `parseExecutable` | fn/exported | 1 | 10 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-exec-policy.ts:176` | `parseExecutables` | fn/exported | 1 | 4 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-exec-policy.ts:193` | `assertExecutablesAllowed` | fn/exported | 2 | 5 | 1 | 0 | 0 | — | 7 |
-| PI | `tool-exec-policy.ts:213` | `assertRemoteExecutableAllowed` | fn/exported | 2 | 7 | 1 | 0 | 0 | — | 7 |
-| PI | `tool-exec-policy.ts:229` | `stripQuotes` | fn/exported | 1 | 5 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-host-policy.ts:29` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | — | 10 |
-| PI | `tool-host-policy.ts:48` | `currentAllowlist` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| PI | `tool-host-policy.ts:52` | `enterNetworkScope` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| PI | `tool-host-policy.ts:56` | `exitNetworkScope` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| PI | `tool-host-policy.ts:74` | `makePolicyFetch` | fn/exported | 1 | 6 | 2 | 0 | 0 | — | 4 |
-| PI | `tool-host-policy.ts:109` | `installNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | — | 0 |
-| PI | `tool-host-policy.ts:121` | `restoreNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | — | 0 |
-| POLICY | `policy.ts:8` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| POLICY | `policy.ts:14` | `canonicalize` | method/private | 1 | 5 | 3 | 0 | 0 | — | 4 |
-| POLICY | `policy.ts:24` | `resolveWorkspace` | method/private | 1 | 3 | 1 | 0 | 0 | — | 4 |
-| POLICY | `policy.ts:31` | `validate` | method/public | 2 | 10 | 2 | 0 | 0 | — | 7 |
-| POLICY | `policy.ts:55` | `validateResult` | method/public | 1 | 5 | 2 | 0 | 0 | — | 4 |
-| POLICY | `policy.ts:65` | `within` | fn/exported | 3 | 5 | 0 | 0 | 0 | — | 9 |
-| POLICY | `task-equality.ts:3` | `normalizedTask` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| POLICY | `task-equality.ts:4` | `sameTask` | fn/exported | 2 | 0 | 0 | 0 | 0 | serial | 6 |
-| POLICY | `workspace.ts:9` | `resolveWorkspace` | fn/exported | 2 | 2 | 1 | 0 | 0 | async | 7 |
-| POLICY | `workspace.ts:14` | `realpathNearestAncestor` | fn/exported | 1 | 3 | 1 | 0 | 0 | async | 4 |
-| POLICY | `workspace.ts:18` | `authorizePath` | fn/exported | 4 | 12 | 4 | 0 | 0 | async | 13 |
-| POLICY | `workspace.ts:32` | `collectOutputs` | fn/exported | 2 | 4 | 0 | 0 | 3 | async,serial | 7 |
-| POLICY | `workspace.ts:41` | `ensureTaskDirs` | fn/exported | 2 | 6 | 0 | 0 | 0 | async | 6 |
-| REPO | `store.ts:44` | `constructor` | ctor/public | 2 | 1 | 0 | 2 | 1 | db | 8 |
-| REPO | `store.ts:52` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
-| REPO | `store.ts:56` | `migrate` | method/private | 0 | 0 | 0 | 2 | 0 | db | 1 |
-| REPO | `store.ts:170` | `tx` | method/private | 1 | 1 | 1 | 3 | 0 | db | 5 |
-| REPO | `store.ts:183` | `createOrGet` | method/public | 4 | 10 | 0 | 3 | 0 | clock,serial,db,concur | 13 |
-| REPO | `store.ts:225` | `getTask` | method/public | 1 | 2 | 1 | 0 | 0 | serial,db | 4 |
-| REPO | `store.ts:232` | `mutateRun` | method/public | 1 | 9 | 4 | 1 | 0 | db,concur | 5 |
-| REPO | `store.ts:255` | `getRun` | method/public | 1 | 9 | 2 | 0 | 0 | clock,serial,db | 4 |
-| REPO | `store.ts:288` | `setInputStaging` | method/public | 2 | 1 | 1 | 1 | 0 | serial,db | 8 |
-| REPO | `store.ts:295` | `setArtifactDelivery` | method/public | 2 | 1 | 1 | 1 | 0 | serial,db | 8 |
-| REPO | `store.ts:299` | `inputStaging` | method/public | 1 | 0 | 0 | 0 | 0 | serial,db | 3 |
-| REPO | `store.ts:304` | `tryClaimSlot` | method/public | 2 | 3 | 0 | 4 | 0 | db,concur | 7 |
-| REPO | `store.ts:336` | `failAccessLostTasks` | method/public | 0 | 4 | 0 | 4 | 3 | serial,db,concur | 2 |
-| REPO | `store.ts:385` | `recoverOrphaned` | method/public | 2 | 5 | 0 | 3 | 0 | db,concur | 7 |
-| REPO | `store.ts:403` | `readSlot` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
-| REPO | `store.ts:406` | `renewSlot` | method/public | 2 | 0 | 0 | 1 | 0 | db,concur | 7 |
-| REPO | `store.ts:410` | `releaseSlot` | method/public | 2 | 0 | 0 | 1 | 0 | db,concur | 7 |
-| REPO | `store.ts:416` | `scanNonTerminal` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
-| REPO | `store.ts:421` | `nextNeedingStaging` | method/public | 0 | 2 | 0 | 0 | 0 | db | 0 |
-| REPO | `store.ts:431` | `reserveModel` | method/public | 4 | 1 | 0 | 2 | 0 | db | 13 |
-| REPO | `store.ts:442` | `observeUsage` | method/public | 5 | 0 | 0 | 1 | 0 | serial,db | 16 |
-| REPO | `store.ts:449` | `terminalModel` | method/public | 5 | 1 | 0 | 1 | 0 | db | 16 |
-| REPO | `store.ts:456` | `reserveTool` | method/public | 7 | 3 | 0 | 3 | 0 | db | 22 |
-| REPO | `store.ts:483` | `terminalTool` | method/public | 4 | 1 | 0 | 1 | 0 | db | 13 |
-| REPO | `store.ts:489` | `markTurn` | method/public | 5 | 2 | 0 | 1 | 0 | db | 16 |
-| REPO | `store.ts:494` | `pendingTurns` | method/public | 1 | 0 | 0 | 0 | 0 | db | 3 |
-| REPO | `store.ts:497` | `markDiscussionAccessLost` | method/public | 1 | 3 | 0 | 1 | 0 | serial,db | 4 |
-| REPO | `store.ts:516` | `discussionAccessLost` | method/public | 1 | 2 | 0 | 0 | 0 | db | 3 |
-| REPO | `store.ts:519` | `recordProviderCall` | method/public | 6 | 0 | 0 | 1 | 0 | db | 19 |
-| REPO | `store.ts:524` | `recordMatrixEvent` | method/public | 4 | 1 | 0 | 1 | 0 | db | 13 |
-| REPO | `store.ts:528` | `ingestMatrixEvent` | method/public | 5 | 6 | 0 | 2 | 0 | db | 16 |
-| REPO | `store.ts:544` | `hasMatrixEvent` | method/public | 2 | 2 | 0 | 0 | 0 | db | 6 |
-| REPO | `store.ts:547` | `ingestMatrixBatch` | method/public | 2 | 7 | 0 | 3 | 0 | db | 7 |
-| REPO | `store.ts:567` | `discussionRoomsInUse` | method/public | 0 | 4 | 0 | 0 | 0 | serial,db | 0 |
-| REPO | `store.ts:583` | `openDiscussionRuns` | method/public | 1 | 2 | 0 | 0 | 0 | serial,db | 3 |
-| REPO | `store.ts:596` | `matrixCursor` | method/public | 0 | 0 | 0 | 0 | 0 | db | 0 |
-| REPO | `store.ts:599` | `setMatrixCursor` | method/public | 1 | 0 | 0 | 1 | 0 | db | 4 |
-| REPO | `store.ts:602` | `prepareMatrixSend` | method/public | 4 | 2 | 1 | 1 | 0 | db | 14 |
-| REPO | `store.ts:613` | `finishMatrixSend` | method/public | 2 | 0 | 0 | 1 | 0 | db | 7 |
-| REPO | `store.ts:616` | `unknownMatrixSend` | method/public | 1 | 0 | 0 | 1 | 0 | db | 4 |
-| REPO | `store.ts:619` | `tryCloseIntake` | method/public | 2 | 5 | 0 | 1 | 0 | db,concur | 7 |
-| REPO | `store.ts:634` | `cancel` | method/public | 1 | 2 | 0 | 3 | 0 | db | 4 |
-| REPO | `store.ts:667` | `cancelRequested` | method/public | 1 | 3 | 0 | 0 | 0 | db | 3 |
-| REPO | `store.ts:670` | `generation` | method/public | 1 | 0 | 0 | 0 | 0 | db | 3 |
-| REPO | `store.ts:674` | `usageSoFar` | method/private | 1 | 8 | 0 | 0 | 0 | serial,db | 3 |
-| REPO | `store.ts:692` | `rawUsage` | method/public | 1 | 6 | 0 | 0 | 0 | serial,db | 3 |
-| REPO | `store.ts:711` | `knownActions` | method/public | 1 | 8 | 0 | 0 | 0 | db | 3 |
-| REPO | `store.ts:737` | `insertResult` | method/private | 1 | 0 | 0 | 1 | 3 | serial,db | 5 |
-| REPO | `store.ts:745` | `publishResult` | method/public | 2 | 2 | 1 | 1 | 0 | db,concur | 8 |
-| REPO | `store.ts:755` | `finish` | method/public | 2 | 9 | 2 | 3 | 0 | db,concur | 8 |
-| REPO | `store.ts:780` | `finishQueued` | method/public | 1 | 5 | 1 | 2 | 0 | db | 5 |
-| REPO | `store.ts:795` | `result` | method/public | 1 | 3 | 2 | 0 | 0 | serial,db | 4 |
-| REPO | `store.ts:804` | `purge` | method/public | 1 | 6 | 0 | 4 | 0 | serial,db | 4 |
-| REPO | `store.ts:832` | `purgeExpired` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| REPO | `store.ts:855` | `asReader` | fn/exported | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| SCHED | `scheduler.ts:10` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| SCHED | `scheduler.ts:15` | `acquire` | method/public | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| SCHED | `scheduler.ts:21` | `recover` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| SCHED | `scheduler.ts:25` | `renew` | method/public | 2 | 0 | 0 | 0 | 0 | concur | 6 |
-| SCHED | `scheduler.ts:29` | `release` | method/public | 2 | 0 | 0 | 0 | 0 | concur | 6 |
-| SCHED | `scheduler.ts:33` | `read` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| SCHED | `scheduler.ts:37` | `identity` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| SCHED | `scheduler.ts:41` | `close` | method/public | 0 | 1 | 0 | 1 | 1 | — | 2 |
-| TAPI | `auth.ts:3` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | — | 6 |
-| TAPI | `auth.ts:3` | `authenticate` | method/public | 1 | 6 | 2 | 0 | 0 | — | 4 |
-| TAPI | `server.ts:12` | `body` | fn/exported | 2 | 3 | 2 | 0 | 0 | async,serial | 7 |
-| TAPI | `server.ts:27` | `send` | fn/exported | 4 | 0 | 0 | 0 | 0 | serial | 12 |
-| TAPI | `server.ts:40` | `constructor` | ctor/public | 5 | 0 | 0 | 1 | 0 | — | 16 |
-| TAPI | `server.ts:49` | `create` | method/public | 5 | 4 | 1 | 0 | 0 | async,serial | 16 |
-| TAPI | `server.ts:62` | `route` | method/private | 2 | 26 | 6 | 0 | 0 | async,concur | 7 |
-| TAPI | `server.ts:110` | `listen` | method/public | 0 | 0 | 0 | 0 | 0 | async | 0 |
-| TAPI | `server.ts:119` | `close` | method/public | 0 | 1 | 0 | 0 | 0 | async | 0 |
-| TAPI | `server.ts:140` | `mapError` | fn/exported | 1 | 3 | 0 | 0 | 0 | concur | 3 |
-| TRANSFER | `execution-facts.ts:53` | `record` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| TRANSFER | `execution-facts.ts:58` | `list` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| TRANSFER | `execution-facts.ts:63` | `last` | method/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| TRANSFER | `execution-facts.ts:67` | `clear` | method/public | 0 | 0 | 0 | 1 | 0 | — | 1 |
-| TRANSFER | `execution-facts.ts:78` | `statusFromErrorCode` | fn/exported | 1 | 5 | 0 | 0 | 0 | clock | 3 |
-| TRANSFER | `remote-exec.ts:92` | `execRemote` | fn/exported | 4 | 39 | 2 | 0 | 1 | async,clock | 14 |
-| TRANSFER | `remote-exec.ts:208` | `truncate` | fn/exported | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| TRANSFER | `transfer.ts:15` | `run` | fn/exported | 3 | 2 | 0 | 0 | 1 | async,clock | 10 |
-| TRANSFER | `transfer.ts:25` | `safeJoinIn` | fn/exported | 2 | 2 | 1 | 0 | 0 | — | 7 |
-| TRANSFER | `transfer.ts:31` | `safeJoin` | fn/exported | 3 | 2 | 1 | 0 | 0 | — | 10 |
-| TRANSFER | `transfer.ts:42` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| TRANSFER | `transfer.ts:53` | `scpKeyPath` | method/private | 0 | 7 | 1 | 2 | 2 | async | 3 |
-| TRANSFER | `transfer.ts:75` | `close` | method/public | 0 | 1 | 0 | 2 | 1 | — | 2 |
-| TRANSFER | `transfer.ts:83` | `stagingRoot` | accessor/public | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| TRANSFER | `transfer.ts:87` | `assertAllowed` | method/private | 1 | 3 | 1 | 0 | 0 | — | 4 |
-| TRANSFER | `transfer.ts:94` | `scpArgs` | method/private | 3 | 3 | 0 | 0 | 0 | async | 9 |
-| TRANSFER | `transfer.ts:112` | `sshBaseArgs` | method/private | 1 | 6 | 2 | 0 | 0 | async | 4 |
-| TRANSFER | `transfer.ts:145` | `sshCommandArgs` | method/public | 2 | 0 | 0 | 0 | 0 | async | 6 |
-| TRANSFER | `transfer.ts:151` | `withRetry` | method/private | 1 | 4 | 1 | 0 | 1 | async,clock | 5 |
-| TRANSFER | `transfer.ts:166` | `fetchInputs` | method/public | 3 | 15 | 3 | 0 | 3 | async | 11 |
-| TRANSFER | `transfer.ts:198` | `deliverArtifacts` | method/public | 5 | 14 | 1 | 0 | 1 | async,serial | 17 |
-| TRANSFER | `transfer.ts:225` | `clearStaging` | method/public | 1 | 1 | 0 | 0 | 1 | — | 4 |
-| TYPES | `types.ts:233` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | — | 9 |
-| USAGE | `semantic.ts:3` | `validateUsage` | fn/exported | 1 | 24 | 8 | 0 | 0 | — | 4 |
-| USAGE | `semantic.ts:14` | `emptyUsage` | fn/exported | 0 | 0 | 0 | 0 | 0 | — | 0 |
-| WORKER | `exec-process.ts:17` | `runExecutionProcess` | fn/exported | 2 | 16 | 0 | 0 | 2 | async,clock | 7 |
-| WORKER | `tool-recovery.ts:31` | `fileState` | fn/exported | 3 | 7 | 3 | 0 | 0 | async,serial | 10 |
-| WORKER | `tool-recovery.ts:43` | `isPlan` | fn/exported | 1 | 7 | 0 | 0 | 0 | — | 3 |
-| WORKER | `tool-recovery.ts:49` | `executeRecoverable` | fn/exported | 7 | 16 | 5 | 0 | 0 | async,serial | 22 |
-| WORKER | `tool-recovery.ts:91` | `applyToolRecoveryPolicy` | fn/exported | 3 | 16 | 2 | 0 | 0 | async | 10 |
-| WORKER | `worker.ts:28` | `constructor` | ctor/public | 7 | 0 | 0 | 0 | 0 | — | 21 |
-| WORKER | `worker.ts:39` | `report` | method/private | 1 | 2 | 1 | 0 | 0 | async | 4 |
-| WORKER | `worker.ts:47` | `requestAbort` | method/public | 1 | 0 | 0 | 0 | 0 | — | 3 |
-| WORKER | `worker.ts:50` | `isAborted` | method/private | 1 | 1 | 0 | 0 | 0 | — | 3 |
-| WORKER | `worker.ts:54` | `start` | method/public | 0 | 0 | 0 | 1 | 0 | — | 1 |
-| WORKER | `worker.ts:58` | `loop` | method/private | 0 | 6 | 0 | 1 | 1 | async,clock,db,concur | 2 |
-| WORKER | `worker.ts:78` | `claimNext` | method/private | 0 | 3 | 0 | 0 | 0 | async,concur | 0 |
-| WORKER | `worker.ts:87` | `stageInputs` | method/private | 1 | 7 | 0 | 0 | 2 | async,clock | 4 |
-| WORKER | `worker.ts:125` | `reportPreconditionFailure` | method/private | 2 | 0 | 0 | 0 | 0 | async | 6 |
-| WORKER | `worker.ts:143` | `run` | method/private | 2 | 46 | 1 | 0 | 2 | async,clock,concur | 8 |
-| WORKER | `worker.ts:282` | `close` | method/public | 0 | 0 | 0 | 1 | 0 | async | 1 |
-| WORKER | `worker.ts:288` | `buildStats` | fn/exported | 2 | 2 | 0 | 0 | 0 | — | 6 |
-| WORKER | `worker.ts:299` | `aggregateUsage` | fn/exported | 2 | 12 | 0 | 0 | 0 | — | 6 |
-| WORKER | `worker.ts:320` | `sendDiscussionReplyWithRetry` | fn/exported | 6 | 14 | 2 | 0 | 1 | async,clock | 20 |
+| 模块 | 文件:行 | 符号 | 种类/可见性 | 参数 | 分支 | throw | 状态写 | 资源 | 返回 | 义务旗标 | 格数 |
+|---|---|---|---|--:|--:|--:|--:|--:|--:|---|--:|
+| BOOT | `config.ts:26` | `validateToolRegistry` | fn/exported | 1 | 25 | 6 | 0 | 0 | 0 | — | 34 |
+| BOOT | `config.ts:56` | `gitHead` | fn/exported | 1 | 5 | 1 | 0 | 0 | 3 | async | 12 |
+| BOOT | `config.ts:70` | `validated` | fn/exported | 2 | 4 | 1 | 0 | 0 | 1 | async,serial | 12 |
+| BOOT | `config.ts:86` | `loadConfig` | fn/exported | 2 | 16 | 3 | 0 | 0 | 1 | async,serial | 26 |
+| BOOT | `config.ts:132` | `resolveSecret` | fn/exported | 1 | 4 | 2 | 0 | 0 | 2 | async | 11 |
+| BOOT | `durable-fs.ts:20` | `absolute` | method/private | 1 | 1 | 0 | 0 | 0 | 1 | — | 5 |
+| BOOT | `durable-fs.ts:21` | `sync` | method/private | 2 | 1 | 0 | 0 | 0 | 0 | async | 7 |
+| BOOT | `durable-fs.ts:25` | `exec` | method/public | 3 | 10 | 0 | 1 | 0 | 1 | async,clock | 21 |
+| BOOT | `durable-fs.ts:88` | `writeFile` | method/public | 3 | 1 | 0 | 0 | 0 | 1 | async | 11 |
+| BOOT | `durable-fs.ts:93` | `appendFile` | method/public | 3 | 1 | 0 | 0 | 0 | 1 | async | 11 |
+| BOOT | `durable-fs.ts:98` | `renameFile` | method/public | 3 | 1 | 0 | 0 | 0 | 1 | async | 11 |
+| BOOT | `main.ts:16` | `runControlProcess` | fn/exported | 2 | 2 | 0 | 0 | 0 | 1 | async | 9 |
+| BOOT | `main.ts:55` | `main` | fn/exported | 2 | 3 | 0 | 0 | 0 | 0 | async | 9 |
+| IPC | `ipc.ts:49` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| IPC | `ipc.ts:50` | `apply` | method/public | 1 | 20 | 0 | 0 | 0 | 18 | concur | 41 |
+| IPC | `ipc.ts:117` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| IPC | `ipc.ts:118` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | async | 4 |
+| IPC | `ipc.ts:131` | `constructor` | ctor/public | 2 | 7 | 0 | 0 | 0 | 1 | db | 14 |
+| IPC | `ipc.ts:144` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | async | 4 |
+| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 2 | 0 | 0 | 0 | 2 | — | 13 |
+| IPC | `supervisor.ts:20` | `constructor` | ctor/public | 4 | 0 | 0 | 0 | 0 | 0 | — | 12 |
+| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 14 | 0 | 7 | 2 | 2 | clock | 25 |
+| IPC | `supervisor.ts:55` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | 2 | clock | 9 |
+| IPC | `supervisor.ts:67` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | 0 | — | 4 |
+| IPC | `supervisor.ts:72` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | 0 | — | 2 |
+| IPC | `supervisor.ts:80` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | 1 | clock | 5 |
+| IPC | `supervisor.ts:84` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| IPC | `supervisor.ts:88` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | 1 | async,clock | 9 |
+| IPC | `types.ts:233` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 0 | — | 9 |
+| MATRIX | `matrix.ts:14` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 0 | — | 9 |
+| MATRIX | `matrix.ts:15` | `start` | method/public | 0 | 21 | 1 | 4 | 3 | 3 | async,clock | 32 |
+| MATRIX | `matrix.ts:29` | `prepareEvent` | method/private | 1 | 15 | 0 | 0 | 0 | 6 | async | 24 |
+| MATRIX | `matrix.ts:48` | `auditMembership` | method/private | 0 | 4 | 0 | 0 | 0 | 0 | async | 4 |
+| MATRIX | `matrix.ts:63` | `isJoined` | method/public | 1 | 1 | 0 | 0 | 0 | 2 | async | 6 |
+| MATRIX | `matrix.ts:73` | `recordDiscussionAccessLost` | method/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| MATRIX | `matrix.ts:79` | `processBatch` | method/private | 2 | 13 | 0 | 0 | 0 | 0 | async | 19 |
+| MATRIX | `matrix.ts:91` | `downloadMedia` | method/private | 3 | 29 | 8 | 0 | 0 | 1 | async | 47 |
+| MATRIX | `matrix.ts:101` | `verifyDiscussion` | method/public | 2 | 9 | 3 | 0 | 0 | 1 | async | 19 |
+| MATRIX | `matrix.ts:107` | `send` | method/public | 4 | 3 | 1 | 0 | 0 | 1 | async | 17 |
+| MATRIX | `matrix.ts:113` | `sendDiscussionReply` | method/public | 5 | 2 | 1 | 0 | 3 | 2 | async,serial | 23 |
+| MATRIX | `matrix.ts:117` | `close` | method/public | 0 | 1 | 0 | 1 | 0 | 0 | async | 2 |
+| MATRIX | `matrix.ts:120` | `isPermanentMatrixError` | fn/exported | 1 | 16 | 0 | 0 | 0 | 5 | — | 24 |
+| OBS | `clock.ts:34` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| OBS | `clock.ts:35` | `now` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| OBS | `clock.ts:38` | `monotonic` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| OBS | `clock.ts:41` | `iso` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| OBS | `clock.ts:44` | `advance` | method/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| OBS | `clock.ts:48` | `set` | method/public | 2 | 1 | 0 | 2 | 0 | 0 | — | 9 |
+| OBS | `observability.ts:44` | `redact` | fn/exported | 1 | 7 | 0 | 0 | 0 | 1 | — | 11 |
+| OBS | `observability.ts:62` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| OBS | `observability.ts:67` | `keep` | method/private | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| OBS | `observability.ts:72` | `emit` | method/public | 2 | 10 | 0 | 0 | 0 | 0 | clock,concur | 16 |
+| OBS | `observability.ts:90` | `metric` | method/public | 5 | 16 | 0 | 0 | 0 | 1 | db | 32 |
+| OBS | `observability.ts:104` | `audit` | method/public | 1 | 3 | 0 | 0 | 0 | 0 | — | 6 |
+| OBS | `observability.ts:114` | `snapshot` | method/public | 1 | 1 | 0 | 0 | 0 | 1 | clock | 5 |
+| OBS | `observability.ts:127` | `bump` | method/public | 2 | 2 | 0 | 0 | 0 | 0 | db | 8 |
+| PI | `graphrag-client.ts:57` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | 0 | — | 13 |
+| PI | `graphrag-client.ts:93` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | 6 | — | 15 |
+| PI | `graphrag-client.ts:109` | `constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 0 | — | 9 |
+| PI | `graphrag-client.ts:130` | `search` | method/public | 2 | 26 | 3 | 0 | 0 | 2 | async,serial | 37 |
+| PI | `graphrag-tools.ts:85` | `validateDocSearchContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | 0 | — | 14 |
+| PI | `graphrag-tools.ts:109` | `createGraphragSearchTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | async,serial | 4 |
+| PI | `graphrag-tools.ts:122` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 2 | async,serial | 24 |
+| PI | `mem0-client.ts:24` | `constructor` | ctor/public | 4 | 0 | 0 | 1 | 0 | 0 | — | 13 |
+| PI | `mem0-client.ts:58` | `mapStatusToCode` | fn/exported | 1 | 6 | 0 | 0 | 0 | 6 | — | 15 |
+| PI | `mem0-client.ts:73` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| PI | `mem0-client.ts:88` | `search` | method/public | 3 | 24 | 3 | 0 | 0 | 2 | async,serial | 38 |
+| PI | `mem0-client.ts:203` | `add` | method/public | 3 | 18 | 4 | 0 | 0 | 2 | async,serial | 33 |
+| PI | `mem0-client.ts:299` | `pollForExtractedMemory` | method/private | 2 | 8 | 0 | 0 | 1 | 2 | async,clock | 17 |
+| PI | `pi-runtime.ts:37` | `isProviderUnavailableMessage` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| PI | `pi-runtime.ts:42` | `discussionMessage` | fn/exported | 2 | 0 | 0 | 0 | 0 | 1 | — | 7 |
+| PI | `pi-runtime.ts:43` | `initialPrompt` | fn/exported | 3 | 1 | 0 | 0 | 0 | 1 | — | 11 |
+| PI | `pi-runtime.ts:44` | `normalizeRawUsage` | fn/exported | 1 | 14 | 0 | 0 | 0 | 1 | — | 18 |
+| PI | `pi-runtime.ts:55` | `buildSystemPrompt` | fn/exported | 3 | 5 | 0 | 0 | 0 | 2 | — | 16 |
+| PI | `pi-runtime.ts:114` | `constructor` | ctor/public | 8 | 20 | 2 | 5 | 0 | 0 | — | 51 |
+| PI | `pi-runtime.ts:150` | `model` | method/private | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| PI | `pi-runtime.ts:155` | `execute` | method/public | 6 | 118 | 5 | 0 | 3 | 15 | async,clock,serial,concur | 159 |
+| PI | `pi-runtime.ts:326` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | 0 | async | 0 |
+| PI | `provider-preflight.ts:1` | `preflightModelProvider` | fn/exported | 4 | 9 | 2 | 0 | 2 | 0 | async,clock | 25 |
+| PI | `skill-prefetch.ts:114` | `cacheKey` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| PI | `skill-prefetch.ts:119` | `clearPrefetchCache` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `skill-prefetch.ts:124` | `prefetchCacheSize` | fn/exported | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| PI | `skill-prefetch.ts:137` | `prefetchSkillContext` | fn/exported | 5 | 37 | 0 | 0 | 0 | 7 | async,clock,db | 59 |
+| PI | `skill-prefetch.ts:229` | `withTimeout` | fn/exported | 2 | 0 | 0 | 0 | 3 | 1 | clock | 10 |
+| PI | `skill-prefetch.ts:240` | `renderMemoryEntry` | fn/exported | 1 | 5 | 0 | 0 | 0 | 1 | — | 9 |
+| PI | `skill-prefetch.ts:249` | `renderDocEntry` | fn/exported | 1 | 6 | 0 | 0 | 0 | 1 | — | 10 |
+| PI | `skill-prefetch.ts:262` | `renderSkillContext` | fn/exported | 1 | 5 | 0 | 0 | 0 | 2 | — | 10 |
+| PI | `skill-tools.ts:101` | `validateContext` | fn/exported | 1 | 8 | 3 | 0 | 0 | 0 | — | 14 |
+| PI | `skill-tools.ts:123` | `createMem0LookupTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | async,serial | 4 |
+| PI | `skill-tools.ts:136` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 2 | async,serial | 24 |
+| PI | `skill-tools.ts:171` | `createMem0RecordTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | async,serial | 4 |
+| PI | `skill-tools.ts:184` | `execute` | method/public | 6 | 3 | 1 | 0 | 0 | 2 | async,serial | 24 |
+| PI | `tool-exec-policy.ts:21` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | 0 | — | 10 |
+| PI | `tool-exec-policy.ts:43` | `splitCommands` | fn/exported | 1 | 12 | 0 | 0 | 0 | 1 | — | 16 |
+| PI | `tool-exec-policy.ts:99` | `tokenize` | fn/exported | 1 | 12 | 0 | 0 | 0 | 1 | — | 16 |
+| PI | `tool-exec-policy.ts:143` | `parseExecutable` | fn/exported | 1 | 10 | 0 | 0 | 0 | 2 | — | 15 |
+| PI | `tool-exec-policy.ts:176` | `parseExecutables` | fn/exported | 1 | 4 | 0 | 0 | 0 | 1 | — | 8 |
+| PI | `tool-exec-policy.ts:193` | `assertExecutablesAllowed` | fn/exported | 2 | 5 | 1 | 0 | 0 | 1 | — | 13 |
+| PI | `tool-exec-policy.ts:213` | `assertRemoteExecutableAllowed` | fn/exported | 2 | 7 | 1 | 0 | 0 | 2 | — | 16 |
+| PI | `tool-exec-policy.ts:229` | `stripQuotes` | fn/exported | 1 | 5 | 0 | 0 | 0 | 2 | — | 10 |
+| PI | `tool-host-policy.ts:29` | `constructor` | ctor/public | 3 | 0 | 0 | 1 | 0 | 0 | — | 10 |
+| PI | `tool-host-policy.ts:48` | `currentAllowlist` | fn/exported | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| PI | `tool-host-policy.ts:52` | `enterNetworkScope` | fn/exported | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| PI | `tool-host-policy.ts:56` | `exitNetworkScope` | fn/exported | 0 | 0 | 0 | 0 | 0 | 0 | — | 0 |
+| PI | `tool-host-policy.ts:74` | `makePolicyFetch` | fn/exported | 1 | 6 | 2 | 0 | 0 | 2 | — | 13 |
+| PI | `tool-host-policy.ts:109` | `installNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | 2 | — | 3 |
+| PI | `tool-host-policy.ts:121` | `restoreNetworkPolicy` | fn/exported | 0 | 1 | 0 | 0 | 0 | 0 | — | 1 |
+| POLICY | `policy.ts:8` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| POLICY | `policy.ts:14` | `canonicalize` | method/private | 1 | 5 | 3 | 0 | 0 | 1 | — | 12 |
+| POLICY | `policy.ts:24` | `resolveWorkspace` | method/private | 1 | 3 | 1 | 0 | 0 | 1 | — | 8 |
+| POLICY | `policy.ts:31` | `validate` | method/public | 2 | 10 | 2 | 0 | 0 | 1 | — | 19 |
+| POLICY | `policy.ts:55` | `validateResult` | method/public | 1 | 5 | 2 | 0 | 0 | 0 | — | 10 |
+| POLICY | `policy.ts:65` | `within` | fn/exported | 3 | 5 | 0 | 0 | 0 | 1 | — | 15 |
+| POLICY | `task-equality.ts:3` | `normalizedTask` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| POLICY | `task-equality.ts:4` | `sameTask` | fn/exported | 2 | 0 | 0 | 0 | 0 | 1 | serial | 7 |
+| POLICY | `workspace.ts:9` | `resolveWorkspace` | fn/exported | 2 | 2 | 1 | 0 | 0 | 1 | async | 10 |
+| POLICY | `workspace.ts:14` | `realpathNearestAncestor` | fn/exported | 1 | 3 | 1 | 0 | 0 | 1 | async | 8 |
+| POLICY | `workspace.ts:18` | `authorizePath` | fn/exported | 4 | 12 | 4 | 0 | 0 | 1 | async | 29 |
+| POLICY | `workspace.ts:32` | `collectOutputs` | fn/exported | 2 | 4 | 0 | 0 | 3 | 1 | async,serial | 14 |
+| POLICY | `workspace.ts:41` | `ensureTaskDirs` | fn/exported | 2 | 6 | 0 | 0 | 0 | 0 | async | 12 |
+| REPO | `store.ts:44` | `constructor` | ctor/public | 2 | 1 | 0 | 2 | 1 | 0 | db | 10 |
+| REPO | `store.ts:52` | `close` | method/public | 0 | 0 | 0 | 0 | 0 | 0 | db | 0 |
+| REPO | `store.ts:56` | `migrate` | method/private | 0 | 0 | 0 | 2 | 0 | 0 | db | 2 |
+| REPO | `store.ts:170` | `tx` | method/private | 1 | 1 | 1 | 3 | 0 | 1 | db | 9 |
+| REPO | `store.ts:183` | `createOrGet` | method/public | 4 | 10 | 0 | 3 | 0 | 6 | clock,serial,db,concur | 31 |
+| REPO | `store.ts:225` | `getTask` | method/public | 1 | 2 | 1 | 0 | 0 | 1 | serial,db | 7 |
+| REPO | `store.ts:232` | `mutateRun` | method/public | 1 | 9 | 4 | 1 | 0 | 2 | db,concur | 19 |
+| REPO | `store.ts:255` | `getRun` | method/public | 1 | 9 | 2 | 0 | 0 | 1 | clock,serial,db | 15 |
+| REPO | `store.ts:288` | `setInputStaging` | method/public | 2 | 1 | 1 | 1 | 0 | 0 | serial,db | 9 |
+| REPO | `store.ts:295` | `setArtifactDelivery` | method/public | 2 | 1 | 1 | 1 | 0 | 0 | serial,db | 9 |
+| REPO | `store.ts:299` | `inputStaging` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | serial,db | 4 |
+| REPO | `store.ts:304` | `tryClaimSlot` | method/public | 2 | 3 | 0 | 4 | 0 | 4 | db,concur | 17 |
+| REPO | `store.ts:336` | `failAccessLostTasks` | method/public | 0 | 4 | 0 | 4 | 3 | 2 | serial,db,concur | 13 |
+| REPO | `store.ts:385` | `recoverOrphaned` | method/public | 2 | 5 | 0 | 3 | 0 | 4 | db,concur | 18 |
+| REPO | `store.ts:403` | `readSlot` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | db | 1 |
+| REPO | `store.ts:406` | `renewSlot` | method/public | 2 | 0 | 0 | 1 | 0 | 1 | db,concur | 8 |
+| REPO | `store.ts:410` | `releaseSlot` | method/public | 2 | 0 | 0 | 1 | 0 | 1 | db,concur | 8 |
+| REPO | `store.ts:416` | `scanNonTerminal` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | db | 1 |
+| REPO | `store.ts:421` | `nextNeedingStaging` | method/public | 0 | 2 | 0 | 0 | 0 | 1 | db | 3 |
+| REPO | `store.ts:431` | `reserveModel` | method/public | 4 | 1 | 0 | 2 | 0 | 3 | db | 18 |
+| REPO | `store.ts:442` | `observeUsage` | method/public | 5 | 0 | 0 | 1 | 0 | 0 | serial,db | 16 |
+| REPO | `store.ts:449` | `terminalModel` | method/public | 5 | 1 | 0 | 1 | 0 | 0 | db | 17 |
+| REPO | `store.ts:456` | `reserveTool` | method/public | 7 | 3 | 0 | 3 | 0 | 4 | db | 31 |
+| REPO | `store.ts:483` | `terminalTool` | method/public | 4 | 1 | 0 | 1 | 0 | 0 | db | 14 |
+| REPO | `store.ts:489` | `markTurn` | method/public | 5 | 2 | 0 | 1 | 0 | 0 | db | 18 |
+| REPO | `store.ts:494` | `pendingTurns` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | db | 4 |
+| REPO | `store.ts:497` | `markDiscussionAccessLost` | method/public | 1 | 3 | 0 | 1 | 0 | 4 | serial,db | 11 |
+| REPO | `store.ts:516` | `discussionAccessLost` | method/public | 1 | 2 | 0 | 0 | 0 | 1 | db | 6 |
+| REPO | `store.ts:519` | `recordProviderCall` | method/public | 6 | 0 | 0 | 1 | 0 | 0 | db | 19 |
+| REPO | `store.ts:524` | `recordMatrixEvent` | method/public | 4 | 1 | 0 | 1 | 0 | 1 | db | 15 |
+| REPO | `store.ts:528` | `ingestMatrixEvent` | method/public | 5 | 6 | 0 | 2 | 0 | 3 | db | 26 |
+| REPO | `store.ts:544` | `hasMatrixEvent` | method/public | 2 | 2 | 0 | 0 | 0 | 1 | db | 9 |
+| REPO | `store.ts:547` | `ingestMatrixBatch` | method/public | 2 | 7 | 0 | 3 | 0 | 2 | db | 18 |
+| REPO | `store.ts:567` | `discussionRoomsInUse` | method/public | 0 | 4 | 0 | 0 | 0 | 3 | serial,db | 7 |
+| REPO | `store.ts:583` | `openDiscussionRuns` | method/public | 1 | 2 | 0 | 0 | 0 | 3 | serial,db | 8 |
+| REPO | `store.ts:596` | `matrixCursor` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | db | 1 |
+| REPO | `store.ts:599` | `setMatrixCursor` | method/public | 1 | 0 | 0 | 1 | 0 | 0 | db | 4 |
+| REPO | `store.ts:602` | `prepareMatrixSend` | method/public | 4 | 2 | 1 | 1 | 0 | 3 | db | 19 |
+| REPO | `store.ts:613` | `finishMatrixSend` | method/public | 2 | 0 | 0 | 1 | 0 | 0 | db | 7 |
+| REPO | `store.ts:616` | `unknownMatrixSend` | method/public | 1 | 0 | 0 | 1 | 0 | 0 | db | 4 |
+| REPO | `store.ts:619` | `tryCloseIntake` | method/public | 2 | 5 | 0 | 1 | 0 | 6 | db,concur | 18 |
+| REPO | `store.ts:634` | `cancel` | method/public | 1 | 2 | 0 | 3 | 0 | 4 | db | 12 |
+| REPO | `store.ts:667` | `cancelRequested` | method/public | 1 | 3 | 0 | 0 | 0 | 1 | db | 7 |
+| REPO | `store.ts:670` | `generation` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | db | 4 |
+| REPO | `store.ts:674` | `usageSoFar` | method/private | 1 | 8 | 0 | 0 | 0 | 2 | serial,db | 13 |
+| REPO | `store.ts:692` | `rawUsage` | method/public | 1 | 6 | 0 | 0 | 0 | 3 | serial,db | 12 |
+| REPO | `store.ts:711` | `knownActions` | method/public | 1 | 8 | 0 | 0 | 0 | 1 | db | 12 |
+| REPO | `store.ts:737` | `insertResult` | method/private | 1 | 0 | 0 | 1 | 3 | 0 | serial,db | 7 |
+| REPO | `store.ts:745` | `publishResult` | method/public | 2 | 2 | 1 | 1 | 0 | 0 | db,concur | 10 |
+| REPO | `store.ts:755` | `finish` | method/public | 2 | 9 | 2 | 3 | 0 | 0 | db,concur | 20 |
+| REPO | `store.ts:780` | `finishQueued` | method/public | 1 | 5 | 1 | 2 | 0 | 1 | db | 12 |
+| REPO | `store.ts:795` | `result` | method/public | 1 | 3 | 2 | 0 | 0 | 1 | serial,db | 9 |
+| REPO | `store.ts:804` | `purge` | method/public | 1 | 6 | 0 | 4 | 0 | 2 | serial,db | 15 |
+| REPO | `store.ts:832` | `purgeExpired` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| REPO | `store.ts:855` | `asReader` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| SCHED | `scheduler.ts:10` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| SCHED | `scheduler.ts:15` | `acquire` | method/public | 1 | 1 | 0 | 0 | 0 | 1 | — | 5 |
+| SCHED | `scheduler.ts:21` | `recover` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| SCHED | `scheduler.ts:25` | `renew` | method/public | 2 | 0 | 0 | 0 | 0 | 1 | concur | 7 |
+| SCHED | `scheduler.ts:29` | `release` | method/public | 2 | 0 | 0 | 0 | 0 | 1 | concur | 7 |
+| SCHED | `scheduler.ts:33` | `read` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| SCHED | `scheduler.ts:37` | `identity` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| SCHED | `scheduler.ts:41` | `close` | method/public | 0 | 1 | 0 | 1 | 1 | 0 | — | 3 |
+| TAPI | `auth.ts:3` | `constructor` | ctor/public | 2 | 0 | 0 | 0 | 0 | 0 | — | 6 |
+| TAPI | `auth.ts:3` | `authenticate` | method/public | 1 | 6 | 2 | 0 | 0 | 1 | — | 12 |
+| TAPI | `server.ts:12` | `body` | fn/exported | 2 | 3 | 2 | 0 | 0 | 1 | async,serial | 12 |
+| TAPI | `server.ts:27` | `send` | fn/exported | 4 | 0 | 0 | 0 | 0 | 0 | serial | 12 |
+| TAPI | `server.ts:40` | `constructor` | ctor/public | 5 | 0 | 0 | 1 | 0 | 0 | — | 16 |
+| TAPI | `server.ts:49` | `create` | method/public | 5 | 4 | 1 | 0 | 0 | 1 | async,serial | 21 |
+| TAPI | `server.ts:62` | `route` | method/private | 2 | 26 | 6 | 0 | 0 | 5 | async,concur | 43 |
+| TAPI | `server.ts:110` | `listen` | method/public | 0 | 0 | 0 | 0 | 0 | 0 | async | 0 |
+| TAPI | `server.ts:119` | `close` | method/public | 0 | 1 | 0 | 0 | 0 | 0 | async | 1 |
+| TAPI | `server.ts:140` | `mapError` | fn/exported | 1 | 3 | 0 | 0 | 0 | 2 | concur | 8 |
+| TRANSFER | `remote-exec-tools.ts:99` | `splitRemoteCommand` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | — | 4 |
+| TRANSFER | `remote-exec-tools.ts:106` | `createRemoteBashTool` | fn/exported | 1 | 0 | 0 | 0 | 0 | 1 | async,clock,serial | 4 |
+| TRANSFER | `remote-exec-tools.ts:114` | `execute` | method/public | 6 | 8 | 0 | 0 | 0 | 2 | async,clock,serial | 28 |
+| TRANSFER | `remote-exec.ts:92` | `execRemote` | fn/exported | 4 | 39 | 2 | 0 | 1 | 4 | async,clock | 58 |
+| TRANSFER | `remote-exec.ts:208` | `truncate` | fn/exported | 1 | 1 | 0 | 0 | 0 | 1 | — | 5 |
+| TRANSFER | `transfer.ts:15` | `run` | fn/exported | 3 | 2 | 0 | 0 | 1 | 1 | async,clock | 13 |
+| TRANSFER | `transfer.ts:25` | `safeJoinIn` | fn/exported | 2 | 2 | 1 | 0 | 0 | 1 | — | 10 |
+| TRANSFER | `transfer.ts:31` | `safeJoin` | fn/exported | 3 | 2 | 1 | 0 | 0 | 1 | — | 13 |
+| TRANSFER | `transfer.ts:42` | `constructor` | ctor/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| TRANSFER | `transfer.ts:53` | `scpKeyPath` | method/private | 0 | 7 | 1 | 2 | 2 | 3 | async | 15 |
+| TRANSFER | `transfer.ts:75` | `close` | method/public | 0 | 1 | 0 | 2 | 1 | 0 | — | 4 |
+| TRANSFER | `transfer.ts:83` | `stagingRoot` | accessor/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| TRANSFER | `transfer.ts:87` | `assertAllowed` | method/private | 1 | 3 | 1 | 0 | 0 | 0 | — | 7 |
+| TRANSFER | `transfer.ts:94` | `scpArgs` | method/private | 3 | 3 | 0 | 0 | 0 | 1 | async | 13 |
+| TRANSFER | `transfer.ts:112` | `sshBaseArgs` | method/private | 1 | 6 | 2 | 0 | 0 | 1 | async | 12 |
+| TRANSFER | `transfer.ts:145` | `sshCommandArgs` | method/public | 2 | 0 | 0 | 0 | 0 | 1 | async | 7 |
+| TRANSFER | `transfer.ts:151` | `withRetry` | method/private | 1 | 4 | 1 | 0 | 1 | 1 | async,clock | 10 |
+| TRANSFER | `transfer.ts:166` | `fetchInputs` | method/public | 3 | 15 | 3 | 0 | 3 | 2 | async | 32 |
+| TRANSFER | `transfer.ts:198` | `deliverArtifacts` | method/public | 5 | 14 | 1 | 0 | 1 | 2 | async,serial | 33 |
+| TRANSFER | `transfer.ts:225` | `clearStaging` | method/public | 1 | 1 | 0 | 0 | 1 | 0 | — | 5 |
+| USAGE | `semantic.ts:3` | `validateUsage` | fn/exported | 1 | 24 | 8 | 0 | 0 | 0 | — | 35 |
+| USAGE | `semantic.ts:14` | `emptyUsage` | fn/exported | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| WORKER | `exec-process.ts:17` | `runExecutionProcess` | fn/exported | 2 | 16 | 0 | 0 | 2 | 1 | async,clock | 25 |
+| WORKER | `execution-facts.ts:53` | `record` | method/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| WORKER | `execution-facts.ts:58` | `list` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| WORKER | `execution-facts.ts:63` | `last` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| WORKER | `execution-facts.ts:67` | `clear` | method/public | 0 | 0 | 0 | 1 | 0 | 0 | — | 1 |
+| WORKER | `execution-facts.ts:78` | `statusFromErrorCode` | fn/exported | 1 | 5 | 0 | 0 | 0 | 4 | clock | 12 |
+| WORKER | `test-evidence.ts:42` | `buildRawResultRef` | fn/exported | 1 | 3 | 0 | 0 | 0 | 1 | — | 7 |
+| WORKER | `test-evidence.ts:65` | `isExecutionFailure` | fn/exported | 1 | 1 | 0 | 0 | 0 | 1 | — | 5 |
+| WORKER | `tool-recovery.ts:31` | `fileState` | fn/exported | 3 | 7 | 3 | 0 | 0 | 2 | async,serial | 21 |
+| WORKER | `tool-recovery.ts:43` | `isPlan` | fn/exported | 1 | 7 | 0 | 0 | 0 | 2 | — | 12 |
+| WORKER | `tool-recovery.ts:49` | `executeRecoverable` | fn/exported | 7 | 16 | 5 | 0 | 0 | 2 | async,serial | 44 |
+| WORKER | `tool-recovery.ts:91` | `applyToolRecoveryPolicy` | fn/exported | 3 | 16 | 2 | 0 | 0 | 9 | async | 36 |
+| WORKER | `worker.ts:28` | `constructor` | ctor/public | 7 | 0 | 0 | 0 | 0 | 0 | — | 21 |
+| WORKER | `worker.ts:39` | `report` | method/private | 1 | 2 | 1 | 0 | 0 | 1 | async | 7 |
+| WORKER | `worker.ts:47` | `requestAbort` | method/public | 1 | 0 | 0 | 0 | 0 | 0 | — | 3 |
+| WORKER | `worker.ts:50` | `isAborted` | method/private | 1 | 1 | 0 | 0 | 0 | 1 | — | 5 |
+| WORKER | `worker.ts:54` | `start` | method/public | 0 | 0 | 0 | 1 | 0 | 0 | — | 1 |
+| WORKER | `worker.ts:58` | `loop` | method/private | 0 | 6 | 0 | 1 | 1 | 0 | async,clock,db,concur | 8 |
+| WORKER | `worker.ts:78` | `claimNext` | method/private | 0 | 3 | 0 | 0 | 0 | 3 | async,concur | 6 |
+| WORKER | `worker.ts:87` | `stageInputs` | method/private | 1 | 7 | 0 | 0 | 2 | 2 | async,clock | 14 |
+| WORKER | `worker.ts:125` | `reportPreconditionFailure` | method/private | 2 | 0 | 0 | 0 | 0 | 0 | async | 6 |
+| WORKER | `worker.ts:143` | `run` | method/private | 2 | 46 | 1 | 0 | 2 | 0 | async,clock,concur | 55 |
+| WORKER | `worker.ts:282` | `close` | method/public | 0 | 0 | 0 | 1 | 0 | 0 | async | 1 |
+| WORKER | `worker.ts:288` | `buildStats` | fn/exported | 2 | 2 | 0 | 0 | 0 | 1 | — | 9 |
+| WORKER | `worker.ts:299` | `aggregateUsage` | fn/exported | 2 | 12 | 0 | 0 | 0 | 2 | — | 20 |
+| WORKER | `worker.ts:320` | `sendDiscussionReplyWithRetry` | fn/exported | 6 | 14 | 2 | 0 | 1 | 1 | async,clock | 36 |
 
-**公式格数合计：1440**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。
+**公式格数合计：3117**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。
 
 ---
 
@@ -823,39 +823,6 @@
 |--:|---|---|
 | 129 | ?? | `this.counters.get(counter) ?? 0` |
 | 130 | catch | `catch ()` |
-
-### `execute` — `remote-exec-tools.ts:114`（OTHER，method/public，参数 6）
-
-参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
-
-| 行 | 类型 | 条件 |
-|--:|---|---|
-| 145 | ?. | `deps.executionFacts?.record` |
-| 151 | ternary | `? result.timed_out :` |
-| 153 | ternary | `? result.transport_failed :` |
-| 186 | catch | `catch (e)` |
-| 189 | ternary | `? e instanceof Error :` |
-| 190 | ternary | `? e instanceof PikoError :` |
-| 195 | ?. | `deps.executionFacts?.record` |
-| 197 | ternary | `? code === "ScopeDenied" :` |
-
-### `buildRawResultRef` — `test-evidence.ts:42`（OTHER，fn/exported，参数 1）
-
-参数：`input: { declaredOutputPaths: readonly string[]; outputs: readonly `
-
-| 行 | 类型 | 条件 |
-|--:|---|---|
-| 47 | && | `input.declaredOutputPaths.length > 0 && input.outputs.lengt…` |
-| 49 | || | `fact.status !== "exited" \|\| (fact.exit_code !== null && fac…` |
-| 49 | && | `fact.exit_code !== null && fact.exit_code !== 0` |
-
-### `isExecutionFailure` — `test-evidence.ts:65`（OTHER，fn/exported，参数 1）
-
-参数：`raw: RawResultRef`
-
-| 行 | 类型 | 条件 |
-|--:|---|---|
-| 66 | || | `raw.report_missing \|\| raw.execution_failed` |
 
 ### `mapStatusToCode` — `graphrag-client.ts:93`（PI，fn/exported，参数 1）
 
@@ -2097,17 +2064,20 @@
 | 141 | && | `error instanceof PikoError && PUBLIC_CODES.has(error.code)` |
 | 144 | ternary | `? error instanceof Error :` |
 
-### `statusFromErrorCode` — `execution-facts.ts:78`（TRANSFER，fn/exported，参数 1）
+### `execute` — `remote-exec-tools.ts:114`（TRANSFER，method/public，参数 6）
 
-参数：`code: string | undefined`
+参数：`_toolCallId: inferred` · `params: inferred` · `_onUpdate: inferred` · `_toolContext: inferred` · `_invocation: inferred` · `_context: inferred`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 80 | case | `case "timeout"` |
-| 82 | case | `case "aborted"` |
-| 84 | case | `case "spawn_error"` |
-| 85 | case | `case "shell_unavailable"` |
-| 87 | default | `default` |
+| 145 | ?. | `deps.executionFacts?.record` |
+| 151 | ternary | `? result.timed_out :` |
+| 153 | ternary | `? result.transport_failed :` |
+| 186 | catch | `catch (e)` |
+| 189 | ternary | `? e instanceof Error :` |
+| 190 | ternary | `? e instanceof PikoError :` |
+| 195 | ?. | `deps.executionFacts?.record` |
+| 197 | ternary | `? code === "ScopeDenied" :` |
 
 ### `execRemote` — `remote-exec.ts:92`（TRANSFER，fn/exported，参数 4）
 
@@ -2360,6 +2330,36 @@
 | 75 | if | `if (msg.command?.kind === "abort" && typeof msg.command.task_id === "string")` |
 | 75 | && | `msg.command?.kind === "abort" && typeof msg.command.task_id…` |
 | 75 | ?. | `msg.command?.kind` |
+
+### `statusFromErrorCode` — `execution-facts.ts:78`（WORKER，fn/exported，参数 1）
+
+参数：`code: string | undefined`
+
+| 行 | 类型 | 条件 |
+|--:|---|---|
+| 80 | case | `case "timeout"` |
+| 82 | case | `case "aborted"` |
+| 84 | case | `case "spawn_error"` |
+| 85 | case | `case "shell_unavailable"` |
+| 87 | default | `default` |
+
+### `buildRawResultRef` — `test-evidence.ts:42`（WORKER，fn/exported，参数 1）
+
+参数：`input: { declaredOutputPaths: readonly string[]; outputs: readonly `
+
+| 行 | 类型 | 条件 |
+|--:|---|---|
+| 47 | && | `input.declaredOutputPaths.length > 0 && input.outputs.lengt…` |
+| 49 | || | `fact.status !== "exited" \|\| (fact.exit_code !== null && fac…` |
+| 49 | && | `fact.exit_code !== null && fact.exit_code !== 0` |
+
+### `isExecutionFailure` — `test-evidence.ts:65`（WORKER，fn/exported，参数 1）
+
+参数：`raw: RawResultRef`
+
+| 行 | 类型 | 条件 |
+|--:|---|---|
+| 66 | || | `raw.report_missing \|\| raw.execution_failed` |
 
 ### `fileState` — `tool-recovery.ts:31`（WORKER，fn/exported，参数 3）
 

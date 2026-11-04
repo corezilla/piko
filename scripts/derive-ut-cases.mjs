@@ -161,6 +161,25 @@ for (const [typ, cells] of Object.entries(CELLS)) {
     });
   }
 }
+// ---- wave 1b: units with real branches but no flag-matched dimension ----
+// A guard branch (if (this.timer)), an idempotency check (previousFetch !== null)
+// or a swallowed catch IS an obligation cell: STD's 状态分支/错误路径 dimensions
+// are about behaviour, not about whether the unit takes a parameter.
+for (const r of rows) {
+  if (r.module === "TYPES" || !r.branches.length) continue;
+  const anyCase = derived.some((d) => d.module === r.module && d.symbol === r.symbol) ||
+    existing.has(`${r.symbol}::${r.module}`);
+  if (anyCase) continue;
+  const isErr = r.branches.some((b) => b.kind === "catch") || r.throws > 0;
+  const typ = isErr ? "错误路径" : "状态分支";
+  const cell = isErr ? "每个 typed 错误码" : "合法迁移";
+  derived.push({
+    symbol: r.symbol, module: r.module, type: typ, cell, wave: 1,
+    summary: `\`${r.symbol}\` 的 ${r.branches.length} 个守卫/幂等分支逐路径断言（${r.file}:${r.line}${isErr ? "，含 catch" : ""}）`,
+    isd: ISD[r.module] ?? ISD.OTHER, line: r.line, file: r.file,
+    branches: r.branches.length, throws: r.throws,
+  });
+}
 for (const d of derived) d.wave ??= 2;
 
 // units that carry NO obligation dimension at all must be disposed explicitly

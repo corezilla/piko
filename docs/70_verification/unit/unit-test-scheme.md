@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.4` |
+| Document Version | `0.1.0-draft.5` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -597,6 +597,8 @@
 | **合计** | — | — | **152** | **136** | **16** |
 
 **实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **136/152 已实现，实现率 89%**——16 条波次一新 Case 为 `Planned`（用例文档已建、脚本待建）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+
+**分卷登记另计 3208 条**（§6.1A，逐站点粒度，全部 `待实现`）——实现率只按 §6.1 的 152 条粗粒度登记计算。
 
 **「实现率 89%」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。波次一后后者满格、前者缺 16 条脚本，是本轮的真实状态。
 
@@ -2447,6 +2449,35 @@
 
 **上级组合验证入口 · 集合总账**：`docs/70_verification/unit/cases/UT-WORKER-015.md`
 
+### 6.1A 分卷登记（波次二：逐站点全量登记，2026-11-04）
+
+> **本节目的**：Case 数远超几十时按 STD 分卷结构登记——入口方案只留分卷索引，
+> 全量登记行在各分卷；本入口与分卷合计必须可机器复算（`scripts/derive-ut-cases-full.mjs` 生成）。
+
+**枚举与派生链（机器权威）**：`src/` --AST--> `ut-denominator.md`（241 单元 / 3,117 站点）
+--派生--> `volumes/unit-test-scheme-<模块>.md`（每站点一条 Case，责任摘要写明测哪个站点）。
+
+| 分卷 | 文件 | Case 数 | 登记状态 |
+|---|---|--:|---|
+| `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 860 | 待实现 |
+| `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 612 | 待实现 |
+| `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 377 | 待实现 |
+| `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 287 | 待实现 |
+| `MATRIX` | [unit-test-scheme-matrix.md](volumes/unit-test-scheme-matrix.md) | 226 | 待实现 |
+| `BOOT` | [unit-test-scheme-boot.md](volumes/unit-test-scheme-boot.md) | 199 | 待实现 |
+| `IPC` | [unit-test-scheme-ipc.md](volumes/unit-test-scheme-ipc.md) | 167 | 待实现 |
+| `POLICY` | [unit-test-scheme-policy.md](volumes/unit-test-scheme-policy.md) | 155 | 待实现 |
+| `TAPI` | [unit-test-scheme-tapi.md](volumes/unit-test-scheme-tapi.md) | 139 | 待实现 |
+| `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 118 | 待实现 |
+| `SCHED` | [unit-test-scheme-sched.md](volumes/unit-test-scheme-sched.md) | 34 | 待实现 |
+| `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 34 | 待实现 |
+| **合计** | — | **3208** | 全部 `待实现`（`Planned`） |
+
+**与 §6.1 的关系**：§6.1 的 152 条是**粗粒度符号×类型登记**（波次一，含 16 条补齐义务格的新行）；
+本分卷是**逐站点细粒度登记**（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条）。
+两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3208 = **3360**。
+分卷全部 `待实现`：清单先行，脚本按清单编写（执行半随 `G-EXEC-UT-3` 与波次二排期）。
+
 ### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
 
 > **本节目的**：展示 §6 登记行在用例集中展开成的固定格式段落，供作者预判对应关系。
@@ -2750,8 +2781,8 @@
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
 | `G-EXEC-UT-3` | 152 个 Case 中 107 个无专属脚本入口（91 存量＋16 波次一新增，四方对账不全） | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 241 个行为单元，71 个未被任何 Case 命名；公式格数 1,440，保守下界 ≈362 条 vs 现有 136 | 下一轮补测波次 |
-| `G-UT-BRANCH-1` | 1,216 个内部分支点无一被 Case 逐路径指向；分支覆盖率此前不可证（coverage 工具本轮已接入） | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 241 个行为单元；波次二已按站点粒度全量登记 3,208 条分卷 Case（§6.1A），全部待实现 | 脚本随波次二排期 |
+| `G-UT-BRANCH-1` | 1,216 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
 
