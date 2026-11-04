@@ -2,7 +2,7 @@
 # Piko Case ST-LLM-001
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,9 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/system/cases/ST-LLM-001.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本文档是单个系统测试 Case 的完整设计，一 Case 一文档，与 design.software-system 阶段的测试方案（tests.system-test-scheme）清单一一对应；测试脚本按本文档编写；LLM/智能体组件的输入构造、独立判据、统计口径与预算安全方法见 LLM 测试方法（STD `docs/ai-guides/llm-testing.md`，见 `docs/std.lock.json`）。

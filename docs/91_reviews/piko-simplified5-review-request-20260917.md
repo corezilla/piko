@@ -2,7 +2,7 @@
 # Piko simplified.5 定向复审请求
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,9 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/91_reviews/piko-simplified5-review-request-20260917.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 覆盖本批原消息 `S-20260917-fe46f52041bf` 与 `L-20260917-5f660a9d497c`。LLMTier 对 simplified.4 的 ACCEPTED 保留为历史复审结果；Slinky 在同一基线提出的三项残留已合并修订为唯一 `0.3.0-simplified.5`。本候选仍是 dirty、未提交快照，base/HEAD=`4c63380f944e41d0047e9f47340689a182b62fba`，runtime_activation=false。

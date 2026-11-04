@@ -2,7 +2,7 @@
 # Piko Case UT-TRANSFER-001
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,9 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/unit/cases/UT-TRANSFER-001.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 <!-- STD_DOCUMENT_COVER_END -->
 > **编写建议**：本文档是**单个模块的单元测试用例集**：一模块一集，本模块全部 UT Case 以固定段落块组织在 §3（Document ID＝`UT-COL-⟨模块短名⟩-⟨NNN⟩`，单集超过 40 条拆 `-002`）；段内 Case ID 仍为 `UT-⟨对象⟩-⟨NNN⟩`，与本模块单测方案（`tests.unit-test-scheme`，同样一模块一份）的清单行一一对应；测试脚本一段一文件、文件名＝Case ID。LLM/智能体组件的输入构造、独立判据、统计口径与预算安全方法见 LLM 测试方法（见 `docs/std.lock.json` 所锁 STD 的 `docs/ai-guides/llm-testing.md`）。
 

@@ -2,7 +2,7 @@
 # Piko asset-design
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,9 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/assets/asset-design.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板是测试资产设计——harness、替身/fake、受控时钟、向量生成器、注入框架、Run 编排、外部系统模拟器、数据构造工具、校验工具等测试件（一资产一文档）。测试资产不是产品功能：它有自己的契约、实现与自检；契约（尤其是替身的证明边界与注入命中语义）以本文档为唯一 authority，方案、Case 文档与计划只引用不重复。

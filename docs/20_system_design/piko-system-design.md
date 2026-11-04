@@ -2,7 +2,7 @@
 # Piko Agent Runtime 总体系统设计
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -1251,6 +1251,10 @@ Piko 由 11 个直属模块组成，STD 要求每模块独立 design.definition 
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/20_system_design/piko-system-design.md` |
 | Supersedes | `docs/99_reference/design/agent-runtime-service-design-v0.2.md` |
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。

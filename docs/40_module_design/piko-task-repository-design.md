@@ -2,7 +2,7 @@
 # Piko 模块设计：task-repository（M003）
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -14,7 +14,6 @@
 | Last Modified Date | `2026-09-28` |
 | Template ID | `design.definition` |
 | Template Version | `3.5.0` |
-
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 单元摘要：为什么存在
@@ -2264,6 +2263,13 @@ task-repository 的对外接口是提供方（M003）暴露给其他模块的进
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/40_module_design/piko-task-repository-design.md` |
 | Supersedes | none |
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
+
+> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
+> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
 <!-- STD_DOCUMENT_CONTROL_END -->
 
 <!-- Reviewer、Approver、Approval Date、Release Tag 按真实状态记录；不要伪造包含自身的 commit hash。 -->

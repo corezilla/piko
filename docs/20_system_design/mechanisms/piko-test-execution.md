@@ -2,7 +2,7 @@
 # Piko 机制：测试执行（远程执行 + 执行事实 + 授权边界）
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,6 +23,10 @@
 | Repository | corezilla/piko |
 | Canonical Path | docs/20_system_design/mechanisms/piko-test-execution.md |
 | Supersedes | none |
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 ## 1. 机制摘要：解决什么问题

@@ -68,6 +68,19 @@ FIELD_SOURCE = {
     "Supersedes": "supersedes",
 }
 
+# STD's conformance counts. Two independent checks: the STD writing
+# standard's obligations, and the template's own review checklist. They are
+# COVER-ONLY in STD -- not part of the metadata sidecar -- because a count
+# the author fills in at review time does not need the sidecar machinery.
+# They are kept at 0/0 until the checklist is actually run; a guess is
+# worse than an honest zero.
+OPTIONAL_FIELD_SOURCE = {
+    "Std Conformance Total": None,
+    "Std Conformance Passed": None,
+    "Checklist Total": None,
+    "Checklist Conformed": None,
+}
+
 # STD renders a null metadata value as the literal word "none" for EVERY
 # field (validate-design expected_cover_value), not only for a few.
 NONE_IS_NULL = True
@@ -95,7 +108,11 @@ def strip_cover_value(value: str) -> str:
 
 
 def expected_value(field: str, metadata: dict) -> str:
-    key = FIELD_SOURCE[field]
+    key = FIELD_SOURCE.get(field) or OPTIONAL_FIELD_SOURCE.get(field)
+    if key is None:
+        # Cover-only field: no sidecar source, so the value is whatever the
+        # document already carries. A missing one starts at 0.
+        return "0"
     value = metadata.get(key)
     if field == "Status":
         return STATUS_LABELS.get(value, str(value))
@@ -132,6 +149,9 @@ def fix_row(field: str, current: str, metadata: dict) -> str | None:
     left byte-identical. A field that is not one of STD's 17 (a project
     field) is kept as it is -- it only moves, never changes.
     """
+    if field in OPTIONAL_FIELD_SOURCE:
+        # Cover-only: there is no sidecar to disagree with.
+        return None
     if field not in FIELD_SOURCE:
         return None
     expected = expected_value(field, metadata)
@@ -211,11 +231,17 @@ def repair_cover(text: str, metadata: dict) -> tuple[str, list[str]]:
             new_control_rows = new_control_rows + strays
 
     # 3. Missing fields.
+    #
+    # The four conformance counts are optional in STD: a document that has
+    # not been checked omits them. Piko adopts them, so they are written
+    # here -- from the sidecar, which says what was actually checked. A
+    # document whose checklist was never run carries 0/0, never a guess.
+    all_fields = list(FIELD_SOURCE) + list(OPTIONAL_FIELD_SOURCE)
     if has_control:
         missing_front = [f for f in COMPACT_FIELDS if f not in front_fields]
-        missing_control = [f for f in FIELD_SOURCE if f not in control_fields and f not in COMPACT_FIELDS]
+        missing_control = [f for f in all_fields if f not in control_fields and f not in COMPACT_FIELDS]
     else:
-        missing_front = [f for f in FIELD_SOURCE if f not in front_fields]
+        missing_front = [f for f in all_fields if f not in front_fields]
         missing_control = []
 
     for field in missing_front:

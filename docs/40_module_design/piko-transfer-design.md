@@ -2,7 +2,7 @@
 # Piko 模块定义：transfer（数据面搬运）
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -175,6 +175,10 @@ M010 `transfer` 解决一个问题：任务的**输入文件**与**产出文件*
 | 运行进程 | P1 执行进程（见 `system-design` §3.3 关键决定 7） |
 | 直属父对象编号 / 名称 | `SW-P` / Piko Agent Runtime V0.3（软件系统，`design_level=system`） |
 | implementation_specification.mode | `self`（见 `piko-transfer-impl.isd.md`） |
+| Std Conformance Total | 0 |
+| Std Conformance Passed | 0 |
+| Checklist Total | 0 |
+| Checklist Conformed | 0 |
 
 > Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
 > 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。

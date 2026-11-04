@@ -11,6 +11,11 @@ This project follows **STD** (`/Users/ben/work/STD/`) for all documents and temp
 - **Source manifest**: `docs/std-source-manifest.json` (artifacts + SHA256). Use `/Users/ben/work/STD/scripts/verify-source-manifest` to re-check.
 - **Validator**: `/Users/ben/work/STD/scripts/validate-design --project-root .` — run before claiming a doc is ready.
 - **Generator**: `/Users/ben/work/STD/scripts/new-design` — use it for any new `.md` document; do not hand-author without STD cover.
+- **编写索引（必读）**: `/Users/ben/work/STD/docs/authoring-index.md` — 写或改任何文档前先读它。
+  它按文档族列出该读哪些规范、哪些硬性义务必须满足、哪些 checklist 一定执行、结果怎么交。
+  **不需要通读 STD 详细规范**，但**每一条都必须遵守**——与用哪个 agent、哪个模型、agent 怎么想**都无关**。
+- **覆盖门**: `/Users/ben/work/STD/scripts/validate-coverage --project-root .` — 单元层 Case 数低于公式下界就报红。
+- **checklist 结果门**: `/Users/ben/work/STD/scripts/validate-checklist --project-root .` — 校验 `*.checklist-result.json`。
 
 ## 2. Template Selection
 
@@ -89,6 +94,8 @@ Other mappings are in `template-selection.md`.
 2. **Never** bump `docs/std.lock.json` without an explicit upgrade review per STD §2.1 ("项目升级模板必须显式执行并评审 diff"). State the upgrade intent, list the diff, then change the lock.
 3. **Never** fabricate Reviewer / Approver / Approval Date / Git commit hash inside a doc body. Those go in sidecar metadata or are filled when the doc actually reaches that state.
 4. **Never** skip running `validate-design` before commit. Resolve every `[new]` issue or document why it is inherited from a pre-STD era.
+5. **Never** skip the STD chain: read `docs/authoring-index.md` → obey its obligations → write per the template → run the template's review checklist → **submit the checklist result** (document + `*.checklist-result.json`). **"每函数一条" does not close the matrix** (STD `templates/review/unit-test-review-checklist.md` §5): every function × its parameter classes (valid/boundary/invalid) + error paths + resource release, one Case per cell.
+6. **Never** report a document task as done without the checklist result submitted. An unchecked checklist writes `0`/`0`; a fabricated "all green" is worse than an empty field.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

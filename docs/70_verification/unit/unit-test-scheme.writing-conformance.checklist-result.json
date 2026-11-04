@@ -1,0 +1,63 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.writing-conformance-checklist",
+  "document_id": "unit-test-scheme",
+  "document_version": "0.1.0-draft.2",
+  "total": 22,
+  "conformed": 21,
+  "items": [
+    {"id": "§1 被审文件、commit 与渲染目标登记完整", "result": "conformed",
+     "evidence": "被审文件＝docs/70_verification/unit/unit-test-scheme.md v0.1.0-draft.2；渲染目标＝Markdown（GitHub 风格）；commit 见 sidecar reviewed_commit"},
+    {"id": "§1 机械扫描已运行（见 §2），结果文件在案", "result": "conformed",
+     "evidence": "STD scripts/validate-writing-format --mode document 对本文件与 unit-test-plan.md 全量运行：2 file(s), 0 error(s)"},
+
+    {"id": "§2 validate-writing-format --mode template（模板）或 --mode document（项目文档）全量运行且 0 error", "result": "conformed",
+     "evidence": "同上，0 error"},
+    {"id": "§2 C9 宽表警告逐条裁决：登记矩阵/状态矩阵可保留，其余转固定格式段落", "result": "conformed",
+     "evidence": "全文表格列数实测：超 6 列者 0 张；§5.2.1 维度矩阵（6 列）与 §5.2.2 被测面表（6 列）在阈值内，且均为登记矩阵，按规则保留"},
+    {"id": "§2 新发现的排版陷阱回流扫描器（新增错误码），不依赖个人记性", "result": "na",
+     "evidence": "本轮未发现新的排版陷阱；扫描器 C1–C13 未新增错误码"},
+
+    {"id": "§3 一级章号连续、无缺号重号；### 小节编号与所在章一致", "result": "conformed",
+     "evidence": "H2 章号 1–8 连续；§3.x 逐条核对，无小节指向不存在的章"},
+    {"id": "§3 记录标题带 X.Y(.Z) 且节内从 1 连续（骨架与灰示例共用序列）", "result": "conformed",
+     "evidence": "§1.1/§2.1–2.3/§3.1/§4.1–4.2/§5.1–5.2/§6.1–6.2/§7.1/§8.1 编号连续；§6.1 的 136 条记录共享 6.1 序列，§7.1 的 10 条共享 7.1 序列"},
+    {"id": "§3 叙述标题≤2级、记录型用三级——层级语义与 design-writing-guide §3 一致", "result": "conformed",
+     "evidence": "H1×1（标题）、H2×9（章）、H3×15（节）；记录型（§6.1 Case、§7.1 裁决）用四级标题 `####`，叙述段用 `###`，未混用"},
+    {"id": "§3 交叉引用（§x.y）指向的节真实存在且编号一致（本层迁移后曾出现 §2.1→§2.3 类失配）", "result": "conformed",
+     "evidence": "scripts/validate-cross-refs.py 全量通过，仅 piko-doc-search.md:364 一处既有断链（与本文件无关）；本文件内 §x.y 引用逐条指向存在的节"},
+
+    {"id": "§4 标题后空行接正文、一级标题前后空两行（design-writing-guide §3）", "result": "conformed",
+     "evidence": "机械扫描 0 error；C8/C10 空行规则通过"},
+    {"id": "§4 span 行与其后的表格/标题行之间有空行（抽查三处渲染）", "result": "conformed",
+     "evidence": "全文 span 出现 0 次，无 span 包裹块级内容（C1/C2/C13 通过）"},
+    {"id": "§4 灰示例标题为字面文本或加粗，无失效块语法", "result": "conformed",
+     "evidence": "1 处 ```example 围栏（§6.2），标题为字面文本；机械扫描 0 error"},
+    {"id": "§4 长表格不存在（超 6 列即问：是否应为记录）", "result": "conformed",
+     "evidence": "全文 0 张超 6 列表格"},
+
+    {"id": "§5 每个可填节有针对本节的编写建议（`\"如实登记\"` 类空洞口号建议按缺陷记，见 C12）", "result": "conformed",
+     "evidence": "每节保留模版的「编写建议」引用块并填入本节实际内容（§1.1/§2.1/§5.2/§7.1/§8.1 等），无空洞口号；C12 通过"},
+    {"id": "§5 示例全部标注（虚构）且与本文档教学体系一致（不串层：unit 示例不出现在 MT 文档）", "result": "conformed",
+     "evidence": "§6.2 的示例用 UT-REPO-048（单元层 Case ID），与本文件层级一致；模版的 FrameDecoder 虚构示例未被引入正文"},
+    {"id": "§5 无 `<!-- 交付自查/TODO -->` 注释占位（模板正文）；交付自查以蓝色建议行呈现", "result": "conformed",
+     "evidence": "文档内仅保留 STD_DOCUMENT_COVER/CONTROL 标记（生成契约所需），无 TODO/交付自查占位注释"},
+    {"id": "§5 生成实例实测：剥离后无灰残留、无 `</span></span>` 类残片", "result": "conformed",
+     "evidence": "机械扫描 0 error；span 计数 0"},
+
+    {"id": "§6 登记表/状态矩阵保留表格形态且列头自解释；其余表格已转记录", "result": "conformed",
+     "evidence": "§1.1 对账表、§5.2.1 维度表、§5.2.2 被测面表为登记/状态矩阵，按规则保留表格；§6.1 的 136 条 Case 用记录型（####）"},
+    {"id": "§6 记录段落字段名加粗、字段间空行、记录组间空行（可一眼分组）", "result": "conformed",
+     "evidence": "§6.1 每条记录的字段名加粗、字段间空行；§7.1 的 10 条裁决同格式"},
+    {"id": "§6 每张图后有文字说明与来源/Current 标注（design-writing-guide §4）", "result": "conformed",
+     "evidence": "1 张图（§4.2 环境拓扑 SVG），图后有「实例分配归计划 §4」说明与来源路径 ../diagrams/tests/unit-env-topology.svg"},
+
+    {"id": "§7 （逐条以记录块登记，见下）", "result": "conformed",
+     "evidence": "本轮格式复审无新增问题；未登记任何格式类 Issue"},
+    {"id": "§8 Review Verdict：", "result": "conformed",
+     "evidence": "PASS —— 机械扫描 0 error，人查项全过；放行范围＝本文档格式合规"}
+  ],
+  "executed_at": "2026-11-04T09:25:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}

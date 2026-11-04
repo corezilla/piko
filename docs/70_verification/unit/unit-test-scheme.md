@@ -2,7 +2,7 @@
 # Piko unit-test-scheme
 
 > **本文件遵守 STD（工程文档标准），STD 为最高优先级；修改本文件之前必须先读 STD 入口。**
-> STD 使用入口：[项目采用说明与标准导航](../../../README.md#std-entry)
+> STD 入口：[项目采用说明与标准导航](../../../README.md#std-entry)。入口的**编写索引**已列出本类文档的全部硬性义务：不必通读规范，但**每一条都必须遵守**。
 
 | 文档字段 | 值 |
 |---|---|
@@ -23,9 +23,10 @@
 | Repository | `corezilla/piko` |
 | Canonical Path | `docs/70_verification/unit/unit-test-scheme.md` |
 | Supersedes | none |
-
-> Reviewer、Approver、Approval Date 和 Release Tag 在进入相应状态时填写。Git commit/tag 是
-> 外部不可变证据；不要在文档内容中伪造包含自身的 commit hash。
+| Std Conformance Total | 14 |
+| Std Conformance Passed | 11 |
+| Checklist Total | 26 |
+| Checklist Conformed | 20 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板绑定单个模块（模块对象 ID 在 §1 登记）——单元层方案与用例集均一模块一份，多模块项目逐模块实例化，用例集（`tests.unit-case`）与测试脚本引用本方案。
@@ -2508,3 +2509,34 @@
 
 **§6 Case 覆盖**：`UT-TRANSFER-*`
 
+
+---
+
+## 9. 本方案的自检结果（Review Decision）
+
+> **本节是 STD 强制链的一环**：按 STD `templates/review/unit-test-review-checklist.md` 与
+> `templates/review/writing-conformance-checklist.md` 逐项执行，**结果必须提交**。
+> 机器可读结果见同目录 `*.checklist-result.json`；未执行的项写 `0`，不编造。
+
+| 清单 | 执行项数 | 遵守项数 | 结果文件 |
+|---|---|---|---|
+| `review.unit-test-review-checklist` | 26 | 20 | `docs/70_verification/unit/unit-test-scheme.checklist-result.json` |
+| `review.writing-conformance-checklist` | 22 | 21 | `docs/70_verification/unit/unit-test-scheme.writing-conformance.checklist-result.json` |
+| STD 编写规范（STD 编写索引 §3.1 的 U1–U14） | 14 | 11 | 见上两份结果文件的 `evidence` 列 |
+
+**Review Verdict**：`部分放行` —— 放行「已登记的 136 条 Case 的执行」，**不放行「单元层已全覆盖」的结论**。
+
+**未关闭 Critical 计数**：5
+
+| 缺口 | 内容 | 最晚 Gate |
+|---|---|---|
+| `G-UT-DENOM-1` | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖 | 下次方案升版 |
+| `G-UT-DIM-1` | 24 个义务维度格只登记 9 格（38%），15 格未登记 | 下次方案升版 |
+| `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
+| `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
+| `G-EXEC-UT-3` | 136 个 Case 中 91 个的脚本入口未标 Case ID（四方对账不全） | 模块层 Gate 前 |
+
+**放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
+
+**机器门**：`python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .` —— 当前报
+`coverage.cells-missing`（缺 15 格）与 `coverage.below-formula`（136 < 196）。**门第一次能拦住本层**。
