@@ -1,18 +1,43 @@
 /**
- * Case ID: UT-POLICY-136  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-136  ·  STATUS: real
  *
- * 责任：参数 `workspace: string` 的 `超长` 类（workspace.ts:41）
+ * 责任：参数 `workspace` 的 `超长` 类（workspace.ts:41）
  * 维度坐标：`ensureTaskDirs` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-136.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { authorizePath, collectOutputs, ensureTaskDirs } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-136 · ensureTaskDirs（workspace.ts:41）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `workspace: string`，其余参数取合法等价类（workspace.ts:41）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → ensureTaskDirs(/* 参数 */) → 逐值断言（Oracle：UT-POLICY-136 用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-136 · ensureTaskDirs · 字符串/路径/枚举输入 × 超长", () => {
+  it("does not create directories under an over-long workspace path", async () => {
+    // 步骤 1：构造一个超长 workspace
+    // 步骤 2：调用 ensureTaskDirs —— mkdir 的 ENAMETOOLONG 被原样上抛
+    // 步骤 3：断言拒绝被上抛（该方法不吞文件系统错误）
+    await expect(ensureTaskDirs("w".repeat(4096), task())).rejects.toThrow(/ENAMETOOLONG|name too long/);
+  });
 });

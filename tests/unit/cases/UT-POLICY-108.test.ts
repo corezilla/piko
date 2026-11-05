@@ -1,18 +1,46 @@
 /**
- * Case ID: UT-POLICY-108  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-108  ·  STATUS: real
  *
- * 责任：分支 L21 `!inside(workspace,candidate)`（!；workspace.ts）
+ * 责任：分支 L21 ! : !inside(workspace,candidate)（workspace.ts）
  * 维度坐标：`authorizePath` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-108.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { authorizePath, collectOutputs, ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-108 · authorizePath（workspace.ts:18）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 workspace.ts:21 的分支（!：!inside(workspace,candidate)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：authorizePath(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+/** 一个真实的临时工作区。 */
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-108 · authorizePath · 状态分支 × 合法迁移", () => {
+  it("rejects a path that escapes the workspace", async () => {
+    await withWorkspace(async (dir) => {
+      // 步骤 1：构造一个逃出工作区的路径
+      // 步骤 2：调用 authorizePath(dir, "../outside.txt", ["src"])
+      // 步骤 3：断言被拒（path escapes workspace）
+      await expect(authorizePath(dir, "../outside.txt", ["src"])).rejects.toThrow(/path escapes workspace/);
+    });
+  });
 });

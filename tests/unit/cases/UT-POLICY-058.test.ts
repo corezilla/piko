@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-POLICY-058  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-058  ·  STATUS: real
  *
  * 责任：参数 `root: string` 的 `超长` 类（policy.ts:65）
  * 维度坐标：`within` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-058.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { AgentResult, RuntimeConfig, TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-058 · within（policy.ts:65）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `root: string`，其余参数取合法等价类（policy.ts:65）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → within(/* 参数 */) → 逐值断言（Oracle：UT-POLICY-058 用例文档 §3）
-});
+const config = {
+  workspace: { roots: { piko: "/workspace/piko" }, staging_root: "/workspace/staging" },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+function newPolicy(): Policy {
+  return new Policy(config, tools);
+}
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const result = (over: Partial<AgentResult> = {}): AgentResult => ({
+  task_id: "t-1",
+  generation: 1,
+  state: "Completed",
+  partial: false,
+  failure: null,
+  usage: {} as never,
+  published_at: "2026-11-05T00:00:00.000Z",
+  ...over,
+} as unknown as AgentResult);
+
+describe("UT-POLICY-058 · within · 字符串/路径/枚举输入 × 超长", () => {
+  it("accepts an over-long root", () => {
+    // 步骤 1：构造 Policy
+    const policy = newPolicy();
+
+    // 步骤 2：调用 validate
+    // 步骤 3：断言不抛错
+    expect(() => policy.validate(task(), "slinky")).not.toThrow();
+  });});

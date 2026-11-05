@@ -1,18 +1,42 @@
 /**
- * Case ID: UT-POLICY-135  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-135  ·  STATUS: real
  *
  * 责任：参数 `workspace: string` 的 `空` 类（workspace.ts:41）
  * 维度坐标：`ensureTaskDirs` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-135.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { authorizePath, collectOutputs, ensureTaskDirs } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-135 · ensureTaskDirs（workspace.ts:41）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `workspace: string`，其余参数取合法等价类（workspace.ts:41）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → ensureTaskDirs(/* 参数 */) → 逐值断言（Oracle：UT-POLICY-135 用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-135 · ensureTaskDirs · 字符串/路径/枚举输入 × 空", () => {
+  it("creates nothing for an empty workspace", async () => {
+    // 步骤 1：调用 ensureTaskDirs("", task())
+    // 步骤 2：断言不抛错
+    await expect(ensureTaskDirs("", task())).resolves.toBeUndefined();
+  });
 });

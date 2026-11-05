@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-POLICY-156  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-156  ·  STATUS: real
  *
  * 责任：返回站点 L11 值 `realpath(configured)` 逐值断言（workspace.ts）
  * 维度坐标：`resolveWorkspace` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-156.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-156 · resolveWorkspace（workspace.ts:9）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 workspace.ts:11 的返回站点（值 realpath(configured)）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：resolveWorkspace(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-156 · resolveWorkspace · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the realpath of the configured root", async () => {
+    await withWorkspace(async (dir) => {
+      const { realpath } = await import("node:fs/promises");
+
+      // 步骤 1：构造指向工作区的 roots
+      const roots = { piko: dir };
+
+      // 步骤 2：调用 resolveWorkspace("piko", roots)
+      const resolved = await resolveWorkspace("piko", roots);
+
+      // 步骤 3：断言返回的是 realpath 形式
+      expect(resolved).toBe(await realpath(dir));
+    });
+  });
 });

@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-POLICY-143  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-143  ·  STATUS: real
  *
- * 责任：分支 L46 `!inside(workspace, abs)`（!；workspace.ts）
+ * 责任：分支 L46 ! : !inside(workspace, abs)（workspace.ts）
  * 维度坐标：`ensureTaskDirs` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-143.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-143 · ensureTaskDirs（workspace.ts:41）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 workspace.ts:46 的分支（!：!inside(workspace, abs)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：ensureTaskDirs(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-143 · ensureTaskDirs · 状态分支 × 合法迁移", () => {
+  it("processes a path inside the workspace", async () => {
+    await withWorkspace(async (dir) => {
+      const { stat } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+
+      // 步骤 1：构造一个工作区内的写路径
+      const t = task({
+        permissions: { read_paths: ["src"], write_paths: ["inside/sub"], tool_profile_ref: "workspace-standard" },
+        output_paths: [],
+      });
+
+      // 步骤 2：调用 ensureTaskDirs
+      await ensureTaskDirs(dir, t);
+
+      // 步骤 3：断言目录被创建（守卫为假，继续执行）
+      // 创建的是写路径的父目录（inside）
+      expect((await stat(join(dir, "inside"))).isDirectory()).toBe(true);
+    });
+  });
 });

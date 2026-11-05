@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-POLICY-002  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-002  ·  STATUS: real
  *
- * 责任：`canonicalize` × `纯函数/无副作用` × `每等价类合法值`（粗粒度登记）
- * 维度坐标：`canonicalize` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
+ * 责任：参数 `config` 的 `边界(上/下/零/空/满)` 类（policy.ts:8）
+ * 维度坐标：`Policy.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-002.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { RuntimeConfig, TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-002 · canonicalize（policy.ts:14）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `纯函数/无副作用` × `每等价类合法值` 展开规则构造（policy.ts:14）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：canonicalize(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const config = {
+  workspace: {
+    roots: { piko: "/workspace/piko" },
+    staging_root: "/workspace/staging",
+  },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: {
+    read_paths: ["src"],
+    write_paths: ["out"],
+    tool_profile_ref: "workspace-standard",
+  },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+function newPolicy(): Policy {
+  return new Policy(config, tools);
+}
+
+describe("UT-POLICY-002 · Policy.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("falls back to the staging root for an unknown workspace ref", () => {
+    // 步骤 1：构造 Policy
+    const policy = newPolicy();
+
+    // 步骤 2：validate 一个 workspace_ref 不存在的任务
+    //         —— resolveWorkspace 落到 staging_root
+    const result = policy.validate(task({ workspace_ref: "unknown" }), "slinky");
+
+    // 步骤 3：断言被接受（staging_root 存在时）
+    expect(result.output_paths).toEqual(["out/result.txt"]);
+  });
 });

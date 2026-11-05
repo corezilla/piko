@@ -1,18 +1,77 @@
 /**
- * Case ID: UT-POLICY-092  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-092  ·  STATUS: real
  *
- * 责任：分支 L16 `catch (cur)`（catch；workspace.ts）
- * 维度坐标：`realpathNearestAncestor` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `POLICY`）
+ * 责任：参数 `p: string` 的 `合法迁移` 类（workspace.ts:14）
+ * 维度坐标：`realpathNearestAncestor` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-092.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { authorizePath, collectOutputs, ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import { validateUsage } from "../../../src/semantic.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { RuntimeConfig, TaskRequest, TokenUsage } from "../../../src/types.js";
 
-describe("UT-POLICY-092 · realpathNearestAncestor（workspace.ts:14）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：使 workspace.ts:16 的分支（catch：catch (cur)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：realpathNearestAncestor(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
-});
+const config = {
+  workspace: { roots: { piko: "/workspace/piko" }, staging_root: "/workspace/staging" },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const usage = (over: Partial<TokenUsage> = {}): TokenUsage => ({
+  source: "PiModelResponses",
+  quality: "Complete",
+  input_tokens: 10,
+  output_tokens: 5,
+  total_tokens: 15,
+  cache_read_tokens: 0,
+  cache_write_tokens: 0,
+  reasoning_tokens: 0,
+  model_attempts: 2,
+  usage_observed_attempts: 2,
+  missing_fields: [],
+  ...over,
+} as TokenUsage);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-092 · realpathNearestAncestor · 状态分支 × 合法迁移", () => {
+  it("stops at the first ancestor that exists", async () => {
+    await withWorkspace(async (dir) => {
+      // 步骤 1：构造一个一级不存在的路径（父目录存在）
+      const input = "src/missing.txt";
+
+      // 步骤 2：调用 authorizePath
+      const resolved = await authorizePath(dir, input, ["src"], false);
+
+      // 步骤 3：断言停在 src（第一级上溯就命中）
+      expect(resolved.endsWith("/src")).toBe(true);
+    });
+  });});

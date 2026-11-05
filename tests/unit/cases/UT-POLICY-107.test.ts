@@ -1,18 +1,48 @@
 /**
- * Case ID: UT-POLICY-107  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-107  ·  STATUS: real
  *
  * 责任：可选参数 `write` 缺省/显式两态（workspace.ts:18）
- * 维度坐标：`authorizePath` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `POLICY`）
+ * 维度坐标：`authorizePath` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-107.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { authorizePath, collectOutputs, ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-107 · authorizePath（workspace.ts:18）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `write: inferred`，其余参数取合法等价类（workspace.ts:18）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → authorizePath(/* 参数 */) → 逐值断言（Oracle：UT-POLICY-107 用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+/** 一个真实的临时工作区。 */
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-107 · authorizePath · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("authorises the same path in read and write mode", async () => {
+    await withWorkspace(async (dir) => {
+      // 步骤 1：调用两次 authorizePath —— 一次省略 write，一次显式 false
+      const implicit = await authorizePath(dir, "src/a.txt", ["src"]);
+      const explicit = await authorizePath(dir, "src/a.txt", ["src"], false);
+
+      // 步骤 2：断言两者结果相同（缺省即 false）
+      expect(implicit).toBe(explicit);
+    });
+  });
 });

@@ -1,18 +1,53 @@
 /**
- * Case ID: UT-POLICY-003  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-003  ·  STATUS: real
  *
- * 责任：`collectOutputs` × `字符串/路径/枚举输入` × `空`（粗粒度登记）
- * 维度坐标：`collectOutputs` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `POLICY`）
+ * 责任：参数 `config` 的 `非法值` 类（policy.ts:8）
+ * 维度坐标：`Policy.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-003.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { RuntimeConfig, TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-003 · collectOutputs（workspace.ts:32）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `字符串/路径/枚举输入` × `空` 展开规则构造（workspace.ts:32）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：collectOutputs(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const config = {
+  workspace: {
+    roots: { piko: "/workspace/piko" },
+    staging_root: "/workspace/staging",
+  },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: {
+    read_paths: ["src"],
+    write_paths: ["out"],
+    tool_profile_ref: "workspace-standard",
+  },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+function newPolicy(): Policy {
+  return new Policy(config, tools);
+}
+
+describe("UT-POLICY-003 · Policy.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("rejects when neither a workspace root nor a staging root exists", () => {
+    // 步骤 1：构造一个没有任何根的 config
+    const policy = new Policy({ workspace: { roots: {} } } as unknown as RuntimeConfig, tools);
+
+    // 步骤 2：调用 validate
+    // 步骤 3：断言 ScopeDenied（该参数无校验，缺根在判定时才暴露）
+    expect(() => policy.validate(task(), "slinky")).toThrow(/unknown workspace_ref/);
+  });
 });

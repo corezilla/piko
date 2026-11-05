@@ -1,18 +1,55 @@
 /**
- * Case ID: UT-POLICY-004  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-004  ·  STATUS: real
  *
- * 责任：`emptyUsage` × `纯函数/无副作用` × `每等价类合法值`（粗粒度登记）
- * 维度坐标：`emptyUsage` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
+ * 责任：参数 `tools: ToolRegistry` 的 `每等价类合法值` 类（policy.ts:8）
+ * 维度坐标：`Policy.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-004.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { RuntimeConfig, TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-004 · emptyUsage（semantic.ts:14）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `纯函数/无副作用` × `每等价类合法值` 展开规则构造（semantic.ts:14）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：emptyUsage(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const config = {
+  workspace: {
+    roots: { piko: "/workspace/piko" },
+    staging_root: "/workspace/staging",
+  },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: {
+    read_paths: ["src"],
+    write_paths: ["out"],
+    tool_profile_ref: "workspace-standard",
+  },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+function newPolicy(): Policy {
+  return new Policy(config, tools);
+}
+
+describe("UT-POLICY-004 · Policy.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("binds the tool registry and enforces the profile ref", () => {
+    // 步骤 1：构造 Policy
+    const policy = newPolicy();
+
+    // 步骤 2：validate 一个引用了未注册 profile 的任务
+    const bad = task({ permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "nope" } });
+
+    // 步骤 3：断言 ScopeDenied（用的是绑定的工具注册表）
+    expect(() => policy.validate(bad, "slinky")).toThrow(/unknown tool_profile_ref/);
+  });
 });

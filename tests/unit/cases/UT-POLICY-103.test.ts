@@ -1,18 +1,50 @@
 /**
- * Case ID: UT-POLICY-103  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-103  ·  STATUS: real
  *
- * 责任：参数 `allowed: string[]` 的 `注入字符` 类（workspace.ts:18）
+ * 责任：参数 `allowed` 的 `注入字符` 类（workspace.ts:18）
  * 维度坐标：`authorizePath` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-103.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { authorizePath, collectOutputs, ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-POLICY-103 · authorizePath（workspace.ts:18）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `allowed: string[]`，其余参数取合法等价类（workspace.ts:18）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → authorizePath(/* 参数 */) → 逐值断言（Oracle：UT-POLICY-103 用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+/** 一个真实的临时工作区。 */
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-103 · authorizePath · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("treats an injected allowed entry as data", async () => {
+    await withWorkspace(async (dir) => {
+      // 步骤 1：构造注入形态的 allowed
+      const allowed = ["src", "$(rm -rf /)"];
+
+      // 步骤 2：调用 authorizePath(dir, "src/a.txt", allowed)
+      // 步骤 3：断言注入条目被当作普通路径字符——它解析后仍落在工作区内
+      //         （"$(rm -rf /)" 作为相对段拼在 root 下，不越界）
+      const resolved = await authorizePath(dir, "src/a.txt", allowed);
+      expect(resolved.endsWith("/src/a.txt")).toBe(true);
+    });
+  });
 });

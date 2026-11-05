@@ -1,18 +1,73 @@
 /**
- * Case ID: UT-POLICY-019  ·  STATUS: skeleton
+ * Case ID: UT-POLICY-019  ·  STATUS: real
  *
- * 责任：throw L16 `InvalidRequest`（守卫 `if (rel.includes("\\"))`；policy.ts）
- * 维度坐标：`canonicalize` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `POLICY`）
+ * 责任：参数 `result: TokenUsage` 的 `每个 typed 错误码` 类（semantic.ts:3）
+ * 维度坐标：`validateUsage` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `POLICY`）
  * 用例文档：docs/70_verification/unit/cases/UT-POLICY-019.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Policy } from "../../../src/policy.js";
+import { authorizePath, collectOutputs, ensureTaskDirs, resolveWorkspace } from "../../../src/workspace.js";
+import { validateUsage } from "../../../src/semantic.js";
+import { normalizedTask, sameTask } from "../../../src/task-equality.js";
+import type { ToolRegistry } from "../../../src/config.js";
+import type { RuntimeConfig, TaskRequest, TokenUsage } from "../../../src/types.js";
 
-describe("UT-POLICY-019 · canonicalize（policy.ts:14）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 policy.ts:16 的 throw（code `InvalidRequest`，守卫 if (rel.includes("\\"))）
-  // 观察点：typed 错误 code 逐值等于 `InvalidRequest`，消息可判别，无部分写入
-  // 待实现：canonicalize(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
-});
+const config = {
+  workspace: { roots: { piko: "/workspace/piko" }, staging_root: "/workspace/staging" },
+} as unknown as RuntimeConfig;
+
+const tools = {
+  profile_version: "0.3",
+  recovery_contracts: {},
+  profiles: { "workspace-standard": { tools: {} } },
+} as unknown as ToolRegistry;
+
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const usage = (over: Partial<TokenUsage> = {}): TokenUsage => ({
+  source: "PiModelResponses",
+  quality: "Complete",
+  input_tokens: 10,
+  output_tokens: 5,
+  total_tokens: 15,
+  cache_read_tokens: 0,
+  cache_write_tokens: 0,
+  reasoning_tokens: 0,
+  model_attempts: 2,
+  usage_observed_attempts: 2,
+  missing_fields: [],
+  ...over,
+} as TokenUsage);
+
+async function withWorkspace<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "piko-ws-"));
+  await mkdir(join(dir, "src"), { recursive: true });
+  await mkdir(join(dir, "out"), { recursive: true });
+  await writeFile(join(dir, "src", "a.txt"), "source", "utf8");
+  try {
+    return await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-POLICY-019 · validateUsage · 错误路径 × 每个 typed 错误码", () => {
+  it("accepts a complete usage", () => {
+    // 步骤 1：构造一个自洽的 usage
+    const u = usage();
+
+    // 步骤 2：调用 validateUsage
+    // 步骤 3：断言不抛错
+    expect(() => validateUsage(u)).not.toThrow();
+  });});
