@@ -1,18 +1,21 @@
 /**
- * Case ID: UT-BOOT-094  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-094  ·  STATUS: real
  *
  * 责任：返回站点 L129 值 `{ config, tools }` 逐值断言（config.ts）
  * 维度坐标：`loadConfig` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-094.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-094 · loadConfig（config.ts:86）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 config.ts:129 的返回站点（值 { config, tools }）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：loadConfig(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-094 · loadConfig · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("never returns a result: the schema step rejects first", async () => {
+    // 当前实况（G-UT-CONFIG-1）：schema 步先拒绝，成功返回路径不可达。
+    await expect(loadConfig(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
 });

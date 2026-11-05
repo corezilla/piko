@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-BOOT-032  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-032  ·  STATUS: real
  *
- * 责任：分支 L45 `t.replay === "safe" && t.effect !== "read_onl…`（&&；config.ts）
+ * 责任：分支 L45 &&: t.replay === "safe" && t.effect !== "read_only" && !contract（config.ts）
  * 维度坐标：`validateToolRegistry` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-032.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { validateToolRegistry, type ToolRegistry } from "../../../src/config.js";
 
-describe("UT-BOOT-032 · validateToolRegistry（config.ts:26）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 config.ts:45 的分支（&&：t.replay === "safe" && t.effect !== "read_only" && !contract）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：validateToolRegistry(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-032 · validateToolRegistry · 状态分支 × 合法迁移", () => {
+  it("rejects a safe-replay write tool with no contract bound", () => {
+    // 步骤 1：构造 replay=safe、effect 非 read_only、无契约的工具
+    const tools: ToolRegistry = {
+      profile_version: "0.3",
+      recovery_contracts: {},
+      profiles: { p: { tools: { write: { effect: "workspace_write", replay: "safe", permissions: {} } } } },
+    };
+
+    // 步骤 2：调用 validateToolRegistry
+    // 步骤 3：断言被拒绝（安全重放必须绑恢复契约）
+    expect(() => validateToolRegistry(tools)).toThrow(/unsafe replay declaration: write/);
+  });
 });

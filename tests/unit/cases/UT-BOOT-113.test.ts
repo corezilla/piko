@@ -1,18 +1,39 @@
 /**
- * Case ID: UT-BOOT-113  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-113  ·  STATUS: real
  *
  * 责任：参数 `command: string` 的 `注入字符` 类（durable-fs.ts:25）
  * 维度坐标：`exec` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-113.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DurableNodeExecutionEnv } from "../../../src/durable-fs.js";
 
-describe("UT-BOOT-113 · exec（durable-fs.ts:25）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `command: string`，其余参数取合法等价类（durable-fs.ts:25）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → exec(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-113 用例文档 §3）
+const context = { abortSignal: undefined, signal: undefined } as never;
+
+async function withEnv<T>(fn: (env: DurableNodeExecutionEnv, dir: string) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(join(tmpdir(), "piko-durable-"));
+  try {
+    return await fn(new DurableNodeExecutionEnv({ cwd: dir }), dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-BOOT-113 · exec · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("passes an injected command to the shell verbatim (the shell is the boundary)", async () => {
+    await withEnv(async (env, dir) => {
+      // 步骤 1：构造注入形态的命令——它就是要被执行的命令，不做二次解释
+      const command = "echo '$(whoami)'";
+
+      // 步骤 2：调用 exec(command, undefined, context)
+      // 步骤 3：断言命令原样进入 shell，输出被捕获
+      const result = await env.exec(command, undefined, context);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.exitCode).toBe(0);
+      expect(env.executionFacts.list()[0].command).toBe(command);
+    });
+  });
 });

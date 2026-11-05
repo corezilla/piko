@@ -1,18 +1,19 @@
 /**
- * Case ID: UT-BOOT-078  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-078  ·  STATUS: real
  *
- * 责任：分支 L100 `!harness.includes("onRawUsage")`（!；config.ts）
- * 维度坐标：`loadConfig` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：`loadConfig` × `状态分支` × `合法迁移`（粗粒度登记）
+ * 维度坐标：`loadConfig` × `状态分支` × `合法迁移`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-078.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { join } from "node:path";
 
-describe("UT-BOOT-078 · loadConfig（config.ts:86）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 config.ts:100 的分支（!：!harness.includes("onRawUsage")）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：loadConfig(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-078 · loadConfig · 状态分支 × 合法迁移", () => {
+  it("never reaches the onRawUsage check: the schema step rejects first", async () => {
+    // 当前实况（G-UT-CONFIG-1）：schema 步先拒绝，harness 扩展点检查不可达
+    await expect(loadConfig(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
 });

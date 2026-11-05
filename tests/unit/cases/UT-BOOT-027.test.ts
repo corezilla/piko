@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-BOOT-027  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-027  ·  STATUS: real
  *
- * 责任：分支 L41 `loop (Object.entries(p.tools))`（loop；config.ts）
+ * 责任：分支 L41 loop: loop (Object.entries(p.tools))（config.ts）
  * 维度坐标：`validateToolRegistry` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-027.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { validateToolRegistry, type ToolRegistry } from "../../../src/config.js";
 
-describe("UT-BOOT-027 · validateToolRegistry（config.ts:26）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 config.ts:41 的分支（loop：loop (Object.entries(p.tools))）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：validateToolRegistry(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-027 · validateToolRegistry · 状态分支 × 合法迁移", () => {
+  it("checks every tool in a profile, not only the first", () => {
+    // 步骤 1：构造一个 profile，第二个工具名未知
+    const tools: ToolRegistry = {
+      profile_version: "0.3",
+      recovery_contracts: {},
+      profiles: { p: { tools: {
+        read: { effect: "read_only", replay: "never", permissions: {} },
+        invented: { effect: "read_only", replay: "never", permissions: {} },
+      } } },
+    };
+
+    // 步骤 2：调用 validateToolRegistry
+    // 步骤 3：断言循环走到第二个工具才发现问题
+    expect(() => validateToolRegistry(tools)).toThrow(/invented/);
+  });
 });

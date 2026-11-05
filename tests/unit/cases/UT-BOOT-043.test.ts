@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-BOOT-043  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-043  ·  STATUS: real
  *
- * 责任：throw L38 `reject`（守卫 `if (!supported.has(c.implementation_ref…`；config.ts）
+ * 责任：throw L38 `unregistered recovery implementation`（守卫见 config.ts:38）
  * 维度坐标：`validateToolRegistry` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-043.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { validateToolRegistry, type ToolRegistry } from "../../../src/config.js";
 
-describe("UT-BOOT-043 · validateToolRegistry（config.ts:26）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 config.ts:38 的 throw（code `reject`，守卫 if (!supported.has(c.implementation_ref))）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：validateToolRegistry(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-BOOT-043 · validateToolRegistry · 错误路径 × 每个 typed 错误码", () => {
+  it("throws with the declared error code", () => {
+    // 步骤 1：构造触发该守卫的 registry
+    const tools: ToolRegistry = {
+      profile_version: "0.3",
+      recovery_contracts: { c: { kind: "stable_deduplication", implementation_ref: "builtin:nope" } },
+      profiles: {},
+    };
+
+    // 步骤 2：调用 validateToolRegistry
+    // 步骤 3：断言 typed 错误码逐值等于设计声明
+    expect(() => validateToolRegistry(tools)).toThrow(/unregistered recovery implementation/);
+  });
 });

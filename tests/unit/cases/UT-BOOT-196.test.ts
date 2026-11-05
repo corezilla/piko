@@ -1,18 +1,21 @@
 /**
- * Case ID: UT-BOOT-196  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-196  ·  STATUS: real
  *
  * 责任：可选参数 `env` 缺省/显式两态（main.ts:55）
- * 维度坐标：`main` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `BOOT`）
+ * 维度坐标：`main` × `数值/长度上限参数` × `未知枚举`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-196.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-196 · main（main.ts:55）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `env: inferred`，其余参数取合法等价类（main.ts:55）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → main(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-196 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-196 · main · 数值/长度上限参数 × 未知枚举", () => {
+  it("defaults env to process.env", async () => {
+    // 步骤 1：不传 env（用缺省 process.env）
+    // 步骤 2：调用 main(["node", "piko"])
+    // 步骤 3：断言被拒绝（缺省 env 走到默认路径，仍过不了 schema）
+    await expect(main(["node", "piko"])).rejects.toThrow();
+  });
 });

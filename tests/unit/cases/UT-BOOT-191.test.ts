@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-BOOT-191  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-191  ·  STATUS: real
  *
- * 责任：参数 `argv: inferred` 的 `非法值` 类（main.ts:55）
- * 维度坐标：`main` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：参数 `argv: inferred` 的 `−1 通过` 类（main.ts:55）
+ * 维度坐标：`main` × `数值/长度上限参数` × `−1 通过`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-191.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-191 · main（main.ts:55）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `argv: inferred`，其余参数取合法等价类（main.ts:55）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → main(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-191 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-191 · main · 数值/长度上限参数 × −1 通过", () => {
+  it("accepts a short argv (no config slot)", async () => {
+    // 步骤 1：构造只有两个元素的 argv（argv[2] 为 undefined）
+    const argv = ["node", "piko"];
+
+    // 步骤 2：调用 main(argv, {}) —— 落到 env.PIKO_CONFIG 或默认路径
+    // 步骤 3：断言被拒绝（默认路径 config/runtime.json 存在但不过 schema）
+    await expect(main(argv, {})).rejects.toThrow();
+  });
 });

@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-BOOT-001  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-001  ·  STATUS: real
  *
- * 责任：`advance` × `时间域行为` × `超时边界 ±1 tick`（粗粒度登记）
- * 维度坐标：`advance` × `时间域行为` × `超时边界 ±1 tick`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：`advance` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记）
+ * 维度坐标：`advance` × `时间域行为` × `超时边界 ±1 tick`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-001.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ManualClock, systemClock } from "../../../src/clock.js";
 
-describe("UT-BOOT-001 · advance（clock.ts:44）", () => {
-  test.todo("时间域行为 × 超时边界 ±1 tick");
-  // 输入构造：按 `时间域行为` × `超时边界 ±1 tick` 展开规则构造（clock.ts:44）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：advance(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-001 · advance · 时间域行为 × 超时边界 ±1 tick", () => {
+  it("advances the clock by exactly the given milliseconds", () => {
+    // 步骤 1：构造 ManualClock(0, 0)
+    const clock = new ManualClock(0, 0);
+
+    // 步骤 2：调用 advance(1)（超时边界的 ±1 tick）
+    // 步骤 3：断言墙钟与单调钟都 +1，逐值对账
+    clock.advance(1);
+    expect(clock.now()).toBe(1);
+    expect(clock.monotonic()).toBe(1);
+  });
 });

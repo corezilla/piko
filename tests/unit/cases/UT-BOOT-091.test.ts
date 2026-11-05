@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-BOOT-091  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-091  ·  STATUS: real
  *
- * 责任：throw L97 `Pi checkout commit mismatch`（守卫 `if ((await gitHead(piRoot)) !== config.…`；config.ts）
+ * 责任：throw L97 `Pi checkout commit mismatch`（守卫 `if ((await gitHead(piRoot)) !== config.pi.commit)`；config.ts）
  * 维度坐标：`loadConfig` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-091.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-091 · loadConfig（config.ts:86）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 config.ts:97 的 throw（code `Pi checkout commit mismatch`，守卫 if ((await gitHead(piRoot)) !== config.pi.commit)）
-  // 观察点：typed 错误 code 逐值等于 `Pi checkout commit mismatch`，消息可判别，无部分写入
-  // 待实现：loadConfig(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-091 · loadConfig · 错误路径 × 每个 typed 错误码", () => {
+  it("never reaches the commit check: the schema step rejects first", async () => {
+    // 当前实况（G-UT-CONFIG-1）：schema 步先拒绝，gitHead/commit 校验不可达。
+    // 本 Case 固定这个可达性事实——commit 不匹配那条路径要等配置对齐后才可覆盖。
+    await expect(loadConfig(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
 });

@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-BOOT-127  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-127  ·  STATUS: real
  *
- * 责任：分支 L72 `{ this.executionFacts.record({ tool_cal…`（else；durable-fs.ts）
- * 维度坐标：`exec` × `状态分支` × `每个非法迁移拒绝`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：分支 L72 else: { this.executionFacts.record({ tool_cal…（durable-fs.ts）
+ * 维度坐标：`exec` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-127.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DurableNodeExecutionEnv } from "../../../src/durable-fs.js";
 
-describe("UT-BOOT-127 · exec（durable-fs.ts:25）", () => {
-  test.todo("状态分支 × 每个非法迁移拒绝");
-  // 输入构造：使 durable-fs.ts:72 的分支（else：{ this.executionFacts.record({ tool_cal…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：exec(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const context = { abortSignal: undefined, signal: undefined } as never;
+
+async function withEnv<T>(fn: (env: DurableNodeExecutionEnv, dir: string) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(join(tmpdir(), "piko-durable-"));
+  try {
+    return await fn(new DurableNodeExecutionEnv({ cwd: dir }), dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-BOOT-127 · exec · 状态分支 × 合法迁移", () => {
+  it("records a failed fact for a non-zero exit", async () => {
+    await withEnv(async (env) => {
+      // 步骤 1：执行一条退出码非 0 的命令
+      // 步骤 2：读回执行事实
+      // 步骤 3：断言 exit_code 逐值对账（Pi 把非零退出转成错误，走 else 分支）
+      await env.exec("exit 3", undefined, context);
+      const fact = env.executionFacts.list()[0];
+      expect(fact.exit_code).toBe(3);
+    });
+  });
 });

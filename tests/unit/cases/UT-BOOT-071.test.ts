@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-BOOT-071  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-071  ·  STATUS: real
  *
  * 责任：参数 `path: string` 的 `空` 类（config.ts:86）
  * 维度坐标：`loadConfig` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-071.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-071 · loadConfig（config.ts:86）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `path: string`，其余参数取合法等价类（config.ts:86）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → loadConfig(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-071 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-071 · loadConfig · 字符串/路径/枚举输入 × 空", () => {
+  it("rejects an empty config path", async () => {
+    // 步骤 1：构造 path＝""
+    // 步骤 2：调用 loadConfig("", ROOT)
+    // 步骤 3：断言被拒绝（读不到文件）
+    await expect(loadConfig("", ROOT)).rejects.toThrow();
+  });
 });

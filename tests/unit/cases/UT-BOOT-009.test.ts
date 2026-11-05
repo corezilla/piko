@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-BOOT-009  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-009  ·  STATUS: real
  *
- * 责任：`systemClock.now` × `时间域行为` × `超时边界 ±1 tick`（粗粒度登记）
- * 维度坐标：`systemClock.now` × `时间域行为` × `超时边界 ±1 tick`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：`systemClock.now` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记）
+ * 维度坐标：`systemClock.now` × `时间域行为` × `超时边界 ±1 tick`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-009.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ManualClock, systemClock } from "../../../src/clock.js";
 
-describe("UT-BOOT-009 · systemClock.now（clock.ts:26）", () => {
-  test.todo("时间域行为 × 超时边界 ±1 tick");
-  // 输入构造：按 `时间域行为` × `超时边界 ±1 tick` 展开规则构造（clock.ts:26）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：systemClock.now(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-009 · systemClock.now · 时间域行为 × 超时边界 ±1 tick", () => {
+  it("returns the system wall clock as epoch milliseconds", () => {
+    // 步骤 1：取调用前的时间戳
+    const before = Date.now();
+
+    // 步骤 2：调用 systemClock.now()
+    // 步骤 3：断言落在调用前后之间（时间域边界自洽）
+    const value = systemClock.now();
+    expect(value).toBeGreaterThanOrEqual(before);
+    expect(value).toBeLessThanOrEqual(Date.now());
+  });
 });

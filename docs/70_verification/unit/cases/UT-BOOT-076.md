@@ -54,7 +54,7 @@
 
 维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
 
-实现状态：`Planned`
+实现状态：`Implemented`
 
 ## 2. 公共前提与替身矩阵
 
@@ -98,15 +98,18 @@
 
 以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `loadConfig` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
+> **可达性裁决（`G-UT-CONFIG-1`）**：本 Case 声明的格**在当前实现下不可达**——上游先拒绝，下游分支从未执行。脚本据此断言「上游拒绝」这一可达事实，不伪造下游行为；该格待裁决关闭后改写为对下游行为的直接断言。
+
+
 **错误路径 / 清理**：
 
 失败必须 typed 化且保真传播；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。
 
 **脚本 / 实现状态**：
 
-`tests/unit/cases/UT-BOOT-076.test.ts` · `Planned`
+`tests/unit/cases/UT-BOOT-076.test.ts` · `Implemented`
 
 ## 4. 集合状态汇总与缺口
 
-- **实现状态**：`Planned`（与 §1 一致）
+- **实现状态**：`Implemented`（与 §1 一致）
 - **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）

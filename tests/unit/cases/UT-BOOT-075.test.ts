@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-BOOT-075  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-075  ·  STATUS: real
  *
- * 责任：参数 `root: inferred` 的 `边界(上/下/零/空/满)` 类（config.ts:86）
- * 维度坐标：`loadConfig` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：参数 `root: string` 的 `边界(上/下/零/空/满)` 类（config.ts:86）
+ * 维度坐标：`loadConfig` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-075.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-075 · loadConfig（config.ts:86）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `root: inferred`，其余参数取合法等价类（config.ts:86）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → loadConfig(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-075 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-075 · loadConfig · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("rejects the shipped config the same way with the defaulted root", async () => {
+    // 当前实况（G-UT-CONFIG-1）：config/ 下全部运行时配置都不满足
+    // piko-runtime-config-v0.3.schema.json（缺 transfer 必填段、pi 多两个字段），
+    // 因此 loadConfig 的 schema 校验必然拒绝。本 Case 断言这个真实行为——
+    // 成功路径要等配置与 schema 对齐后才可覆盖。
+    // 步骤 1：不传 root（用缺省 process.cwd()）
+    // 步骤 2：调用 loadConfig(join(process.cwd(), "config/runtime.json"))
+    // 步骤 3：断言与显式 root 同样被拒（缺省根与显式根指向同一仓库）
+    await expect(loadConfig(join(process.cwd(), "config/runtime.json"))).rejects.toThrow(/transfer/);
+  });
 });

@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-BOOT-176  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-176  ·  STATUS: real
  *
  * 责任：参数 `configPath: string` 的 `注入字符` 类（main.ts:16）
  * 维度坐标：`runControlProcess` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-176.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-176 · runControlProcess（main.ts:16）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `configPath: string`，其余参数取合法等价类（main.ts:16）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → runControlProcess(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-176 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-176 · runControlProcess · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("treats an injected config path as a path, not a command", async () => {
+    // 步骤 1：构造注入形态的 configPath
+    const configPath = "/tmp/$(whoami); rm -rf /.json";
+
+    // 步骤 2：调用 runControlProcess(configPath, ROOT)
+    // 步骤 3：断言被拒绝（只当路径读，不执行）
+    await expect(runControlProcess(configPath, ROOT)).rejects.toThrow();
+  });
 });

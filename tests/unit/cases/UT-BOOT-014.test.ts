@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-BOOT-014  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-014  ·  STATUS: real
  *
- * 责任：分支 L135 `if (kind === "env")`（if；config.ts）
+ * 责任：分支 L135 if: if (kind === "env")（config.ts）
  * 维度坐标：`resolveSecret` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-014.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { resolveSecret } from "../../../src/config.js";
 
-describe("UT-BOOT-014 · resolveSecret（config.ts:132）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 config.ts:135 的分支（if：if (kind === "env")）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：resolveSecret(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-014 · resolveSecret · 状态分支 × 合法迁移", () => {
+  it("resolves an env: reference through process.env", async () => {
+    // 步骤 1：注入环境变量 PIKO_UT_SECRET="s3cret"
+    process.env.PIKO_UT_SECRET = "s3cret";
+    try {
+      // 步骤 2：调用 resolveSecret("env:PIKO_UT_SECRET")
+      // 步骤 3：断言返回值逐值等于环境变量值
+      await expect(resolveSecret("env:PIKO_UT_SECRET")).resolves.toBe("s3cret");
+    } finally {
+      delete process.env.PIKO_UT_SECRET;
+    }
+  });
 });

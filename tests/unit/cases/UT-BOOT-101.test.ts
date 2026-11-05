@@ -1,18 +1,38 @@
 /**
- * Case ID: UT-BOOT-101  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-101  ·  STATUS: real
  *
  * 责任：参数 `path: string` 的 `超长` 类（durable-fs.ts:21）
  * 维度坐标：`sync` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-101.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { mkdtemp, rm, readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { DurableNodeExecutionEnv } from "../../../src/durable-fs.js";
 
-describe("UT-BOOT-101 · sync（durable-fs.ts:21）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `path: string`，其余参数取合法等价类（durable-fs.ts:21）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → sync(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-101 用例文档 §3）
+/** Pi's Context — the file methods read only abortSignal. */
+const context = { abortSignal: undefined, signal: undefined } as never;
+
+async function withEnv<T>(fn: (env: DurableNodeExecutionEnv, dir: string) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(join(tmpdir(), "piko-durable-"));
+  try {
+    return await fn(new DurableNodeExecutionEnv({ cwd: dir }), dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-BOOT-101 · sync · 字符串/路径/枚举输入 × 超长", () => {
+  it("rejects an over-long path", async () => {
+    await withEnv(async (env) => {
+      // 步骤 1：构造超长路径
+      const path = "x".repeat(4096);
+
+      // 步骤 2：调用 private sync(path)
+      // 步骤 3：断言被拒绝
+      const sync = (env as unknown as { sync(path: string, directory?: boolean): Promise<void> }).sync.bind(env);
+      await expect(sync(path)).rejects.toThrow();
+    });
+  });
 });

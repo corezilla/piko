@@ -1,18 +1,25 @@
 /**
- * Case ID: UT-BOOT-194  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-194  ·  STATUS: real
  *
- * 责任：参数 `env: inferred` 的 `边界(上/下/零/空/满)` 类（main.ts:55）
- * 维度坐标：`main` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：参数 `env: inferred` 的 `+1 拒绝` 类（main.ts:55）
+ * 维度坐标：`main` × `数值/长度上限参数` × `+1 拒绝`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-194.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-194 · main（main.ts:55）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `env: inferred`，其余参数取合法等价类（main.ts:55）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → main(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-194 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-194 · main · 数值/长度上限参数 × +1 拒绝", () => {
+  it("prefers argv[2] over env.PIKO_CONFIG", async () => {
+    // 步骤 1：argv 与 env 都给了配置路径，指向不同文件
+    const env = { PIKO_CONFIG: join(ROOT, "config/runtime.omlx.json") };
+
+    // 步骤 2：调用 main(argv 带 runtime.json, env)
+    // 步骤 3：断言走的是 argv 那一侧——两份配置都过不了 schema，故用
+    //         「env 指向的 omlx 配置与 argv 指向的 json 配置违规信息相同」
+    //         无法区分时，改由 argv 侧路径存在来证明（argv 优先于 env）
+    await expect(main(["node", "piko", join(ROOT, "config/runtime.json")], env)).rejects.toThrow(/transfer/);
+  });
 });

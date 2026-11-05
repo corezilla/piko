@@ -102,6 +102,7 @@
 
 以 `docs/40_module_design/piko-worker-design.md` 与其 ISD（`docs/50_implementation_design/piko-worker-impl.isd.md`）中 `claimNext` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
+
 **错误路径 / 清理**：
 
 失败必须 typed 化且保真传播；内存 SQLite 与替身每例重置；临时密钥与 staging 用后删除且不触碰 `~/.ssh`。

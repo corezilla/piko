@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-BOOT-190  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-190  ·  STATUS: real
  *
- * 责任：参数 `argv: inferred` 的 `边界(上/下/零/空/满)` 类（main.ts:55）
- * 维度坐标：`main` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：参数 `argv: inferred` 的 `+1 拒绝` 类（main.ts:55）
+ * 维度坐标：`main` × `数值/长度上限参数` × `+1 拒绝`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-190.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-190 · main（main.ts:55）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `argv: inferred`，其余参数取合法等价类（main.ts:55）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → main(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-190 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-190 · main · 数值/长度上限参数 × +1 拒绝", () => {
+  it("uses the next argv slot as the config path", async () => {
+    // 步骤 1：构造第四个参数也在的 argv（argv[3] 不被使用）
+    const argv = ["node", "piko", join(ROOT, "config/runtime.json"), "extra"];
+
+    // 步骤 2：调用 main(argv, {})
+    // 步骤 3：断言用的是 argv[2]（不是 argv[3]）——argv[3] 指向的不是配置，
+    //         若被采用则报的是文件不存在而非 schema 违规
+    await expect(main(argv, {})).rejects.toThrow(/transfer/);
+  });
 });

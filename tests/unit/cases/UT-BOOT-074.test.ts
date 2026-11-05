@@ -1,18 +1,41 @@
 /**
- * Case ID: UT-BOOT-074  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-074  ·  STATUS: real
  *
- * 责任：参数 `root: inferred` 的 `每等价类合法值` 类（config.ts:86）
+ * 责任：参数 `root: string` 的 `每等价类合法值` 类（config.ts:86）
  * 维度坐标：`loadConfig` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-074.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-074 · loadConfig（config.ts:86）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `root: inferred`，其余参数取合法等价类（config.ts:86）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → loadConfig(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-074 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-074 · loadConfig · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("rejects the shipped runtime config at the schema step", async () => {
+    // 当前实况（G-UT-CONFIG-1）：config/ 下全部运行时配置都不满足
+    // piko-runtime-config-v0.3.schema.json（缺 transfer 必填段、pi 多两个字段），
+    // 因此 loadConfig 的 schema 校验必然拒绝。本 Case 断言这个真实行为——
+    // 成功路径要等配置与 schema 对齐后才可覆盖。
+    // 步骤 1：构造真实的 config/runtime.json 与仓库根
+    // 步骤 2：调用 loadConfig(join(ROOT, "config/runtime.json"), ROOT)
+    // 步骤 3：断言 schema 校验拒绝，且消息逐值指出缺失的必填段
+    await expect(loadConfig(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
+
+  it("rejects every shipped runtime config the same way", async () => {
+    // 当前实况（G-UT-CONFIG-1）：config/ 下全部运行时配置都不满足
+    // piko-runtime-config-v0.3.schema.json（缺 transfer 必填段、pi 多两个字段），
+    // 因此 loadConfig 的 schema 校验必然拒绝。本 Case 断言这个真实行为——
+    // 成功路径要等配置与 schema 对齐后才可覆盖。
+    // 步骤 1：列出 config/ 下全部运行时配置
+    const names = ["runtime.json", "runtime.omlx.json", "runtime.synthetic.json", "runtime.tier.json", "runtime.llmtier.json"];
+    for (const name of names) {
+      // 步骤 2：逐个调用 loadConfig
+      // 步骤 3：断言每份都在 schema 步被拒
+      await expect(loadConfig(join(ROOT, "config", name), ROOT)).rejects.toThrow(/transfer/);
+    }
+  });
 });

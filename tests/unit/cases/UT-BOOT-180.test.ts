@@ -1,18 +1,20 @@
 /**
- * Case ID: UT-BOOT-180  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-180  ·  STATUS: real
  *
  * 责任：分支 L37 `if (outcome === "StopRequested")`（if；main.ts）
  * 维度坐标：`runControlProcess` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-180.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { runControlProcess, main } from "../../../src/main.js";
+import { join, resolve } from "node:path";
 
-describe("UT-BOOT-180 · runControlProcess（main.ts:16）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 main.ts:37 的分支（if：if (outcome === "StopRequested")）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：runControlProcess(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-180 · runControlProcess · 状态分支 × 合法迁移", () => {
+  it("never registers the stop hook: the schema step rejects first", async () => {
+    // 当前实况（G-UT-CONFIG-1）：loadConfig 先拒绝，ApiServer.create 与
+    // 取消回调（outcome === "StopRequested"）从未被注册。
+    await expect(runControlProcess(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
 });

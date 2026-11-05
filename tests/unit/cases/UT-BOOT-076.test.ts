@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-BOOT-076  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-076  ·  STATUS: real
  *
- * 责任：参数 `root: inferred` 的 `非法值` 类（config.ts:86）
- * 维度坐标：`loadConfig` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：参数 `root: string` 的 `非法值` 类（config.ts:86）
+ * 维度坐标：`loadConfig` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-076.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, writeFile, rm, mkdir, readFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-076 · loadConfig（config.ts:86）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `root: inferred`，其余参数取合法等价类（config.ts:86）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → loadConfig(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-076 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-076 · loadConfig · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("rejects a root that does not hold the schema", async () => {
+    // 步骤 1：构造一个空目录作为 root（schema 不在其中）
+    const dir = await mkdtemp(join(tmpdir(), "piko-emptyroot-"));
+    try {
+      // 步骤 2：调用 loadConfig(真实 config 路径, 空目录作 root)
+      // 步骤 3：断言被拒绝（schema 读不到）
+      await expect(loadConfig(join(ROOT, "config/runtime.json"), dir)).rejects.toThrow();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

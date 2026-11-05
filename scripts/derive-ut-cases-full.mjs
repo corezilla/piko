@@ -70,10 +70,17 @@ const ISD = {
 
 const cases = [];
 for (const r of rows) {
+  // Cases whose branch is unreachable in the current implementation carry the
+  // gap id: the document must say so instead of writing an assertion the
+  // implementation cannot satisfy (STD: 判据以设计声明为准，缺测不隐藏).
+  const UNREACHABLE = {
+    "loadConfig": "G-UT-CONFIG-1",
+  };
   const add = (type, cell, summary, detail) => cases.push({
     module: r.module, symbol: r.symbol, type, cell,
     summary, site: `${r.file}:${r.line}`, file: r.file, line: r.line,
     kind: r.kind, visibility: r.visibility, async: r.async, detail: detail ?? null,
+    unreachable: UNREACHABLE[r.symbol] ?? null,
   });
 
   // 1) params x 3 mandatory classes

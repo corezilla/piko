@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-BOOT-100  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-100  ·  STATUS: real
  *
  * 责任：参数 `path: string` 的 `空` 类（durable-fs.ts:21）
  * 维度坐标：`sync` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-100.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { mkdtemp, rm, readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { DurableNodeExecutionEnv } from "../../../src/durable-fs.js";
 
-describe("UT-BOOT-100 · sync（durable-fs.ts:21）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `path: string`，其余参数取合法等价类（durable-fs.ts:21）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → sync(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-100 用例文档 §3）
+/** Pi's Context — the file methods read only abortSignal. */
+const context = { abortSignal: undefined, signal: undefined } as never;
+
+async function withEnv<T>(fn: (env: DurableNodeExecutionEnv, dir: string) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(join(tmpdir(), "piko-durable-"));
+  try {
+    return await fn(new DurableNodeExecutionEnv({ cwd: dir }), dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe("UT-BOOT-100 · sync · 字符串/路径/枚举输入 × 空", () => {
+  it("syncs the cwd itself for an empty path", async () => {
+    await withEnv(async (env, dir) => {
+      // 步骤 1：构造空路径
+      // 步骤 2：调用 private sync("") —— resolve(cwd, "") ＝ cwd，open 打开的是 cwd
+      // 步骤 3：断言成功返回（该参数无校验，空路径落到 cwd）
+      const sync = (env as unknown as { sync(path: string, directory?: boolean): Promise<void> }).sync.bind(env);
+      await expect(sync("")).resolves.toBeUndefined();
+      expect(resolve(dir)).toBe(dir);
+    });
+  });
 });

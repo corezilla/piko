@@ -1,18 +1,19 @@
 /**
- * Case ID: UT-BOOT-077  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-077  ·  STATUS: real
  *
- * 责任：可选参数 `root` 缺省/显式两态（config.ts:86）
- * 维度坐标：`loadConfig` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：`loadConfig` × `错误路径` × `每个 typed 错误码`（粗粒度登记）
+ * 维度坐标：`loadConfig` × `错误路径` × `每个 typed 错误码`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-077.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { join } from "node:path";
 
-describe("UT-BOOT-077 · loadConfig（config.ts:86）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `root: inferred`，其余参数取合法等价类（config.ts:86）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → loadConfig(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-077 用例文档 §3）
+const ROOT = process.cwd();
+
+describe("UT-BOOT-077 · loadConfig · 错误路径 × 每个 typed 错误码", () => {
+  it("rejects the shipped config before the tool registry is validated", async () => {
+    // 当前实况（G-UT-CONFIG-1）：schema 步先拒绝，工具注册表的校验不可达
+    await expect(loadConfig(join(ROOT, "config/runtime.json"), ROOT)).rejects.toThrow(/transfer/);
+  });
 });

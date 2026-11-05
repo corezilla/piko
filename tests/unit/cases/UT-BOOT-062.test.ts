@@ -1,18 +1,57 @@
 /**
- * Case ID: UT-BOOT-062  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-062  ·  STATUS: real
  *
  * 责任：参数 `value: unknown` 的 `非法值` 类（config.ts:70）
- * 维度坐标：`validated` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `BOOT`）
+ * 维度坐标：`validated` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-062.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../../../src/config.js";
+import { mkdtemp, rm, mkdir, writeFile, copyFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-describe("UT-BOOT-062 · validated（config.ts:70）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `value: unknown`，其余参数取合法等价类（config.ts:70）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → validated(/* 参数 */) → 逐值断言（Oracle：UT-BOOT-062 用例文档 §3）
-});
+const ROOT = process.cwd();
+
+/**
+ * 构造一个 root：内含两份 schema 与一份工具注册表，并带一个 detached HEAD 的
+ * git 目录与一个 harness 文件——使 loadConfig 的每一步（schema → gitHead →
+ * harness）都有机会被执行到。
+ */
+async function makeRoot(harnessText: string, sha: string): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "piko-root-"));
+  await mkdir(join(root, "interfaces/schemas"), { recursive: true });
+  for (const f of ["piko-runtime-config-v0.3.schema.json", "piko-tool-profile-v0.3.schema.json"]) {
+    await copyFile(join(ROOT, "interfaces/schemas", f), join(root, "interfaces/schemas", f));
+  }
+  await copyFile(join(ROOT, "config/tool-profiles.json"), join(root, "tool-profiles.json"));
+  const piRoot = join(root, "upstream/pi");
+  await mkdir(join(piRoot, ".git"), { recursive: true });
+  await writeFile(join(piRoot, ".git/HEAD"), `${sha}\n`, "utf8");
+  await mkdir(join(piRoot, "packages/agent/src/harness"), { recursive: true });
+  await writeFile(join(piRoot, "packages/agent/src/harness/agent-harness.ts"), harnessText, "utf8");
+  return root;
+}
+
+describe("UT-BOOT-062 · validated · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("rejects a value with an unexpected extra property", async () => {
+    // 步骤 1：构造 root 与一份给 pi 加了额外字段的配置
+    const root = await makeRoot("export const onRawUsage = 1;\n", "c".repeat(40));
+    const dir = await mkdtemp(join(tmpdir(), "piko-cfg-"));
+    try {
+      const fs = await import("node:fs/promises");
+      const raw = JSON.parse(await fs.readFile(join(ROOT, "config/runtime.json"), "utf8"));
+      raw.tools.profile_registry_path = join(root, "tool-profiles.json");
+      raw.pi.commit = "c".repeat(40);
+      raw.pi.extra_field = "surprise";
+      const cfgPath = join(dir, "runtime.json");
+      await fs.writeFile(cfgPath, JSON.stringify(raw), "utf8");
+
+      // 步骤 2：调用 loadConfig
+      // 步骤 3：断言被拒绝（additionalProperties: false）
+      await expect(loadConfig(cfgPath, root)).rejects.toThrow(/transfer|additional properties/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true });
+    }
+  });});

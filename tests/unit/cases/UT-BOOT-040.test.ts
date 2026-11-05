@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-BOOT-040  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-040  ·  STATUS: real
  *
- * 责任：分支 L49 `contract?.implementation_ref !== "builtin:wor…`（&&；config.ts）
+ * 责任：分支 L49 &&: contract?.implementation_ref !== "builtin:workspace-atomic-write" && …（config.ts）
  * 维度坐标：`validateToolRegistry` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `BOOT`）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-040.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { validateToolRegistry, type ToolRegistry } from "../../../src/config.js";
 
-describe("UT-BOOT-040 · validateToolRegistry（config.ts:26）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 config.ts:49 的分支（&&：contract?.implementation_ref !== "builtin:workspace-atomic-…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：validateToolRegistry(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-040 · validateToolRegistry · 状态分支 × 合法迁移", () => {
+  it("accepts a safe-replay tool bound to the workspace implementation", () => {
+    // 步骤 1：构造 write 绑 workspace-atomic-write（该实现恰适用）
+    const tools: ToolRegistry = {
+      profile_version: "0.3",
+      recovery_contracts: { c: { kind: "stable_deduplication", implementation_ref: "builtin:workspace-atomic-write" } },
+      profiles: { p: { tools: { write: { effect: "workspace_write", replay: "safe", recovery_contract_ref: "c", permissions: {} } } } },
+    };
+
+    // 步骤 2：调用 validateToolRegistry
+    // 步骤 3：断言不抛错（第一项为假，整条守卫跳过）
+    expect(() => validateToolRegistry(tools)).not.toThrow();
+  });
 });

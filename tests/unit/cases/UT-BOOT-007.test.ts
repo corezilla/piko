@@ -1,18 +1,20 @@
 /**
- * Case ID: UT-BOOT-007  ·  STATUS: skeleton
+ * Case ID: UT-BOOT-007  ·  STATUS: real
  *
- * 责任：`resolveSecret` × `资源获取/释放` × `获取失败路径`（粗粒度登记）
- * 维度坐标：`resolveSecret` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `BOOT`）
+ * 责任：`resolveSecret` × `资源获取/释放` × `获取失败路径`（波次一粗粒度登记）
+ * 维度坐标：`resolveSecret` × `资源获取/释放` × `获取失败路径`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-BOOT-007.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { resolveSecret } from "../../../src/config.js";
 
-describe("UT-BOOT-007 · resolveSecret（config.ts:132）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：按 `资源获取/释放` × `获取失败路径` 展开规则构造（config.ts:132）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：resolveSecret(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-BOOT-007 · resolveSecret · 资源获取/释放 × 获取失败路径", () => {
+  it("fails to acquire a missing env secret", async () => {
+    // 步骤 1：确保环境变量不存在
+    delete process.env.PIKO_UT_COARSE_ABSENT;
+
+    // 步骤 2：调用 resolveSecret("env:PIKO_UT_COARSE_ABSENT")
+    // 步骤 3：断言 typed 错误（获取失败，资源未取得）
+    await expect(resolveSecret("env:PIKO_UT_COARSE_ABSENT")).rejects.toThrow(/missing env secret/);
+  });
 });
