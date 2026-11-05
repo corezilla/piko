@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 store.ts:800 处 throw 的输入——守卫 `unconditional`，语句 ``
+**步骤 1**——动作：构造触发 store.ts:800 处 throw 的输入：`无条件抛出（直接调用即命中）`；语句 `throw new PikoError("ResultUnavailable", 500, "terminal result missing");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 result(…)
 

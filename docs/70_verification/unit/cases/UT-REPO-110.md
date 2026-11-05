@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 store.ts:236 处 throw 的输入——守卫 `if (r.generation !== command.expected_generation)`，语句 ``
+**步骤 1**——动作：构造触发 store.ts:236 处 throw 的输入：`令 `r.generation` ≠ `command.expected_generation`（如 "not_command.expected_generation"）`；语句 `throw new PikoError("FencedWrite", 409, "generation moved");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 mutateRun(…)
 

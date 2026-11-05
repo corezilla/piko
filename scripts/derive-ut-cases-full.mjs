@@ -101,12 +101,13 @@ for (const r of rows) {
       : typ === "时间域行为" ? "超时边界 ±1 tick"
       : /^(if|ternary|case|default|loop|!|&&|\|\||\?\?|\?\.)$/.test(b.kind) && b.kind !== "else" ? "合法迁移" : "每个非法迁移拒绝";
     add(typ, cell, `分支 L${b.line} \`${clip(b.cond, 46)}\`（${b.kind}；${r.file}）`,
-      { what: "branch", bline: b.line, bkind: b.kind, bcond: b.cond });
+      { what: "branch", bline: b.line, bkind: b.kind, bcond: b.cond,
+        btruthy: b.truthy ?? null, bfalsy: b.falsy ?? null, bthen: b.then ?? null, bels: b.els ?? null });
   }
   // 3) throw sites; async units without one still owe rejection propagation
   for (const s of r.throwSites)
     add("错误路径", `每个 typed 错误码`, `throw L${s.line} \`${s.code}\`（守卫 \`${clip(s.guard, 40)}\`；${r.file}）`,
-      { what: "throw", tline: s.line, code: s.code, guard: s.guard });
+      { what: "throw", tline: s.line, code: s.code, guard: s.guard, how: s.how ?? null, stmt: s.stmt ?? null });
   if (r.async && r.throwSites.length === 0) {
     const awaits = [...r.bodyText.matchAll(/await ([\w$.()\[\]{}'"`+ ,?!:]{0,60}?)[;)\n]/g)].map((m) => m[1].trim());
     const n = Math.max(awaits.length, 1);
@@ -119,12 +120,12 @@ for (const r of rows) {
     add(s.target === "db" ? "持久化/序列化" : "状态分支",
       s.target === "db" ? "round-trip" : "合法迁移",
       `状态写 L${s.line} → \`${s.target}\`（${r.file}）`,
-      { what: "state", sline: s.line, target: s.target });
+      { what: "state", sline: s.line, target: s.target, stmt: s.stmt ?? null });
   // 5) resource-op sites
   for (const s of r.resourceSites)
     add("资源获取/释放", /^(rmSync|unlinkSync|clearTimeout|clearInterval|close|kill)$/.test(s.op) ? "正常释放" : "获取失败路径",
       `资源操作 L${s.line} \`${s.op}\`（${r.file}）`,
-      { what: "resource", rline: s.line, op: s.op });
+      { what: "resource", rline: s.line, op: s.op, stmt: s.stmt ?? null });
   // 6) return sites
   for (const s of r.returnSites)
     add("纯函数/无副作用", "每等价类合法值", `返回站点 L${s.line} 值 \`${clip(s.value, 40)}\` 逐值断言（${r.file}）`,

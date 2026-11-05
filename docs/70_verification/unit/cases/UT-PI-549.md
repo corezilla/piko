@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 provider-preflight.ts:7 处 throw 的输入——守卫 `if (!Array.isArray(payload?.data)||!payload.data.some((item…)`，语句 ``
+**步骤 1**——动作：构造触发 provider-preflight.ts:7 处 throw 的输入：`满足任一分支即可：① 令 `Array.isArray(payload?.data)` 返回假（空数组／false／不命中项）；或 ② 令 `payload.data.some((item:any)…`；语句 `throw new Error(`configured model is not available: ${model}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 preflightModelProvider(…)
 

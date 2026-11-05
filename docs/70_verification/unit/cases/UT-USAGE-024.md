@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 semantic.ts:8 处 throw 的输入——守卫 `if (u.quality === "Partial" && (known.length === 0 || known…)`，语句 ``
+**步骤 1**——动作：构造触发 semantic.ts:8 处 throw 的输入：`令 `u.quality` ＝ `"Partial" && (known.length === 0 || known.length === 6 || u.usage_observed_attempt…`；语句 `throw new Error("invalid Partial usage");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 validateUsage(…)
 

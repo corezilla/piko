@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 tool-recovery.ts:138 处 throw 的输入——守卫 `if (base.name!=="write"&&base.name!=="edit")`，语句 ``
+**步骤 1**——动作：构造触发 tool-recovery.ts:138 处 throw 的输入：`令 `base.name` ≠ `"write"&&base.name!=="edit"`（如 "not_write"&&base.name!=="edit"）`；语句 `throw new Error(`builtin:workspace-atomic-write does not support ${base.name}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 applyToolRecoveryPolicy(…)
 

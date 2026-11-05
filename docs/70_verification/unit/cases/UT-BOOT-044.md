@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 config.ts:42 处 throw 的输入——守卫 `if (!knownTools.has(name))`，语句 ``
+**步骤 1**——动作：构造触发 config.ts:42 处 throw 的输入：`令 `knownTools.has(name)` 为假（如传不匹配的字符串：`"__nomatch__"`）`；语句 `throw new Error(`unregistered tool implementation: ${name}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 validateToolRegistry(…)
 

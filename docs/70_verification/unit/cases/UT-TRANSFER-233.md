@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 transfer.ts:28 处 throw 的输入——守卫 `if (relCheck.startsWith("..") || isAbsolute(relCheck))`，语句 ``
+**步骤 1**——动作：构造触发 transfer.ts:28 处 throw 的输入：`满足任一分支即可：① 令 `relCheck.startsWith("..")` 的被调方返回真值；或 ② 按 `isAbsolute(relCheck)` 的语义取值`；语句 `throw new PikoError("InvalidRequest", 400, `path escapes workspace: ${rel}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 safeJoinIn(…)
 

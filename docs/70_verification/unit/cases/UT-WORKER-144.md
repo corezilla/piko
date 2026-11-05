@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 tool-recovery.ts:71 处 throw 的输入——守卫 `if (before.content===undefined)`，语句 ``
+**步骤 1**——动作：构造触发 tool-recovery.ts:71 处 throw 的输入：`令 `before.content` ＝ `undefined``；语句 `throw new Error(`Could not edit missing file: ${params.path}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 executeRecoverable(…)
 

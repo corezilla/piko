@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 tool-recovery.ts:137 处 throw 的输入——守卫 `if (!contract||contract.implementation_ref!=="builtin:works…)`，语句 ``
+**步骤 1**——动作：构造触发 tool-recovery.ts:137 处 throw 的输入：`满足任一分支即可：① 令 `contract` 为假（空串／0／null／undefined）；或 ② 令 `contract.implementation_ref` ≠ `"builtin:wor…`；语句 `throw new Error(`Safe replay for ${base.name} has no executable recovery contract`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 applyToolRecoveryPolicy(…)
 

@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 server.ts:97 处 throw 的输入——守卫 `if (!this.obs)`，语句 ``
+**步骤 1**——动作：构造触发 server.ts:97 处 throw 的输入：`令 `this.obs` 为假（空串／0／null／undefined）`；语句 `throw new PikoError("NotFound", 404, "route not found");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 route(…)
 

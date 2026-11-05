@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 transfer.ts:222 的返回站点（值 `{ state, delivered, failed }`）被到达的输入
+**步骤 1**——动作：构造使 transfer.ts:222 的返回站点被到达的输入——该站点返回 `{ state, delivered, failed }`；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类
 
-观察点：站点被到达
+观察点：该返回站点被走到（由返回值断言证明）
 
 **步骤 2**——动作：调用 deliverArtifacts(…)
 

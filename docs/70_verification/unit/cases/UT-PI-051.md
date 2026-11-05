@@ -82,17 +82,17 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 graphrag-client.ts:214 的分支（if：`if (errBody.error?.reason)`）取真的输入
+**步骤 1**——动作：构造使 graphrag-client.ts:214 的分支（if：`if (errBody.error?.reason)`）取真的输入：`令 `errBody.error` 为有效值（可选链不短路）`；该侧动作：`errMessage = errBody.error.reason;`
 
-观察点：分支取真路径被到达
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
 **步骤 2**——动作：调用 search(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
 观察点：断言通过
 
-**步骤 3**——动作：构造使该分支取假的输入（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：构造使该分支取假的输入：`按 `errBody.error?.reason` 的语义取反`；该侧动作：`if (errBody.message) errMessage = errBody.message;`
 
-观察点：分支取假路径被到达
+观察点：该分支的取假侧被走到（由断言证明）
 
 **步骤 4**——动作：再次调用 search(…) 并断言取假侧结果；两侧都必须被观测到
 

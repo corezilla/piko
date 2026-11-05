@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 matrix.ts:94 处 throw 的输入——守卫 `if (typeof declaredMime!=="string"||!this.config.matrix.all…)`，语句 ``
+**步骤 1**——动作：构造触发 matrix.ts:94 处 throw 的输入：`满足任一分支即可：① 令 `typeof declaredMime` ≠ `"string"`（如 "not_string"）；或 ② 令 `this.config.matrix.allowed_m…`；语句 `throw new Error("Matrix media MIME is not allowed");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 downloadMedia(…)
 

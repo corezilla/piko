@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 config.ts:50 处 throw 的输入——守卫 `if (contract?.implementation_ref !== "builtin:workspace-ato…)`，语句 ``
+**步骤 1**——动作：构造触发 config.ts:50 处 throw 的输入：`令 `contract?.implementation_ref` ≠ `"builtin:workspace-atomic-write" && t.replay === "safe" && t.ef…`；语句 `throw new Error(`recovery implementation ${contract?.implementation_ref} is not available for local…`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 validateToolRegistry(…)
 

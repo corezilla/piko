@@ -98,6 +98,19 @@ for (const c of cases) {
   const observes = t.match(/^观察点：\S/mg) ?? [];
   if (steps.length === 0) push("C8", c.case_id, "步骤与观察点不是编号步骤（draft.129 起必须编号 动作＋观察点）");
   else if (observes.length < steps.length) push("C8", c.case_id, `步骤 ${steps.length} 个但观察点 ${observes.length} 个（每步须配观察点）`);
+  // C9: no template guidance left in a finished document
+  for (const marker of ["编写建议", "抽象示例", "格式说明", "本节目的", "完成条件", "必须写清楚", "⟨", "⟩"]) {
+    if (t.includes(marker)) { push("C9", c.case_id, `模板编写建议残留：${marker}`); break; }
+  }
+  // C10: the steps must name the implementation site they exercise
+  if (!/（`[\w.\-]+\.ts:\d+`）/.test(t)) push("C10", c.case_id, "步骤未指向实现站点（file:line）");
+  // C11: the Oracle must point at an existing design document
+  const oracles = [...t.matchAll(/`(docs\/40_module_design\/[^`]+\.md)`/g)].map((m) => m[1]);
+  if (!oracles.length) push("C11", c.case_id, "Oracle 未指向模块设计文档");
+  else for (const o of new Set(oracles)) if (!existsSync(o)) push("C11", c.case_id, `Oracle 指向不存在的文档 ${o}`);
+  // C12: the input construction must give concrete values or a generation rule
+  const input = t.match(/\*\*输入构造\*\*：\s*\n\n([^\n]+)/)?.[1] ?? "";
+  if (!/写死|生成规则|取自|见 §3\.1 步骤 1/.test(input)) push("C12", c.case_id, "输入构造未给具体取值或生成规则");
   // C6
   const script = `tests/unit/cases/${c.case_id}.test.ts`;
   if (!existsSync(script)) push("C6", c.case_id, "脚本锚点不存在");

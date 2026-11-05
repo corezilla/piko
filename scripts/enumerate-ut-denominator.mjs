@@ -90,12 +90,15 @@ for (const file of files) {
   // into nested class members (those are separate units)
   const branchesOf = (body) => {
     const out = [];
+    const first = (b) => b ? clip(b.getText().slice(0, 120), 110) : null;
     const walk = (k) => {
       if (ts.isMethodDeclaration(k) || ts.isConstructorDeclaration(k) ||
           ts.isClassDeclaration(k) || ts.isFunctionDeclaration(k)) return;
       if (ts.isIfStatement(k)) {
-        const first = (b) => b ? clip(b.getText().slice(0, 120), 110) : null;
         out.push({ line: lineOf(k.getStart()), kind: "if", cond: `if (${clip(k.expression.getText())})`,
+          condText: clip(k.expression.getText(), 90),
+          truthy: truthyOf(k.expression.getText()),
+          falsy: falsyOf(k.expression.getText()),
           then: first(ts.isBlock(k.thenStatement) ? k.thenStatement.statements[0] : k.thenStatement),
           els: first(k.elseStatement ? (ts.isBlock(k.elseStatement) ? k.elseStatement.statements[0] : k.elseStatement) : null) });
         if (k.elseStatement) out.push({ line: lineOf(k.elseStatement.getStart()), kind: "else", cond: clip(k.elseStatement.getText(), 40) });
@@ -114,9 +117,21 @@ for (const file of files) {
       } else if (ts.isBinaryExpression(k) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(k.operatorToken.kind)) {
         out.push({ line: lineOf(k.getStart()), kind: k.operatorToken.getText(), cond: clip(k.getText(), 60) });
       } else if (ts.isPropertyAccessExpression(k) && k.questionDotToken) {
-        out.push({ line: lineOf(k.getStart()), kind: "?.", cond: clip(k.getText(), 60) });
+        const recv = k.expression.getText();
+        out.push({ line: lineOf(k.getStart()), kind: "?.", cond: clip(k.getText(), 60),
+          condText: clip(recv, 90),
+          truthy: `令 \`${recv}\` 为有效值（非 undefined／null）——可选链不短路`,
+          falsy: `令 \`${recv}\` 为 undefined／null——可选链短路，取 undefined`,
+          then: null, els: null });
       } else if (ts.isPrefixUnaryExpression(k) && k.operator === ts.SyntaxKind.ExclamationToken) {
-        out.push({ line: lineOf(k.getStart()), kind: "!", cond: `!${clip(k.operand.getText(), 60)}` });
+        const operand = k.operand.getText();
+        // `!x` is TRUE when x is falsy — the sides are the operand's, swapped
+        out.push({ line: lineOf(k.getStart()), kind: "!", cond: `!${clip(operand, 60)}`,
+          condText: clip(operand, 90),
+          truthy: falsyOf(operand),
+          falsy: truthyOf(operand),
+          then: first(k.parent && ts.isIfStatement(k.parent) ? (ts.isBlock(k.parent.thenStatement) ? k.parent.thenStatement.statements[0] : k.parent.thenStatement) : null),
+          els: null });
       }
       ts.forEachChild(k, walk);
     };
@@ -138,13 +153,135 @@ for (const file of files) {
     return sites;
   };
   // the guard condition a throw sits in, when there is one
+  // how to make a condition TRUE — the negated/literal form of the condition,
+  // so a Case can state the concrete input instead of "构造取真的输入"
+  const truthyOf = (exprText) => {
+    const s = exprText.trim();
+    // `!x` — the negation is true when x is falsy
+    // `a || b` — the guard is true when EITHER operand holds
+    const or = s.split(/\s*\|\|\s*/);
+    if (or.length === 2 && or.length === 2 && !s.includes("&&")) {
+      const left = or[0].trim(), right = or[1].trim();
+      const leftHint = truthyOf(left), rightHint = truthyOf(right);
+      return `满足任一分支即可：① ${leftHint}；或 ② ${rightHint}`;
+    }
+    const neg = s.match(/^!([\w.$]+)$/);
+    if (neg) return `令 \`${neg[1]}\` 为假（空串／0／null／undefined）`;
+    // `!x.m(...)` / `!x.has(...)` — the call must return false
+    const negCall = s.match(/^!([\w.$]+)\((.*)\)$/);
+    if (negCall) {
+      const callee = negCall[1], arg = negCall[2];
+      if (/timingSafeEqual|equals|compare|equal/.test(callee))
+        return `令 \`${arg}\` 的两个参数不相等（传与期望不同的字节，如多一个字节）`;
+      if (/\.(startsWith|includes|has|includes|endsWith)$/.test(callee))
+        return `令 \`${callee}(${arg})\` 为假（如传不匹配的字符串：${arg.trim() ? `\`"__nomatch__"\`` : `空串`}）`;
+      return `令 \`${callee}(${arg})\` 返回假（空数组／false／不命中项）`;
+    }
+    // `!a?.b(...)` — optional chain under a negation
+    const negOpt = s.match(/^!([\w.$]+)\?\.([\w$]+)\((.*)\)$/);
+    if (negOpt) {
+      const [, recv, meth, arg] = negOpt;
+      const lit = arg.trim().replace(/^["']|["']$/g, "");
+      if (/^(startsWith|includes|endsWith)$/.test(meth))
+        return `令 \`${recv}\` 为不以 \`${lit}\` 开头的字符串（如 \`"__nomatch__"\`）——\`${meth}\` 返回假`;
+      return `令 \`${recv}\` 为 undefined／null（可选链短路，\`${meth}\` 不被调用）`;
+    }
+    // `a?.b(c)` — optional call
+    const optCall = s.match(/^([\w.$]+)\?\.([\w$]+)\((.*)\)$/);
+    if (optCall) {
+      const [, recv, meth, arg] = optCall;
+      if (/^(startsWith|includes|endsWith)$/.test(meth))
+        return `令 \`${recv}\` 为以 \`${arg.trim().replace(/^["']|["']$/g, "")}\` 开头的字符串——\`${meth}\` 返回真`;
+      return `令 \`${recv}\` 为有效值，\`${meth}(${arg})\` 返回真`;
+    }
+    // `a?.b` — optional member
+    const optMember = s.match(/^([\w.$]+)\?\.([\w$]+)$/);
+    if (optMember) return `令 \`${optMember[1]}\` 为有效值（可选链不短路）`;
+    // `!a?.b` — optional member under a negation
+    const negOptMember = s.match(/^!([\w.$]+)\?\.([\w$]+)$/);
+    if (negOptMember) return `令 \`${negOptMember[1]}\` 为 undefined／null（可选链短路）`;
+    // `!(a || b)` — at least one operand false
+    const negGroup = s.match(/^!\((.*)\)$/);
+    if (negGroup) return `令 \`${negGroup[1]}\` 为假（操作数之一不成立）`;
+    const eq = s.match(/^(.+?)\s*(===|!==|==|!=)\s*(.+)$/);
+    if (eq) {
+      const [, left, op, right] = eq;
+      const lit = right.trim().replace(/^["'`]|["'`]$/g, "");
+      if (op === "===" || op === "==") return `令 \`${left.trim()}\` ＝ \`${right.trim()}\``;
+      if (op === "!==" || op === "!=") return `令 \`${left.trim()}\` ≠ \`${right.trim()}\`（如 ${lit ? `"not_${lit}"` : "另一个值"}）`;
+    }
+    const cmp = s.match(/^(.+?)\s*(>=|<=|>|<)\s*(\d+)$/);
+    if (cmp) {
+      const [, left, op, num] = cmp;
+      const v = { ">": +num + 1, ">=": +num, "<": +num - 1, "<=": +num }[op];
+      return `令 \`${left.trim()}\` ＝ ${v}（越界一侧）`;
+    }
+    const optCallT = s.match(/^([\w.$]+)\?\.([\w$]+)\((.*)\)$/);
+    if (optCallT) {
+      const [, recv, meth, arg] = optCallT;
+      if (/^(startsWith|includes|endsWith)$/.test(meth))
+        return `令 \`${recv}\` 为不以 \`${arg.trim().replace(/^["']|["']$/g, "")}\` 开头的字符串——\`${meth}\` 返回假`;
+      return `令 \`${recv}\` 为 undefined／null（可选链短路）或 \`${meth}(${arg})\` 返回假`;
+    }
+    if (/^\w+\??\.\w+$/.test(s)) return `令 \`${s}\` 为真（如非空字符串/真值）`;
+    if (/^!?[\w.$]+\.[\w$]+\(/.test(s)) return `令 \`${s}\` 的被调方返回真值`;
+    return `按 \`${s}\` 的语义取值`;
+  };
+
+  // how to make a condition FALSE — the opposite of truthyOf
+  const falsyOf = (exprText) => {
+    const s = exprText.trim();
+    const neg = s.match(/^!([\w.$]+)$/);
+    if (neg) return `令 \`${neg[1]}\` 为真`;
+    const negCall = s.match(/^!([\w.$]+)\((.*)\)$/);
+    if (negCall) {
+      const callee = negCall[1], arg = negCall[2];
+      if (/\.(startsWith|includes|endsWith)$/.test(callee))
+        return `令 \`${callee}(${arg})\` 为真（如传匹配的字符串）`;
+      return `令 \`${callee}(${arg})\` 返回真`;
+    }
+    const negOpt = s.match(/^!([\w.$]+)\?\.([\w$]+)\((.*)\)$/);
+    if (negOpt) {
+      const [, recv, meth, arg] = negOpt;
+      if (/^(startsWith|includes|endsWith)$/.test(meth))
+        return `令 \`${recv}\` 为以 \`${arg.trim().replace(/^["']|["']$/g, "")}\` 开头的字符串——${meth} 返回真`;
+      return `令 \`${recv}\` 为有效值（可选链不短路）`;
+    }
+    const negOptMember = s.match(/^!([\w.$]+)\?\.([\w$]+)$/);
+    if (negOptMember) return `令 \`${negOptMember[1]}\` 为有效值（可选链不短路）`;
+    const negGroup = s.match(/^!\((.*)\)$/);
+    if (negGroup) return `令 \`${negGroup[1]}\` 为真`;
+    const eq = s.match(/^(.+?)\s*(===|!==|==|!=)\s*(.+)$/);
+    if (eq) {
+      const [, left, op, right] = eq;
+      if (op === "===" || op === "==") return `令 \`${left.trim()}\` ≠ \`${right.trim()}\``;
+      return `令 \`${left.trim()}\` ＝ \`${right.trim()}\``;
+    }
+    const cmp = s.match(/^(.+?)\s*(>=|<=|>|<)\s*(\d+)$/);
+    if (cmp) {
+      const [, left, op, num] = cmp;
+      const v = { ">": +num, ">=": +num - 1, "<": +num, "<=": +num + 1 }[op];
+      return `令 \`${left.trim()}\` ＝ ${v}（不越界一侧）`;
+    }
+    const optCallF = s.match(/^([\w.$]+)\?\.([\w$]+)\((.*)\)$/);
+    if (optCallF) {
+      const [, recv, meth, arg] = optCallF;
+      if (/^(startsWith|includes|endsWith)$/.test(meth))
+        return `令 \`${recv}\` 为不以 \`${arg.trim().replace(/^["']|["']$/g, "")}\` 开头的字符串——\`${meth}\` 返回假`;
+      return `令 \`${recv}\` 为 undefined／null（可选链短路）或 \`${meth}(${arg})\` 返回假`;
+    }
+    if (/^\w+\??\.\w+$/.test(s)) return `令 \`${s}\` 为假（空串／0／null／undefined）`;
+    if (/^!?[\w.$]+\.[\w$]+\(/.test(s)) return `令 \`${s}\` 的被调方返回假值`;
+    return `按 \`${s}\` 的语义取反`;
+  };
+
   const guardOf = (k) => {
     for (let a = k.parent; a; a = a.parent) {
-      if (ts.isIfStatement(a)) return `if (${clip(a.expression.getText(), 56)})`;
-      if (ts.isConditionalExpression(a)) return `? ${clip(a.condition.getText(), 56)} :`;
+      if (ts.isIfStatement(a)) return `if (${clip(a.expression.getText(), 120)})`;
+      if (ts.isConditionalExpression(a)) return `? ${clip(a.condition.getText(), 120)} :`;
       if (ts.isCatchClause(a)) return "catch";
-      if (ts.isBinaryExpression(a) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(a.operatorToken.kind))
-        return clip(a.getText(), 56);
+      if (ts.isBinaryExpression(a) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarOrToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(a.operatorToken.kind))
+        return clip(a.getText(), 120);
       if (ts.isBlock(a) && a.parent && (ts.isForStatement(a.parent) || ts.isForOfStatement(a.parent) || ts.isWhileStatement(a.parent)))
         return `loop (${clip(a.parent.expression?.getText() ?? "", 48)})`;
     }
@@ -155,7 +292,11 @@ for (const file of files) {
       const expr = ts.isThrowStatement(k) ? k.expression : k.expression;
       const code = expr?.getText().match(/new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ??
         expr?.getText().match(/Promise\.reject\(\s*new\s+\w*Error\(\s*"([^"]+)"/)?.[1] ?? "reject";
-      return { kind: "throw", code, guard: guardOf(k), stmt: clip(expr?.getText() ?? k.getText(), 110) };
+      const stmtText = ts.isThrowStatement(k) ? k.getText() : (expr?.getText() ?? k.getText());
+      const guard = guardOf(k);
+      const cond = guard.match(/^if \((.*)\)$/)?.[1] ?? guard;
+      return { kind: "throw", code, guard, stmt: clip(stmtText, 110),
+               how: guard === "unconditional" ? "无条件抛出（直接调用即命中）" : truthyOf(cond) };
     }
     if (ts.isCallExpression(k) && k.expression.getText().endsWith("Promise.reject"))
       return { kind: "throw", code: "reject", guard: guardOf(k) };
@@ -179,7 +320,7 @@ for (const file of files) {
   const isResource = (k) => {
     if (!ts.isCallExpression(k)) return null;
     const m = k.expression.getText().match(/^(readFileSync|writeFileSync|appendFileSync|mkdirSync|rmSync|unlinkSync|renameSync|copyFileSync|statSync|existsSync|openSync|spawn|execFile|execFileSync|fork|setTimeout|setInterval|clearTimeout|clearInterval|createHash|createCipheriv|createDecipheriv|publicKey|privateKey)\b/);
-    return m ? { kind: "resource", op: m[1], stmt: clip(k.getText(), 110) } : null;
+    return m ? { kind: "resource", op: m[1], stmt: clip(k.getText(), 140) } : null;
   };
 
   const register = (node, kind, visibility, name) => {

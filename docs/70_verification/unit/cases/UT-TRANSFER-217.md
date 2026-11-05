@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 transfer.ts:214 处 throw 的输入——守卫 `if (target.method === "mount")`，语句 ``
+**步骤 1**——动作：构造触发 transfer.ts:214 处 throw 的输入：`令 `target.method` ＝ `"mount"``；语句 `throw new PikoError("InternalError", 500, "object_store transport not implemented in this build");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 deliverArtifacts(…)
 

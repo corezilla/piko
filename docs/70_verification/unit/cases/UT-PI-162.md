@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 mem0-client.ts:215 处 throw 的输入——守卫 `if (!Array.isArray(messages) || messages.length === 0)`，语句 ``
+**步骤 1**——动作：构造触发 mem0-client.ts:215 处 throw 的输入：`满足任一分支即可：① 令 `Array.isArray(messages)` 返回假（空数组／false／不命中项）；或 ② 令 `messages.length` ＝ `0``；语句 `throw new Error("messages must be non-empty");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 add(…)
 

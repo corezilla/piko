@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 matrix.ts:103 处 throw 的输入——守卫 `if (!joined.includes(room))`，语句 ``
+**步骤 1**——动作：构造触发 matrix.ts:103 处 throw 的输入：`令 `joined.includes(room)` 为假（如传不匹配的字符串：`"__nomatch__"`）`；语句 `throw new Error("Piko is not joined to discussion room");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 verifyDiscussion(…)
 

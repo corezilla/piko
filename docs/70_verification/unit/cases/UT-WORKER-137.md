@@ -82,17 +82,17 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 tool-recovery.ts:69 的分支（if：`if (base.name==="edit")`）取真的输入
+**步骤 1**——动作：构造使 tool-recovery.ts:69 的分支（if：`if (base.name==="edit")`）取真的输入：`令 `base.name` ＝ `"edit"``；该侧动作：`if(!Array.isArray(params.edits)||params.edits.length===0)throw new Error("Edit tool input is invali…`
 
-观察点：分支取真路径被到达
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
 **步骤 2**——动作：调用 executeRecoverable(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
 观察点：断言通过
 
-**步骤 3**——动作：构造使该分支取假的输入（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：构造使该分支取假的输入：`令 `base.name` ≠ `"edit"``；该侧动作：`throw new Error(`Recovery contract is not implemented for tool ${base.name}`);`
 
-观察点：分支取假路径被到达
+观察点：该分支的取假侧被走到（由断言证明）
 
 **步骤 4**——动作：再次调用 executeRecoverable(…) 并断言取假侧结果；两侧都必须被观测到
 

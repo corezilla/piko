@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 store.ts:762 处 throw 的输入——守卫 `if (result.state === "Completed" && run.discussion_intake_s…)`，语句 ``
+**步骤 1**——动作：构造触发 store.ts:762 处 throw 的输入：`令 `result.state` ＝ `"Completed" && run.discussion_intake_state !== "Disabled" && (run.discussion_in…`；语句 `throw new PikoError("DiscussionNotClosed", 409, "discussion result cannot complete before intake cl…`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 finish(…)
 

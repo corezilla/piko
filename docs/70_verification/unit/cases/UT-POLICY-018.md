@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 policy.ts:15 处 throw 的输入——守卫 `if (isAbsolute(rel))`，语句 ``
+**步骤 1**——动作：构造触发 policy.ts:15 处 throw 的输入：`按 `isAbsolute(rel)` 的语义取值`；语句 `throw new PikoError("InvalidRequest", 400, `absolute path rejected: ${rel}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 canonicalize(…)
 

@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 matrix.ts:102 处 throw 的输入——守卫 `if (!this.client||!this.started)`，语句 ``
+**步骤 1**——动作：构造触发 matrix.ts:102 处 throw 的输入：`满足任一分支即可：① 令 `this.client` 为假（空串／0／null／undefined）；或 ② 令 `this.started` 为假（空串／0／null／undefined）`；语句 `throw new Error("Matrix is not ready");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 verifyDiscussion(…)
 

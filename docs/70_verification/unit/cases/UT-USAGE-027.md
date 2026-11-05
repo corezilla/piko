@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 semantic.ts:11 处 throw 的输入——守卫 `if (u.input_tokens !== null && ((u.cache_read_tokens ?? 0)>…)`，语句 ``
+**步骤 1**——动作：构造触发 semantic.ts:11 处 throw 的输入：`令 `u.input_tokens` ≠ `null && ((u.cache_read_tokens ?? 0)>u.input_tokens || (u.cache_write_tokens ?…`；语句 `throw new Error("cache usage exceeds input");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 validateUsage(…)
 

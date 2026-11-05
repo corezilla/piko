@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 provider-preflight.ts:2 的资源操作（`setTimeout`，语句 ``）被执行的输入
+**步骤 1**——动作：构造使 provider-preflight.ts:2 的资源操作（`setTimeout`，语句 `setTimeout(()=>controller.abort(),timeout)`）被执行的输入：按该 symbol 的参数取合法等价类（如涉路径参数则取临时目录下的真实路径）
 
-观察点：操作被到达
+观察点：该资源操作确实被走到（由替身调用序证明）
 
 **步骤 2**——动作：调用 preflightModelProvider(…) 走正常路径
 
@@ -94,9 +94,9 @@
 
 观察点：typed 错误且无泄漏
 
-**步骤 4**——动作：断言两路均无残留：clearTimeout/kill/rm 等释放动作全部发生
+**步骤 4**——动作：断言两路均无残留——本 Case 的资源是 `setTimeout`，其释放动作（clearTimeout/clearInterval）必须发生
 
-观察点：断言通过
+观察点：资源计数回零、无残留句柄/子进程/定时器
 
 **Oracle 与预期**：
 

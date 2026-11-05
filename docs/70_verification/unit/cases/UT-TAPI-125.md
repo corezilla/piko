@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 server.ts:71 处 throw 的输入——守卫 `if (!this.validateTask(task))`，语句 ``
+**步骤 1**——动作：构造触发 server.ts:71 处 throw 的输入：`令 `this.validateTask(task)` 返回假（空数组／false／不命中项）`；语句 `throw new PikoError("InvalidRequest", 400, this.validateTask.errors?.map((x) => `${x.instancePath} …`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 route(…)
 

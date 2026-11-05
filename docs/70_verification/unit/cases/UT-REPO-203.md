@@ -82,13 +82,13 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 store.ts:407 对 `db` 的写被执行的前置状态
+**步骤 1**——动作：构造使 store.ts:407 对 `db` 的写被执行的前置状态——写语句：`this.db.prepare("UPDATE execution_slot SET heartbeat_at=? WHERE slot_id=1 AND task_id=? AND lease_e…`；前置状态取值按该 symbol 的构造参数取合法等价类
 
-观察点：前置状态就绪
+观察点：前置状态就绪（由读到的初始值证明）
 
 **步骤 2**——动作：调用 renewSlot(…)
 
-观察点：写发生：SQLite 行变更
+观察点：写已发生——权威事实源里能看到新值（SQLite 行变更）
 
 **步骤 3**——动作：读回权威事实源（重开库逐行对账）逐值对账写入语义
 

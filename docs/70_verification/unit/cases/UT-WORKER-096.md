@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 tool-recovery.ts:39 处 throw 的输入——守卫 `if (!read.ok)`，语句 ``
+**步骤 1**——动作：构造触发 tool-recovery.ts:39 处 throw 的输入：`令 `read.ok` 为假（空串／0／null／undefined）`；语句 `throw read.error;`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 fileState(…)
 

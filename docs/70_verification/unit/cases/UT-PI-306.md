@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 pi-runtime.ts:123 处 throw 的输入——守卫 `if (config.identity?.memory && !mem0ApiKey)`，语句 ``
+**步骤 1**——动作：构造触发 pi-runtime.ts:123 处 throw 的输入：`按 `config.identity?.memory && !mem0ApiKey` 的语义取值`；语句 `throw new Error("mem0ApiKey required when identity.memory configured");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 new PiRuntime(…)
 

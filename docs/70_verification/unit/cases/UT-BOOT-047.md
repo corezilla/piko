@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 config.ts:47 处 throw 的输入——守卫 `if (contract?.implementation_ref === "builtin:workspace-ato…)`，语句 ``
+**步骤 1**——动作：构造触发 config.ts:47 处 throw 的输入：`令 `contract?.implementation_ref` ＝ `"builtin:workspace-atomic-write" && (!["write", "edit"].include…`；语句 `throw new Error(`workspace atomic recovery is not applicable to tool ${name}`);`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 validateToolRegistry(…)
 

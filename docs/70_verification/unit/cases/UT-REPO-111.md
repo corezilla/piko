@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 store.ts:238 处 throw 的输入——守卫 `if (command.expected_state_in && !command.expected_state_in…)`，语句 ``
+**步骤 1**——动作：构造触发 store.ts:238 处 throw 的输入：`按 `command.expected_state_in && !command.expected_state_in.includes(r.state)` 的语义取值`；语句 `throw new PikoError("FencedWrite", 409, "state moved");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 mutateRun(…)
 

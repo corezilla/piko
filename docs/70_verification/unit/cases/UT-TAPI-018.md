@@ -82,9 +82,9 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造触发 auth.ts:3 处 throw 的输入——守卫 `if (!header?.startsWith("Bearer "))`，语句 ``
+**步骤 1**——动作：构造触发 auth.ts:3 处 throw 的输入：`令 `header` 为不以 `Bearer ` 开头的字符串（如 `"__nomatch__"`）——`startsWith` 返回假`；语句 `throw new PikoError("Unauthorized",401,"missing bearer credential");`
 
-观察点：守卫取真
+观察点：守卫取真——错误被抛出（由断言证明）
 
 **步骤 2**——动作：调用 authenticate(…)
 

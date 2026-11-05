@@ -102,13 +102,13 @@ function stepsFor(c, unit) {
       step("断言缺省态与显式默认值同构；未知枚举值按 ISD 声明拒绝且 typed 化", "断言通过");
       break;
     case "branch":
-      step(`构造使 ${c.file}:${d.bline} 的分支（${d.bkind}：${q(d.bcond)}）取真的输入${d.then ? `——该侧动作：${q(d.then)}` : ""}`, "分支取真路径被到达");
+      step(`构造使 ${c.file}:${d.bline} 的分支（${d.bkind}：${q(d.bcond)}）取真的输入：${d.btruthy ? q(d.btruthy) : "按条件语义取值"}${d.bthen ? `；该侧动作：${q(d.bthen)}` : ""}`, "该分支的取真侧被走到（由断言证明，不靠日志）");
       step(`调用 ${call} 并断言该侧可观测结果（返回值/状态/副作用）与设计一致`, "断言通过");
-      step(`构造使该分支取假的输入${d.els ? `——该侧动作：${q(d.els)}` : "（无显式 else：取假即跳过该块，断言块内副作用不发生）"}`, "分支取假路径被到达");
+      step(`构造使该分支取假的输入：${d.bfalsy ? q(d.bfalsy) : "按条件语义取反"}${d.bels ? `；该侧动作：${q(d.bels)}` : "（无显式 else：取假即跳过该块，断言块内副作用不发生）"}`, "该分支的取假侧被走到（由断言证明）");
       step(`再次调用 ${call} 并断言取假侧结果；两侧都必须被观测到`, "断言通过；失败含义＝该分支语义失真");
       break;
     case "throw":
-      step(`构造触发 ${c.file}:${d.tline} 处 throw 的输入——守卫 ${q(d.guard ?? "unconditional")}，语句 ${q(d.stmt)}`, "守卫取真");
+      step(`构造触发 ${c.file}:${d.tline} 处 throw 的输入：${d.how ? q(d.how) : q(d.guard ?? "unconditional")}；语句 ${q(d.stmt)}`, "守卫取真——错误被抛出（由断言证明）");
       step(`调用 ${call}`, `抛出错误且 code 逐值等于 \`${d.code}\``);
       step("断言消息可判别、含建议动作，且无部分写入（状态写/资源/持久化均未发生）", "断言全部通过");
       step("断言内部错误不上抛为客户端码（保真传播）", "对外错误码符合 ISD 错误表");
@@ -119,18 +119,18 @@ function stepsFor(c, unit) {
       step("断言拒绝按设计声明的 typed 错误上抛——不吞错、不降级为成功、无悬挂资源或半写状态", "断言通过；失败含义＝错误传播失真");
       break;
     case "state":
-      step(`构造使 ${c.file}:${d.sline} 对 \`${d.target}\` 的写被执行的前置状态${d.stmt ? `——写语句：${q(d.stmt)}` : ""}`, "前置状态就绪");
-      step(`调用 ${call}`, `写发生：${d.target === "db" ? "SQLite 行变更" : `\`${d.target}\` 新值`}`);
+      step(`构造使 ${c.file}:${d.sline} 对 \`${d.target}\` 的写被执行的前置状态${d.stmt ? `——写语句：${q(d.stmt)}` : ""}；前置状态取值按该 symbol 的构造参数取合法等价类`, "前置状态就绪（由读到的初始值证明）");
+      step(`调用 ${call}`, `写已发生——权威事实源里能看到新值（${d.target === "db" ? "SQLite 行变更" : `\`${d.target}\` 新值`}）`);
       step(`读回权威事实源（${d.target === "db" ? "重开库逐行对账" : "对象状态直接读"}）逐值对账写入语义`, "对账通过；失败含义＝状态迁移失真");
       break;
     case "resource":
-      step(`构造使 ${c.file}:${d.rline} 的资源操作（\`${d.op}\`，语句 ${q(d.stmt)}）被执行的输入`, "操作被到达");
+      step(`构造使 ${c.file}:${d.rline} 的资源操作（\`${d.op}\`，语句 ${q(d.stmt)}）被执行的输入：按该 symbol 的参数取合法等价类（如涉路径参数则取临时目录下的真实路径）`, "该资源操作确实被走到（由替身调用序证明）");
       step(`调用 ${call} 走正常路径`, "资源被使用且释放（句柄/子进程/定时器/临时目录计数回零）");
       step("注入该操作失败（替身/权限/不存在路径）后再次调用", "typed 错误且无泄漏");
-      step("断言两路均无残留：clearTimeout/kill/rm 等释放动作全部发生", "断言通过");
+      step(`断言两路均无残留——本 Case 的资源是 \`${d.op}\`，其释放动作（${d.op.startsWith("set") ? "clearTimeout/clearInterval" : d.op.startsWith("spawn") || d.op.startsWith("exec") || d.op.startsWith("fork") ? "kill/等待退出" : "close/rm/unlink"}）必须发生`, "资源计数回零、无残留句柄/子进程/定时器");
       break;
     case "return":
-      step(`构造使 ${c.file}:${d.retline} 的返回站点（值 ${q(d.value)}）被到达的输入`, "站点被到达");
+      step(`构造使 ${c.file}:${d.retline} 的返回站点被到达的输入——该站点返回 ${q(d.value)}；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类`, "该返回站点被走到（由返回值断言证明）");
       step(`调用 ${call}`, "返回值");
       step("断言返回值逐值对账（结构、字段、顺序），且无未声明副作用", "断言通过；失败含义＝该返回路径语义失真");
       break;
