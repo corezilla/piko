@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-TAPI-005  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-005  ·  STATUS: real
  *
  * 责任：参数 `principal: string` 的 `空` 类（auth.ts:3）
  * 维度坐标：`BearerAuth.constructor` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-005.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { BearerAuth } from "../../../src/auth.js";
+import { PikoError } from "../../../src/types.js";
 
-describe("UT-TAPI-005 · BearerAuth.constructor（auth.ts:3）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `principal: string`，其余参数取合法等价类（auth.ts:3）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new BearerAuth.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-TAPI-005 用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+
+describe("UT-TAPI-005 · BearerAuth.constructor · 字符串/路径/枚举输入 × 空", () => {
+  it("accepts an empty principal", () => {
+    // 步骤 1：构造 BearerAuth("", TOKEN)
+    const auth = new BearerAuth("", TOKEN);
+
+    // 步骤 2：调用 authenticate(正确令牌)
+    // 步骤 3：断言返回空串（该参数无校验）
+    expect(auth.authenticate("Bearer s3cret-token")).toBe("");
+  });
 });

@@ -1,18 +1,85 @@
 /**
- * Case ID: UT-TAPI-086  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-086  ·  STATUS: real
  *
- * 责任：参数 `onCancel: (taskId: string, outcome: string) => void` 的 `注入字符` 类（server.ts:49）
+ * 责任：参数 `onCancel` 的 `注入字符` 类（server.ts:50）
  * 维度坐标：`create` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-086.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ApiServer } from "../../../src/server.js";
+import { BearerAuth } from "../../../src/auth.js";
+import { TaskStore } from "../../../src/store.js";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
+import { PikoError, type RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-TAPI-086 · create（server.ts:49）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `onCancel: (taskId: string, outcome: string) => void`，其余参数取合法等价类（server.ts:49）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → create(/* 参数 */) → 逐值断言（Oracle：UT-TAPI-086 用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+const AUTH = { authorization: "Bearer s3cret-token" };
+
+const TASK = {
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: [],
+};
+
+function makeConfig(capacity = 10): RuntimeConfig {
+  return {
+    instance_id: "inst-1",
+    listen: { host: "127.0.0.1", port: 0 },
+    queue: { capacity },
+  } as unknown as RuntimeConfig;
+}
+
+async function withServer<T>(
+  fn: (ctx: {
+    url: string;
+    server: ApiServer;
+    store: TaskStore;
+    config: RuntimeConfig;
+    obs: Observability;
+    onCancel?: (taskId: string, outcome: string) => void;
+  }) => Promise<T>,
+  options: { onCancel?: (taskId: string, outcome: string) => void; withObs?: boolean; capacity?: number } = {},
+): Promise<T> {
+  const store = new TaskStore(":memory:", 1000);
+  const config = makeConfig(options.capacity ?? 10);
+  const auth = new BearerAuth("slinky", TOKEN);
+  const obs = new Observability(config, new ManualClock(0, 0));
+  const server = await ApiServer.create(config, store, auth, options.onCancel, options.withObs ? obs : undefined);
+  await server.listen();
+  const address = (server as unknown as { server: { address(): { port: number } } }).server.address();
+  const url = `http://127.0.0.1:${address.port}`;
+  try {
+    return await fn({ url, server, store, config, obs });
+  } finally {
+    await server.close();
+    store.close();
+  }
+}
+
+describe("UT-TAPI-086 · create · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("treats an injected task id in onCancel as data", async () => {
+    // 步骤 1：起服务器并记录回调收到的 task_id
+    const calls: string[] = [];
+    await withServer(async ({ url }) => {
+      // 步骤 2：POST 一个 task_id 带注入串的任务，再取消它
+      await fetch(`${url}/tasks`, {
+        method: "POST",
+        headers: { ...AUTH, "content-type": "application/json" },
+        body: JSON.stringify({ ...TASK, task_id: "t-1'; DROP TABLE runs;--" }),
+      });
+      const res = await fetch(`${url}/tasks/${encodeURIComponent("t-1'; DROP TABLE runs;--")}:cancel`, {
+        method: "POST",
+        headers: AUTH,
+      });
+      // 取消一个未登记的 task_id 返回 404——注入串只是路径里的一段字符
+      expect(res.status).toBe(404);
+    }, { onCancel: (taskId) => calls.push(taskId) });
+
+    // 步骤 3：断言回调未收到任何 id（取消失败时回调不被调用），
+    //         且注入串没有执行
+    expect(calls).toEqual([]);
+  });
 });

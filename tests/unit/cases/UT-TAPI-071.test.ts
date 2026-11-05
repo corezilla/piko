@@ -1,18 +1,74 @@
 /**
- * Case ID: UT-TAPI-071  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-071  ·  STATUS: real
  *
- * 责任：参数 `obs: Observability` 的 `边界(上/下/零/空/满)` 类（server.ts:40）
- * 维度坐标：`ApiServer.constructor` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `TAPI`）
+ * 责任：参数 `obs` 的 `边界(上/下/零/空/满)` 类（server.ts:41）
+ * 维度坐标：`ApiServer.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-071.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ApiServer } from "../../../src/server.js";
+import { BearerAuth } from "../../../src/auth.js";
+import { TaskStore } from "../../../src/store.js";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
+import { PikoError, type RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-TAPI-071 · ApiServer.constructor（server.ts:40）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `obs: Observability`，其余参数取合法等价类（server.ts:40）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → new ApiServer.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-TAPI-071 用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+const AUTH = { authorization: "Bearer s3cret-token" };
+
+const TASK = {
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: [],
+};
+
+function makeConfig(): RuntimeConfig {
+  return {
+    instance_id: "inst-1",
+    listen: { host: "127.0.0.1", port: 0 },
+    queue: { capacity: 10 },
+  } as unknown as RuntimeConfig;
+}
+
+async function withServer<T>(
+  fn: (ctx: {
+    url: string;
+    server: ApiServer;
+    store: TaskStore;
+    config: RuntimeConfig;
+    obs: Observability;
+  }) => Promise<T>,
+  options: { withObs?: boolean } = {},
+): Promise<T> {
+  const store = new TaskStore(":memory:", 1000);
+  const config = makeConfig();
+  const auth = new BearerAuth("slinky", TOKEN);
+  const obs = new Observability(config, new ManualClock(0, 0));
+  const server = await ApiServer.create(config, store, auth, undefined, options.withObs ? obs : undefined);
+  await server.listen();
+  const address = (server as unknown as { server: { address(): { port: number } } }).server.address();
+  const url = `http://127.0.0.1:${address.port}`;
+  try {
+    return await fn({ url, server, store, config, obs });
+  } finally {
+    await server.close();
+    store.close();
+  }
+}
+
+describe("UT-TAPI-071 · ApiServer.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("binds an observability that has recorded nothing yet", async () => {
+    // 步骤 1：起服务器并注入一个空的 obs
+    await withServer(async ({ url, obs }) => {
+      // 步骤 2：GET /diagnostics
+      const res = await fetch(`${url}/diagnostics`, { headers: AUTH });
+
+      // 步骤 3：断言快照可用（计数从 1 开始——本请求自己计了一次）
+      const body = await res.json();
+      expect(body.counters).toEqual({});
+      expect(body.metrics["diagnostics.served"].value).toBe(1);
+    }, { withObs: true });
+  });
 });

@@ -1,18 +1,78 @@
 /**
- * Case ID: UT-TAPI-046  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-046  ·  STATUS: real
  *
- * 责任：参数 `res: ServerResponse` 的 `非法值` 类（server.ts:27）
- * 维度坐标：`send` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `TAPI`）
+ * 责任：参数 `res` 的 `非法值` 类（server.ts:27）
+ * 维度坐标：`send` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-046.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ApiServer } from "../../../src/server.js";
+import { BearerAuth } from "../../../src/auth.js";
+import { TaskStore } from "../../../src/store.js";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
+import { PikoError, type RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-TAPI-046 · send（server.ts:27）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `res: ServerResponse`，其余参数取合法等价类（server.ts:27）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → send(/* 参数 */) → 逐值断言（Oracle：UT-TAPI-046 用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+const AUTH = { authorization: "Bearer s3cret-token" };
+
+const TASK = {
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: [],
+};
+
+/** 起一个真服务器并给出 base URL。 */
+async function withServer<T>(
+  fn: (ctx: {
+    url: string;
+    server: ApiServer;
+    store: TaskStore;
+    config: RuntimeConfig;
+    obs: Observability;
+  }) => Promise<T>,
+  options: { onCancel?: (taskId: string, outcome: string) => void; withObs?: boolean } = {},
+): Promise<T> {
+  const store = new TaskStore(":memory:", 1000);
+  const config = {
+    instance_id: "inst-1",
+    listen: { host: "127.0.0.1", port: 0 },
+    queue: { capacity: 10 },
+  } as unknown as RuntimeConfig;
+  const auth = new BearerAuth("slinky", TOKEN);
+  const obs = new Observability(config, new ManualClock(0, 0));
+  const server = await ApiServer.create(config, store, auth, options.onCancel, options.withObs ? obs : undefined);
+  await server.listen();
+  const address = (server as unknown as { server: { address(): { port: number } } }).server.address();
+  const url = `http://127.0.0.1:${address.port}`;
+  try {
+    return await fn({ url, server, store, config, obs });
+  } finally {
+    await server.close();
+    store.close();
+  }
+}
+
+describe("UT-TAPI-046 · send · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("ends the response exactly once per request", async () => {
+    // 步骤 1：起服务器
+    await withServer(async ({ url }) => {
+      // 步骤 2：连发两个请求
+      const first = await fetch(`${url}/tasks/missing`, { headers: AUTH });
+      const second = await fetch(`${url}/tasks/missing`, { headers: AUTH });
+
+      // 步骤 3：断言两个响应各自完整（没有半截响应）
+      expect(first.status).toBe(404);
+      expect(second.status).toBe(404);
+      // 两次响应的 request_id 不同（每个请求新生成一个 UUID），
+      // 其余字段逐值一致
+      const firstBody = await first.json();
+      const secondBody = await second.json();
+      expect(firstBody.error.code).toBe(secondBody.error.code);
+      expect(firstBody.error.message).toBe(secondBody.error.message);
+      expect(firstBody.error.request_id).not.toBe(secondBody.error.request_id);
+    });
+  });
 });

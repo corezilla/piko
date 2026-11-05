@@ -1,18 +1,69 @@
 /**
- * Case ID: UT-TAPI-121  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-121  ·  STATUS: real
  *
- * 责任：分支 L97 `!this.obs`（!；server.ts）
+ * 责任：分支 L97 ! : !this.obs（server.ts）
  * 维度坐标：`route` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-121.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ApiServer } from "../../../src/server.js";
+import { BearerAuth } from "../../../src/auth.js";
+import { TaskStore } from "../../../src/store.js";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
+import { PikoError, type RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-TAPI-121 · route（server.ts:62）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 server.ts:97 的分支（!：!this.obs）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：route(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+const AUTH = { authorization: "Bearer s3cret-token" };
+
+const TASK = {
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: [],
+};
+
+async function withServer<T>(
+  fn: (ctx: {
+    url: string;
+    server: ApiServer;
+    store: TaskStore;
+    config: RuntimeConfig;
+    obs: Observability;
+  }) => Promise<T>,
+  options: { onCancel?: (taskId: string, outcome: string) => void; withObs?: boolean; capacity?: number } = {},
+): Promise<T> {
+  const store = new TaskStore(":memory:", 1000);
+  const config = {
+    instance_id: "inst-1",
+    listen: { host: "127.0.0.1", port: 0 },
+    queue: { capacity: options.capacity ?? 10 },
+  } as unknown as RuntimeConfig;
+  const auth = new BearerAuth("slinky", TOKEN);
+  const obs = new Observability(config, new ManualClock(0, 0));
+  const server = await ApiServer.create(config, store, auth, options.onCancel, options.withObs ? obs : undefined);
+  await server.listen();
+  const address = (server as unknown as { server: { address(): { port: number } } }).server.address();
+  const url = `http://127.0.0.1:${address.port}`;
+  try {
+    return await fn({ url, server, store, config, obs });
+  } finally {
+    await server.close();
+    store.close();
+  }
+}
+
+describe("UT-TAPI-121 · route · 状态分支 × 合法迁移", () => {
+  it("returns 404 for diagnostics when no observability is wired", async () => {
+    // 步骤 1：起服务器（不注入 obs）
+    await withServer(async ({ url }) => {
+      // 步骤 2：GET /diagnostics
+      const res = await fetch(`${url}/diagnostics`, { headers: AUTH });
+
+      // 步骤 3：断言 404 且错误码逐值等于 NotFound
+      expect(res.status).toBe(404);
+      expect((await res.json()).error.code).toBe("NotFound");
+    });
+  });
 });

@@ -1,18 +1,23 @@
 /**
- * Case ID: UT-TAPI-020  ·  STATUS: skeleton
+ * Case ID: UT-TAPI-020  ·  STATUS: real
  *
- * 责任：返回站点 L3 值 `this.principal` 逐值断言（auth.ts）
+ * 责任：返回站点 L3 值 （auth.ts）
  * 维度坐标：`authenticate` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TAPI`）
  * 用例文档：docs/70_verification/unit/cases/UT-TAPI-020.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { BearerAuth } from "../../../src/auth.js";
+import { PikoError } from "../../../src/types.js";
 
-describe("UT-TAPI-020 · authenticate（auth.ts:3）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 auth.ts:3 的返回站点（值 this.principal）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：authenticate(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const TOKEN = Buffer.from("s3cret-token");
+
+describe("UT-TAPI-020 · authenticate · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the principal on a valid credential", () => {
+    // 步骤 1：构造 BearerAuth("slinky", TOKEN)
+    const auth = new BearerAuth("slinky", TOKEN);
+
+    // 步骤 2：调用 authenticate("Bearer s3cret-token")
+    // 步骤 3：断言返回值逐值对账
+    expect(auth.authenticate("Bearer s3cret-token")).toBe("slinky");
+  });
 });
