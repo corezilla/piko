@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-OBS-005  ·  STATUS: skeleton
+ * Case ID: UT-OBS-005  ·  STATUS: real
  *
- * 责任：`metric` × `数值/长度上限参数` × `恰好通过`（粗粒度登记）
- * 维度坐标：`metric` × `数值/长度上限参数` × `恰好通过`（方案 §6.1A 分卷 `OBS`）
+ * 责任：`metric` × `数值/长度上限参数` × `恰好通过`（波次一粗粒度登记）
+ * 维度坐标：`metric` × `数值/长度上限参数` × `恰好通过`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-005.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability, redact } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-005 · metric（observability.ts:90）", () => {
-  test.todo("数值/长度上限参数 × 恰好通过");
-  // 输入构造：按 `数值/长度上限参数` × `恰好通过` 展开规则构造（observability.ts:90）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：metric(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-005 · metric · 数值/长度上限参数 × 恰好通过", () => {
+  it("records a metric at the exact value given", () => {
+    // 步骤 1：构造实例
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：调用 metric("m", "set", 42)
+    // 步骤 3：断言值逐值对账
+    obs.metric("m", "set", 42);
+    expect(obs.snapshot().metrics.m.value).toBe(42);
+  });
 });

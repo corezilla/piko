@@ -361,6 +361,13 @@ for (const file of files) {
         name,
         optional: !!p.questionToken || !!p.initializer || p.getText().includes("?"),
         type: p.type ? p.type.getText().replace(/\s+/g, " ").slice(0, 60) : "inferred",
+        // an inferred parameter's class comes from its default value: `= 0`
+        // makes it numeric, `= ""` a string
+        defaultKind: p.initializer
+          ? (ts.isNumericLiteral(p.initializer) ? "number"
+            : (ts.isStringLiteral(p.initializer) ? "string"
+              : (p.initializer.kind === ts.SyntaxKind.TrueKeyword || p.initializer.kind === ts.SyntaxKind.FalseKeyword ? "boolean" : "unknown")))
+          : null,
         checks: stmts, bounds,
       };
     });

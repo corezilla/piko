@@ -52,9 +52,9 @@
 
 对象函数：`ManualClock.constructor`（`clock.ts:34`，ctor/public）
 
-维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `未知枚举`
+维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `未知枚举`
 
-实现状态：`Planned`
+实现状态：`Implemented`
 
 ## 2. 公共前提与替身矩阵
 
@@ -70,11 +70,11 @@
 
 **责任 / 明确不测**：
 
-验证 `ManualClock.constructor`（`clock.ts:34`）在 `纯函数/无副作用` × `未知枚举` 这一格上的行为与设计声明一致（可选参数 `monoMs` 缺省/显式两态（clock.ts:34））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `ManualClock.constructor`（`clock.ts:34`）在 `数值/长度上限参数` × `未知枚举` 这一格上的行为与设计声明一致（可选参数 `monoMs` 缺省/显式两态（clock.ts:34））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`ManualClock.constructor` × `纯函数/无副作用` × `未知枚举`。
+`ManualClock.constructor` × `数值/长度上限参数` × `未知枚举`。
 
 **输入构造**：
 
@@ -104,9 +104,9 @@
 
 **脚本 / 实现状态**：
 
-`tests/unit/cases/UT-OBS-017.test.ts` · `Planned`
+`tests/unit/cases/UT-OBS-017.test.ts` · `Implemented`
 
 ## 4. 集合状态汇总与缺口
 
-- **实现状态**：`Planned`（与 §1 一致）
+- **实现状态**：`Implemented`（与 §1 一致）
 - **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）

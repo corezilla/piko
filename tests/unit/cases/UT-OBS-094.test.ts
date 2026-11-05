@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-OBS-094  ·  STATUS: skeleton
+ * Case ID: UT-OBS-094  ·  STATUS: real
  *
- * 责任：分支 L85 `catch ()`（catch；observability.ts）
+ * 责任：分支 L85 catch: catch ()（observability.ts）
  * 维度坐标：`emit` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-094.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-094 · emit（observability.ts:72）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：使 observability.ts:85 的分支（catch：catch ()）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：emit(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-094 · emit · 错误路径 × 每个 typed 错误码", () => {
+  it("fails open: a throwing field getter does not break the caller", () => {
+    // 步骤 1：构造实例
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：构造一个取值即抛错的 fields 并 emit —— 不得抛出
+    const hostile = {};
+    Object.defineProperty(hostile, "boom", {
+      enumerable: true,
+      get() { throw new Error("sink exploded"); },
+    });
+    expect(() => obs.emit("e", hostile)).not.toThrow();
+
+    // 步骤 3：断言该事件未被记录（异常被吞掉，无半写状态）
+    expect(obs.snapshot().recent_events).toHaveLength(0);
+  });
 });

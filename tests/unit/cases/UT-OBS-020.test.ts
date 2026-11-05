@@ -1,18 +1,29 @@
 /**
- * Case ID: UT-OBS-020  ·  STATUS: skeleton
+ * Case ID: UT-OBS-020  ·  STATUS: real
  *
  * 责任：返回站点 L42 值 `new Date(this.wallMs).toISOString()` 逐值断言（clock.ts）
  * 维度坐标：`iso` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-020.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-020 · iso（clock.ts:41）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 clock.ts:42 的返回站点（值 new Date(this.wallMs).toISOString()）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：iso(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-020 · iso · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("renders the wall value as an ISO-8601 instant", () => {
+    // 步骤 1：构造 ManualClock(0) —— 1970-01-01T00:00:00.000Z
+    const clock = new ManualClock(0);
+
+    // 步骤 2：调用 iso()
+    // 步骤 3：断言返回值逐值对账
+    expect(clock.iso()).toBe("1970-01-01T00:00:00.000Z");
+  });
+
+  it("renders the same instant as the wall value", () => {
+    // 步骤 1：构造一个已知的墙钟时刻
+    const clock = new ManualClock(Date.parse("2026-11-05T00:00:00.000Z"));
+
+    // 步骤 2：调用 iso()
+    // 步骤 3：断言与输入逐值一致（时区无关，UTC）
+    expect(clock.iso()).toBe("2026-11-05T00:00:00.000Z");
+  });
 });

@@ -1,18 +1,26 @@
 /**
- * Case ID: UT-OBS-052  ·  STATUS: skeleton
+ * Case ID: UT-OBS-052  ·  STATUS: real
  *
  * 责任：可选参数 `delta` 缺省/显式两态（observability.ts:127）
- * 维度坐标：`bump` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `OBS`）
+ * 维度坐标：`bump` × `数值/长度上限参数` × `未知枚举`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-052.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-052 · bump（observability.ts:127）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `delta: inferred`，其余参数取合法等价类（observability.ts:127）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → bump(/* 参数 */) → 逐值断言（Oracle：UT-OBS-052 用例文档 §3）
+describe("UT-OBS-052 · bump · 数值/长度上限参数 × 未知枚举", () => {
+  it("defaults delta to 1 and honours an explicit delta", () => {
+    // 步骤 1：构造实例
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：分别以缺省与显式调用
+    obs.bump("a");
+    obs.bump("b", 10);
+
+    // 步骤 3：断言两者分别得到 1 与 10
+    const counters = obs.snapshot().counters;
+    expect(counters.a).toBe(1);
+    expect(counters.b).toBe(10);
+  });
 });

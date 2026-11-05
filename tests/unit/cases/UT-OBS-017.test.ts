@@ -1,18 +1,21 @@
 /**
- * Case ID: UT-OBS-017  ·  STATUS: skeleton
+ * Case ID: UT-OBS-017  ·  STATUS: real
  *
  * 责任：可选参数 `monoMs` 缺省/显式两态（clock.ts:34）
- * 维度坐标：`ManualClock.constructor` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `OBS`）
+ * 维度坐标：`ManualClock.constructor` × `数值/长度上限参数` × `未知枚举`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-017.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ManualClock, systemClock } from "../../../src/clock.js";
 
-describe("UT-OBS-017 · ManualClock.constructor（clock.ts:34）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `monoMs: inferred`，其余参数取合法等价类（clock.ts:34）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new ManualClock.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-OBS-017 用例文档 §3）
+describe("UT-OBS-017 · ManualClock.constructor · 数值/长度上限参数 × 未知枚举", () => {
+  it("defaults monoMs to zero when only wallMs is given", () => {
+    // 步骤 1：只传 wallMs——monoMs 走缺省
+    const clock = new ManualClock(500);
+
+    // 步骤 2：调用 monotonic()
+    // 步骤 3：断言缺省为 0，与显式传 0 同构
+    expect(clock.monotonic()).toBe(0);
+    expect(new ManualClock(500, 0).monotonic()).toBe(clock.monotonic());
+  });
 });

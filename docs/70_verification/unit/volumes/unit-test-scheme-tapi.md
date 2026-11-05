@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：131**（对象类型分布：字符串/路径/枚举输入 21；状态分支 34；错误路径 15；纯函数/无副作用 58；数值/长度上限参数 3）
+**本卷 Case 数：131**（对象类型分布：字符串/路径/枚举输入 21；状态分支 34；错误路径 15；纯函数/无副作用 54；数值/长度上限参数 7）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -31,10 +31,10 @@
 | `UT-TAPI-024` | `body`（`server.ts:12`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `req: IncomingMessage` 的 `每等价类合法值` 类（server.ts:12） | 待实现 |
 | `UT-TAPI-025` | `body`（`server.ts:12`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `req: IncomingMessage` 的 `边界(上/下/零/空/满)` 类（server.ts:12） | 待实现 |
 | `UT-TAPI-026` | `body`（`server.ts:12`） | `纯函数/无副作用` × `非法值` | 参数 `req: IncomingMessage` 的 `非法值` 类（server.ts:12） | 待实现 |
-| `UT-TAPI-027` | `body`（`server.ts:12`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `max: inferred` 的 `每等价类合法值` 类（server.ts:12） | 待实现 |
-| `UT-TAPI-028` | `body`（`server.ts:12`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `max: inferred` 的 `边界(上/下/零/空/满)` 类（server.ts:12） | 待实现 |
-| `UT-TAPI-029` | `body`（`server.ts:12`） | `纯函数/无副作用` × `非法值` | 参数 `max: inferred` 的 `非法值` 类（server.ts:12） | 待实现 |
-| `UT-TAPI-030` | `body`（`server.ts:12`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `max` 缺省/显式两态（server.ts:12） | 待实现 |
+| `UT-TAPI-027` | `body`（`server.ts:12`） | `数值/长度上限参数` × `恰好通过` | 参数 `max: inferred` 的 `恰好通过` 类（server.ts:12） | 待实现 |
+| `UT-TAPI-028` | `body`（`server.ts:12`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `max: inferred` 的 `+1 拒绝` 类（server.ts:12） | 待实现 |
+| `UT-TAPI-029` | `body`（`server.ts:12`） | `数值/长度上限参数` × `−1 通过` | 参数 `max: inferred` 的 `−1 通过` 类（server.ts:12） | 待实现 |
+| `UT-TAPI-030` | `body`（`server.ts:12`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `max` 缺省/显式两态（server.ts:12） | 待实现 |
 | `UT-TAPI-031` | `body`（`server.ts:12`） | `状态分支` × `合法迁移` | 分支 L15 `loop (req)`（loop；server.ts） | 待实现 |
 | `UT-TAPI-032` | `body`（`server.ts:12`） | `错误路径` × `每个 typed 错误码` | 分支 L23 `catch ("InvalidRequest", 400, "invalid JSON b…`（catch；server.ts） | 待实现 |
 | `UT-TAPI-033` | `body`（`server.ts:12`） | `错误路径` × `每个 typed 错误码` | throw L18 `InvalidRequest`（守卫 `if (size > max)`；server.ts） | 待实现 |

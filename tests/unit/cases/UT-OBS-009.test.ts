@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-OBS-009  ·  STATUS: skeleton
+ * Case ID: UT-OBS-009  ·  STATUS: real
  *
- * 责任：分支 L28 `? typeof performance !== "undefined" :`（ternary；clock.ts）
+ * 责任：分支 L28 ternary: ? typeof performance !== "undefined" :（clock.ts）
  * 维度坐标：`systemClock.monotonic` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-009.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ManualClock, systemClock } from "../../../src/clock.js";
 
-describe("UT-OBS-009 · systemClock.monotonic（clock.ts:27）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 clock.ts:28 的分支（ternary：? typeof performance !== "undefined" :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：systemClock.monotonic(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-009 · systemClock.monotonic · 状态分支 × 合法迁移", () => {
+  it("returns a non-negative elapsed value when performance is available", () => {
+    // 步骤 1：构造 performance 可用的环境（本运行时即满足 typeof performance !== "undefined"）
+    // 步骤 2：调用 systemClock.monotonic()
+    // 步骤 3：断言返回值是有限非负数（单调时钟不随墙钟跳变）
+    const value = systemClock.monotonic();
+    expect(Number.isFinite(value)).toBe(true);
+    expect(value).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not go backwards across two reads (monotonic)", () => {
+    // 该分支的时间域性质：连续两次读单调不降
+    const first = systemClock.monotonic();
+    const second = systemClock.monotonic();
+    expect(second).toBeGreaterThanOrEqual(first);
+  });
 });

@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：167**（对象类型分布：纯函数/无副作用 81；错误路径 4；状态分支 61；并发/可重入 2；数值/长度上限参数 6；资源获取/释放 6；时间域行为 1；字符串/路径/枚举输入 6）
+**本卷 Case 数：167**（对象类型分布：纯函数/无副作用 77；错误路径 4；状态分支 61；并发/可重入 2；数值/长度上限参数 10；资源获取/释放 6；时间域行为 1；字符串/路径/枚举输入 6）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -150,10 +150,10 @@
 | `UT-IPC-151` | `send`（`supervisor.ts:67`） | `状态分支` × `合法迁移` | 分支 L68 `this.channel?.send`（?.；supervisor.ts） | 待实现 |
 | `UT-IPC-152` | `kill`（`supervisor.ts:72`） | `状态分支` × `合法迁移` | 分支 L73 `if (this.child)`（if；supervisor.ts） | 待实现 |
 | `UT-IPC-153` | `kill`（`supervisor.ts:72`） | `状态分支` × `合法迁移` | 状态写 L75 → `this.child`（supervisor.ts） | 待实现 |
-| `UT-IPC-154` | `unhealthy`（`supervisor.ts:80`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `windowMs: inferred` 的 `每等价类合法值` 类（supervisor.ts:80） | 待实现 |
-| `UT-IPC-155` | `unhealthy`（`supervisor.ts:80`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `windowMs: inferred` 的 `边界(上/下/零/空/满)` 类（supervisor.ts:80） | 待实现 |
-| `UT-IPC-156` | `unhealthy`（`supervisor.ts:80`） | `纯函数/无副作用` × `非法值` | 参数 `windowMs: inferred` 的 `非法值` 类（supervisor.ts:80） | 待实现 |
-| `UT-IPC-157` | `unhealthy`（`supervisor.ts:80`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `windowMs` 缺省/显式两态（supervisor.ts:80） | 待实现 |
+| `UT-IPC-154` | `unhealthy`（`supervisor.ts:80`） | `数值/长度上限参数` × `恰好通过` | 参数 `windowMs: inferred` 的 `恰好通过` 类（supervisor.ts:80） | 待实现 |
+| `UT-IPC-155` | `unhealthy`（`supervisor.ts:80`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `windowMs: inferred` 的 `+1 拒绝` 类（supervisor.ts:80） | 待实现 |
+| `UT-IPC-156` | `unhealthy`（`supervisor.ts:80`） | `数值/长度上限参数` × `−1 通过` | 参数 `windowMs: inferred` 的 `−1 通过` 类（supervisor.ts:80） | 待实现 |
+| `UT-IPC-157` | `unhealthy`（`supervisor.ts:80`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `windowMs` 缺省/显式两态（supervisor.ts:80） | 待实现 |
 | `UT-IPC-158` | `unhealthy`（`supervisor.ts:80`） | `时间域行为` × `超时边界 ±1 tick` | 分支 L81 `this.child !== null && this.clock.now() - thi…`（&&；supervisor.ts） | 待实现 |
 | `UT-IPC-159` | `unhealthy`（`supervisor.ts:80`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L81 值 `this.child !== null && this.clock.now()…` 逐值断言（supervisor.ts） | 待实现 |
 | `UT-IPC-160` | `alive`（`supervisor.ts:84`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L85 值 `this.child !== null` 逐值断言（supervisor.ts） | 待实现 |

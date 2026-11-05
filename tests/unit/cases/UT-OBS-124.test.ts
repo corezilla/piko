@@ -1,18 +1,32 @@
 /**
- * Case ID: UT-OBS-124  ·  STATUS: skeleton
+ * Case ID: UT-OBS-124  ·  STATUS: real
  *
- * 责任：分支 L97 `METRIC_UNITS[unit] ?? unit`（??；observability.ts）
+ * 责任：分支 L97 ??: METRIC_UNITS[unit] ?? unit（observability.ts）
  * 维度坐标：`metric` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-124.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-124 · metric（observability.ts:90）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 observability.ts:97 的分支（??：METRIC_UNITS[unit] ?? unit）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：metric(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-124 · metric · 状态分支 × 合法迁移", () => {
+  it("falls back to the raw unit when it is not in the unit table", () => {
+    // 步骤 1：构造实例
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：调用 metric("m", "inc", 1, undefined, "widgets")
+    // 步骤 3：断言单位原样（表里没有 → 回退到入参）
+    obs.metric("m", "inc", 1, undefined, "widgets");
+    expect(obs.snapshot().metrics.m.unit).toBe("widgets");
+  });
+
+  it("takes the table entry for a known unit", () => {
+    // 步骤 1：构造实例
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：调用 metric("m", "inc", 1, undefined, "ms")
+    // 步骤 3：断言取表里的值
+    obs.metric("m", "inc", 1, undefined, "ms");
+    expect(obs.snapshot().metrics.m.unit).toBe("ms");
+  });
 });

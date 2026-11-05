@@ -1,18 +1,25 @@
 /**
- * Case ID: UT-OBS-044  ·  STATUS: skeleton
+ * Case ID: UT-OBS-044  ·  STATUS: real
  *
- * 责任：分支 L116 `loop (this.counters)`（loop；observability.ts）
+ * 责任：分支 L116 loop: loop (this.counters)（observability.ts）
  * 维度坐标：`snapshot` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-044.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-044 · snapshot（observability.ts:114）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 observability.ts:116 的分支（loop：loop (this.counters)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：snapshot(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-044 · snapshot · 状态分支 × 合法迁移", () => {
+  it("copies every counter into the snapshot", () => {
+    // 步骤 1：bump 三个计数器
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+    obs.bump("a");
+    obs.bump("b", 5);
+    obs.bump("a", 2);
+
+    // 步骤 2：调用 snapshot()
+    // 步骤 3：断言循环走完所有计数器且值逐值对账
+    const snap = obs.snapshot();
+    expect(snap.counters).toEqual({ a: 3, b: 5 });
+  });
 });

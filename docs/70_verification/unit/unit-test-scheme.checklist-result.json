@@ -98,7 +98,7 @@
     {
       "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
       "result": "conformed",
-      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（71），骨架不计入；vitest 全量 404 passed / 3,252 todo"
+      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（198），骨架不计入；vitest 全量 564 passed / 3,125 todo"
     },
     {
       "id": "§4 CI 批量策略与一次性判定纪律符合 scheme（不掩盖 FAIL）",
@@ -108,7 +108,7 @@
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
       "result": "deviation",
-      "evidence": "登记 3,278 ↔ 说明书 3,278 ↔ 脚本锚点 3,278 三方零差集；真脚本 26 条（USAGE 模块 55 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
+      "evidence": "登记 3,278 ↔ 说明书 3,278 ↔ 脚本锚点 3,278 三方零差集；真脚本 153 条（USAGE＋OBS，215 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
       "deviation_id": "G-EXEC-UT-3"
     },
     {

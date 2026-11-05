@@ -1,18 +1,33 @@
 /**
- * Case ID: UT-OBS-053  ·  STATUS: skeleton
+ * Case ID: UT-OBS-053  ·  STATUS: real
  *
- * 责任：分支 L129 `this.counters.get(counter) ?? 0`（??；observability.ts）
+ * 责任：分支 L129 ??: this.counters.get(counter) ?? 0（observability.ts）
  * 维度坐标：`bump` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-053.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-053 · bump（observability.ts:127）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 observability.ts:129 的分支（??：this.counters.get(counter) ?? 0）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：bump(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-053 · bump · 状态分支 × 合法迁移", () => {
+  it("takes the right side for a new counter (starts at zero)", () => {
+    // 步骤 1：构造实例（counter 尚不存在）
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+
+    // 步骤 2：调用 bump("fresh", 4)
+    // 步骤 3：断言从 0 起累加得 4
+    obs.bump("fresh", 4);
+    expect(obs.snapshot().counters.fresh).toBe(4);
+  });
+
+  it("takes the left side for an existing counter", () => {
+    // 步骤 1：先建一个计数
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+    obs.bump("c", 10);
+
+    // 步骤 2：再次 bump("c", 5)
+    // 步骤 3：断言在旧值上累加得 15
+    obs.bump("c", 5);
+    expect(obs.snapshot().counters.c).toBe(15);
+  });
 });

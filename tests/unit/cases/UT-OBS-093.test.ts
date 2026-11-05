@@ -1,18 +1,25 @@
 /**
- * Case ID: UT-OBS-093  ·  STATUS: skeleton
+ * Case ID: UT-OBS-093  ·  STATUS: real
  *
- * 责任：分支 L84 `if (this.events.length > 500)`（if；observability.ts）
+ * 责任：分支 L84 if: if (this.events.length > 500)（observability.ts）
  * 维度坐标：`emit` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-093.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability } from "../../../src/observability.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-OBS-093 · emit（observability.ts:72）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 observability.ts:84 的分支（if：if (this.events.length > 500)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：emit(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-OBS-093 · emit · 状态分支 × 合法迁移", () => {
+  it("keeps the newest 500 events when the buffer overflows", () => {
+    // 步骤 1：连续 emit 600 条
+    const obs = new Observability({ instance_id: "inst-1" }, new ManualClock(0, 0));
+    for (let i = 0; i < 600; i += 1) obs.emit(`e${i}`);
+
+    // 步骤 2：读回 snapshot(1000).recent_events
+    // 步骤 3：断言内部缓冲裁到 500，最旧的已丢弃、最新的还在
+    const events = obs.snapshot(1000).recent_events;
+    expect(events).toHaveLength(500);
+    expect(events[events.length - 1].event_name).toBe("e599");
+    expect(events.some((e) => e.event_name === "e0")).toBe(false);
+  });
 });

@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：190**（对象类型分布：字符串/路径/枚举输入 45；状态分支 61；错误路径 33；纯函数/无副作用 50；持久化/序列化 1）
+**本卷 Case 数：190**（对象类型分布：字符串/路径/枚举输入 45；状态分支 61；错误路径 33；纯函数/无副作用 42；持久化/序列化 1；数值/长度上限参数 8）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -187,14 +187,14 @@
 | `UT-BOOT-186` | `runControlProcess`（`main.ts:16`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #5：被调方 `server.close(` 拒绝必须 typed 化上抛（main.ts:16） | 待实现 |
 | `UT-BOOT-187` | `runControlProcess`（`main.ts:16`） | `错误路径` × `每个 typed 错误码` | await 拒绝传播 #6：被调方 `supervisor.stop(` 拒绝必须 typed 化上抛（main.ts:16） | 待实现 |
 | `UT-BOOT-188` | `runControlProcess`（`main.ts:16`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L44 值 `（无值 return：提前退出）` 逐值断言（main.ts） | 待实现 |
-| `UT-BOOT-189` | `main`（`main.ts:55`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `argv: inferred` 的 `每等价类合法值` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-190` | `main`（`main.ts:55`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `argv: inferred` 的 `边界(上/下/零/空/满)` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-191` | `main`（`main.ts:55`） | `纯函数/无副作用` × `非法值` | 参数 `argv: inferred` 的 `非法值` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-192` | `main`（`main.ts:55`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `argv` 缺省/显式两态（main.ts:55） | 待实现 |
-| `UT-BOOT-193` | `main`（`main.ts:55`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `env: inferred` 的 `每等价类合法值` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-194` | `main`（`main.ts:55`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `env: inferred` 的 `边界(上/下/零/空/满)` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-195` | `main`（`main.ts:55`） | `纯函数/无副作用` × `非法值` | 参数 `env: inferred` 的 `非法值` 类（main.ts:55） | 待实现 |
-| `UT-BOOT-196` | `main`（`main.ts:55`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `env` 缺省/显式两态（main.ts:55） | 待实现 |
+| `UT-BOOT-189` | `main`（`main.ts:55`） | `数值/长度上限参数` × `恰好通过` | 参数 `argv: inferred` 的 `恰好通过` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-190` | `main`（`main.ts:55`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `argv: inferred` 的 `+1 拒绝` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-191` | `main`（`main.ts:55`） | `数值/长度上限参数` × `−1 通过` | 参数 `argv: inferred` 的 `−1 通过` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-192` | `main`（`main.ts:55`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `argv` 缺省/显式两态（main.ts:55） | 待实现 |
+| `UT-BOOT-193` | `main`（`main.ts:55`） | `数值/长度上限参数` × `恰好通过` | 参数 `env: inferred` 的 `恰好通过` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-194` | `main`（`main.ts:55`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `env: inferred` 的 `+1 拒绝` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-195` | `main`（`main.ts:55`） | `数值/长度上限参数` × `−1 通过` | 参数 `env: inferred` 的 `−1 通过` 类（main.ts:55） | 待实现 |
+| `UT-BOOT-196` | `main`（`main.ts:55`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `env` 缺省/显式两态（main.ts:55） | 待实现 |
 | `UT-BOOT-197` | `main`（`main.ts:55`） | `状态分支` × `合法迁移` | 分支 L56 `argv[2] ?? env.PIKO_CONFIG ?? "config/runtime…`（??；main.ts） | 待实现 |
 | `UT-BOOT-198` | `main`（`main.ts:55`） | `状态分支` × `合法迁移` | 分支 L56 `argv[2] ?? env.PIKO_CONFIG`（??；main.ts） | 待实现 |
 | `UT-BOOT-199` | `main`（`main.ts:55`） | `状态分支` × `合法迁移` | 分支 L57 `import.meta.dirname ?? "."`（??；main.ts） | 待实现 |

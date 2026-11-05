@@ -41,6 +41,9 @@ const taken = (sym, mod, cell) => existing.get(`${sym}::${mod}`)?.has(cell) ?? f
 
 const NUM = /^(number|bigint|DurationMs|Count|Bytes|Ms|Port|Timestamp|number\[\])$/i;
 const STR = /^(string|RelPath|Path|Ref|Id|Token|Sha256|Cursor|RoomId|EventId|TxnId|Enum|Buffer|Uint8Array)/i;
+// an untyped parameter (inferred) takes its class from the source: a numeric
+// default or a numeric comparison makes it a numeric parameter, otherwise it
+// stays a plain value.
 const isNum = (t) => NUM.test(t) || /\bnumber\b/.test(t);
 // A named object type (TokenUsage, TaskStore, PrefetchIdentity) is not a
 // string: the "空/超长/注入字符" classes do not apply to it. The old rule
@@ -75,7 +78,14 @@ for (const r of rows) {
 
   // 1) params x 3 mandatory classes
   for (const p of r.params) {
-    const typ = isNum(p.type) ? "数值/长度上限参数" : isStr(p.type) ? "字符串/路径/枚举输入" : "纯函数/无副作用";
+    // an `inferred` parameter takes its class from the source: numeric when
+    // the body compares it numerically or defaults it to a number
+    const numericEvidence = p.type === "inferred" && (
+      p.defaultKind === "number" ||
+      /\b\d+\b/.test(p.checks?.join(" ") ?? "") ||
+      r.branches.some((b) => new RegExp(`\\b${p.name}\\b`).test(b.cond) && /[<>]=?|===/.test(b.cond))
+    );
+    const typ = isNum(p.type) || numericEvidence ? "数值/长度上限参数" : isStr(p.type) ? "字符串/路径/枚举输入" : "纯函数/无副作用";
     const classes = typ === "数值/长度上限参数"
       ? ["恰好通过", "+1 拒绝", "−1 通过"]
       : typ === "字符串/路径/枚举输入"

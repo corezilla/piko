@@ -5,7 +5,7 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：853**（对象类型分布：字符串/路径/枚举输入 133；纯函数/无副作用 252；状态分支 377；错误路径 53；数值/长度上限参数 25；时间域行为 2；资源获取/释放 9；并发/可重入 2）
+**本卷 Case 数：853**（对象类型分布：字符串/路径/枚举输入 133；纯函数/无副作用 249；状态分支 377；错误路径 53；数值/长度上限参数 28；时间域行为 2；资源获取/释放 9；并发/可重入 2）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
@@ -675,9 +675,9 @@
 | `UT-PI-676` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `_toolCallId: inferred` 的 `每等价类合法值` 类（skill-tools.ts:136） | 待实现 |
 | `UT-PI-677` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `_toolCallId: inferred` 的 `边界(上/下/零/空/满)` 类（skill-tools.ts:136） | 待实现 |
 | `UT-PI-678` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `非法值` | 参数 `_toolCallId: inferred` 的 `非法值` 类（skill-tools.ts:136） | 待实现 |
-| `UT-PI-679` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `params: inferred` 的 `每等价类合法值` 类（skill-tools.ts:136） | 待实现 |
-| `UT-PI-680` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `params: inferred` 的 `边界(上/下/零/空/满)` 类（skill-tools.ts:136） | 待实现 |
-| `UT-PI-681` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `非法值` | 参数 `params: inferred` 的 `非法值` 类（skill-tools.ts:136） | 待实现 |
+| `UT-PI-679` | `execute`（`skill-tools.ts:136`） | `数值/长度上限参数` × `恰好通过` | 参数 `params: inferred` 的 `恰好通过` 类（skill-tools.ts:136） | 待实现 |
+| `UT-PI-680` | `execute`（`skill-tools.ts:136`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `params: inferred` 的 `+1 拒绝` 类（skill-tools.ts:136） | 待实现 |
+| `UT-PI-681` | `execute`（`skill-tools.ts:136`） | `数值/长度上限参数` × `−1 通过` | 参数 `params: inferred` 的 `−1 通过` 类（skill-tools.ts:136） | 待实现 |
 | `UT-PI-682` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `_onUpdate: inferred` 的 `每等价类合法值` 类（skill-tools.ts:136） | 待实现 |
 | `UT-PI-683` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `_onUpdate: inferred` 的 `边界(上/下/零/空/满)` 类（skill-tools.ts:136） | 待实现 |
 | `UT-PI-684` | `execute`（`skill-tools.ts:136`） | `纯函数/无副作用` × `非法值` | 参数 `_onUpdate: inferred` 的 `非法值` 类（skill-tools.ts:136） | 待实现 |

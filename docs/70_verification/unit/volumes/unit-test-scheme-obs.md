@@ -5,19 +5,19 @@
 > 全部登记状态 `待实现`（`Planned`）——清单先行，脚本按清单编写。
 > 重新生成：`node scripts/enumerate-ut-denominator.mjs --json /tmp/ut-denominator.json --md docs/70_verification/unit/ut-denominator.md && node scripts/derive-ut-cases-full.mjs`
 
-**本卷 Case 数：119**（对象类型分布：状态分支 35；纯函数/无副作用 37；数值/长度上限参数 14；字符串/路径/枚举输入 27；错误路径 4；并发/可重入 2）
+**本卷 Case 数：119**（对象类型分布：状态分支 35；数值/长度上限参数 30；纯函数/无副作用 21；字符串/路径/枚举输入 27；错误路径 4；并发/可重入 2）
 
 | Case ID | 被测符号 | 对象类型 × 维度格 | 责任摘要（测什么） | 登记状态 |
 |---|---|---|---|---|
 | `UT-OBS-009` | `systemClock.monotonic`（`clock.ts:27`） | `状态分支` × `合法迁移` | 分支 L28 `? typeof performance !== "undefined" :`（ternary；clock.ts） | 待实现 |
-| `UT-OBS-010` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `wallMs: inferred` 的 `每等价类合法值` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-011` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `wallMs: inferred` 的 `边界(上/下/零/空/满)` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-012` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `非法值` | 参数 `wallMs: inferred` 的 `非法值` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-013` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `wallMs` 缺省/显式两态（clock.ts:34） | 待实现 |
-| `UT-OBS-014` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `monoMs: inferred` 的 `每等价类合法值` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-015` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `monoMs: inferred` 的 `边界(上/下/零/空/满)` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-016` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `非法值` | 参数 `monoMs: inferred` 的 `非法值` 类（clock.ts:34） | 待实现 |
-| `UT-OBS-017` | `ManualClock.constructor`（`clock.ts:34`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `monoMs` 缺省/显式两态（clock.ts:34） | 待实现 |
+| `UT-OBS-010` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `恰好通过` | 参数 `wallMs: inferred` 的 `恰好通过` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-011` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `wallMs: inferred` 的 `+1 拒绝` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-012` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `−1 通过` | 参数 `wallMs: inferred` 的 `−1 通过` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-013` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `wallMs` 缺省/显式两态（clock.ts:34） | 待实现 |
+| `UT-OBS-014` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `恰好通过` | 参数 `monoMs: inferred` 的 `恰好通过` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-015` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `monoMs: inferred` 的 `+1 拒绝` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-016` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `−1 通过` | 参数 `monoMs: inferred` 的 `−1 通过` 类（clock.ts:34） | 待实现 |
+| `UT-OBS-017` | `ManualClock.constructor`（`clock.ts:34`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `monoMs` 缺省/显式两态（clock.ts:34） | 待实现 |
 | `UT-OBS-018` | `now`（`clock.ts:35`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L36 值 `this.wallMs` 逐值断言（clock.ts） | 待实现 |
 | `UT-OBS-019` | `monotonic`（`clock.ts:38`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L39 值 `this.monoMs` 逐值断言（clock.ts） | 待实现 |
 | `UT-OBS-020` | `iso`（`clock.ts:41`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L42 值 `new Date(this.wallMs).toISOString()` 逐值断言（clock.ts） | 待实现 |
@@ -40,19 +40,19 @@
 | `UT-OBS-037` | `audit`（`observability.ts:104`） | `状态分支` × `合法迁移` | 分支 L106 `record.task_id ?? null`（??；observability.ts） | 待实现 |
 | `UT-OBS-038` | `audit`（`observability.ts:104`） | `状态分支` × `合法迁移` | 分支 L107 `if (this.auditTrail.length > 200)`（if；observability.ts） | 待实现 |
 | `UT-OBS-039` | `audit`（`observability.ts:104`） | `错误路径` × `每个 typed 错误码` | 分支 L108 `catch ()`（catch；observability.ts） | 待实现 |
-| `UT-OBS-040` | `snapshot`（`observability.ts:114`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `limit: inferred` 的 `每等价类合法值` 类（observability.ts:114） | 待实现 |
-| `UT-OBS-041` | `snapshot`（`observability.ts:114`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `limit: inferred` 的 `边界(上/下/零/空/满)` 类（observability.ts:114） | 待实现 |
-| `UT-OBS-042` | `snapshot`（`observability.ts:114`） | `纯函数/无副作用` × `非法值` | 参数 `limit: inferred` 的 `非法值` 类（observability.ts:114） | 待实现 |
-| `UT-OBS-043` | `snapshot`（`observability.ts:114`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `limit` 缺省/显式两态（observability.ts:114） | 待实现 |
+| `UT-OBS-040` | `snapshot`（`observability.ts:114`） | `数值/长度上限参数` × `恰好通过` | 参数 `limit: inferred` 的 `恰好通过` 类（observability.ts:114） | 待实现 |
+| `UT-OBS-041` | `snapshot`（`observability.ts:114`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `limit: inferred` 的 `+1 拒绝` 类（observability.ts:114） | 待实现 |
+| `UT-OBS-042` | `snapshot`（`observability.ts:114`） | `数值/长度上限参数` × `−1 通过` | 参数 `limit: inferred` 的 `−1 通过` 类（observability.ts:114） | 待实现 |
+| `UT-OBS-043` | `snapshot`（`observability.ts:114`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `limit` 缺省/显式两态（observability.ts:114） | 待实现 |
 | `UT-OBS-044` | `snapshot`（`observability.ts:114`） | `状态分支` × `合法迁移` | 分支 L116 `loop (this.counters)`（loop；observability.ts） | 待实现 |
 | `UT-OBS-045` | `snapshot`（`observability.ts:114`） | `纯函数/无副作用` × `每等价类合法值` | 返回站点 L117 值 `{ instance_id: this.config.instance_id,…` 逐值断言（observability.ts） | 待实现 |
 | `UT-OBS-046` | `bump`（`observability.ts:127`） | `字符串/路径/枚举输入` × `空` | 参数 `counter: string` 的 `空` 类（observability.ts:127） | 待实现 |
 | `UT-OBS-047` | `bump`（`observability.ts:127`） | `字符串/路径/枚举输入` × `超长` | 参数 `counter: string` 的 `超长` 类（observability.ts:127） | 待实现 |
 | `UT-OBS-048` | `bump`（`observability.ts:127`） | `字符串/路径/枚举输入` × `注入字符` | 参数 `counter: string` 的 `注入字符` 类（observability.ts:127） | 待实现 |
-| `UT-OBS-049` | `bump`（`observability.ts:127`） | `纯函数/无副作用` × `每等价类合法值` | 参数 `delta: inferred` 的 `每等价类合法值` 类（observability.ts:127） | 待实现 |
-| `UT-OBS-050` | `bump`（`observability.ts:127`） | `纯函数/无副作用` × `边界(上/下/零/空/满)` | 参数 `delta: inferred` 的 `边界(上/下/零/空/满)` 类（observability.ts:127） | 待实现 |
-| `UT-OBS-051` | `bump`（`observability.ts:127`） | `纯函数/无副作用` × `非法值` | 参数 `delta: inferred` 的 `非法值` 类（observability.ts:127） | 待实现 |
-| `UT-OBS-052` | `bump`（`observability.ts:127`） | `纯函数/无副作用` × `未知枚举` | 可选参数 `delta` 缺省/显式两态（observability.ts:127） | 待实现 |
+| `UT-OBS-049` | `bump`（`observability.ts:127`） | `数值/长度上限参数` × `恰好通过` | 参数 `delta: inferred` 的 `恰好通过` 类（observability.ts:127） | 待实现 |
+| `UT-OBS-050` | `bump`（`observability.ts:127`） | `数值/长度上限参数` × `+1 拒绝` | 参数 `delta: inferred` 的 `+1 拒绝` 类（observability.ts:127） | 待实现 |
+| `UT-OBS-051` | `bump`（`observability.ts:127`） | `数值/长度上限参数` × `−1 通过` | 参数 `delta: inferred` 的 `−1 通过` 类（observability.ts:127） | 待实现 |
+| `UT-OBS-052` | `bump`（`observability.ts:127`） | `数值/长度上限参数` × `未知枚举` | 可选参数 `delta` 缺省/显式两态（observability.ts:127） | 待实现 |
 | `UT-OBS-053` | `bump`（`observability.ts:127`） | `状态分支` × `合法迁移` | 分支 L129 `this.counters.get(counter) ?? 0`（??；observability.ts） | 待实现 |
 | `UT-OBS-054` | `bump`（`observability.ts:127`） | `错误路径` × `每个 typed 错误码` | 分支 L130 `catch ()`（catch；observability.ts） | 待实现 |
 | `UT-OBS-055` | `redact`（`observability.ts:44`） | `字符串/路径/枚举输入` × `空` | 参数 `fields: Record<string, unknown> \| undefined` 的 `空` 类（observability.ts:44） | 待实现 |

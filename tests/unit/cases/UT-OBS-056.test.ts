@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-OBS-056  ·  STATUS: skeleton
+ * Case ID: UT-OBS-056  ·  STATUS: real
  *
  * 责任：参数 `fields: Record<string, unknown> | undefined` 的 `超长` 类（observability.ts:44）
- * 维度坐标：`redact` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `OBS`）
+ * 维度坐标：`redact` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `OBS`）
  * 用例文档：docs/70_verification/unit/cases/UT-OBS-056.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Observability, redact } from "../../../src/observability.js";
 
-describe("UT-OBS-056 · redact（observability.ts:44）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `fields: Record<string, unknown> | undefined`，其余参数取合法等价类（observability.ts:44）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → redact(/* 参数 */) → 逐值断言（Oracle：UT-OBS-056 用例文档 §3）
+describe("UT-OBS-056 · redact · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("redacts a large record without dropping keys", () => {
+    // 步骤 1：构造 1000 个键的记录
+    const fields: Record<string, unknown> = {};
+    for (let i = 0; i < 1000; i += 1) fields[`k${i}`] = i;
+
+    // 步骤 2：调用 redact(fields)
+    // 步骤 3：断言键数守恒、值逐值对账
+    const out = redact(fields);
+    expect(Object.keys(out)).toHaveLength(1000);
+    expect(out.k0).toBe(0);
+    expect(out.k999).toBe(999);
+  });
 });
