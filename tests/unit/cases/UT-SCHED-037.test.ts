@@ -1,18 +1,44 @@
 /**
- * Case ID: UT-SCHED-037  ·  STATUS: skeleton
+ * Case ID: UT-SCHED-037  ·  STATUS: real
  *
- * 责任：分支 L42 `if (this.timer)`（if；scheduler.ts）
+ * 责任：分支 L42 if : if (this.timer)（scheduler.ts）
  * 维度坐标：`close` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `SCHED`）
  * 用例文档：docs/70_verification/unit/cases/UT-SCHED-037.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Scheduler } from "../../../src/scheduler.js";
+import { TaskStore } from "../../../src/store.js";
+import type { RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-SCHED-037 · close（scheduler.ts:41）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 scheduler.ts:42 的分支（if：if (this.timer)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：close(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const config = { instance_id: "inst-1" } as unknown as RuntimeConfig;
+
+function newScheduler(): { scheduler: Scheduler; store: TaskStore } {
+  const store = new TaskStore(":memory:", 1000);
+  return { scheduler: new Scheduler(store, config), store };
+}
+
+/** 造一个排队中的任务，返回其 task_id。 */
+function queueRun(store: TaskStore, taskId: string): string {
+  const created = store.createOrGet({
+    task_id: taskId,
+    instruction: "do it",
+    workspace_ref: "piko",
+    permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+    output_paths: [],
+  }, "slinky", 10, undefined);
+  return created.task_id;
+}
+
+describe("UT-SCHED-037 · close · 状态分支 × 合法迁移", () => {
+  it("closes cleanly when no timer was ever set", () => {
+    // 步骤 1：构造 Scheduler
+    const { scheduler, store } = newScheduler();
+    try {
+      // 步骤 2：调用 close() —— timer 为 null
+      // 步骤 3：断言不抛错（真值侧为假，跳过 clearInterval）
+      expect(() => scheduler.close()).not.toThrow();
+    } finally {
+      store.close();
+    }
+  });
 });

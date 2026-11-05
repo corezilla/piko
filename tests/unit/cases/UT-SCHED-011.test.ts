@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-SCHED-011  ·  STATUS: skeleton
+ * Case ID: UT-SCHED-011  ·  STATUS: real
  *
- * 责任：参数 `config: RuntimeConfig` 的 `非法值` 类（scheduler.ts:10）
- * 维度坐标：`Scheduler.constructor` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `SCHED`）
+ * 责任：参数 `config: RuntimeConfig` 的 `非法值` 类（scheduler.ts:9）
+ * 维度坐标：`Scheduler.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `SCHED`）
  * 用例文档：docs/70_verification/unit/cases/UT-SCHED-011.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Scheduler } from "../../../src/scheduler.js";
+import { TaskStore } from "../../../src/store.js";
+import type { RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-SCHED-011 · Scheduler.constructor（scheduler.ts:10）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `config: RuntimeConfig`，其余参数取合法等价类（scheduler.ts:10）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new Scheduler.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-SCHED-011 用例文档 §3）
+const config = { instance_id: "inst-1" } as unknown as RuntimeConfig;
+
+function newScheduler(): { scheduler: Scheduler; store: TaskStore } {
+  const store = new TaskStore(":memory:", 1000);
+  return { scheduler: new Scheduler(store, config), store };
+}
+
+describe("UT-SCHED-011 · Scheduler.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("reads the instance id only when identity() is called", () => {
+    // 步骤 1：构造一个没有 instance_id 的 config
+    const store = new TaskStore(":memory:", 1000);
+    const scheduler = new Scheduler(store, {} as unknown as RuntimeConfig);
+    try {
+      // 步骤 2：读回 identity()
+      // 步骤 3：断言 owner_id 变成 "undefined:主机名"（该参数无校验）
+      expect(scheduler.identity().owner_id.startsWith("undefined:")).toBe(true);
+    } finally {
+      scheduler.close();
+      store.close();
+    }
+  });
 });

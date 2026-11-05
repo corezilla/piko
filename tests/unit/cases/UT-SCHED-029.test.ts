@@ -1,18 +1,45 @@
 /**
- * Case ID: UT-SCHED-029  ·  STATUS: skeleton
+ * Case ID: UT-SCHED-029  ·  STATUS: real
  *
  * 责任：参数 `taskId: string` 的 `超长` 类（scheduler.ts:29）
  * 维度坐标：`release` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `SCHED`）
  * 用例文档：docs/70_verification/unit/cases/UT-SCHED-029.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { Scheduler } from "../../../src/scheduler.js";
+import { TaskStore } from "../../../src/store.js";
+import type { RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-SCHED-029 · release（scheduler.ts:29）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `taskId: string`，其余参数取合法等价类（scheduler.ts:29）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → release(/* 参数 */) → 逐值断言（Oracle：UT-SCHED-029 用例文档 §3）
+const config = { instance_id: "inst-1" } as unknown as RuntimeConfig;
+
+function newScheduler(): { scheduler: Scheduler; store: TaskStore } {
+  const store = new TaskStore(":memory:", 1000);
+  return { scheduler: new Scheduler(store, config), store };
+}
+
+/** 造一个排队中的任务，返回其 task_id。 */
+function queueRun(store: TaskStore, taskId: string): string {
+  const created = store.createOrGet({
+    task_id: taskId,
+    instruction: "do it",
+    workspace_ref: "piko",
+    permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+    output_paths: [],
+  }, "slinky", 10, undefined);
+  return created.task_id;
+}
+
+describe("UT-SCHED-029 · release · 字符串/路径/枚举输入 × 超长", () => {
+  it("returns false for an over-long task id", () => {
+    // 步骤 1：构造 Scheduler
+    const { scheduler, store } = newScheduler();
+    try {
+      // 步骤 2：调用 release(超长串, 1)
+      // 步骤 3：断言返回 false
+      expect(scheduler.release("t".repeat(1000), 1)).toBe(false);
+    } finally {
+      scheduler.close();
+      store.close();
+    }
+  });
 });
