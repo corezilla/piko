@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-IPC-172  ·  STATUS: skeleton
+ * Case ID: UT-IPC-172  ·  STATUS: real
  *
  * 责任：参数 `code: string` 的 `超长` 类（types.ts:233）
  * 维度坐标：`PikoError.constructor` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-172.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { PikoError } from "../../../src/types.js";
 
-describe("UT-IPC-172 · PikoError.constructor（types.ts:233）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `code: string`，其余参数取合法等价类（types.ts:233）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PikoError.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-IPC-172 用例文档 §3）
+describe("UT-IPC-172 · PikoError.constructor · 字符串/路径/枚举输入 × 超长", () => {
+  it("keeps an over-long code verbatim", () => {
+    // 步骤 1：构造 1000 字符的 code
+    const code = "c".repeat(1000);
+
+    // 步骤 2：构造 PikoError
+    const error = new PikoError(code, 500, "boom");
+
+    // 步骤 3：断言 code 原样保留（该参数无校验）
+    expect(error.code).toBe(code);
+    expect(error.message).toBe("boom");
+    expect(error.status).toBe(500);
+  });
 });

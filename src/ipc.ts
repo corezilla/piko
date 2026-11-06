@@ -151,8 +151,19 @@ export class ProcessChannel implements Channel {
 }
 
 /** P0-side wiring of a child process to the fact handler + command sender. */
-export function attachChildToHandler(child: { on: Function; send?: Function }, handler: FactHandler, onCommand?: (cmd: Command) => void) {
-  const send = (cmd: Command) => child.send?.({ ipc: "command", command: cmd });
+export function attachChildToHandler(child: { on: Function; send?: Function; connected?: boolean }, handler: FactHandler, onCommand?: (cmd: Command) => void) {
+  // The child's IPC channel closes when P1 dies. Sending on a closed channel
+  // throws ERR_IPC_CHANNEL_CLOSED, which would take down P0 on a cancel that
+  // races P1's exit — the supervisor must survive the child, not the other
+  // way round. A command to a dead child is simply not delivered.
+  const send = (cmd: Command) => {
+    if (child.connected === false) return;
+    try {
+      child.send?.({ ipc: "command", command: cmd });
+    } catch {
+      // the child went away between the check and the send
+    }
+  };
   child.on("message", (msg: any) => {
     if (msg?.ipc === "fact") {
       const outcome = handler.apply(msg.fact as Fact);

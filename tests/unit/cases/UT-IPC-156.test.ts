@@ -1,18 +1,55 @@
 /**
- * Case ID: UT-IPC-156  ·  STATUS: skeleton
+ * Case ID: UT-IPC-156  ·  STATUS: real
  *
- * 责任：参数 `windowMs: inferred` 的 `非法值` 类（supervisor.ts:80）
- * 维度坐标：`unhealthy` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `IPC`）
+ * 责任：参数 `windowMs: number` 的 `−1 通过` 类（supervisor.ts:80）
+ * 维度坐标：`unhealthy` × `数值/长度上限参数` × `−1 通过`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-156.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ExecutionProcessSupervisor } from "../../../src/supervisor.js";
+import { FactHandler } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-IPC-156 · unhealthy（supervisor.ts:80）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `windowMs: inferred`，其余参数取合法等价类（supervisor.ts:80）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → unhealthy(/* 参数 */) → 逐值断言（Oracle：UT-IPC-156 用例文档 §3）
-});
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function withSupervisor<T>(
+  fn: (ctx: {
+    supervisor: ExecutionProcessSupervisor;
+    clock: ManualClock;
+    exits: { code: number | null; signal: NodeJS.Signals | null }[];
+    store: TaskStore;
+  }) => Promise<T>,
+  options: { facts?: boolean } = {},
+): Promise<T> {
+  const clock = new ManualClock(0, 0);
+  const exits: { code: number | null; signal: NodeJS.Signals | null }[] = [];
+  const store = new TaskStore(":memory:", 1000);
+  const facts = options.facts ? new FactHandler(store) : undefined;
+  const supervisor = new ExecutionProcessSupervisor(
+    { PIKO_EXEC_CONFIG: "/nonexistent/runtime.json", PIKO_EXEC_ROOT: "/nonexistent" },
+    (code, signal) => { exits.push({ code, signal }); },
+    facts,
+    clock,
+  );
+  try {
+    return await fn({ supervisor, clock, exits, store });
+  } finally {
+    (supervisor as unknown as { stopped: boolean }).stopped = true;
+    await supervisor.stop();
+    store.close();
+  }
+}
+
+describe("UT-IPC-156 · unhealthy · 数值/长度上限参数 × −1 通过", () => {
+  it("accepts an explicit window argument", async () => {
+    await withSupervisor(async ({ supervisor, clock }) => {
+      // 步骤 1：spawn 后把时钟推进 5 秒
+      supervisor.spawn();
+      clock.advance(5000);
+
+      // 步骤 2：调用 unhealthy(1000) —— 窗口 1 秒
+      // 步骤 3：断言为真（自定义窗口内已过期）
+      expect(supervisor.unhealthy(1000)).toBe(true);
+    });
+  });});

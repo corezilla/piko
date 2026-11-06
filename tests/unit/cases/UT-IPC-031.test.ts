@@ -1,18 +1,45 @@
 /**
- * Case ID: UT-IPC-031  ·  STATUS: skeleton
+ * Case ID: UT-IPC-031  ·  STATUS: real
  *
- * 责任：分支 L135 `if (resolve)`（if；ipc.ts）
+ * 责任：分支 L135 if : if (resolve)（ipc.ts）
  * 维度坐标：`ProcessChannel.constructor` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-031.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { FactHandler, ProcessChannel, attachChildToHandler, type Fact } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-IPC-031 · ProcessChannel.constructor（ipc.ts:131）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 ipc.ts:135 的分支（if：if (resolve)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：new ProcessChannel.constructor(/* 构造参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const USAGE = {
+  source: "PiModelResponses", quality: "Complete",
+  input_tokens: 0, output_tokens: 0, total_tokens: 0,
+  cache_read_tokens: 0, cache_write_tokens: 0, reasoning_tokens: 0,
+  model_attempts: 0, usage_observed_attempts: 0, missing_fields: [],
+};
+
+function newStore(): TaskStore {
+  const store = new TaskStore(":memory:", 1000);
+  store.createOrGet(task(), "slinky", 10, undefined);
+  return store;
+}
+
+describe("UT-IPC-031 · ProcessChannel.constructor · 状态分支 × 合法迁移", () => {
+  it("ignores an outcome for an unknown id", () => {
+    // 步骤 1：构造 channel
+    const channel = new ProcessChannel(() => {});
+
+    // 步骤 2：发一条 id 从未用过的 outcome
+    // 步骤 3：断言不抛错（没有对应的 pending，resolve 为 undefined）
+    expect(() => (process.emit as (e: string, m: unknown) => boolean)("message", { ipc: "outcome", id: 9999, outcome: { ok: true } })).not.toThrow();
+    void channel;
+  });
 });

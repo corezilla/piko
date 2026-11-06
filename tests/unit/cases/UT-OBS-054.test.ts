@@ -18,7 +18,7 @@ describe("UT-OBS-054 · bump · 错误路径 × 每个 typed 错误码", () => {
     const hostile = new Map<string, number>();
     hostile.get = () => { throw new Error("counter store exploded"); };
     hostile.set = () => { throw new Error("counter store exploded"); };
-    // @ts-expect-error — 注入一个读写都会抛错的 Map 以触发 catch 分支
+    // 注入一个读写都会抛错的 Map 以触发 catch 分支
     (obs as unknown as { counters: Map<string, number> }).counters = hostile;
 
     // 步骤 2：调用 bump —— 不得抛出

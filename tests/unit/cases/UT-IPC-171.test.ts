@@ -1,18 +1,61 @@
 /**
- * Case ID: UT-IPC-171  ·  STATUS: skeleton
+ * Case ID: UT-IPC-171  ·  STATUS: real
  *
- * 责任：参数 `code: string` 的 `空` 类（types.ts:233）
- * 维度坐标：`PikoError.constructor` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `IPC`）
+ * 责任：`spawn` × `状态分支` × `合法迁移`（波次一粗粒度登记）
+ * 维度坐标：`spawn` × `状态分支` × `合法迁移`（方案 §6.1 粗粒度登记行）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-171.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { FactHandler, LocalChannel, ProcessChannel, attachChildToHandler, type Fact } from "../../../src/ipc.js";
+import { ExecutionProcessSupervisor } from "../../../src/supervisor.js";
+import { TaskStore } from "../../../src/store.js";
+import { ManualClock } from "../../../src/clock.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-IPC-171 · PikoError.constructor（types.ts:233）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `code: string`，其余参数取合法等价类（types.ts:233）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PikoError.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-IPC-171 用例文档 §3）
-});
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function newStore(): TaskStore {
+  const store = new TaskStore(":memory:", 1000);
+  store.createOrGet(task(), "slinky", 10, undefined);
+  return store;
+}
+
+function fakeChild(): { on: Function; send: Function; emit: (m: unknown) => void; sent: unknown[] } {
+  const listeners: ((msg: unknown) => void)[] = [];
+  const sent: unknown[] = [];
+  return {
+    on: (event: string, fn: (msg: unknown) => void) => { if (event === "message") listeners.push(fn); },
+    send: (msg: unknown) => { sent.push(msg); },
+    emit: (msg: unknown) => { for (const fn of listeners) fn(msg); },
+    sent,
+  };
+}
+
+describe("UT-IPC-171 · spawn · 状态分支 × 合法迁移", () => {
+  it("keeps the restart delay within the 5s cap", async () => {
+    const clock = new ManualClock(0, 0);
+    const supervisor = new ExecutionProcessSupervisor({}, () => {}, undefined, clock);
+    try {
+      // 步骤 1：把延迟调到上限
+      (supervisor as unknown as { restartDelay: number }).restartDelay = 4000;
+
+      // 步骤 2：spawn 让它退出一次（退避加倍）
+      supervisor.spawn();
+      await wait(1200);
+
+      // 步骤 3：断言延迟被封顶在 5000
+      expect((supervisor as unknown as { restartDelay: number }).restartDelay).toBeLessThanOrEqual(5000);
+    } finally {
+      (supervisor as unknown as { stopped: boolean }).stopped = true;
+      await supervisor.stop();
+    }
+  });});

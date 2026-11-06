@@ -25,7 +25,7 @@ function queueRun(store: TaskStore, taskId: string): string {
     permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
     output_paths: [],
   }, "slinky", 10, undefined);
-  return created.task_id;
+  return (created as { task_id: string }).task_id;
 }
 
 describe("UT-SCHED-001 · acquire · 并发/可重入 × 并发对偶/交错", () => {

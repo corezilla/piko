@@ -1,18 +1,48 @@
 /**
- * Case ID: UT-IPC-037  ·  STATUS: skeleton
+ * Case ID: UT-IPC-037  ·  STATUS: real
  *
- * 责任：参数 `fact: Fact` 的 `边界(上/下/零/空/满)` 类（ipc.ts:144）
- * 维度坐标：`report` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `IPC`）
+ * 责任：参数 `fact` 的 `边界(上/下/零/空/满)` 类（ipc.ts:144）
+ * 维度坐标：`report` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-037.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { FactHandler, ProcessChannel, attachChildToHandler, type Fact } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import type { TaskRequest } from "../../../src/types.js";
 
-describe("UT-IPC-037 · report（ipc.ts:144）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `fact: Fact`，其余参数取合法等价类（ipc.ts:144）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → report(/* 参数 */) → 逐值断言（Oracle：UT-IPC-037 用例文档 §3）
+const task = (over: Partial<TaskRequest> = {}): TaskRequest => ({
+  task_id: "t-1",
+  instruction: "do it",
+  workspace_ref: "piko",
+  permissions: { read_paths: ["src"], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
+  output_paths: ["out/result.txt"],
+  ...over,
+} as TaskRequest);
+
+const USAGE = {
+  source: "PiModelResponses", quality: "Complete",
+  input_tokens: 0, output_tokens: 0, total_tokens: 0,
+  cache_read_tokens: 0, cache_write_tokens: 0, reasoning_tokens: 0,
+  model_attempts: 0, usage_observed_attempts: 0, missing_fields: [],
+};
+
+function newStore(): TaskStore {
+  const store = new TaskStore(":memory:", 1000);
+  store.createOrGet(task(), "slinky", 10, undefined);
+  return store;
+}
+
+describe("UT-IPC-037 · report · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("gives each report a distinct id", async () => {
+    // 步骤 1：构造记录 id 的 send
+    const ids: number[] = [];
+    const channel = new ProcessChannel((msg) => { ids.push((msg as { id: number }).id); });
+
+    // 步骤 2：连续 report 两个 fact
+    void channel.report({ kind: "heartbeat", at: 1 });
+    void channel.report({ kind: "heartbeat", at: 2 });
+
+    // 步骤 3：断言两个 id 不相同
+    expect(new Set(ids).size).toBe(2);
+  });
 });

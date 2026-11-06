@@ -1,18 +1,60 @@
 /**
- * Case ID: UT-IPC-158  ·  STATUS: skeleton
+ * Case ID: UT-IPC-158  ·  STATUS: real
  *
- * 责任：分支 L81 `this.child !== null && this.clock.now() - thi…`（&&；supervisor.ts）
+ * 责任：时间域行为 × 超时边界 ±1 tick（supervisor.ts:80）
  * 维度坐标：`unhealthy` × `时间域行为` × `超时边界 ±1 tick`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-158.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ExecutionProcessSupervisor } from "../../../src/supervisor.js";
+import { FactHandler } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-IPC-158 · unhealthy（supervisor.ts:80）", () => {
-  test.todo("时间域行为 × 超时边界 ±1 tick");
-  // 输入构造：使 supervisor.ts:81 的分支（&&：this.child !== null && this.clock.now() - this.lastHeartbea…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：unhealthy(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function withSupervisor<T>(
+  fn: (ctx: {
+    supervisor: ExecutionProcessSupervisor;
+    clock: ManualClock;
+    exits: { code: number | null; signal: NodeJS.Signals | null }[];
+    store: TaskStore;
+  }) => Promise<T>,
+  options: { facts?: boolean } = {},
+): Promise<T> {
+  const clock = new ManualClock(0, 0);
+  const exits: { code: number | null; signal: NodeJS.Signals | null }[] = [];
+  const store = new TaskStore(":memory:", 1000);
+  const facts = options.facts ? new FactHandler(store) : undefined;
+  const supervisor = new ExecutionProcessSupervisor(
+    { PIKO_EXEC_CONFIG: "/nonexistent/runtime.json", PIKO_EXEC_ROOT: "/nonexistent" },
+    (code, signal) => { exits.push({ code, signal }); },
+    facts,
+    clock,
+  );
+  try {
+    return await fn({ supervisor, clock, exits, store });
+  } finally {
+    (supervisor as unknown as { stopped: boolean }).stopped = true;
+    await supervisor.stop();
+    store.close();
+  }
+}
+
+describe("UT-IPC-158 · unhealthy · 时间域行为 × 超时边界 ±1 tick", () => {
+  it("switches exactly at the window boundary", async () => {
+    await withSupervisor(async ({ supervisor, clock }) => {
+      // 步骤 1：spawn 后把时钟推进到窗口边界
+      supervisor.spawn();
+      clock.advance(30000);
+
+      // 步骤 2：调用 unhealthy()
+      // 步骤 3：断言边界值（now - lastHeartbeat > windowMs 为假）
+      expect(supervisor.unhealthy()).toBe(false);
+
+      // 步骤 4：再推进 1ms，断言越过边界后为真
+      clock.advance(1);
+      expect(supervisor.unhealthy()).toBe(true);
+    });
+  });
 });

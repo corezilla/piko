@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-IPC-129  ·  STATUS: skeleton
+ * Case ID: UT-IPC-129  ·  STATUS: real
  *
  * 责任：状态写 L31 → `this.lastHeartbeat`（supervisor.ts）
  * 维度坐标：`spawn` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-129.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ExecutionProcessSupervisor } from "../../../src/supervisor.js";
+import { FactHandler } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-IPC-129 · spawn（supervisor.ts:27）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 supervisor.ts:31 对 `this.lastHeartbeat` 的写被执行
-  // 观察点：写后读回权威事实源（对象状态）逐值对账
-  // 待实现：spawn(/* 参数 */) → 读回对账（Oracle：用例文档 §3）
-});
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function withSupervisor<T>(
+  fn: (ctx: {
+    supervisor: ExecutionProcessSupervisor;
+    clock: ManualClock;
+    exits: { code: number | null; signal: NodeJS.Signals | null }[];
+    store: TaskStore;
+  }) => Promise<T>,
+  options: { facts?: boolean } = {},
+): Promise<T> {
+  const clock = new ManualClock(0, 0);
+  const exits: { code: number | null; signal: NodeJS.Signals | null }[] = [];
+  const store = new TaskStore(":memory:", 1000);
+  const facts = options.facts ? new FactHandler(store) : undefined;
+  const supervisor = new ExecutionProcessSupervisor(
+    { PIKO_EXEC_CONFIG: "/nonexistent/runtime.json", PIKO_EXEC_ROOT: "/nonexistent" },
+    (code, signal) => { exits.push({ code, signal }); },
+    facts,
+    clock,
+  );
+  try {
+    return await fn({ supervisor, clock, exits, store });
+  } finally {
+    (supervisor as unknown as { stopped: boolean }).stopped = true;
+    await supervisor.stop();
+    store.close();
+  }
+}
+
+describe("UT-IPC-129 · spawn · 状态分支 × 合法迁移", () => {
+  it("records the heartbeat baseline at spawn time", async () => {
+    await withSupervisor(async ({ supervisor, clock }) => {
+      // 步骤 1：把时钟设到一个已知的时刻
+      clock.advance(5000);
+
+      // 步骤 2：spawn
+      supervisor.spawn();
+
+      // 步骤 3：断言 lastHeartbeat 被设为当前时刻
+      expect((supervisor as unknown as { lastHeartbeat: number }).lastHeartbeat).toBe(5000);
+    });
+  });});

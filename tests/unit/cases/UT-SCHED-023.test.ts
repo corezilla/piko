@@ -26,7 +26,7 @@ function queueRun(store: TaskStore, taskId: string): string {
     permissions: { read_paths: [], write_paths: ["out"], tool_profile_ref: "workspace-standard" },
     output_paths: [],
   }, "slinky", 10, undefined);
-  return created.task_id;
+  return (created as { task_id: string }).task_id;
 }
 
 describe("UT-SCHED-023 · renew · 字符串/路径/枚举输入 × 注入字符", () => {

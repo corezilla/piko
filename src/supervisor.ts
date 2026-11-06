@@ -27,7 +27,15 @@ export class ExecutionProcessSupervisor {
   spawn() {
     if (this.stopped) return;
     const entry = fileURLToPath(new URL("./exec-process.ts", import.meta.url));
-    this.child = fork(entry, [], { env: this.env, stdio: ["ignore", "inherit", "inherit", "ipc"] });
+    // P1 is a TypeScript entry point, so the child needs the TS loader. Under
+    // `tsx src/main.ts` the parent's execArgv already carries it; when the
+    // supervisor runs under plain node (unit tests, `node dist/...`), the
+    // child would die on the first `.js` import of a `.ts` sibling. Pass the
+    // loader explicitly so both paths behave the same.
+    const execArgv = process.execArgv.some((a) => a.includes("tsx"))
+      ? process.execArgv
+      : [...process.execArgv, "--import", "tsx/esm"];
+    this.child = fork(entry, [], { env: this.env, stdio: ["ignore", "inherit", "inherit", "ipc"], execArgv });
     this.lastHeartbeat = this.clock.now();
     if (this.facts) {
       this.channel = attachChildToHandler(this.child as any, this.facts);

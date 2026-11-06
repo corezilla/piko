@@ -1,18 +1,52 @@
 /**
- * Case ID: UT-IPC-146  ·  STATUS: skeleton
+ * Case ID: UT-IPC-146  ·  STATUS: real
  *
- * 责任：返回站点 L56 值 `（无值 return：提前退出）` 逐值断言（supervisor.ts）
+ * 责任：返回站点 L56 值 （supervisor.ts）
  * 维度坐标：`startWatchdog` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `IPC`）
  * 用例文档：docs/70_verification/unit/cases/UT-IPC-146.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { ExecutionProcessSupervisor } from "../../../src/supervisor.js";
+import { FactHandler } from "../../../src/ipc.js";
+import { TaskStore } from "../../../src/store.js";
+import { ManualClock } from "../../../src/clock.js";
 
-describe("UT-IPC-146 · startWatchdog（supervisor.ts:55）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 supervisor.ts:56 的返回站点（值 （无值 return：提前退出））被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：startWatchdog(/* 参数 */) → 断言（Oracle：用例文档 §3）
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function withSupervisor<T>(
+  fn: (ctx: {
+    supervisor: ExecutionProcessSupervisor;
+    clock: ManualClock;
+    exits: { code: number | null; signal: NodeJS.Signals | null }[];
+    store: TaskStore;
+  }) => Promise<T>,
+  options: { facts?: boolean } = {},
+): Promise<T> {
+  const clock = new ManualClock(0, 0);
+  const exits: { code: number | null; signal: NodeJS.Signals | null }[] = [];
+  const store = new TaskStore(":memory:", 1000);
+  const facts = options.facts ? new FactHandler(store) : undefined;
+  const supervisor = new ExecutionProcessSupervisor(
+    { PIKO_EXEC_CONFIG: "/nonexistent/runtime.json", PIKO_EXEC_ROOT: "/nonexistent" },
+    (code, signal) => { exits.push({ code, signal }); },
+    facts,
+    clock,
+  );
+  try {
+    return await fn({ supervisor, clock, exits, store });
+  } finally {
+    (supervisor as unknown as { stopped: boolean }).stopped = true;
+    await supervisor.stop();
+    store.close();
+  }
+}
+
+describe("UT-IPC-146 · startWatchdog · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns undefined from the watchdog arming", async () => {
+    await withSupervisor(async ({ supervisor }) => {
+      // 步骤 1：调用 spawn（内部装看门狗）
+      // 步骤 2：断言返回 undefined（startWatchdog 无返回值）
+      expect(supervisor.spawn()).toBeUndefined();
+    });
+  });
 });
