@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-154
 
-对象函数：`unhealthy`（`supervisor.ts:80`，method/public）
+对象函数：`send`（`supervisor.ts:75`，method/public）
 
-维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `恰好通过`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-154 · 参数 `windowMs: inferred` 的 `恰好通过` 类（supervisor.ts:80）
+#### 3.1 UT-IPC-154 · 参数 `cmd: Command` 的 `非法值` 类（supervisor.ts:75）
 
 **责任 / 明确不测**：
 
-验证 `unhealthy`（`supervisor.ts:80`）在 `数值/长度上限参数` × `恰好通过` 这一格上的行为与设计声明一致（参数 `windowMs: inferred` 的 `恰好通过` 类（supervisor.ts:80））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `send`（`supervisor.ts:75`）在 `纯函数/无副作用` × `非法值` 这一格上的行为与设计声明一致（参数 `cmd: Command` 的 `非法值` 类（supervisor.ts:75））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`unhealthy` × `数值/长度上限参数` × `恰好通过`。
+`send` × `纯函数/无副作用` × `非法值`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `恰好通过` 类构造参数 `windowMs: inferred`：边界值（取源码比较常量；无显式常量则取类型定义边界）；其余参数取合法等价类。该参数在源码中的校验语句：`this.child !== null && this.clock.now() - this.lastHeartbeat > windowMs`
+**步骤 1**——动作：按 `非法值` 类构造参数 `cmd: Command`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
 
 观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
-**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:80）
+**步骤 2**——动作：调用 send(…)（supervisor.ts:75）
 
 观察点：返回值或抛出的错误
 
-**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
+**步骤 3**——动作：断言：被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
 
 观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `unhealthy` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `send` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

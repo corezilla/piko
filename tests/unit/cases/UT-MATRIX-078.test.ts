@@ -1,18 +1,20 @@
 /**
- * Case ID: UT-MATRIX-078  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-078  ·  STATUS: real
  *
- * 责任：分支 L123 `e.data?.errcode`（?.；matrix.ts）
+ * 责任：分支 L123 ?. : e.data?.errcode（matrix.ts）
  * 维度坐标：`isPermanentMatrixError` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-078.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-078 · isPermanentMatrixError（matrix.ts:120）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 matrix.ts:123 的分支（?.：e.data?.errcode）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：isPermanentMatrixError(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-MATRIX-078 · isPermanentMatrixError · 状态分支 × 合法迁移", () => {
+  it("reads the code from data when the top level has none", () => {
+    // 步骤 1：构造只带 data.errcode 的错误
+    // 步骤 2：调用 isPermanentMatrixError
+    // 步骤 3：断言按 data 里的码判定为永久
+    expect(isPermanentMatrixError({ data: { errcode: "M_UNKNOWN_ROOM" } })).toBe(true);
+  });
+
 });

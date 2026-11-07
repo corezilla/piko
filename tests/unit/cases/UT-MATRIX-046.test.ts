@@ -1,18 +1,29 @@
 /**
- * Case ID: UT-MATRIX-046  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-046  ·  STATUS: real
  *
- * 责任：返回站点 L111 值 `this.client.sendEvent(room,"m.room.mess…` 逐值断言（matrix.ts）
+ * 责任：返回站点 L111 值 （matrix.ts:107）
  * 维度坐标：`send` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-046.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-046 · send（matrix.ts:107）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 matrix.ts:111 的返回站点（值 this.client.sendEvent(room,"m.room.message",c…）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：send(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-MATRIX-046 · send · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the SDK's send result", async () => {
+    // 步骤 1：构造 runtime 与 client 替身（返回固定事件 id）
+    const store = newStore();
+    try {
+      const matrix = runtimeWith(store, { sendEvent: async () => ({ event_id: "$sent-1" }) });
+
+      // 步骤 2：调用 send
+      const result = await matrix.send("!room:test", "txn", "body");
+
+      // 步骤 3：断言返回值原样透出
+      expect((result as { event_id: string }).event_id).toBe("$sent-1");
+    } finally {
+      store.close();
+    }
+  });
+
 });

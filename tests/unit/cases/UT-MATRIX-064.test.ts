@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-MATRIX-064  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-064  ·  STATUS: real
  *
- * 责任：throw L115 `reject`（守卫 `catch`；matrix.ts）
+ * 责任：throw L115 reject（守卫 `catch`；matrix.ts:113）
  * 维度坐标：`sendDiscussionReply` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-064.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-064 · sendDiscussionReply（matrix.ts:113）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 matrix.ts:115 的 throw（code `reject`，守卫 catch）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：sendDiscussionReply(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-MATRIX-064 · sendDiscussionReply · 错误路径 × 每个 typed 错误码", () => {
+  it("rethrows the transport failure after marking the send unknown", async () => {
+    // 步骤 1：构造 runtime、真实 run 行与一个会失败的 client
+    const store = newStore();
+    try {
+      const run = store.createOrGet(task, "slinky", 10, "trigger");
+      const matrix = runtimeWith(store, {
+        sendEvent: async () => {
+          throw new Error("uncertain send");
+        },
+      });
+
+      // 步骤 2：调用 sendDiscussionReply
+      // 步骤 3：断言错误原样上抛（不吞错——发送状态不明必须让上层知道）
+      await expect(
+        matrix.sendDiscussionReply((run as { task_id: string }).task_id, "!room:test", "$event", 1, "answer"),
+      ).rejects.toThrow("uncertain send");
+    } finally {
+      store.close();
+    }
+  });
+
 });

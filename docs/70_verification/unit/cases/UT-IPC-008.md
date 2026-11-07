@@ -50,7 +50,7 @@
 
 #### 1.1 总账 · UT-IPC-008
 
-对象函数：`startWatchdog`（`supervisor.ts:55`，method/private）
+对象函数：`startWatchdog`（`supervisor.ts:63`，method/private）
 
 维度格（方案 §2.3 行×格）：`时间域行为` × `超时边界 ±1 tick`
 
@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-008 · `startWatchdog` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:55）
+#### 3.1 UT-IPC-008 · `startWatchdog` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:63）
 
 **责任 / 明确不测**：
 
-验证 `startWatchdog`（`supervisor.ts:55`）在 `时间域行为` × `超时边界 ±1 tick` 这一格上的行为与设计声明一致（`startWatchdog` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:55））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `startWatchdog`（`supervisor.ts:63`）在 `时间域行为` × `超时边界 ±1 tick` 这一格上的行为与设计声明一致（`startWatchdog` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:63））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -86,11 +86,11 @@
 
 观察点：输入就绪，取值全部写死或给生成规则
 
-**步骤 2**——动作：调用 startWatchdog(…)（supervisor.ts:55）
+**步骤 2**——动作：调用 startWatchdog(…)（supervisor.ts:63）
 
 观察点：返回值/错误/副作用/资源释放
 
-**步骤 3**——动作：逐分支断言：L56 if；L58 if；L58 ||；L58 ! 等 5 点
+**步骤 3**——动作：逐分支断言：L64 if；L66 if；L66 ||；L66 ! 等 5 点
 
 观察点：每个分支路径的可观测结果与设计一致
 

@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-052 · 分支 L157 `if (msg?.ipc === "fact")`（if；ipc.ts）
+#### 3.1 UT-IPC-052 · 分支 L160 `if (child.connected === false)`（if；ipc.ts）
 
 **责任 / 明确不测**：
 
-验证 `attachChildToHandler`（`ipc.ts:154`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L157 `if (msg?.ipc === "fact")`（if；ipc.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `attachChildToHandler`（`ipc.ts:154`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L160 `if (child.connected === false)`（if；ipc.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 ipc.ts:157 的分支（if：`if (msg?.ipc === "fact")`）取真的输入：`令 `msg?.ipc` ＝ `"fact"``；该侧动作：`const outcome = handler.apply(msg.fact as Fact);`
+**步骤 1**——动作：构造使 ipc.ts:160 的分支（if：`if (child.connected === false)`）取真的输入：`令 `child.connected` ＝ `false``；该侧动作：`return;`
 
 观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
@@ -90,7 +90,7 @@
 
 观察点：断言通过
 
-**步骤 3**——动作：构造使该分支取假的输入：`令 `msg?.ipc` ≠ `"fact"``（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：构造使该分支取假的输入：`令 `child.connected` ≠ `false``（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
 观察点：该分支的取假侧被走到（由断言证明）
 

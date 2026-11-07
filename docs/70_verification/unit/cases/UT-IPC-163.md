@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-163
 
-对象函数：`stop`（`supervisor.ts:88`，method/public）
+对象函数：`unhealthy`（`supervisor.ts:88`，method/public）
 
-维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-163 · 分支 L92 `!this.child`（!；supervisor.ts）
+#### 3.1 UT-IPC-163 · 返回站点 L89 值 `this.child !== null && this.clock.now()…` 逐值断言（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `stop`（`supervisor.ts:88`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L92 `!this.child`（!；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `unhealthy`（`supervisor.ts:88`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（返回站点 L89 值 `this.child !== null && this.clock.now()…` 逐值断言（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`stop` × `状态分支` × `合法迁移`。
+`unhealthy` × `纯函数/无副作用` × `每等价类合法值`。
 
 **输入构造**：
 
@@ -82,25 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:92 的分支（!：`!this.child`）取真的输入：`令 `this.child` 为假（空串／0／null／undefined）`；该侧动作：`return;`
+**步骤 1**——动作：构造使 supervisor.ts:89 的返回站点被到达的输入——该站点返回 `this.child !== null && this.clock.now() - thi…`；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类
 
-观察点：该分支的取真侧被走到（由断言证明，不靠日志）
+观察点：该返回站点被走到（由返回值断言证明）
 
-**步骤 2**——动作：调用 stop(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
+**步骤 2**——动作：调用 unhealthy(…)
 
-观察点：断言通过
+观察点：返回值
 
-**步骤 3**——动作：构造使该分支取假的输入：`令 `this.child` 为真（如非空字符串/真值）`（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：断言返回值逐值对账（结构、字段、顺序），且无未声明副作用
 
-观察点：该分支的取假侧被走到（由断言证明）
-
-**步骤 4**——动作：再次调用 stop(…) 并断言取假侧结果；两侧都必须被观测到
-
-观察点：断言通过；失败含义＝该分支语义失真
+观察点：断言通过；失败含义＝该返回路径语义失真
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `stop` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `unhealthy` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

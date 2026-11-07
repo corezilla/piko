@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-173
 
-对象函数：`PikoError.constructor`（`types.ts:233`，ctor/public）
+对象函数：`stop`（`supervisor.ts:96`，method/public）
 
-维度格（方案 §2.3 行×格）：`字符串/路径/枚举输入` × `注入字符`
+维度格（方案 §2.3 行×格）：`资源获取/释放` × `正常释放`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-173 · 参数 `code: string` 的 `注入字符` 类（types.ts:233）
+#### 3.1 UT-IPC-173 · 资源操作 L108 `clearTimeout`（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `PikoError.constructor`（`types.ts:233`）在 `字符串/路径/枚举输入` × `注入字符` 这一格上的行为与设计声明一致（参数 `code: string` 的 `注入字符` 类（types.ts:233））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `stop`（`supervisor.ts:96`）在 `资源获取/释放` × `正常释放` 这一格上的行为与设计声明一致（资源操作 L108 `clearTimeout`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`PikoError.constructor` × `字符串/路径/枚举输入` × `注入字符`。
+`stop` × `资源获取/释放` × `正常释放`。
 
 **输入构造**：
 
@@ -82,21 +82,25 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `注入字符` 类构造参数 `code: string`：含 `../` 与绝对路径的穿越串；含控制字符与 SQL/命令元字符的注入串；超长＋注入组合串；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
+**步骤 1**——动作：构造使 supervisor.ts:108 的资源操作（`clearTimeout`，语句 `clearTimeout(t)`）被执行的输入：按该 symbol 的参数取合法等价类（如涉路径参数则取临时目录下的真实路径）
 
-观察点：构造完成，输入可复现（取值全部写死或给生成规则）
+观察点：该资源操作确实被走到（由替身调用序证明）
 
-**步骤 2**——动作：调用 new PikoError(…)（types.ts:233）
+**步骤 2**——动作：调用 stop(…) 走正常路径
 
-观察点：返回值或抛出的错误
+观察点：资源被使用且释放（句柄/子进程/定时器/临时目录计数回零）
 
-**步骤 3**——动作：断言：被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
+**步骤 3**——动作：注入该操作失败（替身/权限/不存在路径）后再次调用
 
-观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
+观察点：typed 错误且无泄漏
+
+**步骤 4**——动作：断言两路均无残留——本 Case 的资源是 `clearTimeout`，其释放动作（close/rm/unlink）必须发生
+
+观察点：资源计数回零、无残留句柄/子进程/定时器
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `PikoError.constructor` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `stop` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

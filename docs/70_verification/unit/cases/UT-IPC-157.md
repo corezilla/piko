@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-157
 
-对象函数：`unhealthy`（`supervisor.ts:80`，method/public）
+对象函数：`kill`（`supervisor.ts:80`，method/public）
 
-维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `未知枚举`
+维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-157 · 可选参数 `windowMs` 缺省/显式两态（supervisor.ts:80）
+#### 3.1 UT-IPC-157 · 状态写 L83 → `this.child`（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `unhealthy`（`supervisor.ts:80`）在 `数值/长度上限参数` × `未知枚举` 这一格上的行为与设计声明一致（可选参数 `windowMs` 缺省/显式两态（supervisor.ts:80））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `kill`（`supervisor.ts:80`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（状态写 L83 → `this.child`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`unhealthy` × `数值/长度上限参数` × `未知枚举`。
+`kill` × `状态分支` × `合法迁移`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：对可选参数 `windowMs` 构造三态：缺省（不传）、显式传默认值、未知枚举值
+**步骤 1**——动作：构造使 supervisor.ts:83 对 `this.child` 的写被执行的前置状态——写语句：`this.child = null`；前置状态取值按该 symbol 的构造参数取合法等价类
 
-观察点：三组输入就绪
+观察点：前置状态就绪（由读到的初始值证明）
 
-**步骤 2**——动作：分别调用 unhealthy(…)（supervisor.ts:80）
+**步骤 2**——动作：调用 kill(…)
 
-观察点：三次返回值/错误逐一比对
+观察点：写已发生——权威事实源里能看到新值（`this.child` 新值）
 
-**步骤 3**——动作：断言缺省态与显式默认值同构；未知枚举值按 ISD 声明拒绝且 typed 化
+**步骤 3**——动作：读回权威事实源（对象状态直接读）逐值对账写入语义
 
-观察点：断言通过
+观察点：对账通过；失败含义＝状态迁移失真
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `unhealthy` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `kill` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

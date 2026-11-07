@@ -50,7 +50,7 @@
 
 #### 1.1 总账 · UT-IPC-010
 
-对象函数：`unhealthy`（`supervisor.ts:80`，method/public）
+对象函数：`unhealthy`（`supervisor.ts:88`，method/public）
 
 维度格（方案 §2.3 行×格）：`时间域行为` × `超时边界 ±1 tick`
 
@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-010 · `unhealthy` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:80）
+#### 3.1 UT-IPC-010 · `unhealthy` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:88）
 
 **责任 / 明确不测**：
 
-验证 `unhealthy`（`supervisor.ts:80`）在 `时间域行为` × `超时边界 ±1 tick` 这一格上的行为与设计声明一致（`unhealthy` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:80））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `unhealthy`（`supervisor.ts:88`）在 `时间域行为` × `超时边界 ±1 tick` 这一格上的行为与设计声明一致（`unhealthy` × `时间域行为` × `超时边界 ±1 tick`（波次一粗粒度登记；supervisor.ts:88））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -86,11 +86,11 @@
 
 观察点：输入就绪，取值全部写死或给生成规则
 
-**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:80）
+**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:88）
 
 观察点：返回值/错误/副作用/资源释放
 
-**步骤 3**——动作：逐分支断言：L81 &&
+**步骤 3**——动作：逐分支断言：L89 &&
 
 观察点：每个分支路径的可观测结果与设计一致
 

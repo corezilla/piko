@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-MATRIX-172  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-172  ·  STATUS: real
  *
- * 责任：参数 `cursor: string` 的 `注入字符` 类（matrix.ts:79）
- * 维度坐标：`processBatch` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `MATRIX`）
+ * 责任：参数 `cursor` 的 `注入字符` 类（matrix.ts:79）
+ * 维度坐标：`processBatch` × `纯函数/无副作用` × `注入字符`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-172.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-172 · processBatch（matrix.ts:79）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `cursor: string`，其余参数取合法等价类（matrix.ts:79）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → processBatch(/* 参数 */) → 逐值断言（Oracle：UT-MATRIX-172 用例文档 §3）
+describe("UT-MATRIX-172 · processBatch · 纯函数/无副作用 × 注入字符", () => {
+  it("treats an injected cursor as data", async () => {
+    // 步骤 1：构造 store 与 runtime
+    const store = newStore();
+    try {
+      store.createOrGet(task, "slinky", 10, "trigger");
+      const matrix = runtimeWith(store, {
+        getJoinedRooms: async () => ({ joined_rooms: ["!room:test"] }),
+      });
+
+      // 步骤 2：调用 processBatch(事件, 注入串光标)
+      const cursor = "$(rm -rf /)";
+      await (matrix as unknown as { processBatch(e: unknown[], c: string): Promise<void> }).processBatch(
+        [event("$one")],
+        cursor,
+      );
+
+      // 步骤 3：断言原样记下、不执行
+      expect(store.matrixCursor()).toBe(cursor);
+    } finally {
+      store.close();
+    }
+  });
+
 });

@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-158
 
-对象函数：`unhealthy`（`supervisor.ts:80`，method/public）
+对象函数：`unhealthy`（`supervisor.ts:88`，method/public）
 
-维度格（方案 §2.3 行×格）：`时间域行为` × `超时边界 ±1 tick`
+维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `恰好通过`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-158 · 分支 L81 `this.child !== null && this.clock.now() - thi…`（&&；supervisor.ts）
+#### 3.1 UT-IPC-158 · 参数 `windowMs: inferred` 的 `恰好通过` 类（supervisor.ts:88）
 
 **责任 / 明确不测**：
 
-验证 `unhealthy`（`supervisor.ts:80`）在 `时间域行为` × `超时边界 ±1 tick` 这一格上的行为与设计声明一致（分支 L81 `this.child !== null && this.clock.now() - thi…`（&&；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `unhealthy`（`supervisor.ts:88`）在 `数值/长度上限参数` × `恰好通过` 这一格上的行为与设计声明一致（参数 `windowMs: inferred` 的 `恰好通过` 类（supervisor.ts:88））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`unhealthy` × `时间域行为` × `超时边界 ±1 tick`。
+`unhealthy` × `数值/长度上限参数` × `恰好通过`。
 
 **输入构造**：
 
@@ -82,21 +82,17 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:81 的分支（&&：`this.child !== null && this.clock.now() - this.lastHeartbea…`）取真的输入：按条件语义取值
+**步骤 1**——动作：按 `恰好通过` 类构造参数 `windowMs: inferred`：边界值（取源码比较常量；无显式常量则取类型定义边界）；其余参数取合法等价类。该参数在源码中的校验语句：`this.child !== null && this.clock.now() - this.lastHeartbeat > windowMs`
 
-观察点：该分支的取真侧被走到（由断言证明，不靠日志）
+观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
-**步骤 2**——动作：调用 unhealthy(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
+**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:88）
 
-观察点：断言通过
+观察点：返回值或抛出的错误
 
-**步骤 3**——动作：构造使该分支取假的输入：按条件语义取反（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
 
-观察点：该分支的取假侧被走到（由断言证明）
-
-**步骤 4**——动作：再次调用 unhealthy(…) 并断言取假侧结果；两侧都必须被观测到
-
-观察点：断言通过；失败含义＝该分支语义失真
+观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
 
 **Oracle 与预期**：
 

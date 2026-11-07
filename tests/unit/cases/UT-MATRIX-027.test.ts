@@ -1,18 +1,32 @@
 /**
- * Case ID: UT-MATRIX-027  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-027  ·  STATUS: real
  *
- * 责任：throw L103 `Piko is not joined to discussion room`（守卫 `if (!joined.includes(room))`；matrix.ts）
+ * 责任：throw L103 Piko is not joined to discussi（matrix.ts:101）
  * 维度坐标：`verifyDiscussion` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-027.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-027 · verifyDiscussion（matrix.ts:101）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 matrix.ts:103 的 throw（code `Piko is not joined to discussion room`，守卫 if (!joined.includes(room))）
-  // 观察点：typed 错误 code 逐值等于 `Piko is not joined to discussion room`，消息可判别，无部分写入
-  // 待实现：verifyDiscussion(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-MATRIX-027 · verifyDiscussion · 错误路径 × 每个 typed 错误码", () => {
+  it("throws the declared not-joined error", async () => {
+    // 步骤 1：构造 client 替身（房间列表不含目标房间）
+    const store = newStore();
+    try {
+      const matrix = runtimeWith(store, {
+        getJoinedRooms: async () => ({ joined_rooms: [] }),
+        fetchRoomEvent: async () => ({ room_id: "!room:test", content: { body: "x" } }),
+      });
+
+      // 步骤 2：调用 verifyDiscussion
+      // 步骤 3：断言错误消息逐值对账
+      await expect(matrix.verifyDiscussion("!room:test", "$event")).rejects.toThrow(
+        "Piko is not joined to discussion room",
+      );
+    } finally {
+      store.close();
+    }
+  });
+
 });

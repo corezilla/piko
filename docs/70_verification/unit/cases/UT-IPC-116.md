@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-116
 
-对象函数：`spawn`（`supervisor.ts:27`，method/public）
+对象函数：`ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`，ctor/public）
 
-维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `未知枚举`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-116 · 分支 L36 `if (msg?.type === "heartbeat" || msg?.fact?.k…`（if；supervisor.ts）
+#### 3.1 UT-IPC-116 · 可选参数 `clock` 缺省/显式两态（supervisor.ts:20）
 
 **责任 / 明确不测**：
 
-验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L36 `if (msg?.type === "heartbeat" || msg?.fact?.k…`（if；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `纯函数/无副作用` × `未知枚举` 这一格上的行为与设计声明一致（可选参数 `clock` 缺省/显式两态（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`spawn` × `状态分支` × `合法迁移`。
+`ExecutionProcessSupervisor.constructor` × `纯函数/无副作用` × `未知枚举`。
 
 **输入构造**：
 
@@ -82,25 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:36 的分支（if：`if (msg?.type === "heartbeat" || msg?.fact?.kind === "heartbeat")`）取真的输入：`满足任一分支即可：① 令 `msg?.type` ＝ `"heartbeat"`；或 ② 令 `msg?.fact?.kind` ＝ `"heartbeat"``；该侧动作：`this.lastHeartbeat = this.clock.now();`
+**步骤 1**——动作：对可选参数 `clock` 构造三态：缺省（不传）、显式传默认值、未知枚举值
 
-观察点：该分支的取真侧被走到（由断言证明，不靠日志）
+观察点：三组输入就绪
 
-**步骤 2**——动作：调用 spawn(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
+**步骤 2**——动作：分别调用 new ExecutionProcessSupervisor(…)（supervisor.ts:20）
+
+观察点：三次返回值/错误逐一比对
+
+**步骤 3**——动作：断言缺省态与显式默认值同构；未知枚举值按 ISD 声明拒绝且 typed 化
 
 观察点：断言通过
 
-**步骤 3**——动作：构造使该分支取假的输入：`令 `msg?.type` ≠ `"heartbeat" || msg?.fact?.kind === "heartbeat"``（无显式 else：取假即跳过该块，断言块内副作用不发生）
-
-观察点：该分支的取假侧被走到（由断言证明）
-
-**步骤 4**——动作：再次调用 spawn(…) 并断言取假侧结果；两侧都必须被观测到
-
-观察点：断言通过；失败含义＝该分支语义失真
-
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `spawn` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `ExecutionProcessSupervisor.constructor` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

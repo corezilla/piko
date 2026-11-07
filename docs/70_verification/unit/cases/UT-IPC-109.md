@@ -52,7 +52,7 @@
 
 对象函数：`ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`，ctor/public）
 
-维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `未知枚举`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-109 · 可选参数 `facts` 缺省/显式两态（supervisor.ts:20）
+#### 3.1 UT-IPC-109 · 参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20）
 
 **责任 / 明确不测**：
 
-验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `纯函数/无副作用` × `未知枚举` 这一格上的行为与设计声明一致（可选参数 `facts` 缺省/显式两态（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`ExecutionProcessSupervisor.constructor` × `纯函数/无副作用` × `未知枚举`。
+`ExecutionProcessSupervisor.constructor` × `纯函数/无副作用` × `每等价类合法值`。
 
 **输入构造**：
 
@@ -82,17 +82,17 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：对可选参数 `facts` 构造三态：缺省（不传）、显式传默认值、未知枚举值
+**步骤 1**——动作：按 `每等价类合法值` 类构造参数 `facts: FactHandler`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
 
-观察点：三组输入就绪
+观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
-**步骤 2**——动作：分别调用 new ExecutionProcessSupervisor(…)（supervisor.ts:20）
+**步骤 2**——动作：调用 new ExecutionProcessSupervisor(…)（supervisor.ts:20）
 
-观察点：三次返回值/错误逐一比对
+观察点：返回值或抛出的错误
 
-**步骤 3**——动作：断言缺省态与显式默认值同构；未知枚举值按 ISD 声明拒绝且 typed 化
+**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
 
-观察点：断言通过
+观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
 
 **Oracle 与预期**：
 

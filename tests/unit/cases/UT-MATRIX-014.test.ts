@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-MATRIX-014  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-014  ·  STATUS: real
  *
  * 责任：参数 `room: string` 的 `空` 类（matrix.ts:101）
  * 维度坐标：`verifyDiscussion` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-014.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { config, newStore, runtimeWith } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-014 · verifyDiscussion（matrix.ts:101）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `room: string`，其余参数取合法等价类（matrix.ts:101）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → verifyDiscussion(/* 参数 */) → 逐值断言（Oracle：UT-MATRIX-014 用例文档 §3）
+describe("UT-MATRIX-014 · verifyDiscussion · 字符串/路径/枚举输入 × 空", () => {
+  it("rejects an empty room", async () => {
+    // 步骤 1：构造 runtime 与 client 替身
+    const store = newStore();
+    try {
+      const matrix = runtimeWith(store, {
+        getJoinedRooms: async () => ({ joined_rooms: ["!room:test"] }),
+        fetchRoomEvent: async () => ({ room_id: "!room:test", content: { body: "hi" } }),
+      });
+
+      // 步骤 2：调用 verifyDiscussion("", "$event")
+      // 步骤 3：断言被拒（空房间不在已加入的房间列表里）
+      await expect(matrix.verifyDiscussion("", "$event")).rejects.toThrow(/not joined/);
+    } finally {
+      store.close();
+    }
+  });
 });

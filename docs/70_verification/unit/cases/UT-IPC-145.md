@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-145
 
-对象函数：`startWatchdog`（`supervisor.ts:55`，method/private）
+对象函数：`startWatchdog`（`supervisor.ts:63`，method/private）
 
-维度格（方案 §2.3 行×格）：`资源获取/释放` × `获取失败路径`
+维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-145 · 资源操作 L57 `setInterval`（supervisor.ts）
+#### 3.1 UT-IPC-145 · 分支 L66 `this.stopped || !this.child`（||；supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `startWatchdog`（`supervisor.ts:55`）在 `资源获取/释放` × `获取失败路径` 这一格上的行为与设计声明一致（资源操作 L57 `setInterval`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `startWatchdog`（`supervisor.ts:63`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L66 `this.stopped || !this.child`（||；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`startWatchdog` × `资源获取/释放` × `获取失败路径`。
+`startWatchdog` × `状态分支` × `合法迁移`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:57 的资源操作（`setInterval`，语句 `setInterval(() => { if (this.stopped || !this.child) return; if (this.unhealthy()) { console.error(…`）被执行的输入：按该 symbol 的参数取合法等价类（如涉路径参数则取临时目录下的真实路径）
+**步骤 1**——动作：构造使 supervisor.ts:66 的分支（||：`this.stopped || !this.child`）取真的输入：按条件语义取值
 
-观察点：该资源操作确实被走到（由替身调用序证明）
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
-**步骤 2**——动作：调用 startWatchdog(…) 走正常路径
+**步骤 2**——动作：调用 startWatchdog(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
-观察点：资源被使用且释放（句柄/子进程/定时器/临时目录计数回零）
+观察点：断言通过
 
-**步骤 3**——动作：注入该操作失败（替身/权限/不存在路径）后再次调用
+**步骤 3**——动作：构造使该分支取假的输入：按条件语义取反（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
-观察点：typed 错误且无泄漏
+观察点：该分支的取假侧被走到（由断言证明）
 
-**步骤 4**——动作：断言两路均无残留——本 Case 的资源是 `setInterval`，其释放动作（clearTimeout/clearInterval）必须发生
+**步骤 4**——动作：再次调用 startWatchdog(…) 并断言取假侧结果；两侧都必须被观测到
 
-观察点：资源计数回零、无残留句柄/子进程/定时器
+观察点：断言通过；失败含义＝该分支语义失真
 
 **Oracle 与预期**：
 

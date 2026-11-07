@@ -52,7 +52,7 @@
 
 对象函数：`ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`，ctor/public）
 
-维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
+维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `恰好通过`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-106 · 参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20）
+#### 3.1 UT-IPC-106 · 参数 `onExit: (code: number | null, signal: NodeJS.Signals | null) => void` 的 `恰好通过` 类（supe…
 
 **责任 / 明确不测**：
 
-验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（参数 `facts: FactHandler` 的 `每等价类合法值` 类（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `数值/长度上限参数` × `恰好通过` 这一格上的行为与设计声明一致（参数 `onExit: (code: number | null, signal: NodeJS.Signals | null) => void` 的 `恰好通过` 类（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`ExecutionProcessSupervisor.constructor` × `纯函数/无副作用` × `每等价类合法值`。
+`ExecutionProcessSupervisor.constructor` × `数值/长度上限参数` × `恰好通过`。
 
 **输入构造**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `每等价类合法值` 类构造参数 `facts: FactHandler`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
+**步骤 1**——动作：按 `恰好通过` 类构造参数 `onExit: (code: number | null, signal: NodeJS.Signals | null) => void`：边界值（取源码比较常量；无显式常量则取类型定义边界）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
 
 观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 

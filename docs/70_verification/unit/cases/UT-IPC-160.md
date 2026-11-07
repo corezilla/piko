@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-160
 
-对象函数：`alive`（`supervisor.ts:84`，method/public）
+对象函数：`unhealthy`（`supervisor.ts:88`，method/public）
 
-维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
+维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `−1 通过`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-160 · 返回站点 L85 值 `this.child !== null` 逐值断言（supervisor.ts）
+#### 3.1 UT-IPC-160 · 参数 `windowMs: inferred` 的 `−1 通过` 类（supervisor.ts:88）
 
 **责任 / 明确不测**：
 
-验证 `alive`（`supervisor.ts:84`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（返回站点 L85 值 `this.child !== null` 逐值断言（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `unhealthy`（`supervisor.ts:88`）在 `数值/长度上限参数` × `−1 通过` 这一格上的行为与设计声明一致（参数 `windowMs: inferred` 的 `−1 通过` 类（supervisor.ts:88））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`alive` × `纯函数/无副作用` × `每等价类合法值`。
+`unhealthy` × `数值/长度上限参数` × `−1 通过`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:85 的返回站点被到达的输入——该站点返回 `this.child !== null`；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类
+**步骤 1**——动作：按 `−1 通过` 类构造参数 `windowMs: inferred`：边界值 −1；其余参数取合法等价类。该参数在源码中的校验语句：`this.child !== null && this.clock.now() - this.lastHeartbeat > windowMs`
 
-观察点：该返回站点被走到（由返回值断言证明）
+观察点：构造完成，输入可复现（取值全部写死或给生成规则）
 
-**步骤 2**——动作：调用 alive(…)
+**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:88）
 
-观察点：返回值
+观察点：返回值或抛出的错误
 
-**步骤 3**——动作：断言返回值逐值对账（结构、字段、顺序），且无未声明副作用
+**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
 
-观察点：断言通过；失败含义＝该返回路径语义失真
+观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `alive` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `unhealthy` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

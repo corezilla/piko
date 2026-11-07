@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-120 · 分支 L36 `msg?.fact`（?.；supervisor.ts）
+#### 3.1 UT-IPC-120 · 分支 L44 `if (msg?.type === "heartbeat" || msg?.fact?.k…`（if；supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L36 `msg?.fact`（?.；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L44 `if (msg?.type === "heartbeat" || msg?.fact?.k…`（if；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:36 的分支（?.：`msg?.fact`）取真的输入：`令 `msg` 为有效值（非 undefined／null）——可选链不短路`
+**步骤 1**——动作：构造使 supervisor.ts:44 的分支（if：`if (msg?.type === "heartbeat" || msg?.fact?.kind === "heartbeat")`）取真的输入：`满足任一分支即可：① 令 `msg?.type` ＝ `"heartbeat"`；或 ② 令 `msg?.fact?.kind` ＝ `"heartbeat"``；该侧动作：`this.lastHeartbeat = this.clock.now();`
 
 观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
@@ -90,7 +90,7 @@
 
 观察点：断言通过
 
-**步骤 3**——动作：构造使该分支取假的输入：`令 `msg` 为 undefined／null——可选链短路，取 undefined`（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：构造使该分支取假的输入：`令 `msg?.type` ≠ `"heartbeat" || msg?.fact?.kind === "heartbeat"``（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
 观察点：该分支的取假侧被走到（由断言证明）
 

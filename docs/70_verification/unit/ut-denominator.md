@@ -6,7 +6,7 @@
 > 本表是 UT 分母的**枚举源**：方案 §1.1/§5.2 的符号集与本表对账，差集必须为零；
 > 每条 Case 的「维度坐标」必须能指到本表某行的一个分支路径。
 
-**合计**：244 个行为单元 · 参数 432 · 分支点 1217 · throw/reject 136 · 状态写 100 · 资源操作 51 · 返回站点 318
+**合计**：244 个行为单元 · 参数 432 · 分支点 1220 · throw/reject 136 · 状态写 100 · 资源操作 51 · 返回站点 319
 
 **逐站点义务格（本层分母）**：Σ(参数×必测类 3 ＋ 分支 ＋ throw 站点 ＋ 状态写站点 ＋ 资源操作站点 ＋ 返回站点)
 
@@ -31,15 +31,15 @@
 | IPC | `ipc.ts:118` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | async | 4 |
 | IPC | `ipc.ts:131` | `ProcessChannel.constructor` | ctor/public | 2 | 7 | 0 | 0 | 0 | 1 | db | 14 |
 | IPC | `ipc.ts:144` | `report` | method/public | 1 | 0 | 0 | 0 | 0 | 1 | async | 4 |
-| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 2 | 0 | 0 | 0 | 2 | — | 13 |
+| IPC | `ipc.ts:154` | `attachChildToHandler` | fn/exported | 3 | 4 | 0 | 0 | 0 | 3 | — | 16 |
 | IPC | `supervisor.ts:20` | `ExecutionProcessSupervisor.constructor` | ctor/public | 4 | 0 | 0 | 0 | 0 | 0 | — | 12 |
-| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 14 | 0 | 7 | 2 | 2 | clock | 25 |
-| IPC | `supervisor.ts:55` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | 2 | clock | 9 |
-| IPC | `supervisor.ts:67` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | 0 | — | 4 |
-| IPC | `supervisor.ts:72` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | 0 | — | 2 |
-| IPC | `supervisor.ts:80` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | 1 | clock | 5 |
-| IPC | `supervisor.ts:84` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
-| IPC | `supervisor.ts:88` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | 1 | async,clock | 9 |
+| IPC | `supervisor.ts:27` | `spawn` | method/public | 0 | 15 | 0 | 7 | 2 | 2 | clock | 26 |
+| IPC | `supervisor.ts:63` | `startWatchdog` | method/private | 0 | 5 | 0 | 1 | 1 | 2 | clock | 9 |
+| IPC | `supervisor.ts:75` | `send` | method/public | 1 | 1 | 0 | 0 | 0 | 0 | — | 4 |
+| IPC | `supervisor.ts:80` | `kill` | method/public | 0 | 1 | 0 | 1 | 0 | 0 | — | 2 |
+| IPC | `supervisor.ts:88` | `unhealthy` | method/public | 1 | 1 | 0 | 0 | 0 | 1 | clock | 5 |
+| IPC | `supervisor.ts:92` | `alive` | method/public | 0 | 0 | 0 | 0 | 0 | 1 | — | 1 |
+| IPC | `supervisor.ts:96` | `stop` | method/public | 0 | 3 | 0 | 2 | 3 | 1 | async,clock | 9 |
 | IPC | `types.ts:233` | `PikoError.constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 0 | — | 9 |
 | MATRIX | `matrix.ts:14` | `MatrixRuntime.constructor` | ctor/public | 3 | 0 | 0 | 0 | 0 | 0 | — | 9 |
 | MATRIX | `matrix.ts:15` | `start` | method/public | 0 | 21 | 1 | 4 | 3 | 3 | async,clock | 32 |
@@ -257,7 +257,7 @@
 | WORKER | `worker.ts:299` | `aggregateUsage` | fn/exported | 2 | 12 | 0 | 0 | 0 | 2 | — | 20 |
 | WORKER | `worker.ts:320` | `sendDiscussionReplyWithRetry` | fn/exported | 6 | 14 | 2 | 0 | 1 | 1 | async,clock | 36 |
 
-**公式格数合计：3118**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。
+**公式格数合计：3122**（这是 UT 层的义务格总数；已登记 Case 数与本表对账即为覆盖率）。
 
 ---
 
@@ -473,12 +473,14 @@
 
 ### `attachChildToHandler` — `ipc.ts:154`（IPC，fn/exported，参数 3）
 
-参数：`child: { on: Function; send?: Function }?` · `handler: FactHandler` · `onCommand: (cmd: Command) => void?`
+参数：`child: { on: Function; send?: Function; connected?: boolean }?` · `handler: FactHandler` · `onCommand: (cmd: Command) => void?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 157 | if | `if (msg?.ipc === "fact")` |
-| 157 | ?. | `msg?.ipc` |
+| 160 | if | `if (child.connected === false)` |
+| 163 | catch | `catch ()` |
+| 168 | if | `if (msg?.ipc === "fact")` |
+| 168 | ?. | `msg?.ipc` |
 
 ### `spawn` — `supervisor.ts:27`（IPC，method/public，参数 0）
 
@@ -487,65 +489,66 @@
 | 行 | 类型 | 条件 |
 |--:|---|---|
 | 28 | if | `if (this.stopped)` |
-| 32 | if | `if (this.facts)` |
-| 36 | if | `if (msg?.type === "heartbeat" \|\| msg?.fact?.kind === "heartbeat")` |
-| 36 | || | `msg?.type === "heartbeat" \|\| msg?.fact?.kind === "heartbeat"` |
-| 36 | ?. | `msg?.type` |
-| 36 | ?. | `msg?.fact?.kind` |
-| 36 | ?. | `msg?.fact` |
-| 40 | if | `if (msg?.type === "ready" \|\| msg?.fact?.kind === "ready")` |
-| 40 | || | `msg?.type === "ready" \|\| msg?.fact?.kind === "ready"` |
-| 40 | ?. | `msg?.type` |
-| 40 | ?. | `msg?.fact?.kind` |
-| 40 | ?. | `msg?.fact` |
-| 45 | if | `if (!this.stopped)` |
-| 45 | ! | `!this.stopped` |
+| 35 | ternary | `? process.execArgv.some((a) => a.includes("tsx")) :` |
+| 40 | if | `if (this.facts)` |
+| 44 | if | `if (msg?.type === "heartbeat" \|\| msg?.fact?.kind === "heartbeat")` |
+| 44 | || | `msg?.type === "heartbeat" \|\| msg?.fact?.kind === "heartbeat"` |
+| 44 | ?. | `msg?.type` |
+| 44 | ?. | `msg?.fact?.kind` |
+| 44 | ?. | `msg?.fact` |
+| 48 | if | `if (msg?.type === "ready" \|\| msg?.fact?.kind === "ready")` |
+| 48 | || | `msg?.type === "ready" \|\| msg?.fact?.kind === "ready"` |
+| 48 | ?. | `msg?.type` |
+| 48 | ?. | `msg?.fact?.kind` |
+| 48 | ?. | `msg?.fact` |
+| 53 | if | `if (!this.stopped)` |
+| 53 | ! | `!this.stopped` |
 
-### `startWatchdog` — `supervisor.ts:55`（IPC，method/private，参数 0）
+### `startWatchdog` — `supervisor.ts:63`（IPC，method/private，参数 0）
 
 参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 56 | if | `if (this.watchdog)` |
-| 58 | if | `if (this.stopped \|\| !this.child)` |
-| 58 | || | `this.stopped \|\| !this.child` |
-| 58 | ! | `!this.child` |
-| 59 | if | `if (this.unhealthy())` |
+| 64 | if | `if (this.watchdog)` |
+| 66 | if | `if (this.stopped \|\| !this.child)` |
+| 66 | || | `this.stopped \|\| !this.child` |
+| 66 | ! | `!this.child` |
+| 67 | if | `if (this.unhealthy())` |
 
-### `send` — `supervisor.ts:67`（IPC，method/public，参数 1）
+### `send` — `supervisor.ts:75`（IPC，method/public，参数 1）
 
 参数：`cmd: Command`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 68 | ?. | `this.channel?.send` |
+| 76 | ?. | `this.channel?.send` |
 
-### `kill` — `supervisor.ts:72`（IPC，method/public，参数 0）
+### `kill` — `supervisor.ts:80`（IPC，method/public，参数 0）
 
 参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 73 | if | `if (this.child)` |
+| 81 | if | `if (this.child)` |
 
-### `unhealthy` — `supervisor.ts:80`（IPC，method/public，参数 1）
+### `unhealthy` — `supervisor.ts:88`（IPC，method/public，参数 1）
 
 参数：`windowMs: inferred?`
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 81 | && | `this.child !== null && this.clock.now() - this.lastHeartbea…` |
+| 89 | && | `this.child !== null && this.clock.now() - this.lastHeartbea…` |
 
-### `stop` — `supervisor.ts:88`（IPC，method/public，参数 0）
+### `stop` — `supervisor.ts:96`（IPC，method/public，参数 0）
 
 参数：（无）
 
 | 行 | 类型 | 条件 |
 |--:|---|---|
-| 90 | if | `if (this.watchdog)` |
-| 92 | if | `if (!this.child)` |
-| 92 | ! | `!this.child` |
+| 98 | if | `if (this.watchdog)` |
+| 100 | if | `if (!this.child)` |
+| 100 | ! | `!this.child` |
 
 ### `start` — `matrix.ts:15`（MATRIX，method/public，参数 0）
 

@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-131 · 状态写 L37 → `this.lastHeartbeat`（supervisor.ts）
+#### 3.1 UT-IPC-131 · 分支 L53 `!this.stopped`（!；supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（状态写 L37 → `this.lastHeartbeat`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L53 `!this.stopped`（!；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,17 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:37 对 `this.lastHeartbeat` 的写被执行的前置状态——写语句：`this.lastHeartbeat = this.clock.now()`；前置状态取值按该 symbol 的构造参数取合法等价类
+**步骤 1**——动作：构造使 supervisor.ts:53 的分支（!：`!this.stopped`）取真的输入：`令 `this.stopped` 为假（空串／0／null／undefined）`；该侧动作：`const delay = this.restartDelay;`
 
-观察点：前置状态就绪（由读到的初始值证明）
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
-**步骤 2**——动作：调用 spawn(…)
+**步骤 2**——动作：调用 spawn(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
-观察点：写已发生——权威事实源里能看到新值（`this.lastHeartbeat` 新值）
+观察点：断言通过
 
-**步骤 3**——动作：读回权威事实源（对象状态直接读）逐值对账写入语义
+**步骤 3**——动作：构造使该分支取假的输入：`令 `this.stopped` 为真（如非空字符串/真值）`（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
-观察点：对账通过；失败含义＝状态迁移失真
+观察点：该分支的取假侧被走到（由断言证明）
+
+**步骤 4**——动作：再次调用 spawn(…) 并断言取假侧结果；两侧都必须被观测到
+
+观察点：断言通过；失败含义＝该分支语义失真
 
 **Oracle 与预期**：
 

@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-174
 
-对象函数：`PikoError.constructor`（`types.ts:233`，ctor/public）
+对象函数：`stop`（`supervisor.ts:96`，method/public）
 
-维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `恰好通过`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-174 · 参数 `status: number` 的 `恰好通过` 类（types.ts:233）
+#### 3.1 UT-IPC-174 · 返回站点 L100 值 `（无值 return：提前退出）` 逐值断言（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `PikoError.constructor`（`types.ts:233`）在 `数值/长度上限参数` × `恰好通过` 这一格上的行为与设计声明一致（参数 `status: number` 的 `恰好通过` 类（types.ts:233））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `stop`（`supervisor.ts:96`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（返回站点 L100 值 `（无值 return：提前退出）` 逐值断言（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`PikoError.constructor` × `数值/长度上限参数` × `恰好通过`。
+`stop` × `纯函数/无副作用` × `每等价类合法值`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `恰好通过` 类构造参数 `status: number`：边界值（取源码比较常量；无显式常量则取类型定义边界）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
+**步骤 1**——动作：构造使 supervisor.ts:100 的返回站点被到达的输入——该站点返回 `（无值 return：提前退出）`；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类
 
-观察点：构造完成，输入可复现（取值全部写死或给生成规则）
+观察点：该返回站点被走到（由返回值断言证明）
 
-**步骤 2**——动作：调用 new PikoError(…)（types.ts:233）
+**步骤 2**——动作：调用 stop(…)
 
-观察点：返回值或抛出的错误
+观察点：返回值
 
-**步骤 3**——动作：断言：被接受时返回值/状态与设计声明一致，逐值对账
+**步骤 3**——动作：断言返回值逐值对账（结构、字段、顺序），且无未声明副作用
 
-观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
+观察点：断言通过；失败含义＝该返回路径语义失真
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `PikoError.constructor` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `stop` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

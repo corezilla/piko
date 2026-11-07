@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-MATRIX-150  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-150  ·  STATUS: real
  *
- * 责任：返回站点 L35 值 `undefined` 逐值断言（matrix.ts）
+ * 责任：返回站点 L35 值 （matrix.ts）
  * 维度坐标：`prepareEvent` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-150.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-150 · prepareEvent（matrix.ts:29）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 matrix.ts:35 的返回站点（值 undefined）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：prepareEvent(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-MATRIX-150 · prepareEvent · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns undefined for a redelivered event", async () => {
+    // 步骤 1：构造 store、runtime，并先处理一次该事件
+    const store = newStore();
+    try {
+      store.createOrGet(task, "slinky", 10, "trigger");
+      const matrix = runtimeWith(store, { getJoinedRooms: async () => ({ joined_rooms: ["!room:test"] }) });
+      await (matrix as unknown as { processBatch(e: unknown[], c: string): Promise<void> }).processBatch(
+        [event("$dup")],
+        "cursor-1",
+      );
+
+      // 步骤 2：再次调用 prepareEvent(同一事件)
+      const prepared = await (
+        matrix as unknown as { prepareEvent(e: unknown): Promise<unknown> }
+      ).prepareEvent(event("$dup"));
+
+      // 步骤 3：断言返回 undefined
+      expect(prepared).toBeUndefined();
+    } finally {
+      store.close();
+    }
+  });
+
 });

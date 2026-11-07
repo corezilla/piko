@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-155
 
-对象函数：`unhealthy`（`supervisor.ts:80`，method/public）
+对象函数：`send`（`supervisor.ts:75`，method/public）
 
-维度格（方案 §2.3 行×格）：`数值/长度上限参数` × `+1 拒绝`
+维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-155 · 参数 `windowMs: inferred` 的 `+1 拒绝` 类（supervisor.ts:80）
+#### 3.1 UT-IPC-155 · 分支 L76 `this.channel?.send`（?.；supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `unhealthy`（`supervisor.ts:80`）在 `数值/长度上限参数` × `+1 拒绝` 这一格上的行为与设计声明一致（参数 `windowMs: inferred` 的 `+1 拒绝` 类（supervisor.ts:80））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `send`（`supervisor.ts:75`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L76 `this.channel?.send`（?.；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`unhealthy` × `数值/长度上限参数` × `+1 拒绝`。
+`send` × `状态分支` × `合法迁移`。
 
 **输入构造**：
 
@@ -82,21 +82,25 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `+1 拒绝` 类构造参数 `windowMs: inferred`：边界值 +1；其余参数取合法等价类。该参数在源码中的校验语句：`this.child !== null && this.clock.now() - this.lastHeartbeat > windowMs`
+**步骤 1**——动作：构造使 supervisor.ts:76 的分支（?.：`this.channel?.send`）取真的输入：`令 `this.channel` 为有效值（非 undefined／null）——可选链不短路`
 
-观察点：构造完成，输入可复现（取值全部写死或给生成规则）
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
-**步骤 2**——动作：调用 unhealthy(…)（supervisor.ts:80）
+**步骤 2**——动作：调用 send(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
-观察点：返回值或抛出的错误
+观察点：断言通过
 
-**步骤 3**——动作：断言：被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
+**步骤 3**——动作：构造使该分支取假的输入：`令 `this.channel` 为 undefined／null——可选链短路，取 undefined`（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
-观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
+观察点：该分支的取假侧被走到（由断言证明）
+
+**步骤 4**——动作：再次调用 send(…) 并断言取假侧结果；两侧都必须被观测到
+
+观察点：断言通过；失败含义＝该分支语义失真
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `unhealthy` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `send` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

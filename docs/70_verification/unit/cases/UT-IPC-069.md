@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-069 · 分支 L72 `case "terminalTool"`（case；ipc.ts）
+#### 3.1 UT-IPC-069 · 分支 L64 `case "observeUsage"`（case；ipc.ts）
 
 **责任 / 明确不测**：
 
-验证 `apply`（`ipc.ts:50`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L72 `case "terminalTool"`（case；ipc.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `apply`（`ipc.ts:50`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L64 `case "observeUsage"`（case；ipc.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 ipc.ts:72 的分支（case：`case "terminalTool"`）取真的输入：按条件语义取值
+**步骤 1**——动作：构造使 ipc.ts:64 的分支（case：`case "observeUsage"`）取真的输入：按条件语义取值
 
 观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 

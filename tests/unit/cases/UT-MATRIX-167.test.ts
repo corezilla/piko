@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-MATRIX-167  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-167  ·  STATUS: real
  *
- * 责任：参数 `events: MatrixEvent[]` 的 `每等价类合法值` 类（matrix.ts:79）
+ * 责任：参数 `events` 的 `每等价类合法值` 类（matrix.ts:79）
  * 维度坐标：`processBatch` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-167.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-167 · processBatch（matrix.ts:79）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `events: MatrixEvent[]`，其余参数取合法等价类（matrix.ts:79）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → processBatch(/* 参数 */) → 逐值断言（Oracle：UT-MATRIX-167 用例文档 §3）
+describe("UT-MATRIX-167 · processBatch · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("ingests the events of a room Piko is in", async () => {
+    // 步骤 1：构造 store、有讨论上下文的 run 与 client 替身
+    const store = newStore();
+    try {
+      store.createOrGet(task, "slinky", 10, "trigger");
+      const matrix = runtimeWith(store, {
+        getJoinedRooms: async () => ({ joined_rooms: ["!room:test"] }),
+      });
+
+      // 步骤 2：调用 processBatch(一条消息, "cursor-1")
+      await (matrix as unknown as { processBatch(e: unknown[], c: string): Promise<void> }).processBatch(
+        [event("$one")],
+        "cursor-1",
+      );
+
+      // 步骤 3：断言事件被记下、光标推进
+      expect(store.hasMatrixEvent("!room:test", "$one")).toBe(true);
+      expect(store.matrixCursor()).toBe("cursor-1");
+    } finally {
+      store.close();
+    }
+  });
+
 });

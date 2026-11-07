@@ -1,18 +1,26 @@
 /**
- * Case ID: UT-MATRIX-095  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-095  ·  STATUS: real
  *
- * 责任：参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（matrix.ts:14）
+ * 责任：参数 `store` 的 `边界(上/下/零/空/满)` 类（matrix.ts:14）
  * 维度坐标：`MatrixRuntime.constructor` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-095.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-095 · MatrixRuntime.constructor（matrix.ts:14）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `store: TaskStore`，其余参数取合法等价类（matrix.ts:14）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new MatrixRuntime.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-MATRIX-095 用例文档 §3）
+describe("UT-MATRIX-095 · MatrixRuntime.constructor · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("binds an empty store", () => {
+    // 步骤 1：构造空 store 与 runtime
+    const store = newStore();
+    try {
+      const matrix = new MatrixRuntime(config, store);
+
+      // 步骤 2：断言构造成功
+      expect((matrix as unknown as { store: unknown }).store).toBe(store);
+    } finally {
+      store.close();
+    }
+  });
+
 });

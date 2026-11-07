@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-102
 
-对象函数：`ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`，ctor/public）
+对象函数：`apply`（`ipc.ts:50`，method/public）
 
-维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
+维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `每等价类合法值`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-102 · 参数 `env: NodeJS.ProcessEnv` 的 `非法值` 类（supervisor.ts:20）
+#### 3.1 UT-IPC-102 · 返回站点 L105 值 `{ ok: false, error: error instanceof Er…` 逐值断言（ipc.ts）
 
 **责任 / 明确不测**：
 
-验证 `ExecutionProcessSupervisor.constructor`（`supervisor.ts:20`）在 `纯函数/无副作用` × `非法值` 这一格上的行为与设计声明一致（参数 `env: NodeJS.ProcessEnv` 的 `非法值` 类（supervisor.ts:20））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `apply`（`ipc.ts:50`）在 `纯函数/无副作用` × `每等价类合法值` 这一格上的行为与设计声明一致（返回站点 L105 值 `{ ok: false, error: error instanceof Er…` 逐值断言（ipc.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`ExecutionProcessSupervisor.constructor` × `纯函数/无副作用` × `非法值`。
+`apply` × `纯函数/无副作用` × `每等价类合法值`。
 
 **输入构造**：
 
@@ -82,21 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `非法值` 类构造参数 `env: NodeJS.ProcessEnv`：每个等价类一个代表值（取自类型定义/ISD 枚举表）；其余参数取合法等价类。该参数无显式校验语句——预期语义以 ISD/模块设计声明为准，实现缺校验即记缺陷
+**步骤 1**——动作：构造使 ipc.ts:105 的返回站点被到达的输入——该站点返回 `{ ok: false, error: error instanceof Error ? …`；到达路径＝该 symbol 内通向此 return 的分支（无值 return 即提前退出路径）；输入取值按该 symbol 的参数取合法等价类
 
-观察点：构造完成，输入可复现（取值全部写死或给生成规则）
+观察点：该返回站点被走到（由返回值断言证明）
 
-**步骤 2**——动作：调用 new ExecutionProcessSupervisor(…)（supervisor.ts:20）
+**步骤 2**——动作：调用 apply(…)
 
-观察点：返回值或抛出的错误
+观察点：返回值
 
-**步骤 3**——动作：断言：被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
+**步骤 3**——动作：断言返回值逐值对账（结构、字段、顺序），且无未声明副作用
 
-观察点：断言全部通过；失败含义＝该参数类语义与设计脱节
+观察点：断言通过；失败含义＝该返回路径语义失真
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `ExecutionProcessSupervisor.constructor` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `apply` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

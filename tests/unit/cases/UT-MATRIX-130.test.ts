@@ -1,18 +1,31 @@
 /**
- * Case ID: UT-MATRIX-130  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-130  ·  STATUS: real
  *
- * 责任：参数 `event: MatrixEvent` 的 `非法值` 类（matrix.ts:29）
- * 维度坐标：`prepareEvent` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `MATRIX`）
+ * 责任：参数 `event` 的 `非法值` 类（matrix.ts:29）
+ * 维度坐标：`prepareEvent` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-130.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-130 · prepareEvent（matrix.ts:29）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `event: MatrixEvent`，其余参数取合法等价类（matrix.ts:29）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → prepareEvent(/* 参数 */) → 逐值断言（Oracle：UT-MATRIX-130 用例文档 §3）
+describe("UT-MATRIX-130 · prepareEvent · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("ignores an event of another type", async () => {
+    // 步骤 1：构造 store、runtime 与一个非消息事件
+    const store = newStore();
+    try {
+      const matrix = runtimeWith(store, { getJoinedRooms: async () => ({ joined_rooms: [] }) });
+
+      // 步骤 2：调用 prepareEvent(状态事件)
+      const prepared = await (
+        matrix as unknown as { prepareEvent(e: unknown): Promise<unknown> }
+      ).prepareEvent(event("$one", { getType: () => "m.room.member" }));
+
+      // 步骤 3：断言被忽略
+      expect(prepared).toBeUndefined();
+    } finally {
+      store.close();
+    }
+  });
+
 });

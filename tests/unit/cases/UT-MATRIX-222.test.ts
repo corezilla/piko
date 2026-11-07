@@ -1,18 +1,44 @@
 /**
- * Case ID: UT-MATRIX-222  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-222  ·  STATUS: real
  *
- * 责任：throw L96 `reject`（守卫 `if (!response.ok||!response.body)`；matrix.ts）
+ * 责任：throw L96 reject（守卫 `!response.ok||!response.body`；matrix.ts:91）
  * 维度坐标：`downloadMedia` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-222.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
+import type { RuntimeConfig } from "../../../src/types.js";
 
-describe("UT-MATRIX-222 · downloadMedia（matrix.ts:91）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 matrix.ts:96 的 throw（code `reject`，守卫 if (!response.ok||!response.body)）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：downloadMedia(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-MATRIX-222 · downloadMedia · 错误路径 × 每个 typed 错误码", () => {
+  it("throws the declared download-failure error", async () => {
+    // 步骤 1：构造 store、runtime 与 client 替身（每个 Case 独立的 staging 根）
+    const store = newStore();
+    const { mkdtemp, rm } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const stagingRoot = await mkdtemp(join(tmpdir(), "piko-matrix-"));
+    try {
+      const stagingRoot = await mkdtemp(join(tmpdir(), "piko-matrix-"));
+      const matrix = runtimeWith(store, { mxcUrlToHttp: () => "https://matrix.test/file" }, true, {
+        ...config,
+        workspace: { staging_root: stagingRoot },
+      } as RuntimeConfig);
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 503 })));
+
+      // 步骤 2：调用 downloadMedia
+      await expect(
+        (matrix as unknown as { downloadMedia(r: string, e: string, c: unknown): Promise<string> }).downloadMedia(
+          "run",
+          "$event",
+          { body: "x.txt", url: "mxc://test/x", info: { size: 4, mimetype: "text/plain" } },
+        ),
+      ).rejects.toThrow(/Matrix media download failed: 503/);
+    } finally {
+      store.close();
+      vi.unstubAllGlobals();
+      await rm(stagingRoot, { recursive: true, force: true });
+    }
+  });
+
 });

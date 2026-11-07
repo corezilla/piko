@@ -596,7 +596,7 @@
 | `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 11 | 4 |
 | **合计** | — | — | **152** | **136** | **16** |
 
-**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **862/3278 已实现，实现率 26.3%**——USAGE（26）、OBS（127）、BOOT（190）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（179）七个模块已写出真断言（940 个断言全绿），其余为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **1092/3282 已实现，实现率 33.3%**——USAGE（26）、OBS（127）、BOOT（190）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）八个模块已写出真断言（761 个断言全绿），其余为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
 
 **分卷登记另计 3,126 条**（§6.1A，逐站点粒度，全部 `待实现`）——实现率按全层 3,278 条计。
 
@@ -2604,6 +2604,12 @@
 
 **依据 · Owner · 恢复条件**：`ProcessChannel`（`src/ipc.ts:141`）在收到命令消息时调用 `onCommand(msg.command as Command)`——回调收到的是**剥出来的命令**；而 `attachChildToHandler`（`src/ipc.ts:161`）调用 `onCommand?.(msg)`——回调收到的是**整条消息** `{ ipc: "command", command: {...} }`。UT 实测（`UT-IPC-044` 与 `UT-IPC-032`）：同一类命令消息，经前者回调拿到 `{kind:"abort",...}`，经后者回调拿到 `{ipc:"command", command:{kind:"abort",...}}`。同一份 P0 侧回调代码若同时接这两条路径，会按两种形状解析。当前仓库内 `attachChildToHandler` 的调用方（`ExecutionProcessSupervisor.spawn`）不传 `onCommand`，故生产路径未触发；但这是公开 API 的形状不一致。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①两条路径统一为同一种形状（建议都交剥出来的命令）；②`UT-IPC-044` 的断言改回「收到剥出的命令」，并在两条路径上各加一条对照断言；③本裁决关闭前，跨这两条通道复用同一回调的代码不被允许。
 
+#### 7.1.16 裁决 · Matrix 同步状态分支单测不可达（`G-UT-MATRIX-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`MatrixRuntime.start()`（`src/matrix.ts:15`）自己调 `createClient` 并等首个 sync 事件才 resolve。同步状态那一族分支（`state!=="PREPARED"&&state!=="SYNCING"`、`getSyncStateData()?.nextSyncToken`、`!next`、`!readySettled`、`!readySettled||permanent`、`stopClient`）要么被 `ready` 门挡住，要么依赖 homeserver 真实推送的 sync 事件——单测里没有 homeserver，这 16 格**当前不可达**。本轮已做两件事让可达面最大化：①给 `MatrixRuntime` 加了 client 工厂注入参数（`constructor(config, store, token?, createClientFn?)`），使「客户端创建 / 身份校验 / 审计定时器 / started 翻转 / 超时兜底 / 身份不符抛错」这 11 格可直接断言；②余下 16 格写成**断言「不可达」本身**（替身从不同步 → 光标不动、started 不翻），不伪造下游行为。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①给同步回调一个注入缝（把 `client.on(ClientEvent.Sync, …)` 的触发源做成可注入的同步源，或允许测试注入一个假的 sync 触发器）；②16 格随之改写为对同步链的直接断言；③在此之前，任何依赖「同步状态分支已被覆盖」的结论不成立。
+
 #### 7.1.14 裁决 · 并发受理可超出队列容量（`G-UT-QUEUE-1`）
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
@@ -2805,11 +2811,12 @@
 | `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,278 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 3,278 个 Case 中 862 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC 七个模块）已写出真脚本，2416 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
+| `G-EXEC-UT-3` | 3,282 个 Case 中 1092 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX 八个模块）已写出真脚本，2190 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
 | `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,126 条分卷 Case（§6.1A）＋152 条粗粒度＝3,278，全部待实现 | 脚本随波次二排期 |
 | `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 | `G-UT-CONFIG-1` | `config/` 全部五份运行时配置不过 `piko-runtime-config-v0.3.schema.json`（缺 `transfer`、`pi` 多两个字段）→ `loadConfig` 必失败；其成功路径无 UT 覆盖 | 运行时装配 Owner 修配置或 schema |
 | `G-UT-QUEUE-1` | `createOrGet` 的队列容量检查与插入不原子 → 并发受理可超出容量 N（实测容量 2 收 5 个）；依赖「容量是硬上限」的结论不成立 | 运行时装配 Owner 改为原子插入 |
+| `G-UT-MATRIX-1` | Matrix 同步状态分支（16 格）单测不可达——start() 等真实 homeserver 的 sync 事件；已加 client 工厂注入缝覆盖其余 11 格 | 运行时装配 Owner 加同步源注入缝 |
 | `G-UT-IPC-1` | 两条命令通道的 onCommand 形状不一致（ProcessChannel 交剥出的命令、attachChildToHandler 交整条消息） | 运行时装配 Owner 统一形状 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。

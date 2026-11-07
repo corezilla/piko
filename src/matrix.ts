@@ -11,10 +11,20 @@ export class MatrixRuntime {
   private started=false;
   private pendingEvents:MatrixEvent[]=[];
   private syncWork:Promise<void>=Promise.resolve();
-  constructor(private config:RuntimeConfig,private store:TaskStore,private token?:string){}
+  /**
+   * @param createClientFn Matrix 客户端工厂。默认走 SDK 的 createClient；
+   *   单元测试注入替身（没有注入缝时 start() 只能连真实 homeserver，
+   *   它的分支就不可测）。
+   */
+  constructor(
+    private config:RuntimeConfig,
+    private store:TaskStore,
+    private token?:string,
+    private createClientFn: typeof createClient = createClient,
+  ){}
   async start(){
     if(!this.config.matrix.enabled)return;
-    this.client=createClient({baseUrl:this.config.matrix.homeserver!,accessToken:this.token!,userId:this.config.matrix.user_id!});
+    this.client=this.createClientFn({baseUrl:this.config.matrix.homeserver!,accessToken:this.token!,userId:this.config.matrix.user_id!});
     const who=await this.client.whoami();if(who.user_id!==this.config.matrix.user_id)throw new Error("Matrix credential identity mismatch");
     const cursor=this.store.matrixCursor();if(cursor)this.client.store.setSyncToken(cursor);
     this.client.on(RoomEvent.Timeline,(event:MatrixEvent)=>{this.pendingEvents.push(event)});

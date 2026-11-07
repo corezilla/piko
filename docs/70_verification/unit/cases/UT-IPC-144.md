@@ -50,7 +50,7 @@
 
 #### 1.1 总账 · UT-IPC-144
 
-对象函数：`startWatchdog`（`supervisor.ts:55`，method/private）
+对象函数：`startWatchdog`（`supervisor.ts:63`，method/private）
 
 维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
 
@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-144 · 状态写 L57 → `this.watchdog`（supervisor.ts）
+#### 3.1 UT-IPC-144 · 分支 L66 `if (this.stopped || !this.child)`（if；supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `startWatchdog`（`supervisor.ts:55`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（状态写 L57 → `this.watchdog`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `startWatchdog`（`supervisor.ts:63`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L66 `if (this.stopped || !this.child)`（if；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,17 +82,21 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:57 对 `this.watchdog` 的写被执行的前置状态——写语句：`this.watchdog = setInterval(() => { if (this.stopped || !this.child) return; if (this.unhealthy()) …`；前置状态取值按该 symbol 的构造参数取合法等价类
+**步骤 1**——动作：构造使 supervisor.ts:66 的分支（if：`if (this.stopped || !this.child)`）取真的输入：`满足任一分支即可：① 令 `this.stopped` 为真（如非空字符串/真值）；或 ② 令 `this.child` 为假（空串／0／null／undefined）`；该侧动作：`return;`
 
-观察点：前置状态就绪（由读到的初始值证明）
+观察点：该分支的取真侧被走到（由断言证明，不靠日志）
 
-**步骤 2**——动作：调用 startWatchdog(…)
+**步骤 2**——动作：调用 startWatchdog(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
 
-观察点：写已发生——权威事实源里能看到新值（`this.watchdog` 新值）
+观察点：断言通过
 
-**步骤 3**——动作：读回权威事实源（对象状态直接读）逐值对账写入语义
+**步骤 3**——动作：构造使该分支取假的输入：`按 `this.stopped || !this.child` 的语义取反`（无显式 else：取假即跳过该块，断言块内副作用不发生）
 
-观察点：对账通过；失败含义＝状态迁移失真
+观察点：该分支的取假侧被走到（由断言证明）
+
+**步骤 4**——动作：再次调用 startWatchdog(…) 并断言取假侧结果；两侧都必须被观测到
+
+观察点：断言通过；失败含义＝该分支语义失真
 
 **Oracle 与预期**：
 

@@ -1,6 +1,6 @@
 {
   "generated": "2026-11-04",
-  "total": 3126,
+  "total": 3130,
   "volumes": [
     {
       "module": "PI",
@@ -34,7 +34,7 @@
     },
     {
       "module": "IPC",
-      "cases": 167,
+      "cases": 171,
       "file": "docs/70_verification/unit/volumes/unit-test-scheme-ipc.md"
     },
     {

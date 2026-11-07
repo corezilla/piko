@@ -82,7 +82,7 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：按 `获取失败路径` 格构造输入——参数：`child: { on: Function; send?: Function }`、`handler: FactHandler`、`onCommand: (cmd: Command) => void`；源码校验：`if (msg?.ipc === "fact") { const outcome = handler.apply(msg.fact as Fact); child.send?.({ ipc: "ou…`；`if (msg?.ipc === "fact") { const outcome = handler.apply(msg.fact as Fact); child.send?.({ ipc: "ou…`
+**步骤 1**——动作：按 `获取失败路径` 格构造输入——参数：`child: { on: Function; send?: Function; connected?: boolean }`、`handler: FactHandler`、`onCommand: (cmd: Command) => void`；源码校验：`if (child.connected === false) return;`；`if (msg?.ipc === "fact") { const outcome = handler.apply(msg.fact as Fact); child.send?.({ ipc: "ou…`；`if (msg?.ipc === "fact") { const outcome = handler.apply(msg.fact as Fact); child.send?.({ ipc: "ou…`
 
 观察点：输入就绪，取值全部写死或给生成规则
 
@@ -90,7 +90,7 @@
 
 观察点：返回值/错误/副作用/资源释放
 
-**步骤 3**——动作：逐分支断言：L157 if；L157 ?.
+**步骤 3**——动作：逐分支断言：L160 if；L163 catch；L168 if；L168 ?.
 
 观察点：每个分支路径的可观测结果与设计一致
 

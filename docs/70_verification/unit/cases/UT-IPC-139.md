@@ -50,9 +50,9 @@
 
 #### 1.1 总账 · UT-IPC-139
 
-对象函数：`startWatchdog`（`supervisor.ts:55`，method/private）
+对象函数：`spawn`（`supervisor.ts:27`，method/public）
 
-维度格（方案 §2.3 行×格）：`状态分支` × `合法迁移`
+维度格（方案 §2.3 行×格）：`资源获取/释放` × `获取失败路径`
 
 实现状态：`Implemented`
 
@@ -66,15 +66,15 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-139 · 分支 L56 `if (this.watchdog)`（if；supervisor.ts）
+#### 3.1 UT-IPC-139 · 资源操作 L38 `fork`（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `startWatchdog`（`supervisor.ts:55`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（分支 L56 `if (this.watchdog)`（if；supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `spawn`（`supervisor.ts:27`）在 `资源获取/释放` × `获取失败路径` 这一格上的行为与设计声明一致（资源操作 L38 `fork`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
-`startWatchdog` × `状态分支` × `合法迁移`。
+`spawn` × `资源获取/释放` × `获取失败路径`。
 
 **输入构造**：
 
@@ -82,25 +82,25 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:56 的分支（if：`if (this.watchdog)`）取真的输入：`令 `this.watchdog` 为真（如非空字符串/真值）`；该侧动作：`return;`
+**步骤 1**——动作：构造使 supervisor.ts:38 的资源操作（`fork`，语句 `fork(entry, [], { env: this.env, stdio: ["ignore", "inherit", "inherit", "ipc"], execArgv })`）被执行的输入：按该 symbol 的参数取合法等价类（如涉路径参数则取临时目录下的真实路径）
 
-观察点：该分支的取真侧被走到（由断言证明，不靠日志）
+观察点：该资源操作确实被走到（由替身调用序证明）
 
-**步骤 2**——动作：调用 startWatchdog(…) 并断言该侧可观测结果（返回值/状态/副作用）与设计一致
+**步骤 2**——动作：调用 spawn(…) 走正常路径
 
-观察点：断言通过
+观察点：资源被使用且释放（句柄/子进程/定时器/临时目录计数回零）
 
-**步骤 3**——动作：构造使该分支取假的输入：`令 `this.watchdog` 为假（空串／0／null／undefined）`（无显式 else：取假即跳过该块，断言块内副作用不发生）
+**步骤 3**——动作：注入该操作失败（替身/权限/不存在路径）后再次调用
 
-观察点：该分支的取假侧被走到（由断言证明）
+观察点：typed 错误且无泄漏
 
-**步骤 4**——动作：再次调用 startWatchdog(…) 并断言取假侧结果；两侧都必须被观测到
+**步骤 4**——动作：断言两路均无残留——本 Case 的资源是 `fork`，其释放动作（kill/等待退出）必须发生
 
-观察点：断言通过；失败含义＝该分支语义失真
+观察点：资源计数回零、无残留句柄/子进程/定时器
 
 **Oracle 与预期**：
 
-以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `startWatchdog` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
+以 `docs/40_module_design/piko-bootstrap-design.md` 与其 ISD（`docs/50_implementation_design/piko-bootstrap-impl.isd.md`）中 `spawn` 所属条目的 `VRC` 为唯一权威；逐值判据来自规格/手算规则/冻结向量，不引用被测实现自证；本段只细化执行断言，冲突回溯设计修订。
 
 
 **错误路径 / 清理**：

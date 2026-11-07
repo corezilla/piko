@@ -66,11 +66,11 @@
 
 ## 3. 用例（固定段落块）
 
-#### 3.1 UT-IPC-133 · 状态写 L43 → `this.child`（supervisor.ts）
+#### 3.1 UT-IPC-133 · 状态写 L39 → `this.lastHeartbeat`（supervisor.ts）
 
 **责任 / 明确不测**：
 
-验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（状态写 L43 → `this.child`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
+验证 `spawn`（`supervisor.ts:27`）在 `状态分支` × `合法迁移` 这一格上的行为与设计声明一致（状态写 L39 → `this.lastHeartbeat`（supervisor.ts））；不测同符号其余格（兄弟 Case 承担）、不测模块整体行为（归 MT）。
 
 **维度坐标（方案 §2.3 行×格）**：
 
@@ -82,13 +82,13 @@
 
 **步骤与观察点**：
 
-**步骤 1**——动作：构造使 supervisor.ts:43 对 `this.child` 的写被执行的前置状态——写语句：`this.child = null`；前置状态取值按该 symbol 的构造参数取合法等价类
+**步骤 1**——动作：构造使 supervisor.ts:39 对 `this.lastHeartbeat` 的写被执行的前置状态——写语句：`this.lastHeartbeat = this.clock.now()`；前置状态取值按该 symbol 的构造参数取合法等价类
 
 观察点：前置状态就绪（由读到的初始值证明）
 
 **步骤 2**——动作：调用 spawn(…)
 
-观察点：写已发生——权威事实源里能看到新值（`this.child` 新值）
+观察点：写已发生——权威事实源里能看到新值（`this.lastHeartbeat` 新值）
 
 **步骤 3**——动作：读回权威事实源（对象状态直接读）逐值对账写入语义
 

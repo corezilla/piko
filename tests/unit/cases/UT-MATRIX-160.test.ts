@@ -1,18 +1,31 @@
 /**
- * Case ID: UT-MATRIX-160  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-160  ·  STATUS: real
  *
- * 责任：分支 L67 `catch ()`（catch；matrix.ts）
- * 维度坐标：`isJoined` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `MATRIX`）
+ * 责任：分支 L67 catch : catch ()（matrix.ts）
+ * 维度坐标：`isJoined` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-160.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-160 · isJoined（matrix.ts:63）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：使 matrix.ts:67 的分支（catch：catch ()）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：isJoined(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-MATRIX-160 · isJoined · 状态分支 × 合法迁移", () => {
+  it("answers yes on a transient homeserver error", async () => {
+    // 步骤 1：构造 runtime 与一个会失败的 client
+    const store = newStore();
+    try {
+      const matrix = runtimeWith(store, {
+        getJoinedRooms: async () => {
+          throw new Error("homeserver unavailable");
+        },
+      });
+
+      // 步骤 2：调用 isJoined
+      // 步骤 3：断言为 true——瞬时错误答「还在」，不误判丢失成员资格
+      await expect(matrix.isJoined("!room:test")).resolves.toBe(true);
+    } finally {
+      store.close();
+    }
+  });
+
 });

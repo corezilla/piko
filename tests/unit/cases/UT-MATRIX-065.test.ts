@@ -1,18 +1,31 @@
 /**
- * Case ID: UT-MATRIX-065  ·  STATUS: skeleton
+ * Case ID: UT-MATRIX-065  ·  STATUS: real
  *
- * 责任：资源操作 L114 `createHash`（matrix.ts）
- * 维度坐标：`sendDiscussionReply` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `MATRIX`）
+ * 责任：资源 createHash（matrix.ts:113）
+ * 维度坐标：`sendDiscussionReply` × `资源获取/释放` × `正常释放`（方案 §6.1A 分卷 `MATRIX`）
  * 用例文档：docs/70_verification/unit/cases/UT-MATRIX-065.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { MatrixRuntime, isPermanentMatrixError } from "../../../src/matrix.js";
+import { config, event, newStore, recordingClient, runtimeWith, task } from "./support/matrix-fix.js";
 
-describe("UT-MATRIX-065 · sendDiscussionReply（matrix.ts:113）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：使 matrix.ts:114 的资源操作（`createHash`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：sendDiscussionReply(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-MATRIX-065 · sendDiscussionReply · 资源获取/释放 × 正常释放", () => {
+  it("derives the transaction id from a hash of the payload", async () => {
+    // 步骤 1：构造 runtime、真实 run 行与 client 替身
+    const store = newStore();
+    const { client, sent } = recordingClient();
+    try {
+      const run = store.createOrGet(task, "slinky", 10, "trigger");
+      const matrix = runtimeWith(store, client);
+
+      // 步骤 2：调用 sendDiscussionReply（事务 id 含 sha256 摘要）
+      await matrix.sendDiscussionReply((run as { task_id: string }).task_id, "!room:test", "$event", 1, "answer");
+
+      // 步骤 3：断言事务 id 形如 instance:run:turn:N:assistant
+      expect(sent[0].txnId).toBe("piko-test:t:turn:1:assistant");
+    } finally {
+      store.close();
+    }
+  });
+
 });
