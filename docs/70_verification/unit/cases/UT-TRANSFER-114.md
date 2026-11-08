@@ -54,7 +54,7 @@
 
 维度格（方案 §2.3 行×格）：`纯函数/无副作用` × `非法值`
 
-实现状态：`Planned`
+实现状态：`Implemented`
 
 ## 2. 公共前提与替身矩阵
 
@@ -105,9 +105,9 @@
 
 **脚本 / 实现状态**：
 
-`tests/unit/cases/UT-TRANSFER-114.test.ts` · `Planned`
+`tests/unit/cases/UT-TRANSFER-114.test.ts` · `Implemented`
 
 ## 4. 集合状态汇总与缺口
 
-- **实现状态**：`Planned`（与 §1 一致）
+- **实现状态**：`Implemented`（与 §1 一致）
 - **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）

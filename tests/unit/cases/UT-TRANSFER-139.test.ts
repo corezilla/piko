@@ -1,18 +1,25 @@
 /**
- * Case ID: UT-TRANSFER-139  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-139  ·  STATUS: real
  *
  * 责任：可选参数 `signal` 缺省/显式两态（transfer.ts:15）
- * 维度坐标：`run` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `TRANSFER`）
+ * 维度坐标：`run` × `字符串/路径/枚举输入` × `未知枚举`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-139.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-139 · run（transfer.ts:15）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `signal: AbortSignal`，其余参数取合法等价类（transfer.ts:15）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → run(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-139 用例文档 §3）
+describe("UT-TRANSFER-139 · run · 字符串/路径/枚举输入 × 未知枚举", () => {
+  it("runs the same with and without a signal", async () => {
+    // 步骤 1：不传 signal 跑一次
+    const withoutSignal = await run("echo", ["hi"]);
+    // 步骤 2：传一个显式未触发的 signal 再跑一次
+    const controller = new AbortController();
+    const withSignal = await run("echo", ["hi"], controller.signal);
+    // 步骤 3：断言两态同构——缺省与显式默认值结果一致
+    expect(withSignal.stdout).toBe(withoutSignal.stdout);
+  });
+
 });

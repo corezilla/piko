@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-TRANSFER-166  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-166  ·  STATUS: real
  *
- * 责任：分支 L167 `!refs.length`（!；transfer.ts）
+ * 责任：分支 L167 ! : !refs.length（transfer.ts）
  * 维度坐标：`fetchInputs` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-166.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-166 · fetchInputs（transfer.ts:166）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 transfer.ts:167 的分支（!：!refs.length）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：fetchInputs(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-166 · fetchInputs · 状态分支 × 合法迁移", () => {
+  it("processes the refs when there are some", async () => {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 2：调用 fetchInputs("t-1", [一条输入])
+      const result = await transfer.fetchInputs("t-1", [{ source: "/remote/not-allowed", dest: "a.txt" }]);
+
+      // 步骤 3：断言走了处理路径（有 failed 记录而不是直接返回 none）
+      expect(result.fetched).toEqual([]);
+      expect(result.failed).toHaveLength(1);
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

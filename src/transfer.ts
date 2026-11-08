@@ -12,9 +12,32 @@ export type DeliveryResult = ArtifactDelivery;
 
 const sha256 = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
 
-function run(cmd: string, args: string[], signal?: AbortSignal): Promise<{ stdout: string; stderr: string }> {
+/**
+ * Spawn seam: how the local `scp` client is launched.
+ *
+ * Production uses `execFile("scp", ...)`. Tests inject a fake so the retry /
+ * backoff / abort paths are exercisable without a real scp binary or a second
+ * host. Same shape as `RemoteSpawner` in remote-exec.ts.
+ */
+export type ScpSpawner = (
+  cmd: string,
+  args: string[],
+  options: { signal?: AbortSignal; timeout: number; maxBuffer: number },
+  callback: (error: Error | null, stdout: string, stderr: string) => void,
+) => void;
+
+const defaultScpSpawner: ScpSpawner = (cmd, args, options, callback) => {
+  execFile(cmd, args, options, callback as never);
+};
+
+export function run(
+  cmd: string,
+  args: string[],
+  signal?: AbortSignal,
+  spawn: ScpSpawner = defaultScpSpawner,
+): Promise<{ stdout: string; stderr: string }> {
   return new Promise((res, rej) => {
-    execFile(cmd, args, { signal, timeout: 600_000, maxBuffer: 8 << 20 }, (err, stdout, stderr) => {
+    spawn(cmd, args, { signal, timeout: 600_000, maxBuffer: 8 << 20 }, (err, stdout, stderr) => {
       if (err) rej(err);
       else res({ stdout, stderr });
     });
@@ -39,7 +62,11 @@ export function safeJoin(stagingRoot: string, taskId: string, rel: string): stri
 export class Transfer {
   private keyPath?: string;
   private tempKey?: string;
-  constructor(private readonly config: RuntimeConfig) {}
+  constructor(
+    private readonly config: RuntimeConfig,
+    /** Spawn seam for the local scp client; production uses execFile. */
+    private readonly spawn: ScpSpawner = defaultScpSpawner,
+  ) {}
 
   /** Resolve the scp identity file from the credential reference (e.g. `env:PIKO_SCP_KEY`). */
   /**
@@ -176,7 +203,7 @@ export class Transfer {
         const local = safeJoin(this.stagingRoot, taskId, dest);
         mkdirSync(resolve(local, ".."), { recursive: true });
         if (this.config.transfer.method === "scp") {
-          await this.withRetry(() => this.scpArgs(ref.source, local, "pull").then((args) => run("scp", args, signal)));
+          await this.withRetry(() => this.scpArgs(ref.source, local, "pull").then((args) => run("scp", args, signal, this.spawn)));
         } else if (this.config.transfer.method === "mount") {
           // mount: source is already a local path; copy is handled by the OS mount.
         } else {
@@ -207,7 +234,7 @@ export class Transfer {
         const digest = sha256(local);
         const remote = `${target.target.replace(/\/+$/, "")}/${rel}`;
         if (target.method === "scp") {
-          await this.withRetry(() => this.scpArgs(remote, local, "push").then((args) => run("scp", args, signal)));
+          await this.withRetry(() => this.scpArgs(remote, local, "push").then((args) => run("scp", args, signal, this.spawn)));
         } else if (target.method === "mount") {
           // mounted target: write directly.
         } else {

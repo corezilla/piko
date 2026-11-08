@@ -1,18 +1,38 @@
 /**
- * Case ID: UT-TRANSFER-264  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-264  ·  STATUS: real
  *
- * 责任：分支 L76 `if (this.tempKey)`（if；transfer.ts）
+ * 责任：分支 L76 if : if (this.tempKey)（transfer.ts:75）
  * 维度坐标：`close` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-264.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-264 · close（transfer.ts:75）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 transfer.ts:76 的分支（if：if (this.tempKey)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：close(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-264 · close · 状态分支 × 合法迁移", () => {
+  it("removes the materialised key on close", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat, readFile, readdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    process.env.PIKO_UT_SCP_KEY = "KEY";
+    const transfer = new Transfer(cfg);
+    let keyFile = "";
+    try {
+      // 步骤 2：调用 sshCommandArgs（物化密钥），再 close()
+      const args = await transfer.sshCommandArgs("h1", ["echo"]);
+      keyFile = args[args.indexOf("-i") + 1];
+      transfer.close();
+
+      // 步骤 3：断言密钥文件被删掉
+      await expect(stat(keyFile)).rejects.toThrow();
+    } finally {
+      transfer.close();
+      delete process.env.PIKO_UT_SCP_KEY;
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

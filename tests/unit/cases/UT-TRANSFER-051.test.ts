@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-TRANSFER-051  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-051  ·  STATUS: real
  *
- * 责任：分支 L209 `? value.length > MAX_OUTPUT_BYTES :`（ternary；remote-exec.ts）
+ * 责任：分支 L209 ternary : ? value.length > MAX_OUTPUT_BYTES :（remote-exec.ts）
  * 维度坐标：`truncate` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-051.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-051 · truncate（remote-exec.ts:208）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 remote-exec.ts:209 的分支（ternary：? value.length > MAX_OUTPUT_BYTES :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：truncate(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-051 · truncate · 状态分支 × 合法迁移", () => {
+  it("leaves a stdout under the limit untouched", async () => {
+    // 步骤 1：构造一个短输出的远端执行
+    const transfer = fakeTransfer();
+    const { spawn } = fakeSpawn({ stdout: "short output" });
+
+    // 步骤 2：调用 execRemote
+    const result = await execRemote({ host: "h", argv: ["echo"] }, transfer as never, config(), spawn as never);
+
+    // 步骤 3：断言原样返回（未过上限）
+    expect(result.stdout).toBe("short output");
+    expect(result.truncated).toBe(false);
+  });
+
 });

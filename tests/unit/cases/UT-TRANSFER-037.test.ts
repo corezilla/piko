@@ -1,18 +1,45 @@
 /**
- * Case ID: UT-TRANSFER-037  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-037  ·  STATUS: real
  *
  * 责任：分支 L189 `? e instanceof Error :`（ternary；remote-exec-tools.ts）
  * 维度坐标：`execute` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-037.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { ExecutionFactCollector } from "../../../src/execution-facts.js";
+import { PikoError } from "../../../src/types.js";
+import { config, fakeScp, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-037 · execute（remote-exec-tools.ts:114）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 remote-exec-tools.ts:189 的分支（ternary：? e instanceof Error :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execute(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-037 · execute · 状态分支 × 合法迁移", () => {
+  it("records the message of an Error rejection", async () => {
+    const collector = new ExecutionFactCollector();
+    const { spawn } = fakeSpawn({ stdout: "ok" });
+    const tool = createRemoteBashTool({
+      transfer: {
+        sshCommandArgs: async () => {
+          throw new Error("plain failure");
+        },
+      },
+      config: config(),
+      remoteHosts: ["host"],
+      executables: ["cat"],
+      executionFacts: collector,
+      spawn: spawn as never,
+    });
+    // 步骤 2：调用 execute（execRemote 抛普通 Error）
+    const result = await tool.execute(
+      "call-1",
+      { host: "host", command: "cat /etc/hostname" } as never,
+      () => {},
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    // 步骤 3：断言错误消息逐值对账——走 e instanceof Error 分支
+    expect(collector.list()[0]?.output).toBe("plain failure");
+  });
+
 });

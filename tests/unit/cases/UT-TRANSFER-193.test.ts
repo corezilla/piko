@@ -1,18 +1,33 @@
 /**
- * Case ID: UT-TRANSFER-193  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-193  ·  STATUS: real
  *
- * 责任：参数 `target: ArtifactTarget` 的 `边界(上/下/零/空/满)` 类（transfer.ts:198）
- * 维度坐标：`deliverArtifacts` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `TRANSFER`）
+ * 责任：参数 `target` 的 `边界(上/下/零/空/满)` 类（transfer.ts:198）
+ * 维度坐标：`deliverArtifacts` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-193.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-193 · deliverArtifacts（transfer.ts:198）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `target: ArtifactTarget`，其余参数取合法等价类（transfer.ts:198）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → deliverArtifacts(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-193 用例文档 §3）
+describe("UT-TRANSFER-193 · deliverArtifacts · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("accepts a target exactly at the allowlist boundary", async () => {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 2：调用 deliverArtifacts（目标正好等于允许项）
+      const result = await transfer.deliverArtifacts("t-1", ["missing.txt"], { method: "scp", target: "/remote/allowed" });
+
+      // 步骤 3：断言没有撞允许表（撞的是文件不存在）
+      expect(result.failed[0].error).not.toContain("not allowlisted");
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

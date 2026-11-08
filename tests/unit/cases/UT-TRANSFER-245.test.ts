@@ -1,18 +1,35 @@
 /**
- * Case ID: UT-TRANSFER-245  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-245  ·  STATUS: real
  *
- * 责任：throw L35 `InvalidRequest`（守卫 `if (relCheck.startsWith("..") || isAbso…`；transfer.ts）
+ * 责任：throw L35 InvalidRequest（守卫 `if (relCheck.startsWith("..") || isAbsolute(relCheck))`；transfer.ts）
  * 维度坐标：`safeJoin` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-245.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-245 · safeJoin（transfer.ts:31）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 transfer.ts:35 的 throw（code `InvalidRequest`，守卫 if (relCheck.startsWith("..") || isAbsolute(relCheck))）
-  // 观察点：typed 错误 code 逐值等于 `InvalidRequest`，消息可判别，无部分写入
-  // 待实现：safeJoin(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-TRANSFER-245 · safeJoin · 错误路径 × 每个 typed 错误码", () => {
+  it("reports the declared staging-escape error", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 2：调用 fetchInputs（逃逸 dest）
+      const result = await transfer.fetchInputs("t-1", [
+        { source: "/remote/allowed", dest: "../escape.txt" },
+      ]);
+
+      // 步骤 3：断言错误消息逐值对账
+      expect(result.failed[0].error).toContain("path escapes staging");
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

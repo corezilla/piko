@@ -4,17 +4,17 @@
   "document_id": "unit-test-scheme",
   "document_version": "0.1.0-draft.5",
   "total": 26,
-  "conformed": 17,
+  "conformed": 18,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
       "result": "conformed",
-      "evidence": "方案 v0.1.0-draft.5、计划 v0.1.0-draft.2、用例说明书 3,278 份（一 Case 一文档，STD draft.130 起）；方案的 §8.1 三方同步链记录了本轮的传播路径"
+      "evidence": "方案 v0.1.0-draft.5、计划 v0.1.0-draft.2、用例说明书 3,282 份（一 Case 一文档，STD draft.130 起）；方案的 §8.1 三方同步链记录了本轮的传播路径"
     },
     {
       "id": "§1 被审清单范围完整：方案、计划、用例集全部在册，抽样范围声明",
       "result": "conformed",
-      "evidence": "docs/70_verification/unit/ 下方案、计划、cases/（3,278 份 .md ＋ 3,278 份 sidecar）、reports/ 全部在册；范围＝单元层全部 3,278 条 Case，非抽样"
+      "evidence": "docs/70_verification/unit/ 下方案、计划、cases/（3,282 份 .md ＋ 3,282 份 sidecar）、reports/ 全部在册；范围＝单元层全部 3,282 条 Case，非抽样"
     },
     {
       "id": "§2 分母对齐：ISD 设计验证项每条有对应家族行与 Case 入口，未覆盖项有显式 N/A/Tailored 依据，无孤儿",
@@ -29,9 +29,8 @@
     },
     {
       "id": "§2 方案含「对象类型×必测维度展开表」（§2.3）：行覆盖本层对象类型、维度无缺漏、删行均附 tailoring 理由，不默认缺项",
-      "result": "deviation",
-      "evidence": "方案 §2.3 有 10 个对象类型、§5.2.1 义务格 24；实际已登记 9 格，缺 15 格（§5.2.1 表逐格列出）→ G-UT-DIM-1。缺格是分母未登记，不是行缺失",
-      "deviation_id": "G-UT-DIM-1"
+      "result": "conformed",
+      "evidence": "方案 §2.3 有 10 个对象类型、§5.2.1 义务格 25；实际已登记 25 格（登记半已闭合），缺格 0 → G-UT-DIM-1 的登记半关闭；执行半（3,282 条 Case 的脚本）随 G-EXEC-UT-3 同批"
     },
     {
       "id": "§2 冻结向量集与受控时钟 fake 的来源、版本与固化方法在方案中写明",
@@ -51,7 +50,7 @@
     {
       "id": "§2 大分量登记齐：Case 数远超几十时双轴（被测面/对象归属×覆盖维度/Case 类型）已声明、分卷或分章落位唯一；每维度/类型实现率表（分母/已实现/待实现）有且合计＝登记数；登记状态与用例集总账互对账零差集",
       "result": "conformed",
-      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 9 / 未登记 16）与 §5.2.2 被测面轴（136 条按 12 个模块前缀分布，合计＝登记数）；§5.2.2 实现率 136/136＝100%"
+      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 25 / 未登记 0）与 §6.1A 被测面轴（12 个模块前缀分卷，合计＝登记数）；§6 分母表（粗粒度 152 条：已实现 72 / 待实现 80）＋ §6.1A 分卷表（3,130 条：已实现 1,309 / 待实现 1,821）合计＝3,282，与用例集总账零差集"
     },
     {
       "id": "§2 环境/脚本契约分卷（项目建立时）：方案 §3/§4 只引用其 ENV/约束 ID 不复制；ENV 类型均有就绪判据与降级去向；凭据等隐式约定已显式登记",
@@ -61,7 +60,7 @@
     {
       "id": "§3 每 Case 被测对象为单函数/类/方法，失败含义唯一",
       "result": "conformed",
-      "evidence": "机器复审 scripts/review-ut-cases.mjs 全量 3,278 条：C3 每 Case 恰好一格、C5 对象函数与 AST 枚举表单元一致、C8 步骤为编号 动作＋观察点；findings=0"
+      "evidence": "机器复审 scripts/review-ut-cases.mjs 全量 3,282 条：C3 每 Case 恰好一格、C5 对象函数与 AST 枚举表单元一致、C8 步骤为编号 动作＋观察点；findings=0"
     },
     {
       "id": "§3 输入可复现：取值冻结或给生成规则（含种子），无隐含依赖",
@@ -93,12 +92,12 @@
     {
       "id": "§4 每个 Step 可定位执行者与观察点；失败处置策略（不阻断/复现要求）与 scheme 一致",
       "result": "conformed",
-      "evidence": "计划 Step 绑定执行者与观察点；本轮新增的 3,278 个脚本骨架按 Case ID 命名，与说明书 §3.1「脚本 / 实现状态」一一对应"
+      "evidence": "计划 Step 绑定执行者与观察点；本轮登记的 3,282 个脚本按 Case ID 命名，与说明书 §3.1「脚本 / 实现状态」一一对应"
     },
     {
       "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
       "result": "conformed",
-      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（1,111），骨架不计入；vitest 全量 1,519 passed / 2,190 todo；tsc --noEmit 零错误"
+      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（1,396），骨架不计入；vitest 全量 1,808 passed / 1,901 todo；tsc --noEmit 零错误"
     },
     {
       "id": "§4 CI 批量策略与一次性判定纪律符合 scheme（不掩盖 FAIL）",
@@ -108,7 +107,7 @@
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
       "result": "deviation",
-      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集；真脚本 1,092 条（八个模块，761 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
+      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集；真脚本 1,381 条（九个模块，1,808 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
       "deviation_id": "G-EXEC-UT-3"
     },
     {
@@ -124,24 +123,24 @@
     {
       "id": "§5 全矩阵义务核销：ISD 每个函数的参数必测类（合法/边界/非法）、错误路径、资源释放均已展开为 Case——\"每函数一条\"不算闭合",
       "result": "conformed",
-      "evidence": "AST 枚举 244 个行为单元（参数 432 · 分支 1,217 · throw 136 · 状态写 100 · 资源 51），逐站点展开为 3,126 条分卷 Case ＋ 152 条粗粒度 Case ＝ 3,278 条，每站点一格一 Case；无「每函数一条」计数"
+      "evidence": "AST 枚举 244 个行为单元（参数 432 · 分支 1,217 · throw 136 · 状态写 100 · 资源 51），逐站点展开为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ 3,282 条，每站点一格一 Case；无「每函数一条」计数"
     },
     {
       "id": "§6 （逐条登记，见下表）",
       "result": "deviation",
-      "evidence": "Issue Log 登记 4 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（15 格未登记）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）；G-EXEC-UT-3（91 个 Case 脚本未标 ID）承接自首轮 Run",
+      "evidence": "Issue Log 登记 4 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（25 格已全部登记，执行半随 G-EXEC-UT-3）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）；G-EXEC-UT-3（3,282 个 Case 中 1,381 个已写出真脚本，1,901 个仍是骨架）",
       "deviation_id": "G-UT-VRC-1"
     },
     {
       "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
       "result": "deviation",
-      "evidence": "Verdict＝部分放行（仅放行已登记的 136 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝5（G-UT-DENOM-1/G-UT-DIM-1/G-UT-VRC-1/G-UT-DRIFT-1/G-EXEC-UT-3）；放行范围＝已登记 Case 的执行，缺口见 §6 Issue Log。三者一致",
+      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝5（G-UT-DENOM-1/G-UT-DIM-1/G-UT-VRC-1/G-UT-DRIFT-1/G-EXEC-UT-3）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
       "deviation_id": "G-UT-DENOM-1"
     },
     {
       "id": "§7 放行范围落到家族/Case 粒度，能据此裁剪下轮实施",
       "result": "conformed",
-      "evidence": "放行范围按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可直接据此裁剪补测波次"
+      "evidence": "放行范围按 §6 的 12 个模块前缀与 §2.3 的 10 个对象类型给出，可直接据此裁剪补测波次"
     }
   ],
   "executed_at": "2026-11-05T03:10:00Z",

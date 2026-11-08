@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-TRANSFER-137  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-137  ·  STATUS: real
  *
  * 责任：参数 `signal: AbortSignal` 的 `边界(上/下/零/空/满)` 类（transfer.ts:15）
  * 维度坐标：`run` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-137.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-137 · run（transfer.ts:15）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `signal: AbortSignal`，其余参数取合法等价类（transfer.ts:15）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → run(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-137 用例文档 §3）
+describe("UT-TRANSFER-137 · run · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("aborts the child when the signal fires", async () => {
+    // 步骤 1：构造一个已触发的 AbortController
+    const controller = new AbortController();
+    controller.abort();
+    // 步骤 2：调用 run("echo", ["hi"], controller.signal)
+    // 步骤 3：断言被中止——ABORT_ERR 是 Node 的取消错误
+    await expect(run("echo", ["hi"], controller.signal)).rejects.toThrow(/abort/i);
+  });
+
 });

@@ -1,18 +1,46 @@
 /**
- * Case ID: UT-TRANSFER-013  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-013  ·  STATUS: real
  *
  * 责任：await 拒绝传播 #1：被调方 `execRemote(` 拒绝必须 typed 化上抛（remote-exec-tools.ts:106）
  * 维度坐标：`createRemoteBashTool` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-013.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { ExecutionFactCollector } from "../../../src/execution-facts.js";
+import { PikoError } from "../../../src/types.js";
+import { config, fakeScp, fakeSpawn, fakeTransfer, textOf } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-013 · createRemoteBashTool（remote-exec-tools.ts:106）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：注入第 1 个被调方（createRemoteBashTool 的 await 目标）拒绝
-  // 观察点：拒绝按设计声明的 typed 错误上抛，不吞错、不降级为成功
-  // 待实现：注入拒绝 → 调用 → 断言上抛（Oracle：用例文档 §3）
+describe("UT-TRANSFER-013 · createRemoteBashTool · 错误路径 × 每个 typed 错误码", () => {
+  it("turns a rejected execRemote into a structured error result", async () => {
+    const { spawn } = fakeSpawn({ stdout: "ok" });
+    const collector = new ExecutionFactCollector();
+    const tool = createRemoteBashTool({
+      transfer: {
+        sshCommandArgs: async () => {
+          throw new PikoError("InputFetchFailed", 422, "connect to host: failure");
+        },
+      },
+      config: config(),
+      remoteHosts: ["host"],
+      executables: ["cat"],
+      executionFacts: collector,
+      spawn: spawn as never,
+    });
+    // 步骤 2：调用 execute（execRemote 拒绝）
+    const result = await tool.execute(
+      "call-1",
+      { host: "host", command: "cat /etc/hostname" } as never,
+      () => {},
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    // 步骤 3：断言拒绝被转成结构化错误结果，不冒泡
+    expect(result.details?.error).toBe("InputFetchFailed");
+    expect(textOf(result)).toContain("remote execution unavailable");
+  });
+
 });

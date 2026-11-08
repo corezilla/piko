@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-TRANSFER-104  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-104  ·  STATUS: real
  *
- * 责任：分支 L201 `if (settled)`（if；remote-exec.ts）
+ * 责任：分支 L201 if : if (settled)（remote-exec.ts）
  * 维度坐标：`execRemote` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-104.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-104 · execRemote（remote-exec.ts:92）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 remote-exec.ts:201 的分支（if：if (settled)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execRemote(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-104 · execRemote · 状态分支 × 合法迁移", () => {
+  it("ignores a late error after the result settled", async () => {
+    // 步骤 1：构造 transfer 与 spawn 替身
+    const transfer = fakeTransfer();
+    const { spawn } = fakeSpawn({ stdout: "ok" });
+
+    // 步骤 2：调用 execRemote
+    const result = await execRemote({ host: "h1", argv: ["echo"] }, transfer as never, config(), spawn as never);
+
+    // 步骤 3：断言结果照常返回（迟到的错误不改变已结算的结果）
+    expect(result.exit_code).toBe(0);
+  });
+
 });

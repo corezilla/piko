@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-TRANSFER-279  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-279  ·  STATUS: real
  *
  * 责任：参数 `local: string` 的 `空` 类（transfer.ts:94）
  * 维度坐标：`scpArgs` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-279.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { config, fakeScp, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-279 · scpArgs（transfer.ts:94）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `local: string`，其余参数取合法等价类（transfer.ts:94）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → scpArgs(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-279 用例文档 §3）
+describe("UT-TRANSFER-279 · scpArgs · 字符串/路径/枚举输入 × 空", () => {
+  it("derives the local name from the source when no dest is given", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    process.env.PIKO_UT_SCP_KEY = "KEY";
+    const { spawn, calls } = fakeScp([{ error: null, stdout: "", stderr: "" }]);    const transfer = new Transfer(cfg, spawn as never);
+    try {
+      // 步骤 2：调用 fetchInputs（不传 dest → 目标名由源的末段推导）
+      await transfer.fetchInputs("t-1", [{ source: "/remote/allowed/file.txt" }]);
+
+      // 步骤 3：断言本地落点是源名推出的路径
+      expect(calls).toHaveLength(1);
+      expect(calls[0].args[calls[0].args.length - 1]).toBe(`${staging}/t-1/file.txt`);
+    } finally {
+      transfer.close();
+      delete process.env.PIKO_UT_SCP_KEY;
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

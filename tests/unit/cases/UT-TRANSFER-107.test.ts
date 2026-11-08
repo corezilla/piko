@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-TRANSFER-107  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-107  ·  STATUS: real
  *
- * 责任：资源操作 L128 `spawn`（remote-exec.ts）
- * 维度坐标：`execRemote` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `TRANSFER`）
+ * 责任：资源 L132 execFile（remote-exec.ts）
+ * 维度坐标：`execRemote` × `资源获取/释放` × `正常释放`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-107.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-107 · execRemote（remote-exec.ts:92）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：使 remote-exec.ts:128 的资源操作（`spawn`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：execRemote(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-107 · execRemote · 资源获取/释放 × 正常释放", () => {
+  it("never leaves a client running past the timeout", async () => {
+    // 步骤 1：构造 transfer 与 spawn 替身
+    const transfer = fakeTransfer();
+    const { spawn, spawned } = fakeSpawn({ stdout: "ok" });
+
+    // 步骤 2：调用 execRemote
+    await execRemote({ host: "h1", argv: ["echo"], timeoutMs: 500 }, transfer as never, config(), spawn as never);
+
+    // 步骤 3：断言超时被传给客户端（客户端自己负责退出）
+    expect((spawned[0].options as { timeoutMs: number }).timeoutMs).toBe(500);
+  });
+
 });

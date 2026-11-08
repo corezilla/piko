@@ -1,18 +1,24 @@
 /**
- * Case ID: UT-TRANSFER-143  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-143  ·  STATUS: real
  *
  * 责任：资源操作 L17 `execFile`（transfer.ts）
  * 维度坐标：`run` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-143.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-143 · run（transfer.ts:15）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：使 transfer.ts:17 的资源操作（`execFile`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：run(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-143 · run · 资源获取/释放 × 获取失败路径", () => {
+  it("does not leave the child running when the command fails", async () => {
+    // 步骤 1：调用 run("sh", ["-c", "exit 1"])（子进程立即失败）
+    // 步骤 2：断言失败被上抛且进程已退出（无悬挂子进程）
+    await expect(run("sh", ["-c", "exit 1"])).rejects.toThrow();
+    // 步骤 3：断言没有残留的句柄——再跑一次正常的命令仍能成功
+    const result = await run("echo", ["alive"]);
+    expect(result.stdout.trim()).toBe("alive");
+  });
+
 });

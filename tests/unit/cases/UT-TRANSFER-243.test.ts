@@ -1,18 +1,35 @@
 /**
- * Case ID: UT-TRANSFER-243  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-243  ·  STATUS: real
  *
- * 责任：参数 `rel: string` 的 `注入字符` 类（transfer.ts:31）
+ * 责任：参数 `rel` 的 `注入字符` 类（transfer.ts:31）
  * 维度坐标：`safeJoin` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-243.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-243 · safeJoin（transfer.ts:31）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `rel: string`，其余参数取合法等价类（transfer.ts:31）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → safeJoin(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-243 用例文档 §3）
+describe("UT-TRANSFER-243 · safeJoin · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("treats an injected relative path as data", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 2：调用 fetchInputs（注入串 dest）
+      const result = await transfer.fetchInputs("t-1", [
+        { source: "/remote/nope", dest: "$(rm -rf /).txt" },
+      ]);
+
+      // 步骤 3：断言失败被记下（源未获允许先失败）
+      expect(result.state).toBe("failed");
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

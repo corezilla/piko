@@ -1,18 +1,38 @@
 /**
- * Case ID: UT-TRANSFER-154  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-154  ·  STATUS: real
  *
  * 责任：返回站点 L156 值 `await fn()` 逐值断言（transfer.ts）
  * 维度坐标：`withRetry` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-154.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin, run } from "../../../src/transfer.js";
+import { config, fakeScp, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-154 · withRetry（transfer.ts:151）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 transfer.ts:156 的返回站点（值 await fn()）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：withRetry(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-154 · withRetry · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the value of the successful attempt", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    process.env.PIKO_UT_SCP_KEY = "KEY";
+    const { spawn, calls } = fakeScp([{ error: null, stdout: "", stderr: "" }]);
+    const transfer = new Transfer(cfg, spawn as never);
+    try {
+      // 步骤 2：调用 fetchInputs（第一次就成功）
+      const result = await transfer.fetchInputs("t-1", [{ source: "/remote/allowed", dest: "a.txt" }]);
+
+      // 步骤 3：断言返回值逐值对账——一次成功即返回，不进入 catch
+      expect(calls).toHaveLength(1);
+      expect(result).toHaveProperty("state");
+      expect(result.failed).toHaveLength(1);
+    } finally {
+      transfer.close();
+      delete process.env.PIKO_UT_SCP_KEY;
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

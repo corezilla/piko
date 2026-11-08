@@ -205,6 +205,12 @@ export async function execRemote(
   });
 }
 
-function truncate(value: string): string {
+/**
+ * Cut a stream to the per-stream output bound.
+ *
+ * Exported so the truncation bound can be asserted directly rather than only
+ * through a whole remote execution.
+ */
+export function truncate(value: string): string {
   return value.length > MAX_OUTPUT_BYTES ? value.slice(0, MAX_OUTPUT_BYTES) : value;
 }

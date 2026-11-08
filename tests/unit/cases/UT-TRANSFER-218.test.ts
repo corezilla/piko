@@ -1,18 +1,42 @@
 /**
- * Case ID: UT-TRANSFER-218  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-218  ·  STATUS: real
  *
- * 责任：资源操作 L206 `statSync`（transfer.ts）
+ * 责任：资源 statSync（transfer.ts:198）
  * 维度坐标：`deliverArtifacts` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-218.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-218 · deliverArtifacts（transfer.ts:198）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：使 transfer.ts:206 的资源操作（`statSync`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：deliverArtifacts(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-218 · deliverArtifacts · 资源获取/释放 × 获取失败路径", () => {
+  it("reads the size and digest of a delivered artifact", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat, readFile, readdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 1：造一个产物
+      await mkdir(`${staging}/t-1`, { recursive: true });
+      await writeFile(`${staging}/t-1/out.txt`, "data", "utf8");
+
+      // 步骤 2：调用 deliverArtifacts
+      const result = await transfer.deliverArtifacts(
+        "t-1",
+        ["out.txt"],
+        { method: "mount", target: "/remote/allowed" },
+      );
+
+      // 步骤 3：断言字节数与摘要被算出来（stat ＋ 读取都成功）
+      expect(result.delivered[0].size_bytes).toBe(4);
+      expect(result.delivered[0].sha256).toMatch(/^[0-9a-f]{64}$/);
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

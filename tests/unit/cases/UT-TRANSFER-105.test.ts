@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-TRANSFER-105  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-105  ·  STATUS: real
  *
- * 责任：throw L101 `InvalidRequest`（守卫 `if (argv.length === 0)`；remote-exec.ts）
+ * 责任：throw L101 InvalidRequest（守卫 `if (argv.length === 0)`；remote-exec.ts）
  * 维度坐标：`execRemote` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-105.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-105 · execRemote（remote-exec.ts:92）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 remote-exec.ts:101 的 throw（code `InvalidRequest`，守卫 if (argv.length === 0)）
-  // 观察点：typed 错误 code 逐值等于 `InvalidRequest`，消息可判别，无部分写入
-  // 待实现：execRemote(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-TRANSFER-105 · execRemote · 错误路径 × 每个 typed 错误码", () => {
+  it("throws the declared invalid-request error", async () => {
+    // 步骤 1：构造 transfer 与 spawn 替身
+    const transfer = fakeTransfer();
+    const { spawn } = fakeSpawn();
+
+    // 步骤 2：调用 execRemote（argv 为空）
+    // 步骤 3：断言 typed 错误码与状态码逐值对账
+    await expect(
+      execRemote({ host: "h1", argv: [] }, transfer as never, config(), spawn as never),
+    ).rejects.toThrow(/remote command argv must not be empty/);
+  });
+
 });

@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-TRANSFER-225  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-225  ·  STATUS: real
  *
- * 责任：资源操作 L227 `rmSync`（transfer.ts）
+ * 责任：资源 rmSync（transfer.ts:225）
  * 维度坐标：`clearStaging` × `资源获取/释放` × `正常释放`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-225.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-225 · clearStaging（transfer.ts:225）", () => {
-  test.todo("资源获取/释放 × 正常释放");
-  // 输入构造：使 transfer.ts:227 的资源操作（`rmSync`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：clearStaging(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-225 · clearStaging · 资源获取/释放 × 正常释放", () => {
+  it("removes the task's staging directory", async () => {
+  const { mkdtemp, rm, mkdir, writeFile, stat, readFile, readdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 1：造一个任务目录
+      await mkdir(`${staging}/t-1`, { recursive: true });
+      await writeFile(`${staging}/t-1/out.txt`, "data", "utf8");
+
+      // 步骤 2：调用 clearStaging("t-1")
+      transfer.clearStaging("t-1");
+
+      // 步骤 3：断言目录被清掉
+      await expect(stat(`${staging}/t-1`)).rejects.toThrow();
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

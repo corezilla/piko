@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-TRANSFER-103  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-103  ·  STATUS: real
  *
- * 责任：分支 L194 `? timedOut :`（ternary；remote-exec.ts）
+ * 责任：分支 L194 ternary : ? timedOut :（remote-exec.ts）
  * 维度坐标：`execRemote` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-103.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-103 · execRemote（remote-exec.ts:92）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 remote-exec.ts:194 的分支（ternary：? timedOut :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execRemote(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-TRANSFER-103 · execRemote · 状态分支 × 合法迁移", () => {
+  it("reports the remote stop state as stopped on a normal exit", async () => {
+    // 步骤 1：构造 transfer 与 spawn 替身
+    const transfer = fakeTransfer();
+    const { spawn } = fakeSpawn({ stdout: "ok" });
+
+    // 步骤 2：调用 execRemote
+    const result = await execRemote({ host: "h1", argv: ["true"] }, transfer as never, config(), spawn as never);
+
+    // 步骤 3：断言远端已停（正常退出）
+    expect(result.remote_stop_state).toBe("stopped");
+  });
+
 });

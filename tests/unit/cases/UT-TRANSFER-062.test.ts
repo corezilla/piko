@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-TRANSFER-062  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-062  ·  STATUS: real
  *
  * 责任：参数 `spawn: RemoteSpawner` 的 `每等价类合法值` 类（remote-exec.ts:92）
  * 维度坐标：`execRemote` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-062.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-062 · execRemote（remote-exec.ts:92）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `spawn: RemoteSpawner`，其余参数取合法等价类（remote-exec.ts:92）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → execRemote(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-062 用例文档 §3）
+describe("UT-TRANSFER-062 · execRemote · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("uses the injected spawn instead of a real ssh process", async () => {
+    // 步骤 1：构造 transfer 与 spawn 替身
+    const transfer = fakeTransfer();
+    const { spawn, spawned } = fakeSpawn({ stdout: "from-stub" });
+
+    // 步骤 2：调用 execRemote
+    const result = await execRemote({ host: "h1", argv: ["echo"] }, transfer as never, config(), spawn as never);
+
+    // 步骤 3：断言真进程没被起（spawn 替身被调用）
+    expect(spawned).toHaveLength(1);
+    expect(result.stdout).toBe("from-stub");
+  });
+
 });

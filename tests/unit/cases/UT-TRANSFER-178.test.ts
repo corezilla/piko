@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-TRANSFER-178  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-178  ·  STATUS: real
  *
- * 责任：throw L183 `InputFetchFailed`（守卫 `if (this.config.transfer.method === "mo…`；transfer.ts）
+ * 责任：throw L183 InputFetchFailed（守卫 `else { throw new PikoError("InputFetchFailed…`；transfer.ts）
  * 维度坐标：`fetchInputs` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-178.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-178 · fetchInputs（transfer.ts:166）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 transfer.ts:183 的 throw（code `InputFetchFailed`，守卫 if (this.config.transfer.method === "mount")）
-  // 观察点：typed 错误 code 逐值等于 `InputFetchFailed`，消息可判别，无部分写入
-  // 待实现：fetchInputs(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-TRANSFER-178 · fetchInputs · 错误路径 × 每个 typed 错误码", () => {
+  it("reports the object_store error with its declared code", async () => {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const storeCfg = config({
+      transfer: { staging_root: staging, method: "object_store" },
+      workspace: { staging_root: staging, roots: { piko: staging } },
+    });
+    const transfer = new Transfer(storeCfg);
+    try {
+      // 步骤 2：调用 fetchInputs
+      const result = await transfer.fetchInputs("t-1", [{ source: "/remote/allowed", dest: "a.txt" }]);
+
+      // 步骤 3：断言错误消息逐值对账
+      expect(result.failed[0].error).toBe("object_store transport not implemented in this build");
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });

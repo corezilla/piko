@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-TRANSFER-119  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-119  ·  STATUS: real
  *
- * 责任：throw L114 `InputFetchFailed`（守卫 `if (!knownHosts)`；transfer.ts）
+ * 责任：throw L114 InputFetchFailed（守卫 `if (!knownHosts)`；transfer.ts）
  * 维度坐标：`sshBaseArgs` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-119.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-119 · sshBaseArgs（transfer.ts:112）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 transfer.ts:114 的 throw（code `InputFetchFailed`，守卫 if (!knownHosts)）
-  // 观察点：typed 错误 code 逐值等于 `InputFetchFailed`，消息可判别，无部分写入
-  // 待实现：sshBaseArgs(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-TRANSFER-119 · sshBaseArgs · 错误路径 × 每个 typed 错误码", () => {
+  it("throws the declared known-hosts error", async () => {
+    // 步骤 1：构造一个没有 known_hosts 的 Transfer
+    const transfer = new Transfer(config({ transfer: { known_hosts: undefined } }));
+    try {
+      // 步骤 2：调用 sshCommandArgs
+      // 步骤 3：断言 typed 错误码与状态码逐值对账
+      await expect(transfer.sshCommandArgs("h1", ["echo"])).rejects.toThrow(/known_hosts is required/);
+    } finally {
+      transfer.close();
+    }
+  });
+
 });

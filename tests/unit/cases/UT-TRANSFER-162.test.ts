@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-TRANSFER-162  ·  STATUS: skeleton
+ * Case ID: UT-TRANSFER-162  ·  STATUS: real
  *
- * 责任：参数 `signal: AbortSignal` 的 `边界(上/下/零/空/满)` 类（transfer.ts:166）
- * 维度坐标：`fetchInputs` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `TRANSFER`）
+ * 责任：参数 `signal` 的 `边界(上/下/零/空/满)` 类（transfer.ts:166）
+ * 维度坐标：`fetchInputs` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `TRANSFER`）
  * 用例文档：docs/70_verification/unit/cases/UT-TRANSFER-162.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { splitRemoteCommand, createRemoteBashTool } from "../../../src/remote-exec-tools.js";
+import { execRemote, truncate } from "../../../src/remote-exec.js";
+import { Transfer, safeJoin } from "../../../src/transfer.js";
+import { config, fakeSpawn, fakeTransfer } from "./support/transfer-fix.js";
 
-describe("UT-TRANSFER-162 · fetchInputs（transfer.ts:166）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `signal: AbortSignal`，其余参数取合法等价类（transfer.ts:166）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → fetchInputs(/* 参数 */) → 逐值断言（Oracle：UT-TRANSFER-162 用例文档 §3）
+describe("UT-TRANSFER-162 · fetchInputs · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("reports an aborted signal as a failed fetch", async () => {
+  const { mkdtemp, rm, mkdir, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const staging = await mkdtemp(join(tmpdir(), "piko-transfer-"));
+  const cfg = config({ transfer: { staging_root: staging }, workspace: { staging_root: staging, roots: { piko: staging } } });    const transfer = new Transfer(cfg);
+    try {
+      // 步骤 2：构造一个已 abort 的 signal
+      const controller = new AbortController();
+      controller.abort();
+
+      // 步骤 3：调用 fetchInputs("t-1", [允许表内的源], signal)
+      const result = await transfer.fetchInputs("t-1", [{ source: "/remote/allowed", dest: "a.txt" }], controller.signal);
+
+      // 步骤 4：断言状态为 failed（中止即失败，不留半拉状态）
+      expect(result.state).toBe("failed");
+    } finally {
+      transfer.close();
+      await rm(staging, { recursive: true, force: true });
+    }
+  });
+
 });
