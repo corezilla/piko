@@ -1,18 +1,78 @@
 /**
- * Case ID: UT-REPO-108  ·  STATUS: skeleton
+ * Case ID: UT-REPO-108  ·  STATUS: real
  *
  * 责任：分支 L242 `slot.task_id !== command.task_id || slot.leas…`（||；store.ts）
  * 维度坐标：`mutateRun` × `并发/可重入` × `并发对偶/交错`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-108.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-108 · mutateRun（store.ts:232）", () => {
-  test.todo("并发/可重入 × 并发对偶/交错");
-  // 输入构造：使 store.ts:242 的分支（||：slot.task_id !== command.task_id || slot.lease_epoch !== co…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：mutateRun(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-REPO-108 · mutateRun · 并发/可重入 × 并发对偶/交错", () => {
+
+  it("rejects a mismatched lease holder or epoch and accepts the exact one", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-108a"));
+      accept(store, task("t-108b"));
+      // 步骤 1：构造前置状态——执行位被最旧的 t-108a 持有
+      const grant = store.tryClaimSlot("worker", "boot") as { task_id: string; lease_epoch: number };
+      expect(grant.task_id).toBe("t-108a");
+
+      // 步骤 2：取真侧之一——slot.task_id ≠ command.task_id（t-108b 不在执行位上）
+      let otherErr: any = null;
+      try {
+        store.mutateRun({
+          task_id: "t-108b",
+          expected_generation: 1,
+          expected_lease_epoch: grant.lease_epoch,
+          mutation: () => {},
+        });
+      } catch (e) {
+        otherErr = e;
+      }
+      // 步骤 2：取真侧之二——slot.lease_epoch ≠ command.expected_lease_epoch
+      let epochErr: any = null;
+      try {
+        store.mutateRun({
+          task_id: "t-108a",
+          expected_generation: 1,
+          expected_lease_epoch: grant.lease_epoch + 1,
+          mutation: () => {},
+        });
+      } catch (e) {
+        epochErr = e;
+      }
+      expect(otherErr?.code).toBe("LeaseLost");
+      expect(epochErr?.code).toBe("LeaseLost");
+      expect(store.getRun("t-108a").generation).toBe(1);
+      expect(store.getRun("t-108b").generation).toBe(1);
+
+      // 步骤 3：构造使该分支取假的输入——task_id 与 epoch 都对上
+      // 步骤 4：再次调用 mutateRun(…) 并断言取假侧结果（两侧都被观测到）
+      const generation = store.mutateRun({
+        task_id: "t-108a",
+        expected_generation: 1,
+        expected_lease_epoch: grant.lease_epoch,
+        mutation: (r) => {
+          r.state = "Running";
+        },
+      });
+      expect(generation).toBe(2);
+      expect(store.getRun("t-108a").state).toBe("Running");
+    } finally {
+      store.close();
+    }
+  });
+
 });

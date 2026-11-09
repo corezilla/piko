@@ -1,18 +1,47 @@
 /**
- * Case ID: UT-REPO-340  ·  STATUS: skeleton
+ * Case ID: UT-REPO-340  ·  STATUS: real
  *
  * 责任：参数 `op: string` 的 `超长` 类（store.ts:489）
  * 维度坐标：`markTurn` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-340.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-340 · markTurn（store.ts:489）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `op: string`，其余参数取合法等价类（store.ts:489）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → markTurn(/* 参数 */) → 逐值断言（Oracle：UT-REPO-340 用例文档 §3）
+describe("UT-REPO-340 · markTurn · 字符串/路径/枚举输入 × 超长", () => {
+  it("stores an over-long operation id verbatim", async () => {
+    const store = newStore();
+    try {
+      acceptDiscussion(store, "t-340", "!room:340");
+      const longOp = "O".repeat(2 * 4096);
+
+      // 步骤 1：按 `超长` 类构造参数 op——长度 2×上限（源码无比较常量，取缺省上限 4096 → 8192）；
+      //         其余参数取合法等价类
+      // 步骤 2：调用 markTurn(…)
+      const returned = store.markTurn("t-340", "$e1", "Consumed", "entry-340", longOp);
+
+      // 步骤 3：断言——实现无长度校验：超长 op 不被拒绝，原样落库，长度逐值对账
+      expect(returned).toBeUndefined();
+      const row = store.db
+        .prepare("SELECT length(pi_operation_id) lo, pi_entry_id, status FROM discussion_turns")
+        .get() as any;
+      expect(row.lo).toBe(8192);
+      expect(row.pi_entry_id).toBe("entry-340");
+      expect(row.status).toBe("Consumed");
+      expect((store.db.prepare("SELECT count(*) n FROM discussion_turns").get() as any).n).toBe(1);
+    } finally {
+      store.close();
+    }
+  });
+
 });

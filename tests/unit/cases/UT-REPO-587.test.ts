@@ -1,18 +1,60 @@
 /**
- * Case ID: UT-REPO-587  ·  STATUS: skeleton
+ * Case ID: UT-REPO-587  ·  STATUS: real
  *
  * 责任：参数 `result: AgentResult` 的 `每等价类合法值` 类（store.ts:745）
  * 维度坐标：`publishResult` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-587.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-587 · publishResult（store.ts:745）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `result: AgentResult`，其余参数取合法等价类（store.ts:745）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → publishResult(/* 参数 */) → 逐值断言（Oracle：UT-REPO-587 用例文档 §3）
+describe("UT-REPO-587 · publishResult · 纯函数/无副作用 × 每等价类合法值", () => {
+
+  it("accepts each legal result variant under a held lease", async () => {
+    const store = newStore();
+    try {
+      // 步骤 1：按 `每等价类合法值` 类构造参数 result——Failed 与 Completed 两个终态各一条（results 表每个 task 只留一行，故用两个任务）；其余参数取合法等价类
+      accept(store, task("t1"));
+      accept(store, task("t2"));
+
+      // 步骤 2：调用 publishResult(…)
+      const grant1 = store.tryClaimSlot("owner-1", "boot-1") as { task_id: string; lease_epoch: number };
+      expect(grant1.task_id).toBe("t1");
+      store.publishResult(result("t1", { generation: 1, state: "Failed" }), grant1.lease_epoch);
+      const genAfterFailed = store.generation("t1");
+      store.releaseSlot("t1", grant1.lease_epoch);
+      const grant2 = store.tryClaimSlot("owner-1", "boot-1") as { task_id: string; lease_epoch: number };
+      expect(grant2.task_id).toBe("t2");
+      store.publishResult(result("t2", { generation: 1, state: "Completed" }), grant2.lease_epoch);
+      const genAfterCompleted = store.generation("t2");
+
+      // 步骤 3：断言：被接受时返回值/状态与设计声明一致，逐值对账
+      //         实现的真实语义：publishResult 只校验槽归属，不校验 result.state 的取值域；
+      //         每次成功发布都把该任务的 runs.generation 加一
+      expect(genAfterFailed).toBe(2);
+      expect(genAfterCompleted).toBe(2);
+      const rows = store.db.prepare("SELECT task_id, generation FROM results ORDER BY task_id").all() as any[];
+      expect(rows.map((r) => [r.task_id, r.generation])).toEqual([
+        ["t1", 1],
+        ["t2", 1],
+      ]);
+      const states = store.db.prepare("SELECT task_id, result_json FROM results ORDER BY task_id").all() as any[];
+      expect(states.map((r) => JSON.parse(r.result_json).state)).toEqual(["Failed", "Completed"]);
+      // 槽仍被最后一个任务持有（publishResult 不释放槽）
+      expect(store.readSlot().task_id).toBe("t2");
+    } finally {
+      store.close();
+    }
+  });
+
 });

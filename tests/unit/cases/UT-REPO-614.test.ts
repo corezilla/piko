@@ -1,18 +1,53 @@
 /**
- * Case ID: UT-REPO-614  ·  STATUS: skeleton
+ * Case ID: UT-REPO-614  ·  STATUS: real
  *
  * 责任：参数 `result: AgentResult` 的 `每等价类合法值` 类（store.ts:780）
  * 维度坐标：`finishQueued` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-614.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-614 · finishQueued（store.ts:780）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `result: AgentResult`，其余参数取合法等价类（store.ts:780）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → finishQueued(/* 参数 */) → 逐值断言（Oracle：UT-REPO-614 用例文档 §3）
+describe("UT-REPO-614 · finishQueued · 纯函数/无副作用 × 每等价类合法值", () => {
+
+  it("finalises a queued run for each legal terminal state", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-614-completed"));
+      accept(store, task("t-614-failed"));
+      accept(store, task("t-614-cancelled"));
+
+      // 步骤 1：按 `每等价类合法值` 类构造参数 result——三个合法终态各一个代表值
+      // 步骤 2：调用 finishQueued(…)
+      store.finishQueued(result("t-614-completed"));
+      store.finishQueued(
+        result("t-614-failed", {
+          state: "Failed",
+          failure: { code: "InputFetchFailed", cause_class: "Dependency", message: "nope" },
+        }),
+      );
+      store.finishQueued(result("t-614-cancelled", { state: "Cancelled" }));
+
+      // 步骤 3：断言逐值对账——三条 run 都进了各自的终态，结果行逐值对得上
+      expect(store.getRun("t-614-completed").state).toBe("Completed");
+      expect(store.getRun("t-614-failed").state).toBe("Failed");
+      expect(store.getRun("t-614-cancelled").state).toBe("Cancelled");
+      expect(store.result("t-614-completed").state).toBe("Completed");
+      expect(store.result("t-614-failed").failure?.code).toBe("InputFetchFailed");
+      expect(store.result("t-614-cancelled").state).toBe("Cancelled");
+    } finally {
+      store.close();
+    }
+  });
+
 });

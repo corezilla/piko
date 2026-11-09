@@ -1,18 +1,45 @@
 /**
- * Case ID: UT-REPO-227  ·  STATUS: skeleton
+ * Case ID: UT-REPO-227  ·  STATUS: real
  *
  * 责任：参数 `attempt: number` 的 `+1 拒绝` 类（store.ts:431）
  * 维度坐标：`reserveModel` × `数值/长度上限参数` × `+1 拒绝`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-227.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-227 · reserveModel（store.ts:431）", () => {
-  test.todo("数值/长度上限参数 × +1 拒绝");
-  // 输入构造：按 `+1 拒绝` 类构造 `attempt: number`，其余参数取合法等价类（store.ts:431）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → reserveModel(/* 参数 */) → 逐值断言（Oracle：UT-REPO-227 用例文档 §3）
+describe("UT-REPO-227 · reserveModel · 数值/长度上限参数 × +1 拒绝", () => {
+
+  it("admits attempt 1 and attempt 2 alike because there is no attempt ceiling", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-227"));
+
+      // 步骤 1：按 `+1 拒绝` 类构造参数 attempt——边界值 1 与它的 +1 即 2
+      // 步骤 2：调用 reserveModel(…)
+      const atBoundary = store.reserveModel("t-227", "op-227", "step-227", 1);
+      const atBoundaryPlusOne = store.reserveModel("t-227", "op-227", "step-227", 2);
+
+      // 步骤 3：断言——实现的真实行为与该格名相左：`attempt` 没有任何上界校验，
+      //         attempt=2 不被拒绝，而是作为复合主键的另一个成员另立一行
+      expect(atBoundary).toBe(true);
+      expect(atBoundaryPlusOne).toBe(true);
+      const rows = store.db.prepare("SELECT attempt FROM model_attempts ORDER BY attempt").all() as any[];
+      expect(rows).toEqual([{ attempt: 1 }, { attempt: 2 }]);
+      expect(store.getRun("t-227").progress.model_calls).toBe(2);
+    } finally {
+      store.close();
+    }
+  });
+
 });

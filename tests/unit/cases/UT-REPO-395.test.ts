@@ -1,18 +1,47 @@
 /**
- * Case ID: UT-REPO-395  ·  STATUS: skeleton
+ * Case ID: UT-REPO-395  ·  STATUS: real
  *
  * 责任：参数 `txn: string` 的 `空` 类（store.ts:524）
  * 维度坐标：`recordMatrixEvent` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-395.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-395 · recordMatrixEvent（store.ts:524）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `txn: string`，其余参数取合法等价类（store.ts:524）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → recordMatrixEvent(/* 参数 */) → 逐值断言（Oracle：UT-REPO-395 用例文档 §3）
+describe("UT-REPO-395 · recordMatrixEvent · 字符串/路径/枚举输入 × 空", () => {
+  it("maps the empty txn to an empty string, and to SQL NULL for undefined and null", async () => {
+    const store = newStore();
+    try {
+      // 步骤 1：按 `空` 类构造参数 txn——''（空串）、undefined（缺省）、null（显式空值）三态
+      // 步骤 2：调用 recordMatrixEvent(…)
+      expect(store.recordMatrixEvent("!room:a", "$e1", "@alice", "")).toBe(true);
+      expect(store.recordMatrixEvent("!room:b", "$e2", "@alice", undefined)).toBe(true);
+      expect(store.recordMatrixEvent("!room:c", "$e3", "@alice", null as never)).toBe(true);
+
+      // 步骤 3：断言——实现的真实语义：`txn ?? null` 只把 null/undefined 变成 SQL NULL，
+      //         空串是合法值，原样落库；三种输入都不抛 typed 错误
+      const rows = store.db.prepare("SELECT event_id,txn_id FROM matrix_events ORDER BY event_id").all() as any[];
+      expect(rows).toEqual([
+        { event_id: "$e1", txn_id: "" },
+        { event_id: "$e2", txn_id: null },
+        { event_id: "$e3", txn_id: null },
+      ]);
+      expect(rows[0].txn_id).toBe("");
+      expect(rows[1].txn_id).toBeNull();
+      expect(rows[2].txn_id).toBeNull();
+    } finally {
+      store.close();
+    }
+  });
+
 });

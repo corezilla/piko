@@ -1,18 +1,73 @@
 /**
- * Case ID: UT-PI-570  ·  STATUS: skeleton
+ * Case ID: UT-PI-570  ·  STATUS: real
  *
  * 责任：参数 `opts: PrefetchOptions` 的 `边界(上/下/零/空/满)` 类（skill-prefetch.ts:137）
  * 维度坐标：`prefetchSkillContext` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-570.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-570 · prefetchSkillContext（skill-prefetch.ts:137）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `opts: PrefetchOptions`，其余参数取合法等价类（skill-prefetch.ts:137）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → prefetchSkillContext(/* 参数 */) → 逐值断言（Oracle：UT-PI-570 用例文档 §3）
+describe("UT-PI-570 · prefetchSkillContext · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("honours the no_skill option", async () => {
+const anIdentity = (over: Record<string, unknown> = {}) => ({
+  role: "tester",
+  userId: "user-1",
+  defaultScope: "project",
+  ...over,
+});
+const aMem0 = (result: unknown[] | Error) => ({
+  search: vi.fn(async () => {
+    if (result instanceof Error) throw result;
+    return result;
+  }),
+});
+    // 步骤 2：调用 prefetchSkillContext（opts.kind = no_skill）
+    const context = await prefetchSkillContext(
+      "a long enough instruction to pass the minimum length",
+      anIdentity() as never,
+      aMem0([]) as never,
+      undefined,
+      { kind: "no_skill" },
+    );
+
+    // 步骤 3：断言返回值逐值对账——没技能即整体跳过
+    expect(context.skipped).toBe("no_skill");
+  });
+
 });

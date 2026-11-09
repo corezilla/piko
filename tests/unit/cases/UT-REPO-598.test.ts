@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-REPO-598  ·  STATUS: skeleton
+ * Case ID: UT-REPO-598  ·  STATUS: real
  *
  * 责任：参数 `result: AgentResult` 的 `非法值` 类（store.ts:755）
  * 维度坐标：`finish` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-598.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-598 · finish（store.ts:755）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `result: AgentResult`，其余参数取合法等价类（store.ts:755）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → finish(/* 参数 */) → 逐值断言（Oracle：UT-REPO-598 用例文档 §3）
+describe("UT-REPO-598 · finish · 纯函数/无副作用 × 非法值", () => {
+
+  it("refuses an illegal terminal state and rolls the whole transaction back", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-598"));
+      const grant = store.tryClaimSlot("worker", "boot") as { task_id: string; lease_epoch: number };
+
+      // 步骤 1：按 `非法值` 类构造参数 result——state 取不在 TerminalState 枚举里的 "Bogus"
+      // 步骤 2：调用 finish(…)
+      let err: any = null;
+      try {
+        store.finish(result("t-598", { state: "Bogus" as never }), grant.lease_epoch);
+      } catch (e) {
+        err = e;
+      }
+
+      // 步骤 3：断言——实现的真实行为：非法 state 不是被 PikoError 拒绝，而是撞
+      //         runs.state 的 CHECK 约束；整笔事务回滚——结果行没写、run 仍在 Running、
+      //         执行位仍被持有
+      expect(err?.constructor?.name).toBe("Error");
+      expect(err?.message).toMatch(/CHECK constraint failed: state IN/);
+      expect(store.db.prepare("SELECT count(*) n FROM results").get()).toEqual({ n: 0 });
+      expect(store.getRun("t-598").state).toBe("Running");
+      expect(store.readSlot().task_id).toBe("t-598");
+    } finally {
+      store.close();
+    }
+  });
+
 });

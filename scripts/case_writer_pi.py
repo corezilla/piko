@@ -40,6 +40,26 @@ import {
   isProviderUnavailableMessage,
   normalizeRawUsage,
 } from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import {
+  Mem0Adapter,
+  Mem0ApiError,
+  mapStatusToCode as mapMem0Status,
+} from "../../../src/mem0-client.js";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  mapStatusToCode as mapGraphragStatus,
+} from "../../../src/graphrag-client.js";
 import { fakeFetch } from "./support/pi-fix.js";
 
 describe("__CID__ · __SYM__ · __TYPE__ × __CELL__", () => {

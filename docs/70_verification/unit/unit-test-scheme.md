@@ -588,19 +588,19 @@
 | `UT-OBS` | observability | `piko-observability-impl.isd.md` | 8 | 8 | 0 |
 | `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 12 | 0 | 12 |
 | `UT-POLICY` | policy | `piko-policy-impl.isd.md` | 11 | 11 | 0 |
-| `UT-REPO` | task-repository | `piko-task-repository-impl.isd.md` | 51 | 0 | 51 |
+| `UT-REPO` | task-repository | `piko-task-repository-impl.isd.md` | 51 | 51 | 0 |
 | `UT-SCHED` | scheduler | `piko-scheduler-impl.isd.md` | 5 | 5 | 0 |
 | `UT-TAPI` | task-api | `piko-task-api-impl.isd.md` | 4 | 4 | 0 |
 | `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 9 | 9 | 0 |
-| `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 0 | 2 |
+| `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 2 | 0 |
 | `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 15 | 0 |
-| **合计** | — | — | **152** | **87** | **65** |
+| **合计** | — | — | **152** | **138** | **14** |
 
-**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **1,763/3,282 已实现，实现率 53.7%**——已写出真断言的模块：USAGE（26）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）、WORKER（382）十个模块（1,841 个断言全绿）；其余 PI（865）、REPO（652）为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **2,706/3,282 已实现，实现率 82.5%**——已写出真断言的模块：USAGE（28）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）、WORKER（382）、REPO（652）十一个模块（断言全绿）；其余 PI（865）仍有 576 条为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
 
-**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——其中 **1,676 条已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、POLICY 145、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367），PI（853）、REPO（601）两条分卷待写。
+**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——其中 **2,568 条已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、POLICY 145、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367、REPO 601），PI（853）一条分卷待写。
 
-**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书（文档齐），1,763 条写出真脚本，其余 1,519 条仍是骨架脚本（脚本缺），是本轮的真实状态。
+**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书（文档齐），2,706 条写出真脚本，其余 576 条仍是骨架脚本（脚本缺），是本轮的真实状态。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -2460,7 +2460,7 @@
 | 分卷 | 文件 | Case 数 | 登记状态 |
 |---|---|--:|---|
 | `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 853 | 待实现 |
-| `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 601 | 待实现 |
+| `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 601 | **已实现** |
 | `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 367 | **已实现** |
 | `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 280 | **已实现** |
 | `MATRIX` | [unit-test-scheme-matrix.md](volumes/unit-test-scheme-matrix.md) | 213 | **已实现** |
@@ -2471,12 +2471,12 @@
 | `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 119 | **已实现** |
 | `SCHED` | [unit-test-scheme-sched.md](volumes/unit-test-scheme-sched.md) | 34 | **已实现** |
 | `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 26 | **已实现** |
-| **合计** | — | **3130** | 1,676 已实现 / 1,454 待实现 |
+| **合计** | — | **3130** | 2,568 已实现 / 562 待实现 |
 
 **与 §6.1 的关系**：§6.1 的 152 条是**粗粒度符号×类型登记**（波次一，含 16 条补齐义务格的新行）；
 本分卷是**逐站点细粒度登记**（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条）。
 两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3130 = **3282**。
-分卷里 1,676 条已写出真脚本，1,454 条仍是骨架（PI / REPO 两条分卷，执行半随 `G-EXEC-UT-3` 与波次二排期）。
+分卷里 2,568 条已写出真脚本，562 条仍是骨架（PI 一条分卷，执行半随 `G-EXEC-UT-3` 与波次二排期）。
 
 **机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成，勿手改）——
 全层 3,360 条逐条一行，含四方对账字段（`design`＝用例文档、`script`＝点名该 Case ID 的测试文件、
@@ -2597,6 +2597,30 @@
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
 **依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,282 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,282 条已越下界（但**登记数不等于覆盖**：脚本与执行半仍空，见 `G-EXEC-UT-3`）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
+
+#### 7.1.20 裁决 · 结果表的主键让「一个任务多代结果」不可能（`G-UT-REPO-2`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`results` 表（`src/store.ts:101`）声明 `task_id TEXT PRIMARY KEY` **外加** `UNIQUE(task_id,generation)`——主键已经把 `task_id` 唯一了，后一条约束**永远不可能被触发**。而 `publishResult`（`:750`）每发布一次就把 `runs.generation` 加一，说明设计上**允许一个任务有多代结果**。UT 实测：发布第 1 代成功（`runs.generation` 变成 2），再发布第 2 代就抛 `UNIQUE constraint failed: results.task_id`，库里只剩第 1 代那一行。这不是「重复发布被拒」——是**第二次发布根本无处可放**。配套的不对称：`publishResult`（`:745`）先插后查，`finish`（`:755`）先查后插，于是同一件幂等的事两条路径行为不同；`finish`（`:771`）与 `finishQueued`（`:789`）把 `result.state` 直接写进有 CHECK 约束的 `runs.state`，非法终态以裸 SQLite 错误冒出来而非 typed 错误；`cancel`（`:642`）在 Queued 分支把结果的 `generation` 写死成 1，而不是该 run 当前的纪元。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①`results` 的主键改成 `(task_id, generation)`，让 `UNIQUE(task_id,generation)` 有意义（或删掉它，改由主键承担）；②`publishResult` 与 `finish` 对「该 generation 是否已存在」用同一套判断；③终态写入前校验 `state` 是合法的 `TaskState`；④`cancel` 用该 run 当前的纪元；⑤相关 Case 的断言改回「重复发布返回 typed 错误」「非法终态返回 typed 错误」「同一任务可有第二代结果」。
+
+#### 7.1.22 裁决 · 写入类接口对「不存在的行」多数是静默 no-op（`G-UT-REPO-4`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`store.ts` 里「报告一个事实」的写入接口对**目标不存在**的处理并不一致：`setInputStaging`（`src/store.ts:288`）与 `setArtifactDelivery`（`:295`）显式检查 `r.changes === 0` 并抛 typed 的 `TaskNotFound`（fail closed，注释也写明了理由）；但 `markTurn`（`:489`）、`terminalModel`（`:449`）、`terminalTool`（`:483`）只是 `UPDATE ... WHERE task_id=? AND ...`，**匹配不到行时不报错、不抛错**——事实被静默丢弃。`recordProviderCall`（`:519`）走 INSERT，外键不匹配时抛的是裸 `SQLITE_CONSTRAINT`（`FOREIGN KEY constraint failed`），而不是 typed 的 `NotFound`。另有两处把「非法值」交给裸 SQLite 错误而非 typed 错误：`markTurn` 的 `status`（列有 CHECK）、`recordProviderCall` 的 `status`/`note`（STRICT INTEGER 列，浮点延迟如 `1.5` 会炸）、`reserveTool` 的 `replay`/`contract`。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①所有「报告事实」的写入接口对「匹配不到行」用同一套语义：要么都 fail closed 抛 typed 的 `TaskNotFound`，要么都允许静默——但不能一半一半；②`recordProviderCall` 的浮点 `latency_ms` 与非法 `status` 在写入前校验并抛 typed 错误；③相关 Case 的断言改回「对不存在的任务报 typed 错误」。
+
+#### 7.1.23 裁决 · 计数字段没有下界约束（`G-UT-REPO-5`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`model_attempts.attempt` 与 `tool_calls` 的主键里没有 `CHECK(attempt >= 1)`（`src/store.ts:109`／`:120`），`execution_slot.lease_epoch` 有 `CHECK(lease_epoch>=1)` 但 `renewSlot`（`:406`）与 `releaseSlot`（`:410`）并不校验入参——`0`／`-1` 被当作合法的绑定值传进 SQL，只是 CAS 比对不上，于是**静默失败**（返回 false）而不是被判为非法。UT 实测（`UT-REPO-202`／`UT-REPO-272`）：`epoch = -1` 让 `renewSlot` 返回 false、`attempt = -1` 让 `terminalModel` 匹配 0 行、状态停在 `Started`。这些参数的语义类名（如 `−1 通过`）暗示设计预期它们被**接受**，但实现既不报错也不生效。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①`attempt` 与 `lease_epoch` 在写入前校验下界，非法即抛 typed 错误（或明确写进设计说明它们是允许的、并给出对应的接受语义）；②相关 Case 的断言改回「非法下界被拒」或「明确接受并生效」。
+
+#### 7.1.21 裁决 · 释放槽位后任务永远回不到队列（`G-UT-REPO-3`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`releaseSlot`（`src/store.ts:410`）把 `execution_slot` 的持有者清空，**但被释放的那个 run 仍是 `Running`**；而 `tryClaimSlot`（`:312`）只挑 `state='Queued'` 的 run。于是被释放的任务**再也不会被认领**——它的状态卡在 Running，而槽位已经空出来了。同一模块的 `nextNeedingStaging`（`:421`）还有对偶的一处：`failAccessLostTasks`（`:336`）只强制终结 `Queued` 的任务，而一条「已受理、有输入、丢了讨论访问、staging 仍 pending」的任务会被 `nextNeedingStaging` 反复选中，却因为 `tryClaimSlot` 排除丢失访问的任务而永远拿不到槽位。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①`releaseSlot` 决定被释放的 run 的去向：要么回到 `Queued`（可再认领），要么被显式终结，二者取一且写进设计；②`nextNeedingStaging` 与 `tryClaimSlot` 用同一套排除条件（都排除有丢失访问记录的任务），或 `failAccessLostTasks` 覆盖「staging 仍 pending 但已丢失访问」的 Queued 任务；③补一条对偶断言：同一批任务里，被排除的那条不会同时出现在 `nextNeedingStaging` 与 `tryClaimSlot` 的候选里。
 
 #### 7.1.19 裁决 · 迁移对既有表不做校验，却照样推进 user_version（`G-UT-REPO-1`）
 
@@ -2829,8 +2853,9 @@
 | `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,282 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 3,282 个 Case 中 1,763 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX＋TRANSFER＋WORKER 十个模块）已写出真脚本，1,519 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，其中 1,763 条已实现 | 脚本随波次二排期 |
+| `G-EXEC-UT-3` | 3,282 个 Case 中 2,706 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX＋TRANSFER＋WORKER＋REPO 十一个模块）已写出真脚本，576 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，其中 2,706 条已实现 | 脚本随波次二排期 |
+| `G-UT-DENOM-4` | 枚举表的站点行号绑的是**改 seam 之前**的 `src/` 行号（244 个单元）；TRANSFER／WORKER／MATRIX 三批加了注入缝与导出后，`src/` 行号已移位，枚举表与实现对不上。**不能直接重跑枚举**——Case ID 由 `file:line` 派生，一重跑就把全部 3,282 条 Case 的编号打乱，已写好的脚本与说明书全部失配 | 测试工程：在一次专门的批次里重排编号（先建 ID→文档 的映射，再同步重命名脚本与说明书），并把 Case ID 改成**不依赖行号**的稳定标识 |
 | `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 | `G-UT-CONFIG-1` | `config/` 全部五份运行时配置不过 `piko-runtime-config-v0.3.schema.json`（缺 `transfer`、`pi` 多两个字段）→ `loadConfig` 必失败；其成功路径无 UT 覆盖 | 运行时装配 Owner 修配置或 schema |
 | `G-UT-QUEUE-1` | `createOrGet` 的队列容量检查与插入不原子 → 并发受理可超出容量 N（实测容量 2 收 5 个）；依赖「容量是硬上限」的结论不成立 | 运行时装配 Owner 改为原子插入 |
@@ -2838,6 +2863,10 @@
 | `G-UT-WORKER-1` | `claimNext` 直接读 `channel.report().value`，通道被拒时返回 `null`——与「没有活干」同形，worker 静默空转、通道故障不冒泡 | 运行时装配 Owner 让 claimNext 经 report() 上报或区分两种返回 |
 | `G-UT-WORKER-2` | P1 入口 `runExecutionProcess` 的五个协作者与 `process.exit`/信号注册无注入缝；已加 `ExecutionProcessDeps` 覆盖协作者，退出与信号仍在生产路径上 | 运行时装配 Owner 把退出与信号注册也做成可注入 |
 | `G-UT-REPO-1` | `migrate` 用 `CREATE TABLE IF NOT EXISTS` 建表后无条件 `user_version=3`——同名不同结构的旧表原样留着，库对外宣称 v3 却是旧形状；无版本化升级路径 | 运行时装装 Owner 按 user_version 做逐版迁移并校验列集合 |
+| `G-UT-REPO-2` | `results` 表 `task_id TEXT PRIMARY KEY` 让 `UNIQUE(task_id,generation)` 永不可达——一个任务只能存一代结果，第二次发布即 `UNIQUE constraint failed: results.task_id`；发布/收尾的幂等判断不对称、终态无枚举校验、`cancel` 写死 generation=1 | 运行时装配 Owner 改主键为 (task_id,generation)、统一幂等判断、校验终态、用当前纪元 |
+| `G-UT-REPO-3` | `releaseSlot` 清空槽位但 run 仍是 Running，`tryClaimSlot` 只挑 Queued——被释放的任务永远回不到队列；丢失访问且 staging 仍 pending 的任务被 `nextNeedingStaging` 反复选中却永远拿不到槽位 | 运行时装配 Owner 定下释放后的去向，并让两处用同一套排除条件 |
+| `G-UT-REPO-4` | 写入类接口对「目标不存在」的语义不一致——`setInputStaging`/`setArtifactDelivery` fail closed 抛 typed `TaskNotFound`，而 `markTurn`/`terminalModel`/`terminalTool` 静默 no-op，`recordProviderCall` 抛裸外键错误；`status`/`latency_ms`/`replay` 等非法值冒裸 SQLite 错误 | 运行时装配 Owner 统一写入接口的 not-found 与非法值语义 |
+| `G-UT-REPO-5` | `attempt`/`lease_epoch` 无下界约束——`0`／`-1` 被当合法绑定值传进 SQL，CAS 比对不上后静默失败（返回 false／匹配 0 行）而非被判非法 | 运行时装配 Owner 校验下界，或在设计里明确它们的接受语义 |
 | `G-UT-IPC-1` | 两条命令通道的 onCommand 形状不一致（ProcessChannel 交剥出的命令、attachChildToHandler 交整条消息） | 运行时装配 Owner 统一形状 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。

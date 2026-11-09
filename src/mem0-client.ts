@@ -55,7 +55,12 @@ export interface Mem0SearchOptions {
 }
 
 /** Map HTTP status code to semantic error code. */
-function mapStatusToCode(status: number): string {
+/**
+ * Map an HTTP status to a semantic error code.
+ *
+ * Exported so the mapping can be asserted directly.
+ */
+export function mapStatusToCode(status: number): string {
   if (status === 401) return "auth_invalid";
   if (status === 403) return "auth_forbidden";
   if (status === 404) return "not_found";
@@ -296,7 +301,13 @@ export class Mem0Adapter {
    * message). Returns null on timeout — caller falls back to the
    * event_id, which will fail any follow-up find-by-id lookup.
    */
-  private async pollForExtractedMemory(
+  /**
+   * Poll Mem0 until a newly extracted memory for this user shows up.
+   *
+   * Public so the polling behaviour (and its 10s deadline) can be asserted
+   * directly rather than only through add().
+   */
+  async pollForExtractedMemory(
     user_id: string,
     query: string,
   ): Promise<string | null> {

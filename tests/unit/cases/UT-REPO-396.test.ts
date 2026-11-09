@@ -1,18 +1,42 @@
 /**
- * Case ID: UT-REPO-396  ·  STATUS: skeleton
+ * Case ID: UT-REPO-396  ·  STATUS: real
  *
  * 责任：参数 `txn: string` 的 `超长` 类（store.ts:524）
  * 维度坐标：`recordMatrixEvent` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-396.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-396 · recordMatrixEvent（store.ts:524）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `txn: string`，其余参数取合法等价类（store.ts:524）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → recordMatrixEvent(/* 参数 */) → 逐值断言（Oracle：UT-REPO-396 用例文档 §3）
+describe("UT-REPO-396 · recordMatrixEvent · 字符串/路径/枚举输入 × 超长", () => {
+
+  it("stores an over-length transaction id verbatim", async () => {
+    const store = newStore();
+    try {
+      const longTxn = "x".repeat(8192);
+
+      // 步骤 1：按 `超长` 类构造参数 txn——长度 2×4096 的字符串
+      // 步骤 2：调用 recordMatrixEvent(…)
+      const recorded = store.recordMatrixEvent("room-396", "$e-396", "@a:b", longTxn);
+
+      // 步骤 3：断言——实现没有长度上限校验：8192 字符的 txn_id 原样落库
+      expect(recorded).toBe(true);
+      const row = store.db.prepare("SELECT length(txn_id) len,txn_id FROM matrix_events").get() as any;
+      expect(row.len).toBe(8192);
+      expect(row.txn_id).toBe(longTxn);
+    } finally {
+      store.close();
+    }
+  });
+
 });

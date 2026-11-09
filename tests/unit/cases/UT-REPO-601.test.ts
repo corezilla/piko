@@ -1,18 +1,61 @@
 /**
- * Case ID: UT-REPO-601  ·  STATUS: skeleton
+ * Case ID: UT-REPO-601  ·  STATUS: real
  *
  * 责任：参数 `epoch: number` 的 `−1 通过` 类（store.ts:755）
  * 维度坐标：`finish` × `数值/长度上限参数` × `−1 通过`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-601.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-601 · finish（store.ts:755）", () => {
-  test.todo("数值/长度上限参数 × −1 通过");
-  // 输入构造：按 `−1 通过` 类构造 `epoch: number`，其余参数取合法等价类（store.ts:755）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → finish(/* 参数 */) → 逐值断言（Oracle：UT-REPO-601 用例文档 §3）
+describe("UT-REPO-601 · finish · 数值/长度上限参数 × −1 通过", () => {
+  it("rejects the epoch below the slot lease with LeaseLost and writes nothing", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-601"));
+      const grant = store.tryClaimSlot("owner-601", "boot-601") as { lease_epoch: number };
+
+      // 步骤 1：按 `−1 通过` 类构造参数 epoch——边界值 −1（以及 0）
+      // 步骤 2：调用 finish(…)
+      let minusOne: any = null;
+      try {
+        store.finish(result("t-601"), -1);
+      } catch (e) {
+        minusOne = e;
+      }
+      let zero: any = null;
+      try {
+        store.finish(result("t-601"), 0);
+      } catch (e) {
+        zero = e;
+      }
+
+      // 步骤 3：断言——实现的真实语义：epoch 没有下界校验，
+      //         −1 与 0 都只是与槽里的 lease_epoch 不等 ⇒ typed 错误 LeaseLost(409)，
+      //         不是「−1 通过」；整个事务回滚，没有结果行、没有状态写
+      expect(minusOne?.code).toBe("LeaseLost");
+      expect(minusOne?.status).toBe(409);
+      expect(minusOne?.message).toBe("execution lease was lost");
+      expect(zero?.code).toBe("LeaseLost");
+      expect(zero?.status).toBe(409);
+      expect((store.db.prepare("SELECT count(*) n FROM results").get() as any).n).toBe(0);
+      expect((store.db.prepare("SELECT state FROM runs WHERE task_id='t-601'").get() as any).state).toBe("Running");
+      // 槽仍被该任务持有（未因失败被释放）
+      expect(store.readSlot().task_id).toBe("t-601");
+      expect(store.readSlot().lease_epoch).toBe(grant.lease_epoch);
+    } finally {
+      store.close();
+    }
+  });
+
 });

@@ -1,18 +1,44 @@
 /**
- * Case ID: UT-REPO-224  ·  STATUS: skeleton
+ * Case ID: UT-REPO-224  ·  STATUS: real
  *
  * 责任：参数 `step: string` 的 `超长` 类（store.ts:431）
  * 维度坐标：`reserveModel` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-224.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-224 · reserveModel（store.ts:431）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `step: string`，其余参数取合法等价类（store.ts:431）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → reserveModel(/* 参数 */) → 逐值断言（Oracle：UT-REPO-224 用例文档 §3）
+describe("UT-REPO-224 · reserveModel · 字符串/路径/枚举输入 × 超长", () => {
+
+  it("stores an over-long step id without rejecting it", async () => {
+    const store = newStore();
+    try {
+      // 步骤 1：按 `超长` 类构造参数 step——长度 2×上限 = 8192（源码无比较常量，取文档默认上限 4096）；其余参数取合法等价类
+      accept(store, task("t1"));
+      const longStep = "s".repeat(8192);
+
+      // 步骤 2：调用 reserveModel(…)
+      const reserved = store.reserveModel("t1", "op", longStep, 1);
+
+      // 步骤 3：断言——被拒绝时抛 typed 错误（code 逐值对 ISD 错误表），且无状态写/资源残留
+      //         实现的真实语义：reserveModel 对 step 不做长度校验，超长串原样入库（未被拒绝）
+      expect(reserved).toBe(true);
+      const row = store.db.prepare("SELECT length(step_id) l, state FROM model_attempts WHERE operation_id='op'").get() as any;
+      expect(row.l).toBe(8192);
+      expect(row.state).toBe("Started");
+    } finally {
+      store.close();
+    }
+  });
+
 });

@@ -1,18 +1,60 @@
 /**
- * Case ID: UT-PI-628  ·  STATUS: skeleton
+ * Case ID: UT-PI-628  ·  STATUS: real
  *
  * 责任：参数 `entry: Mem0SearchResult` 的 `每等价类合法值` 类（skill-prefetch.ts:240）
  * 维度坐标：`renderMemoryEntry` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-628.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-628 · renderMemoryEntry（skill-prefetch.ts:240）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `entry: Mem0SearchResult`，其余参数取合法等价类（skill-prefetch.ts:240）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → renderMemoryEntry(/* 参数 */) → 逐值断言（Oracle：UT-PI-628 用例文档 §3）
+describe("UT-PI-628 · renderMemoryEntry · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("renders the memory with its date and tags", async () => {
+    // 步骤 2：调用 renderMemoryEntry
+    const line = renderMemoryEntry({
+      id: "m1",
+      memory: "the lesson learned",
+      created_at: "2026-11-09T10:20:30.000Z",
+      metadata: { tags: ["a", "b"] },
+    } as never);
+
+    // 步骤 3：断言返回值逐值对账——正文、日期（前 10 字符）与标签都在
+    expect(line).toBe('- "the lesson learned" (2026-11-09, a, b)');
+  });
+
 });

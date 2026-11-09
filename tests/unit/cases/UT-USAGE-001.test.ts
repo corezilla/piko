@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-USAGE-001  ·  STATUS: skeleton
+ * Case ID: UT-USAGE-001  ·  STATUS: real
  *
- * 责任：`emptyUsage` × `纯函数/无副作用` × `每等价类合法值`（粗粒度登记）
+ * 责任：被测符号 `emptyUsage`（USAGE）在对象类型 `纯函数/无副作用` 下的维度格 `每等价类合法值`（该 Case 只登记本行 1 格）、`边界(上/下/零/空/满)`、`非法值`；只测该符号该类型
  * 维度坐标：`emptyUsage` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `USAGE`）
  * 用例文档：docs/70_verification/unit/cases/UT-USAGE-001.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { emptyUsage, validateUsage } from "../../../src/semantic.js";
+import type { TokenUsage } from "../../../src/types.js";
 
-describe("UT-USAGE-001 · emptyUsage（semantic.ts:14）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `纯函数/无副作用` × `每等价类合法值` 展开规则构造（semantic.ts:14）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：emptyUsage(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-USAGE-001 · emptyUsage · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the zeroed complete usage", () => {
+    // 步骤 2：调用 emptyUsage
+    const usage = emptyUsage();
+
+    // 步骤 3：断言返回值逐值对账——六个字段都是 0，质量是 Complete，
+    //         观测到的尝试数与模型尝试数都是 0，缺失字段为空
+    expect(usage).toEqual({
+      source: "PiModelResponses",
+      quality: "Complete",
+      input_tokens: 0,
+      output_tokens: 0,
+      total_tokens: 0,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
+      reasoning_tokens: 0,
+      model_attempts: 0,
+      usage_observed_attempts: 0,
+      missing_fields: [],
+    });
+  });
+
 });

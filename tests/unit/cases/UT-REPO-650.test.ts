@@ -1,18 +1,60 @@
 /**
- * Case ID: UT-REPO-650  ·  STATUS: skeleton
+ * Case ID: UT-REPO-650  ·  STATUS: real
  *
  * 责任：参数 `store: TaskStore` 的 `边界(上/下/零/空/满)` 类（store.ts:855）
  * 维度坐标：`asReader` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-650.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-650 · asReader（store.ts:855）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `store: TaskStore`，其余参数取合法等价类（store.ts:855）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → asReader(/* 参数 */) → 逐值断言（Oracle：UT-REPO-650 用例文档 §3）
+describe("UT-REPO-650 · asReader · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+
+  it("exposes exactly the eight read-only members and no write handle", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-650"));
+      store.reserveModel("t-650", "op-650", "step-650", 1);
+      store.observeUsage("t-650", "op-650", "step-650", 1, { input: 3, output: 1, totalTokens: 4 });
+
+      // 步骤 1：按 `边界(上/下/零/空/满)` 类构造参数 store——真实存在的内存库
+      // 步骤 2：调用 asReader(…)
+      const reader = asReader(store);
+
+      // 步骤 3：断言逐值对账——reader 恰好暴露 8 个方法，且不泄露 db 写句柄；
+      //         每个方法都绑定到该 store，读得到真实事实
+      expect(Object.keys(reader).sort()).toEqual([
+        "cancelRequested",
+        "discussionAccessLost",
+        "generation",
+        "getRun",
+        "getTask",
+        "knownActions",
+        "pendingTurns",
+        "rawUsage",
+      ]);
+      expect("db" in (reader as unknown as Record<string, unknown>)).toBe(false);
+      expect(reader.getTask("t-650").task_id).toBe("t-650");
+      expect(reader.getRun("t-650").state).toBe("Queued");
+      expect(reader.generation("t-650")).toBe(1);
+      expect(reader.cancelRequested("t-650")).toBe(false);
+      expect(reader.pendingTurns("t-650")).toEqual([]);
+      expect(reader.rawUsage("t-650")).toEqual([{ input: 3, output: 1, totalTokens: 4 }]);
+      expect(reader.knownActions("t-650")).toHaveLength(1);
+      expect(reader.discussionAccessLost("t-650")).toBe(false);
+    } finally {
+      store.close();
+    }
+  });
+
 });

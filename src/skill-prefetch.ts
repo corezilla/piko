@@ -111,7 +111,12 @@ export interface PrefetchOptions {
 const CACHE_LIMIT = 32;
 const cache = new Map<string, { query: string; context: PrefetchedSkillContext }>();
 
-function cacheKey(identity: PrefetchIdentity): string {
+/**
+ * The cache key for an identity: role, user and default scope.
+ *
+ * Exported so the key derivation can be asserted directly.
+ */
+export function cacheKey(identity: PrefetchIdentity): string {
   return `${identity.role}|${identity.userId}|${identity.defaultScope}`;
 }
 
@@ -226,7 +231,12 @@ export async function prefetchSkillContext(
  * -- so a timed-out backend may still answer later. That is fine: the
  * prefetch has already moved on, and the late result is discarded.
  */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+/**
+ * Reject a promise that does not settle within `ms`.
+ *
+ * Exported so the timeout behaviour can be asserted directly.
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`prefetch timed out after ${ms}ms`)), ms);
     promise.then(

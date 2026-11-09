@@ -1,18 +1,63 @@
 /**
- * Case ID: UT-REPO-649  ·  STATUS: skeleton
+ * Case ID: UT-REPO-649  ·  STATUS: real
  *
  * 责任：参数 `store: TaskStore` 的 `每等价类合法值` 类（store.ts:855）
  * 维度坐标：`asReader` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-649.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-649 · asReader（store.ts:855）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `store: TaskStore`，其余参数取合法等价类（store.ts:855）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → asReader(/* 参数 */) → 逐值断言（Oracle：UT-REPO-649 用例文档 §3）
+describe("UT-REPO-649 · asReader · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("exposes exactly the eight reader methods, bound to the given store", async () => {
+    const store = newStore();
+    try {
+      accept(store, task("t-649"));
+
+      // 步骤 1：按 `每等价类合法值` 类构造参数 store——一个真实的 TaskStore 实例
+      // 步骤 2：调用 asReader(…)
+      const reader = asReader(store);
+
+      // 步骤 3：断言——被接受时返回值/状态与设计声明一致，逐值对账
+      expect(Object.keys(reader)).toEqual([
+        "getTask",
+        "getRun",
+        "cancelRequested",
+        "generation",
+        "pendingTurns",
+        "rawUsage",
+        "knownActions",
+        "discussionAccessLost",
+      ]);
+      for (const key of Object.keys(reader)) {
+        expect(typeof (reader as any)[key]).toBe("function");
+      }
+      // 每个方法都绑定到了传入的 store，读到的是该 store 的事实
+      expect(reader.getTask("t-649").task_id).toBe("t-649");
+      expect(reader.getRun("t-649").task_id).toBe("t-649");
+      expect(reader.getRun("t-649").state).toBe("Queued");
+      expect(reader.cancelRequested("t-649")).toBe(false);
+      expect(reader.generation("t-649")).toBe(1);
+      expect(reader.pendingTurns("t-649")).toEqual([]);
+      expect(reader.rawUsage("t-649")).toEqual([]);
+      expect(reader.knownActions("t-649")).toEqual([]);
+      expect(reader.discussionAccessLost("t-649")).toBe(false);
+      // reader 不暴露写方法
+      expect((reader as any).cancel).toBeUndefined();
+      expect((reader as any).finish).toBeUndefined();
+    } finally {
+      store.close();
+    }
+  });
+
 });

@@ -90,7 +90,12 @@ export interface GraphRAGSearchOptions {
 }
 
 /** Map HTTP status code to semantic error code. */
-function mapStatusToCode(status: number): string {
+/**
+ * Map an HTTP status to a semantic error code.
+ *
+ * Exported so the mapping can be asserted directly.
+ */
+export function mapStatusToCode(status: number): string {
   if (status === 401) return "auth_invalid";
   if (status === 403) return "auth_forbidden";
   if (status === 404) return "not_found";
