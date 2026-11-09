@@ -2598,6 +2598,12 @@
 
 **依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,282 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,282 条已越下界（但**登记数不等于覆盖**：脚本与执行半仍空，见 `G-EXEC-UT-3`）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
 
+#### 7.1.19 裁决 · 迁移对既有表不做校验，却照样推进 user_version（`G-UT-REPO-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`TaskStore.migrate`（`src/store.ts:56`）用 `CREATE TABLE IF NOT EXISTS` 建每一张表，然后无条件 `PRAGMA user_version=3`。若磁盘上已有一张**同名但结构不同**的表，`IF NOT EXISTS` 让它原样留着——新代码随即按 v3 的列去读写它。UT 实测（`UT-REPO-023`）：先建一张只有 `task_id` 一列的 `runs` 表，再开 `TaskStore`——构造**不报错**，迁移后的 `runs` 仍只有 `task_id` 一列，而 `user_version` 已被推成 3。于是这个库对外宣称「schema v3」，实际是 v1 的形状：后续任何按 v3 列的写入（`state`、`generation`、`input_staging_json` …）都会撞上「no such column」，且错误出现在离根因很远的地方。`migrate` 也没有对 `user_version` 做版本判断（v1→v3 的升级路径根本不存在，只有 `IF NOT EXISTS`）。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①`migrate` 先读 `user_version` 并按版本走真正的升级路径（v1→v2→v3 的逐版迁移），而不是无版本的 `IF NOT EXISTS`；②升级前校验既有表的列集合与目标版本一致，不一致即抛 typed 错误并拒绝启动；③`UT-REPO-023` 的断言改回「结构不符即拒绝启动」，并补一条 v1 库能被逐版迁到 v3 的对照断言；④本裁决关闭前，任何依赖「`TaskStore` 构造成功即表示库是 v3 形状」的结论不成立。
+
 #### 7.1.17 裁决 · claimNext 把「通道故障」与「没有活干」混为一谈（`G-UT-WORKER-1`）
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
@@ -2831,6 +2837,7 @@
 | `G-UT-MATRIX-1` | Matrix 同步状态分支（16 格）单测不可达——start() 等真实 homeserver 的 sync 事件；已加 client 工厂注入缝覆盖其余 11 格 | 运行时装配 Owner 加同步源注入缝 |
 | `G-UT-WORKER-1` | `claimNext` 直接读 `channel.report().value`，通道被拒时返回 `null`——与「没有活干」同形，worker 静默空转、通道故障不冒泡 | 运行时装配 Owner 让 claimNext 经 report() 上报或区分两种返回 |
 | `G-UT-WORKER-2` | P1 入口 `runExecutionProcess` 的五个协作者与 `process.exit`/信号注册无注入缝；已加 `ExecutionProcessDeps` 覆盖协作者，退出与信号仍在生产路径上 | 运行时装配 Owner 把退出与信号注册也做成可注入 |
+| `G-UT-REPO-1` | `migrate` 用 `CREATE TABLE IF NOT EXISTS` 建表后无条件 `user_version=3`——同名不同结构的旧表原样留着，库对外宣称 v3 却是旧形状；无版本化升级路径 | 运行时装装 Owner 按 user_version 做逐版迁移并校验列集合 |
 | `G-UT-IPC-1` | 两条命令通道的 onCommand 形状不一致（ProcessChannel 交剥出的命令、attachChildToHandler 交整条消息） | 运行时装配 Owner 统一形状 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。

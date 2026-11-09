@@ -1,18 +1,52 @@
 /**
- * Case ID: UT-PI-494  ·  STATUS: skeleton
+ * Case ID: UT-PI-494  ·  STATUS: real
  *
  * 责任：参数 `value: unknown` 的 `边界(上/下/零/空/满)` 类（pi-runtime.ts:44）
  * 维度坐标：`normalizeRawUsage` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-494.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-494 · normalizeRawUsage（pi-runtime.ts:44）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `value: unknown`，其余参数取合法等价类（pi-runtime.ts:44）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → normalizeRawUsage(/* 参数 */) → 逐值断言（Oracle：UT-PI-494 用例文档 §3）
+describe("UT-PI-494 · normalizeRawUsage · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("normalizes an empty record", async () => {
+    // 步骤 2：调用 normalizeRawUsage（空对象）
+    const usage = normalizeRawUsage({});
+
+    // 步骤 3：断言返回值逐值对账——六个字段都是 undefined
+    expect(usage).toEqual({
+      input: undefined,
+      output: undefined,
+      totalTokens: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+      reasoning: undefined,
+    });
+  });
+
 });

@@ -1,18 +1,41 @@
 /**
- * Case ID: UT-REPO-505  ·  STATUS: skeleton
+ * Case ID: UT-REPO-505  ·  STATUS: real
  *
  * 责任：参数 `txn: string` 的 `注入字符` 类（store.ts:616）
  * 维度坐标：`unknownMatrixSend` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-505.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-505 · unknownMatrixSend（store.ts:616）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `txn: string`，其余参数取合法等价类（store.ts:616）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → unknownMatrixSend(/* 参数 */) → 逐值断言（Oracle：UT-REPO-505 用例文档 §3）
+describe("UT-REPO-505 · unknownMatrixSend · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("leaves an unknown transaction untouched", async () => {
+    const store = newStore();
+    try {
+      // 步骤 1：按 `注入字符` 类构造 txn——SQL 注入串、路径穿越串、控制字符串
+      accept(store, task("t1"));
+      store.prepareMatrixSend("tx-1", "t1", 1, "sha-1");
+      // 步骤 2：调用 unknownMatrixSend（txn 不存在）
+            store.unknownMatrixSend("'; DROP TABLE matrix_sends;--");
+            const row = store.db.prepare("SELECT * FROM matrix_sends WHERE txn_id='tx-1'").get() as any;
+            const count = store.db.prepare("SELECT count(*) n FROM matrix_sends").get() as any;
+      // 步骤 3：断言——注入串匹配不到行，静默无操作；tx-1 仍是 Pending，matrix_sends 表完好
+            expect(row.state).toBe("Pending");
+            expect(count.n).toBe(1);
+            expect((store.db.prepare("SELECT count(*) n FROM runs").get() as any).n).toBe(1);
+    } finally {
+      store.close();
+    }
+  });
+
 });

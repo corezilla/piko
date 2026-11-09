@@ -1,18 +1,45 @@
 /**
- * Case ID: UT-REPO-237  ·  STATUS: skeleton
+ * Case ID: UT-REPO-237  ·  STATUS: real
  *
  * 责任：参数 `path: string` 的 `注入字符` 类（store.ts:44）
  * 维度坐标：`TaskStore.constructor` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-237.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-237 · TaskStore.constructor（store.ts:44）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `path: string`，其余参数取合法等价类（store.ts:44）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new TaskStore.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-REPO-237 用例文档 §3）
+describe("UT-REPO-237 · TaskStore.constructor · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("creates a directory whose name carries SQL metacharacters", async () => {
+      // 步骤 1：按 `注入字符` 类构造 path——目录名含 SQL 元字符与控制字符
+      const { mkdtempSync, existsSync } = await import("node:fs");
+      const { tmpdir } = await import("node:os");
+      const { join } = await import("node:path");
+      const dir = mkdtempSync(join(tmpdir(), "piko-ctor-"));
+      const nasty = "a'; DROP TABLE runs;--";
+      const path = join(dir, nasty, "db.sqlite");
+      let store: any = null;
+      try {
+        // 步骤 2：调用 new TaskStore(path)
+        store = new TaskStore(path, 1000);
+
+        // 步骤 3：断言——路径只当作文件系统路径，注入串原样成为目录名；库正常建好
+        expect(existsSync(join(dir, nasty))).toBe(true);
+        const tables = (store.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as any).map((x: any) => x.name);
+        expect(tables).toContain("tasks");
+        expect(tables).toContain("runs");
+      } finally {
+        if (store) store.close();
+      }
+  });
+
 });

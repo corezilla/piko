@@ -1,18 +1,54 @@
 /**
- * Case ID: UT-REPO-648  ·  STATUS: skeleton
+ * Case ID: UT-REPO-648  ·  STATUS: real
  *
  * 责任：返回站点 L833 值 `this.purge("all").removed` 逐值断言（store.ts）
  * 维度坐标：`purgeExpired` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `REPO`）
  * 用例文档：docs/70_verification/unit/cases/UT-REPO-648.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TaskStore, asReader } from "../../../src/store.js";
+import {
+  accept,
+  acceptDiscussion,
+  discussionTask,
+  newStore,
+  rawUsageSample,
+  result,
+  task,
+} from "./support/repo-fix.js";
+import type { AgentResult } from "../../../src/types.js";
 
-describe("UT-REPO-648 · purgeExpired（store.ts:832）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 store.ts:833 的返回站点（值 this.purge("all").removed）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：purgeExpired(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-REPO-648 · purgeExpired · 纯函数/无副作用 × 每等价类合法值", () => {
+
+  it("returns the number of tasks the retention purge removed", async () => {
+    const store = newStore();
+    try {
+      // 步骤 1：构造两条已过保留期的终态任务与一条未过期任务
+      store.createOrGet(task("pe-648-a"), "slinky", 10);
+      store.createOrGet(task("pe-648-b"), "slinky", 10);
+      store.createOrGet(task("pe-648-c"), "slinky", 10);
+      store.db.prepare("UPDATE runs SET state='Completed' WHERE task_id IN ('pe-648-a','pe-648-b')").run();
+      store.db
+        .prepare("UPDATE tasks SET purge_after='2000-01-01T00:00:00.000Z' WHERE task_id IN ('pe-648-a','pe-648-b')")
+        .run();
+
+      // 步骤 2：调用 purgeExpired()
+      const removed = store.purgeExpired();
+
+      // 步骤 3：断言逐值对账——只清理已过期且已终态的任务，返回值等于 purge("all").removed
+      expect(removed).toBe(2);
+      expect(store.db.prepare("SELECT count(*) n FROM tasks WHERE identity_state='Tombstone'").get()).toEqual({
+        n: 2,
+      });
+      expect(
+        (store.db.prepare("SELECT identity_state FROM tasks WHERE task_id=?").get("pe-648-c") as any)
+          .identity_state,
+      ).toBe("Active");
+      // 第二次调用时已无可清理项
+      expect(store.purgeExpired()).toBe(0);
+    } finally {
+      store.close();
+    }
+  });
+
 });
