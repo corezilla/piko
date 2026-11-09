@@ -28,7 +28,12 @@ type RecoveryPlan = {
 const PLAN_MEMO = "workspace-write-plan";
 const digest = (content:string) => `sha256:${createHash("sha256").update(content).digest("hex")}`;
 
-async function fileState(env:ExecutionToolContext["env"], path:string, context:Context):Promise<{fingerprint:string;content?:string}> {
+/**
+ * Fingerprint a workspace file (and its content) for the recovery plan.
+ *
+ * Exported so the plan fingerprint can be asserted directly.
+ */
+export async function fileState(env:ExecutionToolContext["env"], path:string, context:Context):Promise<{fingerprint:string;content?:string}> {
   const info=await env.fileInfo(path,context);
   if(!info.ok){
     if(info.error.code==="not_found")return {fingerprint:"missing"};
@@ -40,13 +45,23 @@ async function fileState(env:ExecutionToolContext["env"], path:string, context:C
   return {fingerprint:digest(read.value),content:read.value};
 }
 
-function isPlan(value:JsonValue|undefined):value is RecoveryPlan {
+/**
+ * Whether a durable memo holds a well-formed recovery plan.
+ *
+ * Exported so the plan shape check can be asserted directly.
+ */
+export function isPlan(value:JsonValue|undefined):value is RecoveryPlan {
   if(!value||typeof value!=="object"||Array.isArray(value))return false;
   const plan=value as Record<string,unknown>;
   return plan.version===1&&typeof plan.before==="string"&&typeof plan.after==="string"&&"result" in plan;
 }
 
-async function executeRecoverable(
+/**
+ * Run a workspace-write tool under the durable recovery protocol.
+ *
+ * Exported so the plan/replay/fail-closed branches can be asserted directly.
+ */
+export async function executeRecoverable(
   base:AgentHarnessTool<ExecutionToolContext>,
   toolCallId:string,
   params:any,

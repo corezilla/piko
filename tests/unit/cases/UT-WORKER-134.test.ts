@@ -1,18 +1,68 @@
 /**
- * Case ID: UT-WORKER-134  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-134  ·  STATUS: real
  *
  * 责任：分支 L62 `!plan`（!；tool-recovery.ts）
  * 维度坐标：`executeRecoverable` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-134.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-134 · executeRecoverable（tool-recovery.ts:49）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-recovery.ts:62 的分支（!：!plan）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：executeRecoverable(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-134 · executeRecoverable · 状态分支 × 合法迁移", () => {
+  it("runs the tool when there is no plan", async () => {
+  const { mkdtemp, rm, writeFile, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { createWriteTool, createEditTool } = await import(
+    "../../../upstream/pi/packages/agent/src/harness/tools/index.ts"
+  );
+  const root = await mkdtemp(join(tmpdir(), "piko-recovery-"));
+  const inv = invocation();
+  const ctx = toolContext(root);
+    const base = createWriteTool();
+    try {
+      await executeRecoverable(
+        base,
+        "call",
+        { path: "x.txt", content: "after\n" },
+        () => {},
+        ctx as never,
+        inv.value,
+        context as never,
+      );
+
+      // 步骤 3：断言工具真跑了——文件被写入
+      expect(await readFile(join(root, "x.txt"), "utf8")).toBe("after\n");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

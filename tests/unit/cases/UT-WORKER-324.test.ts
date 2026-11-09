@@ -1,18 +1,53 @@
 /**
- * Case ID: UT-WORKER-324  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-324  ·  STATUS: real
  *
  * 责任：分支 L347 `error.message ?? ""`（??；worker.ts）
  * 维度坐标：`sendDiscussionReplyWithRetry` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-324.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-324 · sendDiscussionReplyWithRetry（worker.ts:320）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 worker.ts:347 的分支（??：error.message ?? ""）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：sendDiscussionReplyWithRetry(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-324 · sendDiscussionReplyWithRetry · 状态分支 × 合法迁移", () => {
+  it("retries an error whose message matches the transient pattern", async () => {
+    const matrix = fakeMatrix({
+      send: async () => {
+        throw new Error("socket hang up");
+      },
+    });
+    await expect(
+      sendDiscussionReplyWithRetry(matrix as never, "t-1", "!room:test", "$e1", 1, "hello"),
+    ).rejects.toThrow(/socket hang up/);
+
+    // 步骤 3：断言重试了——消息匹配瞬时模式
+    expect(matrix.sendDiscussionReply.mock.calls.length).toBeGreaterThan(1);
+  });
+
 });

@@ -1,18 +1,50 @@
 /**
- * Case ID: UT-WORKER-085  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-085  ·  STATUS: real
  *
  * 责任：参数 `path: string` 的 `注入字符` 类（tool-recovery.ts:31）
  * 维度坐标：`fileState` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-085.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-085 · fileState（tool-recovery.ts:31）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `path: string`，其余参数取合法等价类（tool-recovery.ts:31）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → fileState(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-085 用例文档 §3）
+describe("UT-WORKER-085 · fileState · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("asks the env about an injected path as data", async () => {
+    const env = fakeEnv();
+
+    // 步骤 2：调用 fileState(env, 注入串路径, context)
+    const injected = "x.txt/$(rm -rf /)";
+    await fileState(env as never, injected, context as never);
+
+    // 步骤 3：断言注入串被原样交给 env——不被 shell 解释
+    expect(env.fileInfo).toHaveBeenCalledWith(injected, expect.anything());
+  });
+
 });

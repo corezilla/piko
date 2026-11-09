@@ -1,18 +1,54 @@
 /**
- * Case ID: UT-WORKER-070  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-070  ·  STATUS: real
  *
  * 责任：参数 `input: { declaredOutputPaths: readonly string[]; outputs: readonly ` 的 `注入字符` 类（test-evidence.ts:42）
  * 维度坐标：`buildRawResultRef` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-070.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
 
-describe("UT-WORKER-070 · buildRawResultRef（test-evidence.ts:42）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `input: { declaredOutputPaths: readonly string[]; outputs: readonly `，其余参数取合法等价类（test-evidence.ts:42）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → buildRawResultRef(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-070 用例文档 §3）
+describe("UT-WORKER-070 · buildRawResultRef · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("treats an injected declared path as data", () => {
+const fact = (over: Partial<ExecutionFact> = {}): ExecutionFact => ({
+  tool_call_id: "call-1",
+  command: "cat /etc/hostname",
+  exit_code: 0,
+  status: "exited",
+  output: "a7048",
+  truncated: false,
+  timed_out: false,
+  started_at: "2026-11-09T00:00:00.000Z",
+  ended_at: "2026-11-09T00:00:01.000Z",
+  duration_ms: 1000,
+  ...over,
+});
+
+const output = (path: string) => ({ path, sha256: "a".repeat(64), size_bytes: 4 });
+    // 步骤 2：调用 buildRawResultRef（声明路径含注入串）
+    const raw = buildRawResultRef({
+      declaredOutputPaths: ["out/$(rm -rf /).json"],
+      outputs: [],
+      executions: [],
+    });
+
+    // 步骤 3：断言返回值逐值对账——路径内容不被解释
+    expect(raw.report_missing).toBe(true);
+  });
+
 });

@@ -1,18 +1,59 @@
 /**
- * Case ID: UT-WORKER-036  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-036  ·  STATUS: real
  *
  * 责任：分支 L75 `msg.command?.kind === "abort" && typeof msg.c…`（&&；exec-process.ts）
  * 维度坐标：`runExecutionProcess` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-036.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-036 · runExecutionProcess（exec-process.ts:17）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 exec-process.ts:75 的分支（&&：msg.command?.kind === "abort" && typeof msg.command.task_id…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：runExecutionProcess(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-036 · runExecutionProcess · 状态分支 × 合法迁移", () => {
+  it("aborts the task when the command carries a task id", async () => {
+  const { runExecutionProcess } = await import("../../../src/exec-process.js");
+
+    try {
+      const { deps, run } = execDeps();
+      const { worker } = await runExecutionProcess("config/runtime.json", "/tmp/piko-exec", deps);
+
+      // 步骤 2：发一条 abort 命令
+      (process as unknown as { emit(event: string, payload: unknown): boolean }).emit("message", { ipc: "command", command: { kind: "abort", task_id: "t-1" } });
+
+      // 步骤 3：断言中止被下传到 worker
+      expect(worker).toBeDefined();
+      expect(run.aborted).toEqual(["t-1"]);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
 });

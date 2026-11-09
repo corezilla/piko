@@ -50,7 +50,7 @@
     {
       "id": "§2 大分量登记齐：Case 数远超几十时双轴（被测面/对象归属×覆盖维度/Case 类型）已声明、分卷或分章落位唯一；每维度/类型实现率表（分母/已实现/待实现）有且合计＝登记数；登记状态与用例集总账互对账零差集",
       "result": "conformed",
-      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 25 / 未登记 0）与 §6.1A 被测面轴（12 个模块前缀分卷，合计＝登记数）；§6 分母表（粗粒度 152 条：已实现 72 / 待实现 80）＋ §6.1A 分卷表（3,130 条：已实现 1,309 / 待实现 1,821）合计＝3,282，与用例集总账零差集"
+      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 25 / 未登记 0）与 §6.1A 被测面轴（12 个模块前缀分卷，合计＝登记数）；§6 分母表（粗粒度 152 条：已实现 87 / 待实现 65）＋ §6.1A 分卷表（3,130 条：已实现 1,676 / 待实现 1,454）合计＝3,282，与用例集总账零差集"
     },
     {
       "id": "§2 环境/脚本契约分卷（项目建立时）：方案 §3/§4 只引用其 ENV/约束 ID 不复制；ENV 类型均有就绪判据与降级去向；凭据等隐式约定已显式登记",
@@ -97,7 +97,7 @@
     {
       "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
       "result": "conformed",
-      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（1,396），骨架不计入；vitest 全量 1,808 passed / 1,901 todo；tsc --noEmit 零错误"
+      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（1,763），骨架不计入；vitest 全量 1,841 passed / 1,519 todo；tsc --noEmit 零错误"
     },
     {
       "id": "§4 CI 批量策略与一次性判定纪律符合 scheme（不掩盖 FAIL）",
@@ -107,7 +107,7 @@
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
       "result": "deviation",
-      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集；真脚本 1,381 条（九个模块，1,808 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
+      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集；真脚本 1,763 条（十个模块，1,841 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
       "deviation_id": "G-EXEC-UT-3"
     },
     {
@@ -128,13 +128,13 @@
     {
       "id": "§6 （逐条登记，见下表）",
       "result": "deviation",
-      "evidence": "Issue Log 登记 4 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（25 格已全部登记，执行半随 G-EXEC-UT-3）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）；G-EXEC-UT-3（3,282 个 Case 中 1,381 个已写出真脚本，1,901 个仍是骨架）",
+      "evidence": "Issue Log 登记 6 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（25 格已全部登记，执行半随 G-EXEC-UT-3）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）、G-UT-WORKER-1（claimNext 把通道故障与没有活干混为一谈）、G-UT-WORKER-2（P1 入口的退出与信号注册无注入缝）；G-EXEC-UT-3（3,282 个 Case 中 1,763 个已写出真脚本，1,519 个仍是骨架）",
       "deviation_id": "G-UT-VRC-1"
     },
     {
       "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
       "result": "deviation",
-      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝5（G-UT-DENOM-1/G-UT-DIM-1/G-UT-VRC-1/G-UT-DRIFT-1/G-EXEC-UT-3）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
+      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝7（G-UT-DENOM-1/G-UT-DIM-1/G-UT-VRC-1/G-UT-DRIFT-1/G-UT-WORKER-1/G-UT-WORKER-2/G-EXEC-UT-3）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
       "deviation_id": "G-UT-DENOM-1"
     },
     {

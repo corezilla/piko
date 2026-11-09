@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-WORKER-020  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-020  ·  STATUS: real
  *
  * 责任：参数 `root: string` 的 `超长` 类（exec-process.ts:17）
  * 维度坐标：`runExecutionProcess` × `字符串/路径/枚举输入` × `超长`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-020.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-020 · runExecutionProcess（exec-process.ts:17）", () => {
-  test.todo("字符串/路径/枚举输入 × 超长");
-  // 输入构造：按 `超长` 类构造 `root: string`，其余参数取合法等价类（exec-process.ts:17）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → runExecutionProcess(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-020 用例文档 §3）
+describe("UT-WORKER-020 · runExecutionProcess · 字符串/路径/枚举输入 × 超长", () => {
+  it("passes an over-long root to the loader", async () => {
+  const { runExecutionProcess } = await import("../../../src/exec-process.js");
+
+    try {
+      const { deps, run } = execDeps();
+      const long = "r".repeat(5000);
+      await runExecutionProcess("config/runtime.json", long, deps);
+
+      // 步骤 3：断言超长根目录原样交给 loader——该参数不校验
+      expect(run.roots).toEqual([long]);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
 });

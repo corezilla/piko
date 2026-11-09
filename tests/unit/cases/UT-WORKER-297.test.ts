@@ -1,18 +1,56 @@
 /**
- * Case ID: UT-WORKER-297  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-297  ·  STATUS: real
  *
- * 责任：参数 `matrix: MatrixRuntime` 的 `边界(上/下/零/空/满)` 类（worker.ts:320）
+ * 责任：参数 `matrix` 的 `边界(上/下/零/空/满)` 类（worker.ts:320）
  * 维度坐标：`sendDiscussionReplyWithRetry` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-297.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-297 · sendDiscussionReplyWithRetry（worker.ts:320）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `matrix: MatrixRuntime`，其余参数取合法等价类（worker.ts:320）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → sendDiscussionReplyWithRetry(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-297 用例文档 §3）
+describe("UT-WORKER-297 · sendDiscussionReplyWithRetry · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("does not send when the room is no longer joined", async () => {
+    const matrix = fakeMatrix({ joined: false });
+    await expect(
+      sendDiscussionReplyWithRetry(
+        matrix as never,
+        "t-1",
+        "!room:test",
+        "$e1",
+        1,
+        "hello",
+      ),
+    ).rejects.toThrow(/lost access to the discussion room/);
+
+    // 步骤 3：断言没有发送——先查成员资格
+    expect(matrix.sent).toHaveLength(0);
+  });
+
 });

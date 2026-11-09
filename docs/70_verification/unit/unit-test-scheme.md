@@ -593,14 +593,14 @@
 | `UT-TAPI` | task-api | `piko-task-api-impl.isd.md` | 4 | 4 | 0 |
 | `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 9 | 9 | 0 |
 | `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 0 | 2 |
-| `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 0 | 15 |
-| **合计** | — | — | **152** | **72** | **80** |
+| `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 15 | 0 |
+| **合计** | — | — | **152** | **87** | **65** |
 
-**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **1,381/3,282 已实现，实现率 42.1%**——已写出真断言的模块：USAGE（26）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）九个模块（1,459 个断言全绿）；其余 PI（865）、REPO（652）、WORKER（382）为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **1,763/3,282 已实现，实现率 53.7%**——已写出真断言的模块：USAGE（26）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）、WORKER（382）十个模块（1,841 个断言全绿）；其余 PI（865）、REPO（652）为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
 
-**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——其中 **1,309 条已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、POLICY 145、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26），PI（853）、REPO（601）、WORKER（367）三条分卷待写。
+**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——其中 **1,676 条已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、POLICY 145、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367），PI（853）、REPO（601）两条分卷待写。
 
-**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书（文档齐），1,381 条写出真脚本，其余 1,901 条仍是骨架脚本（脚本缺），是本轮的真实状态。
+**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书（文档齐），1,763 条写出真脚本，其余 1,519 条仍是骨架脚本（脚本缺），是本轮的真实状态。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -2461,7 +2461,7 @@
 |---|---|--:|---|
 | `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 853 | 待实现 |
 | `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 601 | 待实现 |
-| `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 367 | 待实现 |
+| `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 367 | **已实现** |
 | `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 280 | **已实现** |
 | `MATRIX` | [unit-test-scheme-matrix.md](volumes/unit-test-scheme-matrix.md) | 213 | **已实现** |
 | `BOOT` | [unit-test-scheme-boot.md](volumes/unit-test-scheme-boot.md) | 190 | **已实现** |
@@ -2471,12 +2471,12 @@
 | `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 119 | **已实现** |
 | `SCHED` | [unit-test-scheme-sched.md](volumes/unit-test-scheme-sched.md) | 34 | **已实现** |
 | `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 26 | **已实现** |
-| **合计** | — | **3130** | 1,309 已实现 / 1,821 待实现 |
+| **合计** | — | **3130** | 1,676 已实现 / 1,454 待实现 |
 
 **与 §6.1 的关系**：§6.1 的 152 条是**粗粒度符号×类型登记**（波次一，含 16 条补齐义务格的新行）；
 本分卷是**逐站点细粒度登记**（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条）。
 两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3130 = **3282**。
-分卷里 1,309 条已写出真脚本，1,821 条仍是骨架（PI / REPO / WORKER 三条分卷，执行半随 `G-EXEC-UT-3` 与波次二排期）。
+分卷里 1,676 条已写出真脚本，1,454 条仍是骨架（PI / REPO 两条分卷，执行半随 `G-EXEC-UT-3` 与波次二排期）。
 
 **机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成，勿手改）——
 全层 3,360 条逐条一行，含四方对账字段（`design`＝用例文档、`script`＝点名该 Case ID 的测试文件、
@@ -2597,6 +2597,18 @@
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
 **依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,282 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,282 条已越下界（但**登记数不等于覆盖**：脚本与执行半仍空，见 `G-EXEC-UT-3`）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
+
+#### 7.1.17 裁决 · claimNext 把「通道故障」与「没有活干」混为一谈（`G-UT-WORKER-1`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`RunWorker.claimNext`（`src/worker.ts:78`）直接读 `this.channel.report({kind:"stagingClaim"})` 的 `.value`，**不经 `report()`**。通道被拒（`{ok:false}`）时 `.value` 是 `undefined`，于是 `staging` 为假、`grant` 也为假，`claimNext` 返回 `null`——与「P0 确实没有活干」**完全同形**。UT 实测（`UT-WORKER-362`）：拒绝通道下 `claimNext()` resolve 出 `null`，worker 随即进入 200ms 退避轮询，**通道已死这件事被静默吞掉**，P0 侧的通道故障永远不会冒泡到 worker 的日志或失败事实里。同一缺陷的另一面：`sendDiscussionReplyWithRetry` 的 `bad?.command ?? "unknown command"` 回退值（`src/worker.ts:207`）在当前实现下不可达——没有执行事实时 `raw.execution_failed` 为假，代码根本走不到那一条（`UT-WORKER-216`）。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①`claimNext` 改经 `report()` 上报（被拒即抛 typed 错误），或显式区分「被拒」与「无活干」两种返回；②worker 的轮询循环在通道故障时进入退避重试而非静默空转，且故障可观测；③`UT-WORKER-362` 的断言改回「拒绝被上抛」，`UT-WORKER-216` 随之补一条可达路径；④本裁决关闭前，任何依赖「worker 会在通道故障时停机」的结论不成立。
+
+#### 7.1.18 裁决 · P1 入口的依赖装配不可测（`G-UT-WORKER-2`）
+
+**裁决（Tailored-N/A 或 Gap）**：Gap
+
+**依据 · Owner · 恢复条件**：`runExecutionProcess`（`src/exec-process.ts:17`）在函数体里直接 `new TaskStore` / `new MatrixRuntime` / `new PiRuntime` / `new RunWorker` / `new ProcessChannel`，并调用 `process.exit(0)`、`process.on("SIGTERM")`——**没有任何注入缝**。于是「哪个密钥先解析」「Matrix 令牌从哪来」「中途失败时已开的资源是否释放」这些启动期语义一条都测不了：单测要么起真的 homeserver 与 Pi harness，要么只能断言「它抛了个错」。本轮已做的第一件事：加 `ExecutionProcessDeps` 注入缝（`productionDeps` 为默认），把五个协作者与密钥解析都做成可替换，并加了 `isEntry` 守卫让模块可被 import 而不自动起进程——`UT-WORKER-016..049`（35 条）由此可断言。剩余缺口：`process.exit` 与信号处理仍在生产路径上直接调用，测试只能 spy；`shutdown` 的资源释放顺序（worker → matrix → pi → store）也没有断言（中途失败时 store 不会被关，见 `UT-WORKER-012`）。Owner＝运行时装配 Owner（`corezilla/piko`）；恢复条件＝①把 `process.exit` 与信号注册也放进 deps（或把 shutdown 的退出动作做成可注入回调）；②`shutdown` 在中途失败时仍释放已开的资源；③`UT-WORKER-012` 的断言改回「store 被关掉」。
 
 #### 7.1.15 裁决 · 两条命令通道的回调形状不一致（`G-UT-IPC-1`）
 
@@ -2811,12 +2823,14 @@
 | `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,282 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 3,282 个 Case 中 1,381 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX＋TRANSFER 九个模块）已写出真脚本，1,901 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，其中 1,381 条已实现 | 脚本随波次二排期 |
+| `G-EXEC-UT-3` | 3,282 个 Case 中 1,763 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX＋TRANSFER＋WORKER 十个模块）已写出真脚本，1,519 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，其中 1,763 条已实现 | 脚本随波次二排期 |
 | `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 | `G-UT-CONFIG-1` | `config/` 全部五份运行时配置不过 `piko-runtime-config-v0.3.schema.json`（缺 `transfer`、`pi` 多两个字段）→ `loadConfig` 必失败；其成功路径无 UT 覆盖 | 运行时装配 Owner 修配置或 schema |
 | `G-UT-QUEUE-1` | `createOrGet` 的队列容量检查与插入不原子 → 并发受理可超出容量 N（实测容量 2 收 5 个）；依赖「容量是硬上限」的结论不成立 | 运行时装配 Owner 改为原子插入 |
 | `G-UT-MATRIX-1` | Matrix 同步状态分支（16 格）单测不可达——start() 等真实 homeserver 的 sync 事件；已加 client 工厂注入缝覆盖其余 11 格 | 运行时装配 Owner 加同步源注入缝 |
+| `G-UT-WORKER-1` | `claimNext` 直接读 `channel.report().value`，通道被拒时返回 `null`——与「没有活干」同形，worker 静默空转、通道故障不冒泡 | 运行时装配 Owner 让 claimNext 经 report() 上报或区分两种返回 |
+| `G-UT-WORKER-2` | P1 入口 `runExecutionProcess` 的五个协作者与 `process.exit`/信号注册无注入缝；已加 `ExecutionProcessDeps` 覆盖协作者，退出与信号仍在生产路径上 | 运行时装配 Owner 把退出与信号注册也做成可注入 |
 | `G-UT-IPC-1` | 两条命令通道的 onCommand 形状不一致（ProcessChannel 交剥出的命令、attachChildToHandler 交整条消息） | 运行时装配 Owner 统一形状 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。

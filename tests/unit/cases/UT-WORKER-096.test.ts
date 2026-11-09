@@ -1,18 +1,49 @@
 /**
- * Case ID: UT-WORKER-096  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-096  ·  STATUS: real
  *
  * 责任：throw L39 `reject`（守卫 `if (!read.ok)`；tool-recovery.ts）
  * 维度坐标：`fileState` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-096.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-096 · fileState（tool-recovery.ts:31）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 tool-recovery.ts:39 的 throw（code `reject`，守卫 if (!read.ok)）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：fileState(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-WORKER-096 · fileState · 错误路径 × 每个 typed 错误码", () => {
+  it("propagates a read failure", async () => {
+    const env = fakeEnv({ readTextFile: () => ({ ok: false, error: { code: "io_error" } }) });
+
+    // 步骤 2：调用 fileState（读文件失败）
+    // 步骤 3：断言错误被上抛
+    await expect(fileState(env as never, "x.txt", context as never)).rejects.toMatchObject({
+      code: "io_error",
+    });
+  });
+
 });

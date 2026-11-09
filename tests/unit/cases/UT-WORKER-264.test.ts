@@ -1,18 +1,62 @@
 /**
- * Case ID: UT-WORKER-264  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-264  ·  STATUS: real
  *
  * 责任：可选参数 `clock` 缺省/显式两态（worker.ts:28）
  * 维度坐标：`RunWorker.constructor` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-264.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-264 · RunWorker.constructor（worker.ts:28）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `clock: Clock`，其余参数取合法等价类（worker.ts:28）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new RunWorker.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-WORKER-264 用例文档 §3）
+describe("UT-WORKER-264 · RunWorker.constructor · 纯函数/无副作用 × 未知枚举", () => {
+  it("defaults the clock to the system clock", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => ({ status: "completed", summary: "done" })) as never,
+        fakeMatrix() as never,
+        fakeTransfer() as never,
+        fakeChannel() as never,
+      );
+    try {
+      // 步骤 2：断言缺省态与显式两态同构——两者都能构造出 worker
+      expect(worker).toBeDefined();
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

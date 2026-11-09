@@ -1,18 +1,63 @@
 /**
- * Case ID: UT-WORKER-165  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-165  ·  STATUS: real
  *
  * 责任：分支 L126 `params?.command`（?.；tool-recovery.ts）
  * 维度坐标：`applyToolRecoveryPolicy` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-165.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-165 · applyToolRecoveryPolicy（tool-recovery.ts:91）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-recovery.ts:126 的分支（?.：params?.command）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：applyToolRecoveryPolicy(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-165 · applyToolRecoveryPolicy · 状态分支 × 合法迁移", () => {
+  it("leaves a tool without a command argument untouched", async () => {
+  const { mkdtemp, rm, writeFile, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { createWriteTool, createEditTool, createReadTool, createBashTool } = await import(
+    "../../../upstream/pi/packages/agent/src/harness/tools/index.ts"
+  );
+  const root = await mkdtemp(join(tmpdir(), "piko-recovery-"));
+  const inv = invocation();
+  const ctx = toolContext(root);
+    const base = createReadTool();
+    const tool = applyToolRecoveryPolicy(
+      base,
+      { effect: "read_only", replay: "safe", permissions: { executables: ["ls"] } } as never,
+      registry,
+    );
+    try {
+    // 步骤 2：断言返回值逐值对账——没有 command 就不进守卫
+    expect(tool.replay).toBe("safe");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-WORKER-104  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-104  ·  STATUS: real
  *
  * 责任：分支 L44 `!value||typeof value!=="object"`（||；tool-recovery.ts）
  * 维度坐标：`isPlan` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-104.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-104 · isPlan（tool-recovery.ts:43）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-recovery.ts:44 的分支（||：!value||typeof value!=="object"）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：isPlan(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-104 · isPlan · 状态分支 × 合法迁移", () => {
+  it("rejects a null value", () => {
+const plan = {
+  version: 1,
+  before: "sha256:aaa",
+  after: "sha256:bbb",
+  result: { content: [{ type: "text", text: "ok" }] },
+};
+    // 步骤 2：调用 isPlan(null)
+    // 步骤 3：断言返回值逐值对账——null 即不是 plan
+    expect(isPlan(null as never)).toBe(false);
+  });
+
 });

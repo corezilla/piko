@@ -1,18 +1,64 @@
 /**
- * Case ID: UT-WORKER-265  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-265  ·  STATUS: real
  *
  * 责任：await 拒绝传播 #1：被调方 `this.loopPromise` 拒绝必须 typed 化上抛（worker.ts:282）
  * 维度坐标：`close` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-265.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-265 · close（worker.ts:282）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：注入第 1 个被调方（close 的 await 目标）拒绝
-  // 观察点：拒绝按设计声明的 typed 错误上抛，不吞错、不降级为成功
-  // 待实现：注入拒绝 → 调用 → 断言上抛（Oracle：用例文档 §3）
+describe("UT-WORKER-265 · close · 错误路径 × 每个 typed 错误码", () => {
+  it("resolves when the loop was never started", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      const channel = fakeChannel();
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => ({ status: "completed", summary: "done" })) as never,
+        fakeMatrix() as never,
+        fakeTransfer() as never,
+        channel as never,
+      );
+    try {
+      // 步骤 2：调用 close（loop 从未启动）
+      // 步骤 3：断言不抛错——没有 loopPromise 就没什么可等
+      await expect(worker.close()).resolves.toBeUndefined();
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

@@ -1,18 +1,58 @@
 /**
- * Case ID: UT-WORKER-028  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-028  ·  STATUS: real
  *
  * 责任：分支 L38 `if (config.matrix.access_token_secret_r…`（else；exec-process.ts）
  * 维度坐标：`runExecutionProcess` × `状态分支` × `每个非法迁移拒绝`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-028.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-028 · runExecutionProcess（exec-process.ts:17）", () => {
-  test.todo("状态分支 × 每个非法迁移拒绝");
-  // 输入构造：使 exec-process.ts:38 的分支（else：if (config.matrix.access_token_secret_r…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：runExecutionProcess(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-028 · runExecutionProcess · 状态分支 × 每个非法迁移拒绝", () => {
+  it("starts the matrix with no token when neither is configured", async () => {
+  const { runExecutionProcess } = await import("../../../src/exec-process.js");
+
+    try {
+      const { deps, run } = execDeps({
+        config: runtimeConfig({ matrix: { enabled: true } }),
+      });
+      await runExecutionProcess("config/runtime.json", "/tmp/piko-exec", deps);
+
+      // 步骤 3：断言没有令牌也没有解析密钥——else 分支什么都不做
+      expect(run.matrixTokens).toEqual([undefined]);
+      expect(run.secrets).toEqual(["env:PIKO_UT_LLM_KEY"]);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
 });

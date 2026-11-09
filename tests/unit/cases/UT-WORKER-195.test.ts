@@ -1,18 +1,71 @@
 /**
- * Case ID: UT-WORKER-195  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-195  ·  STATUS: real
  *
  * 责任：参数 `epoch: number` 的 `−1 通过` 类（worker.ts:143）
  * 维度坐标：`run` × `数值/长度上限参数` × `−1 通过`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-195.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-195 · run（worker.ts:143）", () => {
-  test.todo("数值/长度上限参数 × −1 通过");
-  // 输入构造：按 `−1 通过` 类构造 `epoch: number`，其余参数取合法等价类（worker.ts:143）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → run(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-195 用例文档 §3）
+describe("UT-WORKER-195 · run · 数值/长度上限参数 × −1 通过", () => {
+  it("refuses to publish with a negative lease epoch", async () => {
+  const { mkdtemp, rm, writeFile, mkdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      store.createOrGet(task("t-1"), "slinky", 10);
+      const grant = store.tryClaimSlot("worker", "boot") as { lease_epoch: number } | null;
+      const channel = fakeChannel();
+      const transfer = fakeTransfer();
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => ({ status: "completed", summary: "done" })) as never,
+        fakeMatrix() as never,
+        transfer as never,
+        channel as never,
+      );
+    try {
+      await (worker as unknown as { run(taskId: string, epoch: number): Promise<void> })
+        .run("t-1", -1);
+
+      // 步骤 3：断言发布带上了那个纪元——纪元只做围栏，不做范围校验
+      const fact = channel.facts.find((f) => f.kind === "publishResult");
+      expect(fact).toMatchObject({ lease_epoch: -1 });
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

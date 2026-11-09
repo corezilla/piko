@@ -1,18 +1,75 @@
 /**
- * Case ID: UT-WORKER-226  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-226  ·  STATUS: real
  *
  * 责任：分支 L240 `if (error instanceof PikoError) { code …`（else；worker.ts）
  * 维度坐标：`run` × `状态分支` × `每个非法迁移拒绝`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-226.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-226 · run（worker.ts:143）", () => {
-  test.todo("状态分支 × 每个非法迁移拒绝");
-  // 输入构造：使 worker.ts:240 的分支（else：if (error instanceof PikoError) { code …）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：run(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-226 · run · 状态分支 × 每个非法迁移拒绝", () => {
+  it("does not use the piko error code for a plain error", async () => {
+  const { mkdtemp, rm, writeFile, mkdir } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      store.createOrGet(task("t-1"), "slinky", 10);
+      const grant = store.tryClaimSlot("worker", "boot") as { lease_epoch: number } | null;
+      const channel = fakeChannel();
+      const transfer = fakeTransfer();
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => {
+      throw new Error("plain");
+    }) as never,
+        fakeMatrix() as never,
+        transfer as never,
+        channel as never,
+      );
+    try {
+      await (worker as unknown as { run(taskId: string, epoch: number): Promise<void> })
+        .run("t-1", 1);
+
+      // 步骤 3：断言不是 PikoError 的分支——普通 Error 落到后面的判定
+      const fact = channel.facts.find((f) => f.kind === "publishResult");
+      expect(fact).toMatchObject({
+        result: { failure: { code: "InternalError", cause_class: "Internal" } },
+      });
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

@@ -1,18 +1,69 @@
 /**
- * Case ID: UT-WORKER-144  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-144  ·  STATUS: real
  *
  * 责任：throw L71 `reject`（守卫 `if (before.content===undefined)`；tool-recovery.ts）
  * 维度坐标：`executeRecoverable` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-144.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-144 · executeRecoverable（tool-recovery.ts:49）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 tool-recovery.ts:71 的 throw（code `reject`，守卫 if (before.content===undefined)）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：executeRecoverable(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-WORKER-144 · executeRecoverable · 错误路径 × 每个 typed 错误码", () => {
+  it("refuses to edit a file that does not exist", async () => {
+  const { mkdtemp, rm, writeFile, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { createWriteTool, createEditTool } = await import(
+    "../../../upstream/pi/packages/agent/src/harness/tools/index.ts"
+  );
+  const root = await mkdtemp(join(tmpdir(), "piko-recovery-"));
+  const inv = invocation();
+  const ctx = toolContext(root);
+    const base = createEditTool();
+    try {
+      // 步骤 2：调用 executeRecoverable（目标文件不存在）
+      // 步骤 3：断言错误消息逐值对账
+      await expect(
+        executeRecoverable(
+          base,
+          "call",
+          { path: "missing.txt", edits: [{ oldText: "a", newText: "b" }] },
+          () => {},
+          ctx as never,
+          inv.value,
+          context as never,
+        ),
+      ).rejects.toThrow("Could not edit missing file: missing.txt");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

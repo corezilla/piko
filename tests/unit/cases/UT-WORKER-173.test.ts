@@ -1,18 +1,61 @@
 /**
- * Case ID: UT-WORKER-173  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-173  ·  STATUS: real
  *
  * 责任：throw L138 `reject`（守卫 `if (base.name!=="write"&&base.name!=="e…`；tool-recovery.ts）
  * 维度坐标：`applyToolRecoveryPolicy` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-173.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-173 · applyToolRecoveryPolicy（tool-recovery.ts:91）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 tool-recovery.ts:138 的 throw（code `reject`，守卫 if (base.name!=="write"&&base.name!=="edit")）
-  // 观察点：typed 错误 code 逐值等于 `reject`，消息可判别，无部分写入
-  // 待实现：applyToolRecoveryPolicy(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-WORKER-173 · applyToolRecoveryPolicy · 错误路径 × 每个 typed 错误码", () => {
+  it("reports the declared unsupported-tool error", async () => {
+  const { mkdtemp, rm, writeFile, readFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { createWriteTool, createEditTool, createReadTool, createBashTool } = await import(
+    "../../../upstream/pi/packages/agent/src/harness/tools/index.ts"
+  );
+  const root = await mkdtemp(join(tmpdir(), "piko-recovery-"));
+  const inv = invocation();
+  const ctx = toolContext(root);
+    const base = createReadTool();
+    try {
+    // 步骤 2：调用 applyToolRecoveryPolicy（只读工具拿到写契约）
+    // 步骤 3：断言错误消息逐值对账
+    expect(() => applyToolRecoveryPolicy(base, writePolicy, registry)).toThrow(
+      "builtin:workspace-atomic-write does not support read",
+    );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

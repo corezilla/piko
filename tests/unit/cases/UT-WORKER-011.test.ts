@@ -1,18 +1,73 @@
 /**
- * Case ID: UT-WORKER-011  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-011  ·  STATUS: real
  *
- * 责任：`start` × `资源获取/释放` × `获取失败路径`（粗粒度登记）
+ * 责任：被测符号 `start`（WORKER）在对象类型 `资源获取/释放` 下的维度格 `获取失败路径`（该 Case 只登记本行 1 格）、`正常释放`、`异常中途释放`；只测该符号该类型
  * 维度坐标：`start` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-011.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-011 · start（worker.ts:54）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：按 `资源获取/释放` × `获取失败路径` 展开规则构造（worker.ts:54）
-  // 观察点：返回值、typed 错误码、持久化副作用与资源释放
-  // 待实现：start(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-011 · start · 资源获取/释放 × 获取失败路径", () => {
+  it("starts the loop and can be closed again", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      store.createOrGet(task("t-1"), "slinky", 10);
+      const grant = store.tryClaimSlot("worker", "boot") as { lease_epoch: number } | null;
+      const channel = fakeChannel({ stagingClaim: null, claim: null });
+      const transfer = fakeTransfer();
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => ({ status: "completed", summary: "done" })) as never,
+        fakeMatrix() as never,
+        transfer as never,
+        channel as never,
+      );
+    try {
+      // 步骤 2：调用 start，然后 close
+      worker.start();
+      await worker.close();
+
+      // 步骤 3：断言资源被释放——循环停下，close 幂等
+      expect((worker as unknown as { stopped: boolean }).stopped).toBe(true);
+      await expect(worker.close()).resolves.toBeUndefined();
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });

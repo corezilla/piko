@@ -285,7 +285,13 @@ export class RunWorker {
   }
 }
 
-function buildStats(view: ReturnType<TaskStore["getRun"]>, outputs: AgentResult["outputs"]): AgentResult["stats"] {
+/**
+ * Summarise a run view plus its recovered outputs.
+ *
+ * Exported so the stats derivation can be asserted directly rather than only
+ * through a whole run.
+ */
+export function buildStats(view: ReturnType<TaskStore["getRun"]>, outputs: AgentResult["outputs"]): AgentResult["stats"] {
   return {
     model_calls: view.progress.model_calls,
     tool_calls: view.progress.tool_calls,
@@ -317,7 +323,13 @@ export function aggregateUsage(rows: any[], attempts: number): TokenUsage {
 }
 
 const DISCUSSION_RETRY_DELAYS_MS = [200, 1000, 5000];
-async function sendDiscussionReplyWithRetry(matrix: MatrixRuntime, taskId: string, roomId: string, eventId: string, turn: number, body: string): Promise<void> {
+/**
+ * Send a discussion reply, retrying transient failures with backoff.
+ *
+ * Exported so the retry ladder and the membership-loss handling can be
+ * asserted directly rather than only through a whole run.
+ */
+export async function sendDiscussionReplyWithRetry(matrix: MatrixRuntime, taskId: string, roomId: string, eventId: string, turn: number, body: string): Promise<void> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= DISCUSSION_RETRY_DELAYS_MS.length; attempt++) {
     try {

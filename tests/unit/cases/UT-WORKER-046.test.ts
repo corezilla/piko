@@ -1,18 +1,57 @@
 /**
- * Case ID: UT-WORKER-046  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-046  ·  STATUS: real
  *
  * 责任：await 拒绝传播 #9：被调方 `pi.close(` 拒绝必须 typed 化上抛（exec-process.ts:17）
  * 维度坐标：`runExecutionProcess` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-046.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-046 · runExecutionProcess（exec-process.ts:17）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：注入第 9 个被调方（runExecutionProcess 的 await 目标）拒绝
-  // 观察点：拒绝按设计声明的 typed 错误上抛，不吞错、不降级为成功
-  // 待实现：注入拒绝 → 调用 → 断言上抛（Oracle：用例文档 §3）
+describe("UT-WORKER-046 · runExecutionProcess · 错误路径 × 每个 typed 错误码", () => {
+  it("propagates a pi runtime that cannot close", async () => {
+  const { runExecutionProcess } = await import("../../../src/exec-process.js");
+
+    try {
+      const { deps, run } = execDeps({ failAt: "piClose" });
+      const started = await runExecutionProcess("config/runtime.json", "/tmp/piko-exec", deps);
+
+      // 步骤 2：调用 shutdown
+      // 步骤 3：断言错误逐值对账
+      await expect(started.shutdown()).rejects.toThrow("pi close failed");
+      expect(run.piClosed).toBe(1);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
 });

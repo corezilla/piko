@@ -1,18 +1,57 @@
 /**
- * Case ID: UT-WORKER-024  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-024  ·  STATUS: real
  *
  * 责任：分支 L30 `if (config.identity?.doc_search)`（if；exec-process.ts）
  * 维度坐标：`runExecutionProcess` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-024.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  throwingChannel,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
+import { execDeps, runtimeConfig } from "./support/exec-process-fix.js";
 
-describe("UT-WORKER-024 · runExecutionProcess（exec-process.ts:17）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 exec-process.ts:30 的分支（if：if (config.identity?.doc_search)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：runExecutionProcess(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-024 · runExecutionProcess · 状态分支 × 合法迁移", () => {
+  it("resolves the doc-search key when it is configured", async () => {
+  const { runExecutionProcess } = await import("../../../src/exec-process.js");
+
+    try {
+      const { deps, run } = execDeps({
+        config: runtimeConfig({ identity: { doc_search: { api_key_secret_ref: "env:PIKO_UT_GRAPH_KEY" } } }),
+      });
+      await runExecutionProcess("config/runtime.json", "/tmp/piko-exec", deps);
+
+      // 步骤 3：断言文档检索密钥被解析了
+      expect(run.secrets).toContain("env:PIKO_UT_GRAPH_KEY");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
 });

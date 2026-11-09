@@ -1,18 +1,54 @@
 /**
- * Case ID: UT-WORKER-318  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-318  ·  STATUS: real
  *
  * 责任：分支 L337 `if (/M_FORBIDDEN|not in room|not joined/i.tes…`（if；worker.ts）
  * 维度坐标：`sendDiscussionReplyWithRetry` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-318.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-318 · sendDiscussionReplyWithRetry（worker.ts:320）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 worker.ts:337 的分支（if：if (/M_FORBIDDEN|not in room|not joined/i.test(String((error as Error…）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：sendDiscussionReplyWithRetry(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-WORKER-318 · sendDiscussionReplyWithRetry · 状态分支 × 合法迁移", () => {
+  it("treats a forbidden error as proof the membership was lost", async () => {
+    const matrix = fakeMatrix({
+      send: async () => {
+        throw new Error("M_FORBIDDEN");
+      },
+    });
+    await expect(
+      sendDiscussionReplyWithRetry(matrix as never, "t-1", "!room:test", "$e1", 1, "hello"),
+    ).rejects.toThrow(/lost access to the discussion room/);
+
+    // 步骤 3：断言丢失被记下，且不重试——403 本身就是证据
+    expect(matrix.lost).toEqual(["!room:test"]);
+    expect(matrix.sendDiscussionReply.mock.calls.length).toBe(1);
+  });
+
 });

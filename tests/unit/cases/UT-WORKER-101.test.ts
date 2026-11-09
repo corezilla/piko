@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-WORKER-101  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-101  ·  STATUS: real
  *
  * 责任：参数 `value: JsonValue|undefined` 的 `非法值` 类（tool-recovery.ts:43）
  * 维度坐标：`isPlan` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-101.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-101 · isPlan（tool-recovery.ts:43）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `value: JsonValue|undefined`，其余参数取合法等价类（tool-recovery.ts:43）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → isPlan(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-101 用例文档 §3）
+describe("UT-WORKER-101 · isPlan · 纯函数/无副作用 × 非法值", () => {
+  it("rejects a value of the wrong type", () => {
+const plan = {
+  version: 1,
+  before: "sha256:aaa",
+  after: "sha256:bbb",
+  result: { content: [{ type: "text", text: "ok" }] },
+};
+    // 步骤 2：调用 isPlan（值是数字）
+    // 步骤 3：断言返回值逐值对账——非对象即不是 plan
+    expect(isPlan(42 as never)).toBe(false);
+  });
+
 });

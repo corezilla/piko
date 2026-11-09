@@ -1,18 +1,67 @@
 /**
- * Case ID: UT-WORKER-333  ·  STATUS: skeleton
+ * Case ID: UT-WORKER-333  ·  STATUS: real
  *
  * 责任：参数 `fact: Fact` 的 `边界(上/下/零/空/满)` 类（worker.ts:39）
  * 维度坐标：`report` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `WORKER`）
  * 用例文档：docs/70_verification/unit/cases/UT-WORKER-333.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ExecutionFactCollector, statusFromErrorCode } from "../../../src/execution-facts.js";
+import { buildRawResultRef, isExecutionFailure } from "../../../src/test-evidence.js";
+import { RunWorker, aggregateUsage, buildStats, sendDiscussionReplyWithRetry } from "../../../src/worker.js";
+import { applyToolRecoveryPolicy, executeRecoverable, fileState, isPlan } from "../../../src/tool-recovery.js";
+import { TaskStore } from "../../../src/store.js";
+import type { ExecutionFact } from "../../../src/execution-facts.js";
+import {
+  config,
+  fakeChannel,
+  fakeMatrix,
+  fakePi,
+  fakeTransfer,
+  rejectingChannel,
+  task,
+  workerFixture,
+} from "./support/worker-fix.js";
+import {
+  context,
+  emptyRegistry,
+  envAt,
+  fakeEnv,
+  invocation,
+  neverPolicy,
+  readPolicy,
+  registry,
+  toolContext,
+  writePolicy,
+} from "./support/recovery-fix.js";
 
-describe("UT-WORKER-333 · report（worker.ts:39）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `fact: Fact`，其余参数取合法等价类（worker.ts:39）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → report(/* 参数 */) → 逐值断言（Oracle：UT-WORKER-333 用例文档 §3）
+describe("UT-WORKER-333 · report · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("forwards a fact with empty fields", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "piko-worker-"));
+  const store = new TaskStore(":memory:", 1000);
+      const channel = fakeChannel();
+      const worker = new RunWorker(
+        config(root),
+        store,
+        fakePi(async () => ({ status: "completed", summary: "done" })) as never,
+        fakeMatrix() as never,
+        fakeTransfer() as never,
+        channel as never,
+      );
+    try {
+      // 步骤 2：调用 report（claim fact 的字段取边界值）
+      await (worker as unknown as { report(fact: unknown): Promise<unknown> })
+        .report({ kind: "claim", owner: "", boot: "" });
+
+      // 步骤 3：断言 fact 被原样送出
+      expect(channel.facts[0]).toEqual({ kind: "claim", owner: "", boot: "" });
+    } finally {
+      store.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
 });
