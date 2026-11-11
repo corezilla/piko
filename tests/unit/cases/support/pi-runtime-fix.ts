@@ -209,6 +209,12 @@ export type ChannelValue = unknown | ((fact: Fact, count: number) => unknown);
 
 export function recordingChannel(
   values: Partial<Record<Fact["kind"], ChannelValue>> = {},
+  /**
+   * 把 `turn` 事实回写到 store。discussion 任务靠 store 的 pending turn 决定
+   * 下一轮：若不回写，turn 永远停在 `Pending`，`execute` 的 drive 循环会
+   * 反复重入同一个回合而永不收尾（G-UT-PI-10 记录的死循环）。
+   */
+  store?: TaskStore,
 ) {
   const facts: Fact[] = [];
   const counts = new Map<string, number>();
@@ -222,6 +228,9 @@ export function recordingChannel(
       facts.push(fact);
       const count = (counts.get(fact.kind) ?? 0) + 1;
       counts.set(fact.kind, count);
+      if (store && fact.kind === "turn") {
+        store.markTurn(fact.task_id, fact.event_id, fact.status, fact.entry, fact.operation);
+      }
       const resolve = (v: ChannelValue): unknown =>
         typeof v === "function" ? (v as (f: Fact, n: number) => unknown)(fact, count) : v;
       if (fact.kind in values) return { ok: true, value: resolve(values[fact.kind]!) };
@@ -310,7 +319,7 @@ export async function piConstructor(options: PiFixtureOptions = {}) {
 export async function piFixture(options: PiFixtureOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), "piko-pi-ut-"));
   const store = new TaskStore(":memory:", 1000);
-  const recorded = recordingChannel();
+  const recorded = recordingChannel({}, store);
   const config = piConfig({
     pi: { version: "0.85.1", commit: "0".repeat(40), session_root: join(root, "sessions") },
     ...options.config,
