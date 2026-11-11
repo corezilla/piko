@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-PI-853  ·  STATUS: skeleton
+ * Case ID: UT-PI-853  ·  STATUS: real
  *
  * 责任：参数 `base: typeof fetch` 的 `每等价类合法值` 类（tool-host-policy.ts:74）
  * 维度坐标：`makePolicyFetch` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-853.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-853 · makePolicyFetch（tool-host-policy.ts:74）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `base: typeof fetch`，其余参数取合法等价类（tool-host-policy.ts:74）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → makePolicyFetch(/* 参数 */) → 逐值断言（Oracle：UT-PI-853 用例文档 §3）
+describe("UT-PI-853 · makePolicyFetch · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("wraps a resolving and a rejecting base fetch", async () => {  // wraps a resolving and a rejecting base fetch
+    // 步骤 1：base 的每个等价类各一个代表值（resolve / reject）
+    const ok = vi.fn(async () => new Response("ok", { status: 200 }));
+    const bad = vi.fn(async () => { throw new Error("boom"); });
+    // 步骤 2：调用 makePolicyFetch
+    const policyOk = makePolicyFetch(ok as unknown as typeof fetch);
+    const policyBad = makePolicyFetch(bad as unknown as typeof fetch);
+    // 步骤 3：断言返回值逐值对账——两个 base 都被接受并被包装
+    expect(typeof policyOk).toBe("function");
+    expect(typeof policyBad).toBe("function");
+    const response = await policyOk("https://a.com/x");
+    expect(response.status).toBe(200);
+    expect(ok).toHaveBeenCalledTimes(1);
+    // 拒绝的 base 保真传播
+    await expect(policyBad("https://a.com/x")).rejects.toThrow("boom");
+    expect(bad).toHaveBeenCalledTimes(1);
+  });
 });

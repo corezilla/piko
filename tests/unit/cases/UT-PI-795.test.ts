@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-PI-795  ·  STATUS: skeleton
+ * Case ID: UT-PI-795  ·  STATUS: real
  *
  * 责任：分支 L230 `if (value.length >= 2)`（if；tool-exec-policy.ts）
  * 维度坐标：`stripQuotes` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-795.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { stripQuotes } from "../../../src/tool-exec-policy.js";
 
-describe("UT-PI-795 · stripQuotes（tool-exec-policy.ts:229）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-exec-policy.ts:230 的分支（if：if (value.length >= 2)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：stripQuotes(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-795 · stripQuotes · 状态分支 × 合法迁移", () => {
+  it("takes both sides of the length guard", () => {  // takes both sides of the length guard
+    // 步骤 1：取真侧——长度 ≥ 2 且首尾同为引号
+    expect(stripQuotes('"a"')).toBe("a");
+    // 步骤 3/4：取假侧——长度 < 2，跳过整块，原样返回
+    expect(stripQuotes("a")).toBe("a");
+    expect(stripQuotes("")).toBe("");
+    // 取假侧的返回值与入参是同一个字符串（未做任何切片）
+    const one = "a";
+    expect(stripQuotes(one)).toBe(one);
+  });
 });

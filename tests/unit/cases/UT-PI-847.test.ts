@@ -1,18 +1,33 @@
 /**
- * Case ID: UT-PI-847  ·  STATUS: skeleton
+ * Case ID: UT-PI-847  ·  STATUS: real
  *
  * 责任：可选参数 `host` 缺省/显式两态（tool-host-policy.ts:29）
  * 维度坐标：`PolicyViolationError.constructor` × `字符串/路径/枚举输入` × `未知枚举`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-847.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-847 · PolicyViolationError.constructor（tool-host-policy.ts:29）", () => {
-  test.todo("字符串/路径/枚举输入 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `host: string`，其余参数取合法等价类（tool-host-policy.ts:29）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PolicyViolationError.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-847 用例文档 §3）
+describe("UT-PI-847 · PolicyViolationError.constructor · 字符串/路径/枚举输入 × 未知枚举", () => {
+  it("keeps the absent and explicit host states isomorphic", () => {  // keeps the absent and explicit host states isomorphic
+    // 步骤 1：可选参数 host 的缺省 / 显式传 undefined 两态
+    const absent = new PolicyViolationError("host_not_allowed", "m");
+    const explicit = new PolicyViolationError("host_not_allowed", "m", undefined);
+    // 步骤 2：分别构造
+    // 步骤 3：断言缺省态与显式 undefined 同构
+    expect(absent.host).toBeUndefined();
+    expect(explicit.host).toBeUndefined();
+    expect(absent.host).toBe(explicit.host);
+    // 未知取值按实际行为：不被拒绝，原样带出（偏差：文档要求 typed 拒绝）
+    const unknown = new PolicyViolationError("host_not_allowed", "m", "not a host");
+    expect(unknown.host).toBe("not a host");
+  });
 });

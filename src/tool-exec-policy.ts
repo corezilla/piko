@@ -226,7 +226,7 @@ export function assertRemoteExecutableAllowed(argv: readonly string[], allowlist
   }
 }
 
-function stripQuotes(value: string): string {
+export function stripQuotes(value: string): string {
   if (value.length >= 2) {
     const first = value[0];
     const last = value[value.length - 1];

@@ -1,18 +1,44 @@
 /**
- * Case ID: UT-PI-529  ·  STATUS: skeleton
+ * Case ID: UT-PI-529  ·  STATUS: real
  *
  * 责任：参数 `base: string` 的 `空` 类（provider-preflight.ts:1）
  * 维度坐标：`preflightModelProvider` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-529.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { preflightModelProvider } from "../../../src/provider-preflight.js";
+import { captureError, fakeResponse, modelsResponder, neverSettles, stubFetch } from "./support/d-preflight-fix.js";
 
-describe("UT-PI-529 · preflightModelProvider（provider-preflight.ts:1）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `base: string`，其余参数取合法等价类（provider-preflight.ts:1）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → preflightModelProvider(/* 参数 */) → 逐值断言（Oracle：UT-PI-529 用例文档 §3）
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+
+describe("UT-PI-529 · preflightModelProvider · 字符串/路径/枚举输入 × 空", () => {
+  it("rejects an empty base with a TypeError before any request is sent", async () => {  // rejects an empty base with a TypeError before any request is sent
+    // 步骤 1：base 的三态空值——空串 / undefined / null
+    // 空串：拼成 "/" 后 new URL 的 base 不是绝对地址 → ERR_INVALID_URL
+    const emptyString = stubFetch(modelsResponder());
+    await expect(preflightModelProvider("", "sk-test", 1000, "gpt-4o-mini")).rejects.toThrow(TypeError);
+    await expect(preflightModelProvider("", "sk-test", 1000, "gpt-4o-mini")).rejects.toThrow("Invalid URL");
+    expect(emptyString.calls).toHaveLength(0);
+    emptyString.restore();
+
+    // undefined：base.endsWith 上直接抛 TypeError
+    const undefinedBase = stubFetch(modelsResponder());
+    await expect(preflightModelProvider(undefined as unknown as string, "sk-test", 1000, "gpt-4o-mini")).rejects.toThrow(
+      "Cannot read properties of undefined (reading 'endsWith')",
+    );
+    expect(undefinedBase.calls).toHaveLength(0);
+    undefinedBase.restore();
+
+    // null：同上
+    const nullBase = stubFetch(modelsResponder());
+    await expect(preflightModelProvider(null as unknown as string, "sk-test", 1000, "gpt-4o-mini")).rejects.toThrow(
+      "Cannot read properties of null (reading 'endsWith')",
+    );
+    expect(nullBase.calls).toHaveLength(0);
+    nullBase.restore();
+  });
 });

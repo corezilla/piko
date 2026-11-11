@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-PI-536  ·  STATUS: skeleton
+ * Case ID: UT-PI-536  ·  STATUS: real
  *
  * 责任：参数 `timeout: number` 的 `+1 拒绝` 类（provider-preflight.ts:1）
  * 维度坐标：`preflightModelProvider` × `数值/长度上限参数` × `+1 拒绝`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-536.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { preflightModelProvider } from "../../../src/provider-preflight.js";
+import { captureError, fakeResponse, modelsResponder, neverSettles, stubFetch } from "./support/d-preflight-fix.js";
 
-describe("UT-PI-536 · preflightModelProvider（provider-preflight.ts:1）", () => {
-  test.todo("数值/长度上限参数 × +1 拒绝");
-  // 输入构造：按 `+1 拒绝` 类构造 `timeout: number`，其余参数取合法等价类（provider-preflight.ts:1）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → preflightModelProvider(/* 参数 */) → 逐值断言（Oracle：UT-PI-536 用例文档 §3）
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+
+describe("UT-PI-536 · preflightModelProvider · 数值/长度上限参数 × +1 拒绝", () => {
+  it("aborts the request when the timeout is one millisecond past the boundary", async () => {  // aborts the request when the timeout is one millisecond past the boundary
+    vi.useFakeTimers();
+    // 步骤 1：timeout 取边界值 0 的 +1 = 1
+    const pending = stubFetch(neverSettles);
+    const promise = preflightModelProvider("https://provider.example.com/v1", "sk-test", 1, "gpt-4o-mini");
+    const assertion = expect(promise).rejects.toThrow("The operation was aborted.");
+
+    // 步骤 2/3：t=0 还没到 1ms——信号未 abort，请求仍在飞
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pending.calls).toHaveLength(1);
+    expect(pending.calls[0].signal!.aborted).toBe(false);
+
+    // t=1 到达边界——abort，fetch 以 AbortError 收场，错误原样上抛
+    await vi.advanceTimersByTimeAsync(1);
+    await assertion;
+    expect(pending.calls[0].signal!.aborted).toBe(true);
+    pending.restore();
+  });
 });

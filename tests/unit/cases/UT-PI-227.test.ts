@@ -1,18 +1,32 @@
 /**
- * Case ID: UT-PI-227  ·  STATUS: skeleton
+ * Case ID: UT-PI-227  ·  STATUS: real
  *
  * 责任：参数 `options: Mem0SearchOptions` 的 `边界(上/下/零/空/满)` 类（mem0-client.ts:88）
  * 维度坐标：`search` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-227.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { bodyOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-227 · search（mem0-client.ts:88）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `options: Mem0SearchOptions`，其余参数取合法等价类（mem0-client.ts:88）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → search(/* 参数 */) → 逐值断言（Oracle：UT-PI-227 用例文档 §3）
+describe("UT-PI-227 · search · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("passes every boundary max_results through without bounds checking", async () => {  // passes every boundary max_results through without bounds checking
+    const ff = scriptedFetch([{ status: 200, body: "{}" }]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      const adapter = new Mem0Adapter("https://mem0.test", "key");
+      // 步骤 1/2：边界值——下界 1 / 上界 20 / 零 0 / 负数 -5（ISD：[1,20]，但客户端不二次校验）
+      const bounds = [1, 20, 0, -5];
+      for (const [i, max_results] of bounds.entries()) {
+        await adapter.search("q", "u", { max_results });
+        expect(bodyOf(ff.calls[i]!).top_k).toBe(max_results);
+      }
+      // 空 filters（边界：空）——只有 user_id，无任何额外过滤键
+      await adapter.search("q", "u", { max_results: 5, filters: {} });
+      expect(bodyOf(ff.calls[4]!).filters).toEqual({ user_id: "u" });
+      expect(ff.calls.length).toBe(5);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

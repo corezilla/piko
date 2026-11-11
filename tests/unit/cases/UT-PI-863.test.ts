@@ -1,18 +1,40 @@
 /**
- * Case ID: UT-PI-863  ·  STATUS: skeleton
+ * Case ID: UT-PI-863  ·  STATUS: real
  *
  * 责任：throw L90 `host_not_allowed`（守卫 `if (!allowlist.includes(host))`；tool-host-policy.ts）
  * 维度坐标：`makePolicyFetch` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-863.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-863 · makePolicyFetch（tool-host-policy.ts:74）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 tool-host-policy.ts:90 的 throw（code `host_not_allowed`，守卫 if (!allowlist.includes(host))）
-  // 观察点：typed 错误 code 逐值等于 `host_not_allowed`，消息可判别，无部分写入
-  // 待实现：makePolicyFetch(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-PI-863 · makePolicyFetch · 错误路径 × 每个 typed 错误码", () => {
+  it("raises the host_not_allowed error code for a foreign host", async () => {  // raises the host_not_allowed error code for a foreign host
+    // 步骤 1：构造触发 L90 的输入——不在允许列表里的主机
+    enterNetworkScope(["a.com"]);
+    const base = vi.fn(async () => new Response("ok", { status: 200 }));
+    const policy = makePolicyFetch(base as unknown as typeof fetch);
+    // 步骤 2：调用
+    let caught: unknown;
+    try {
+      await policy("https://b.com/x");
+    } catch (error) {
+      caught = error;
+    }
+    // 步骤 3：断言消息可判别、含建议动作，且无部分写入
+    expect(caught).toBeInstanceOf(PolicyViolationError);
+    const typed = caught as PolicyViolationError;
+    expect(typed.code).toBe("host_not_allowed");
+    expect(typed.message).toBe("host b.com not in policy allowlist");
+    expect(typed.host).toBe("b.com");
+    expect(base).not.toHaveBeenCalled();
+  });
 });

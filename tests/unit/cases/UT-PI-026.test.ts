@@ -1,18 +1,54 @@
 /**
- * Case ID: UT-PI-026  ·  STATUS: skeleton
+ * Case ID: UT-PI-026  ·  STATUS: real
  *
  * 责任：参数 `options: GraphRAGSearchOptions` 的 `每等价类合法值` 类（graphrag-client.ts:130）
  * 维度坐标：`search` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-026.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  type GraphRAGSearchOptions,
+} from "../../../src/graphrag-client.js";
+import {
+  jsonResponse,
+  rawResponse,
+  stubFetch,
+} from "./support/b-graphrag-fix.js";
 
-describe("UT-PI-026 · search（graphrag-client.ts:130）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `options: GraphRAGSearchOptions`，其余参数取合法等价类（graphrag-client.ts:130）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → search(/* 参数 */) → 逐值断言（Oracle：UT-PI-026 用例文档 §3）
+describe("UT-PI-026 · search · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("maps every legal options equivalence class onto the request", async () => {  // maps every legal options equivalence class onto the request
+    const { calls } = stubFetch(() => jsonResponse({ hits: { hits: [] } }));
+    try {
+      const adapter = new GraphRAGAdapter("https://g.example.com", "key", "docs");
+
+      // 步骤 1/2：options 的每个等价类一个代表值（scope / filters / max_results）
+      await adapter.search("q", {
+        scope: "std-templates",
+        filters: { kind: "spec", level: 3 },
+        max_results: 7,
+      });
+
+      // 步骤 3：逐值对账
+      expect(calls.length).toBe(1);
+      expect(calls[0]!.url).toBe("https://g.example.com/std-templates/_search");
+      expect(calls[0]!.method).toBe("POST");
+      expect(calls[0]!.headers["authorization"]).toBe("Bearer key");
+      expect(calls[0]!.headers["content-type"]).toBe("application/json");
+      expect(calls[0]!.body).toEqual({
+        size: 7,
+        query: {
+          multi_match: {
+            query: "q",
+            fields: ["content^2", "title"],
+            type: "best_fields",
+          },
+          bool: { filter: [{ term: { kind: "spec" } }, { term: { level: 3 } }] },
+        },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

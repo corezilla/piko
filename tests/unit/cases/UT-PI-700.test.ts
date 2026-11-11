@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-PI-700  ·  STATUS: skeleton
+ * Case ID: UT-PI-700  ·  STATUS: real
  *
  * 责任：参数 `deps: SkillToolDeps` 的 `每等价类合法值` 类（skill-tools.ts:171）
  * 维度坐标：`createMem0RecordTool` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-700.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { createMem0RecordTool } from "../../../src/skill-tools.js";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { fakeMem0, skillContext } from "./support/c-skilltools-fix.js";
 
-describe("UT-PI-700 · createMem0RecordTool（skill-tools.ts:171）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `deps: SkillToolDeps`，其余参数取合法等价类（skill-tools.ts:171）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → createMem0RecordTool(/* 参数 */) → 逐值断言（Oracle：UT-PI-700 用例文档 §3）
+describe("UT-PI-700 · createMem0RecordTool · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("builds the tool for every legal equivalence class of deps", async () => {  // builds the tool for every legal equivalence class of deps
+    // 步骤 1：按 `每等价类合法值` 类构造 deps —— mem0 取「真实适配器」与
+    // 「结构相同的替身」两个等价类；context 取「带 taskId」与「不带 taskId」两个等价类
+    const real = new Mem0Adapter("https://mem0.test", "key");
+    const fake = fakeMem0();
+    const legal = [
+      { mem0: real, context: skillContext({ role: "tester", projectName: "piko" }) },
+      { mem0: fake.mem0, context: skillContext({ role: "developer", projectName: "my-project", taskId: "task-1" }) },
+      { mem0: real, context: skillContext({ role: "ops", projectName: "a" }) },
+    ];
+    // 步骤 2：调用 createMem0RecordTool(…)
+    // 步骤 3：逐值对账 —— 返回工具对象；构造期不碰 mem0（不发生任何网络调用）
+    for (const deps of legal) {
+      const tool = createMem0RecordTool(deps);
+      expect(tool.name).toBe("mem0_record");
+      expect(tool.label).toBe("Mem0 record");
+      expect(typeof tool.description).toBe("string");
+      expect(typeof tool.execute).toBe("function");
+    }
+    expect(fake.calls.search).toHaveLength(0);
+    expect(fake.calls.add).toHaveLength(0);
+  });
 });

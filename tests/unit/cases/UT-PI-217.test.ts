@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-PI-217  ·  STATUS: skeleton
+ * Case ID: UT-PI-217  ·  STATUS: real
  *
  * 责任：参数 `apiKey: string` 的 `空` 类（mem0-client.ts:73）
  * 维度坐标：`Mem0Adapter.constructor` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-217.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { headersOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-217 · Mem0Adapter.constructor（mem0-client.ts:73）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `apiKey: string`，其余参数取合法等价类（mem0-client.ts:73）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new Mem0Adapter.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-217 用例文档 §3）
+describe("UT-PI-217 · Mem0Adapter.constructor · 字符串/路径/枚举输入 × 空", () => {
+  it("accepts an empty apiKey and sends it as an empty Token credential", async () => {  // accepts an empty apiKey and sends it as an empty Token credential
+    const ff = scriptedFetch([{ status: 200, body: "{}" }]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      // 步骤 1/2：apiKey 三态——空串 / undefined / null；baseUrl 取合法等价类
+      const empty = new Mem0Adapter("https://mem0.test", "");
+      await empty.search("q", "u");
+      expect(headersOf(ff.calls[0]!).Authorization).toBe("Token ");
+
+      const undef = new Mem0Adapter("https://mem0.test", undefined as unknown as string);
+      await undef.search("q", "u");
+      expect(headersOf(ff.calls[1]!).Authorization).toBe("Token undefined");
+
+      const nul = new Mem0Adapter("https://mem0.test", null as unknown as string);
+      await nul.search("q", "u");
+      expect(headersOf(ff.calls[2]!).Authorization).toBe("Token null");
+      expect(ff.calls.length).toBe(3);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

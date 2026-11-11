@@ -1,18 +1,36 @@
 /**
- * Case ID: UT-PI-216  ·  STATUS: skeleton
+ * Case ID: UT-PI-216  ·  STATUS: real
  *
  * 责任：参数 `baseUrl: string` 的 `注入字符` 类（mem0-client.ts:73）
  * 维度坐标：`Mem0Adapter.constructor` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-216.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { headersOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-216 · Mem0Adapter.constructor（mem0-client.ts:73）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `baseUrl: string`，其余参数取合法等价类（mem0-client.ts:73）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new Mem0Adapter.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-216 用例文档 §3）
+describe("UT-PI-216 · Mem0Adapter.constructor · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("passes injected baseUrl characters through without sanitising them", async () => {  // passes injected baseUrl characters through without sanitising them
+    // 步骤 1：穿越串 / SQL 元字符 / 控制字符 / 超长＋注入组合串
+    const payloads = [
+      "https://mem0.test/../../etc/passwd",
+      "https://mem0.test/'; DROP TABLE memories;--",
+      "https://mem0.test/\u0000/cmd",
+      "h".repeat(4096) + "/../../evil",
+    ];
+    const ff = scriptedFetch(payloads.map(() => ({ status: 200, body: "{}" })));
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      // 步骤 2/3：逐个构造并 search，断言注入字符原样出现在 URL 里
+      for (const [i, baseUrl] of payloads.entries()) {
+        const adapter = new Mem0Adapter(baseUrl, "key");
+        await adapter.search("q", "u");
+        expect(ff.calls[i]!.url).toBe(`${baseUrl}/v3/memories/search/`);
+        expect(headersOf(ff.calls[i]!).Authorization).toBe("Token key");
+      }
+      expect(ff.calls.length).toBe(payloads.length);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

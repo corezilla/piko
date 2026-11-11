@@ -1,18 +1,68 @@
 /**
- * Case ID: UT-PI-086  ·  STATUS: skeleton
+ * Case ID: UT-PI-086  ·  STATUS: real
  *
  * 责任：返回站点 L96 值 `"not_found"` 逐值断言（graphrag-client.ts）
  * 维度坐标：`mapStatusToCode` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-086.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import {
+  Mem0Adapter,
+  Mem0ApiError,
+  mapStatusToCode as mapMem0Status,
+} from "../../../src/mem0-client.js";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  mapStatusToCode as mapGraphragStatus,
+} from "../../../src/graphrag-client.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-086 · mapStatusToCode（graphrag-client.ts:93）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 graphrag-client.ts:96 的返回站点（值 "not_found"）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：mapStatusToCode(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-PI-086 · mapStatusToCode · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns not_found from the 404 return site", async () => {
+    // 步骤 1：构造使 L96 返回站点被到达的输入——status＝404
+    const status = 404;
+
+    // 步骤 2：调用 mapStatusToCode，取返回值
+    const code = mapGraphragStatus(status);
+
+    // 步骤 3：断言返回值逐值对账
+    expect(code).toBe("not_found");
+  });
+
 });

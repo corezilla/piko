@@ -1,18 +1,47 @@
 /**
- * Case ID: UT-PI-538  ·  STATUS: skeleton
+ * Case ID: UT-PI-538  ·  STATUS: real
  *
  * 责任：参数 `model: string` 的 `空` 类（provider-preflight.ts:1）
  * 维度坐标：`preflightModelProvider` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-538.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { preflightModelProvider } from "../../../src/provider-preflight.js";
+import { captureError, fakeResponse, modelsResponder, neverSettles, stubFetch } from "./support/d-preflight-fix.js";
 
-describe("UT-PI-538 · preflightModelProvider（provider-preflight.ts:1）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `model: string`，其余参数取合法等价类（provider-preflight.ts:1）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → preflightModelProvider(/* 参数 */) → 逐值断言（Oracle：UT-PI-538 用例文档 §3）
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+
+describe("UT-PI-538 · preflightModelProvider · 字符串/路径/枚举输入 × 空", () => {
+  it("matches an empty model only against an entry whose id is exactly empty", async () => {  // matches an empty model only against an entry whose id is exactly empty
+    // 步骤 1：model 的三态空值
+    // 空串：只有 id 为空串的条目才命中
+    const emptyString = stubFetch(modelsResponder([""]));
+    await expect(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, "")).resolves.toBeUndefined();
+    emptyString.restore();
+
+    // 空串但列表里没有空 id → 逐值对账的错误消息
+    const emptyStringMiss = stubFetch(modelsResponder(["gpt-4o-mini"]));
+    await expect(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, "")).rejects.toThrow(
+      "configured model is not available: ",
+    );
+    emptyStringMiss.restore();
+
+    // undefined：item?.id 为 undefined 的条目与 undefined 严格相等 → 命中
+    const undefinedModel = stubFetch(() =>
+      fakeResponse({ status: 200, json: { data: [{ id: "gpt-4o-mini" }, { name: "no-id" }] } }),
+    );
+    await expect(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, undefined as unknown as string)).resolves.toBeUndefined();
+    undefinedModel.restore();
+
+    // null：列表里没有 id 为 null 的条目 → 逐值对账的错误消息
+    const nullModel = stubFetch(modelsResponder(["gpt-4o-mini"]));
+    await expect(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, null as unknown as string)).rejects.toThrow(
+      "configured model is not available: null",
+    );
+    nullModel.restore();
+  });
 });

@@ -1,18 +1,30 @@
 /**
- * Case ID: UT-PI-250  ·  STATUS: skeleton
+ * Case ID: UT-PI-250  ·  STATUS: real
  *
  * 责任：分支 L174 `? typeof r.score === "number" :`（ternary；mem0-client.ts）
  * 维度坐标：`search` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-250.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-250 · search（mem0-client.ts:88）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 mem0-client.ts:174 的分支（ternary：? typeof r.score === "number" :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：search(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-250 · search · 状态分支 × 合法迁移", () => {
+  it("keeps a numeric score and coerces anything else to zero", async () => {  // keeps a numeric score and coerces anything else to zero
+    const ff = scriptedFetch([
+      { status: 200, body: JSON.stringify({ results: [{ id: "m1", score: 0.42 }, { id: "m2", score: "0.5" }, { id: "m3", score: null }] }) },
+    ]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      const adapter = new Mem0Adapter("https://mem0.test", "key");
+      // 步骤 1/2：取真侧——typeof score 是 number
+      const hits = await adapter.search("q", "u");
+      expect(hits[0]!.score).toBe(0.42);
+      // 步骤 3：取假侧——score 是字符串 / null → 一律 0
+      expect(hits[1]!.score).toBe(0);
+      expect(hits[2]!.score).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

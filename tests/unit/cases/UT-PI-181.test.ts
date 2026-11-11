@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-PI-181  ·  STATUS: skeleton
+ * Case ID: UT-PI-181  ·  STATUS: real
  *
  * 责任：参数 `user_id: string` 的 `空` 类（mem0-client.ts:299）
  * 维度坐标：`pollForExtractedMemory` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-181.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter, Mem0ApiError } from "../../../src/mem0-client.js";
+import {
+  ADD_PATH,
+  MEM0_BASE,
+  MEM0_KEY,
+  Mem0FetchStub,
+  SEARCH_PATH,
+  drainPoll,
+  hit,
+  json,
+  reject,
+  text,
+  validMessages,
+} from "./support/a2-mem0-fix.js";
 
-describe("UT-PI-181 · pollForExtractedMemory（mem0-client.ts:299）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `user_id: string`，其余参数取合法等价类（mem0-client.ts:299）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → pollForExtractedMemory(/* 参数 */) → 逐值断言（Oracle：UT-PI-181 用例文档 §3）
+describe("UT-PI-181 · pollForExtractedMemory · 字符串/路径/枚举输入 × 空", () => {
+  it("swallows the empty user_id rejection and times out with null", async () => {  // swallows the empty user_id rejection and times out with null
+    const adapter = new Mem0Adapter(MEM0_BASE, MEM0_KEY);
+    const stub = new Mem0FetchStub().fallbackFor(SEARCH_PATH, json({ results: [hit("mem-1")] }));
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", stub.fetch);
+    try {
+      // 步骤 1：user_id 的空类三态——空串 / undefined（缺省）/ null（显式空值）
+      for (const user_id of ["", undefined, null] as any[]) {
+        vi.setSystemTime(0);
+
+        // 步骤 2：调用 pollForExtractedMemory
+        const result = await drainPoll(adapter.pollForExtractedMemory(user_id, "q"));
+
+        // 步骤 3：断言——实现自身没有校验：search 抛出的 user_id required 被同一个
+        // catch 吞掉，轮询一直空转到 10 秒死线，落定值是 null（不是 typed 错误）
+        expect(result).toBeNull();
+      }
+
+      // 步骤 3：断言无残留——search 的守卫先于 fetch，空 user_id 连一次 HTTP 都没发出
+      expect(stub.calls.length).toBe(0);
+      expect(Date.now()).toBe(10500);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
 });

@@ -1,18 +1,41 @@
 /**
- * Case ID: UT-PI-228  ·  STATUS: skeleton
+ * Case ID: UT-PI-228  ·  STATUS: real
  *
  * 责任：参数 `options: Mem0SearchOptions` 的 `非法值` 类（mem0-client.ts:88）
  * 维度坐标：`search` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-228.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter, type Mem0SearchOptions } from "../../../src/mem0-client.js";
+import { bodyOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-228 · search（mem0-client.ts:88）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `options: Mem0SearchOptions`，其余参数取合法等价类（mem0-client.ts:88）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → search(/* 参数 */) → 逐值断言（Oracle：UT-PI-228 用例文档 §3）
+describe("UT-PI-228 · search · 纯函数/无副作用 × 非法值", () => {
+  it("forwards illegal options values instead of rejecting them", async () => {  // forwards illegal options values instead of rejecting them
+    const ff = scriptedFetch([{ status: 200, body: "{}" }]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      const adapter = new Mem0Adapter("https://mem0.test", "key");
+      // 步骤 1/2：非法值——max_results 是字符串 / filters 是 null / filters 是字符串
+      const bad = {
+        max_results: "abc",
+        filters: null,
+      } as unknown as Mem0SearchOptions;
+      await adapter.search("q", "u", bad);
+      // 步骤 3：既不抛 typed 错误也不拒绝——逐值对账请求体
+      expect(bodyOf(ff.calls[0]!)).toEqual({ query: "q", filters: { user_id: "u" }, top_k: "abc" });
+
+      const strFilters = { max_results: 5, filters: "str" } as unknown as Mem0SearchOptions;
+      await adapter.search("q", "u", strFilters);
+      // filters 是字符串时被展开成索引键
+      expect(bodyOf(ff.calls[1]!).filters).toEqual({ user_id: "u", "0": "s", "1": "t", "2": "r" });
+
+      const nanMax = { max_results: Number.NaN } as unknown as Mem0SearchOptions;
+      await adapter.search("q", "u", nanMax);
+      // NaN 不是 nullish → 保留；JSON.stringify 把 NaN 写成 null
+      expect(bodyOf(ff.calls[2]!).top_k).toBeNull();
+      expect(ff.calls.length).toBe(3);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

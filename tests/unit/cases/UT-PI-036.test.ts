@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-PI-036  ·  STATUS: skeleton
+ * Case ID: UT-PI-036  ·  STATUS: real
  *
  * 责任：分支 L147 `options?.max_results ?? 5`（??；graphrag-client.ts）
  * 维度坐标：`search` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-036.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  type GraphRAGSearchOptions,
+} from "../../../src/graphrag-client.js";
+import {
+  jsonResponse,
+  rawResponse,
+  stubFetch,
+} from "./support/b-graphrag-fix.js";
 
-describe("UT-PI-036 · search（graphrag-client.ts:130）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 graphrag-client.ts:147 的分支（??：options?.max_results ?? 5）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：search(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-036 · search · 状态分支 × 合法迁移", () => {
+  it("uses max_results when present and five when absent", async () => {  // uses max_results when present and five when absent
+    const { calls } = stubFetch(() => jsonResponse({ hits: { hits: [] } }));
+    try {
+      const adapter = new GraphRAGAdapter("https://g.example.com", "key", "docs");
+
+      // 步骤 1/2：取真侧——max_results 有值；取假侧——缺省
+      await adapter.search("q", { max_results: 12 });
+      await adapter.search("q");
+
+      // 步骤 3：逐值对账
+      const sizes = calls.map((c) => (c.body as { size: number }).size);
+      expect(sizes).toEqual([12, 5]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

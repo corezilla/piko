@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-PI-856  ·  STATUS: skeleton
+ * Case ID: UT-PI-856  ·  STATUS: real
  *
  * 责任：分支 L77 `if (allowlist !== null && allowlist.length > …`（if；tool-host-policy.ts）
  * 维度坐标：`makePolicyFetch` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-856.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-856 · makePolicyFetch（tool-host-policy.ts:74）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-host-policy.ts:77 的分支（if：if (allowlist !== null && allowlist.length > 0)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：makePolicyFetch(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-856 · makePolicyFetch · 状态分支 × 合法迁移", () => {
+  it("enforces only inside a non-empty active scope", async () => {  // enforces only inside a non-empty active scope
+    // 步骤 1：取真侧——allowlist 非 null 且长度 > 0
+    exitNetworkScope();
+    enterNetworkScope(["a.com"]);
+    const base = vi.fn(async () => new Response("ok", { status: 200 }));
+    const policy = makePolicyFetch(base as unknown as typeof fetch);
+    // 步骤 2：调用并断言该侧结果——块内被执行，越权主机被拒
+    await expect(policy("https://b.com/x")).rejects.toThrow(/not in policy allowlist/);
+    expect(base).not.toHaveBeenCalled();
+    // 步骤 3/4：取假侧——allowlist 为 null（无作用域），整块被跳过
+    exitNetworkScope();
+    await policy("https://b.com/x");
+    expect(base).toHaveBeenCalledTimes(1);
+  });
 });

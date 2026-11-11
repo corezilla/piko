@@ -1,18 +1,48 @@
 /**
- * Case ID: UT-PI-540  ·  STATUS: skeleton
+ * Case ID: UT-PI-540  ·  STATUS: real
  *
  * 责任：参数 `model: string` 的 `注入字符` 类（provider-preflight.ts:1）
  * 维度坐标：`preflightModelProvider` × `字符串/路径/枚举输入` × `注入字符`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-540.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { preflightModelProvider } from "../../../src/provider-preflight.js";
+import { captureError, fakeResponse, modelsResponder, neverSettles, stubFetch } from "./support/d-preflight-fix.js";
 
-describe("UT-PI-540 · preflightModelProvider（provider-preflight.ts:1）", () => {
-  test.todo("字符串/路径/枚举输入 × 注入字符");
-  // 输入构造：按 `注入字符` 类构造 `model: string`，其余参数取合法等价类（provider-preflight.ts:1）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → preflightModelProvider(/* 参数 */) → 逐值断言（Oracle：UT-PI-540 用例文档 §3）
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+
+describe("UT-PI-540 · preflightModelProvider · 字符串/路径/枚举输入 × 注入字符", () => {
+  it("compares injected model strings verbatim without sanitizing them", async () => {  // compares injected model strings verbatim without sanitizing them
+    // 步骤 1：model 的注入字符四类输入
+    // ① 路径穿越串——命中时严格相等即可
+    const traversal = "gpt/../../etc/passwd";
+    const hit = stubFetch(modelsResponder([traversal]));
+    await expect(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, traversal)).resolves.toBeUndefined();
+    hit.restore();
+
+    // ② 控制字符——原样进比较，原样进错误消息
+    const control = "gpt\u0000\u0007model";
+    const controlStub = stubFetch(modelsResponder(["gpt-4o-mini"]));
+    const controlFailure = await captureError(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, control));
+    expect(controlFailure.message).toBe(`configured model is not available: ${control}`);
+    controlStub.restore();
+
+    // ③ SQL / 命令元字符
+    const metachar = "'; DROP TABLE models; --";
+    const metacharStub = stubFetch(modelsResponder(["gpt-4o-mini"]));
+    const metacharFailure = await captureError(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, metachar));
+    expect(metacharFailure.message).toBe(`configured model is not available: ${metachar}`);
+    metacharStub.restore();
+
+    // ④ 超长 + 注入组合串
+    const combo = "'; rm -rf /; " + "x".repeat(2 * 4096);
+    const comboStub = stubFetch(modelsResponder(["gpt-4o-mini"]));
+    const comboFailure = await captureError(preflightModelProvider("https://provider.example.com/v1", "sk-test", 1000, combo));
+    expect(comboFailure.message).toBe(`configured model is not available: ${combo}`);
+    comboStub.restore();
+  });
 });

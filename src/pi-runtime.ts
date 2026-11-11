@@ -147,7 +147,7 @@ export class PiRuntime {
     // at fetch time. Idempotent; restored in `close()` below.
     installNetworkPolicy();
   }
-  private model(){
+  model(){
     const model:Model<"openai-responses">={id:this.config.agent.model,name:this.config.agent.model,api:"openai-responses",provider:"llmtier",baseUrl:this.config.llmtier.base_url,reasoning:true,input:["text","image"],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:262144,maxTokens:32768};
     const provider=createProvider({id:"llmtier",name:"LLMTier",baseUrl:this.config.llmtier.base_url,auth:{apiKey:envApiKeyAuth("Piko LLMTier API key",["PIKO_LLM_API_KEY"])},models:[model],api:openAIResponsesApi()});
     const models=createModels();models.setProvider(provider);return {models,model};

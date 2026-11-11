@@ -1,18 +1,21 @@
 /**
- * Case ID: UT-PI-213  ·  STATUS: skeleton
+ * Case ID: UT-PI-213  ·  STATUS: real
  *
  * 责任：返回站点 L65 值 `"server_error"` 逐值断言（mem0-client.ts）
  * 维度坐标：`mapStatusToCode` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-213.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { mapStatusToCode } from "../../../src/mem0-client.js";
 
-describe("UT-PI-213 · mapStatusToCode（mem0-client.ts:58）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 mem0-client.ts:65 的返回站点（值 "server_error"）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：mapStatusToCode(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-PI-213 · mapStatusToCode · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns server_error from the fallback branch", () => {  // returns server_error from the fallback branch
+    // 步骤 1：构造使 L65 的返回站点被到达的输入（status = 400，不命中任何特判）
+    // 步骤 2：调用 mapStatusToCode(400)
+    // 步骤 3：断言返回值逐值对账
+    expect(mapStatusToCode(400)).toBe("server_error");
+    // 兜底覆盖其余一切：2xx / 3xx / 4xx / 5xx 都归 server_error
+    expect(mapStatusToCode(200)).toBe("server_error");
+    expect(mapStatusToCode(302)).toBe("server_error");
+  });
 });

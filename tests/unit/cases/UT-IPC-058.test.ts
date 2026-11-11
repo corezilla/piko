@@ -28,7 +28,7 @@ function newStore(): TaskStore {
 describe("UT-IPC-058 · FactHandler.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
   it("passes a store failure through as a failed outcome", () => {
     // 步骤 1：构造空 store 与 handler
-    const store = new TaskStore(":memory!", 1000);
+    const store = new TaskStore(":memory:", 1000);
     try {
       const handler = new FactHandler(store);
 

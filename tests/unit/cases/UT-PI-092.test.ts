@@ -1,18 +1,85 @@
 /**
- * Case ID: UT-PI-092  ·  STATUS: skeleton
+ * Case ID: UT-PI-092  ·  STATUS: real
  *
  * 责任：参数 `deps: DocSearchToolDeps` 的 `非法值` 类（graphrag-tools.ts:109）
  * 维度坐标：`createGraphragSearchTool` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-092.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import {
+  Mem0Adapter,
+  Mem0ApiError,
+  mapStatusToCode as mapMem0Status,
+} from "../../../src/mem0-client.js";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  mapStatusToCode as mapGraphragStatus,
+} from "../../../src/graphrag-client.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-092 · createGraphragSearchTool（graphrag-tools.ts:109）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `deps: DocSearchToolDeps`，其余参数取合法等价类（graphrag-tools.ts:109）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → createGraphragSearchTool(/* 参数 */) → 逐值断言（Oracle：UT-PI-092 用例文档 §3）
+describe("UT-PI-092 · createGraphragSearchTool · 纯函数/无副作用 × 非法值", () => {
+  it("rejects a deps whose role is empty", async () => {
+    const { createGraphragSearchTool } = await import("../../../src/graphrag-tools.js");
+    // 步骤 1：构造非法 deps——context.role 为空串（触发 role required）
+    const searchCalls: { query: string; options?: Record<string, unknown> }[] = [];
+    const makeGraphrag = (impl?: (q: string, o?: any) => Promise<any[]>) => ({
+      search: async (q: string, o?: any) => {
+        searchCalls.push({ query: q, options: o ?? {} });
+        return impl ? impl(q, o) : [];
+      },
+    }) as any;
+    const deps = { graphrag: makeGraphrag(), context: { role: "", projectName: "piko" } };
+
+    // 步骤 2：调用 createGraphragSearchTool
+    const err = (() => {
+      try {
+        createGraphragSearchTool(deps as any);
+        return null;
+      } catch (e) {
+        return e as Error;
+      }
+    })();
+
+    // 步骤 3：断言被拒绝时抛出可判别的错误，且无状态写／资源残留
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toBe("role required");
+    expect(searchCalls.length).toBe(0);
+  });
+
 });

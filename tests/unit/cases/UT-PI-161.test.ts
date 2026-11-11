@@ -1,18 +1,48 @@
 /**
- * Case ID: UT-PI-161  ·  STATUS: skeleton
+ * Case ID: UT-PI-161  ·  STATUS: real
  *
  * 责任：throw L210 `user_id required`（守卫 `if (!user_id || user_id.trim() === "")`；mem0-client.ts）
  * 维度坐标：`add` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-161.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter, Mem0ApiError } from "../../../src/mem0-client.js";
+import {
+  ADD_PATH,
+  MEM0_BASE,
+  MEM0_KEY,
+  Mem0FetchStub,
+  SEARCH_PATH,
+  drainPoll,
+  hit,
+  json,
+  reject,
+  text,
+  validMessages,
+} from "./support/a2-mem0-fix.js";
 
-describe("UT-PI-161 · add（mem0-client.ts:203）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：触发 mem0-client.ts:210 的 throw（code `user_id required`，守卫 if (!user_id || user_id.trim() === "")）
-  // 观察点：typed 错误 code 逐值等于 `user_id required`，消息可判别，无部分写入
-  // 待实现：add(/* 参数 */) 命中守卫 → expect(...).rejects/toThrow（Oracle：用例文档 §3）
+describe("UT-PI-161 · add · 错误路径 × 每个 typed 错误码", () => {
+  it("throws a plain user_id required error without touching the network", async () => {  // throws a plain user_id required error without touching the network
+    const adapter = new Mem0Adapter(MEM0_BASE, MEM0_KEY);
+    const stub = new Mem0FetchStub();
+    vi.stubGlobal("fetch", stub.fetch);
+    try {
+      // 步骤 1：构造触发 throw 的输入——user_id 为空串
+      // 步骤 2：调用 add 并断言——错误被抛出，message 逐值等于 user_id required
+      const err = await adapter.add(validMessages(), "").then(() => null, (e) => e);
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toBe("user_id required");
+      expect(err.name).toBe("Error");
+
+      // 步骤 3：断言无部分写入——状态写/资源/持久化均未发生（fetch 一次都没被调）
+      expect(stub.calls.length).toBe(0);
+
+      // 步骤 4：断言内部错误不上抛为客户端码——这不是 Mem0ApiError，不是任何 typed 错误
+      expect(err).not.toBeInstanceOf(Mem0ApiError);
+      expect((err as Mem0ApiError).status).toBeUndefined();
+      expect((err as Mem0ApiError).code).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

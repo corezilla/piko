@@ -1,18 +1,32 @@
 /**
- * Case ID: UT-PI-859  ·  STATUS: skeleton
+ * Case ID: UT-PI-859  ·  STATUS: real
  *
  * 责任：分支 L82 `catch ("invalid_request", `not a URL: ${urlSt…`（catch；tool-host-policy.ts）
  * 维度坐标：`makePolicyFetch` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-859.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-859 · makePolicyFetch（tool-host-policy.ts:74）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：使 tool-host-policy.ts:82 的分支（catch：catch ("invalid_request", `not a URL: ${urlStr…)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：makePolicyFetch(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-859 · makePolicyFetch · 错误路径 × 每个 typed 错误码", () => {
+  it("takes both sides of the URL parse guard", async () => {  // takes both sides of the URL parse guard
+    // 步骤 1：取真侧——URL 解析失败，进入 catch
+    enterNetworkScope(["a.com"]);
+    const base = vi.fn(async () => new Response("ok", { status: 200 }));
+    const policy = makePolicyFetch(base as unknown as typeof fetch);
+    // 步骤 2：调用并断言该侧结果
+    await expect(policy("::not a url::")).rejects.toThrow(PolicyViolationError);
+    expect(base).not.toHaveBeenCalled();
+    // 步骤 3/4：取假侧——URL 解析成功，块被跳过
+    await policy("https://a.com/x");
+    expect(base).toHaveBeenCalledTimes(1);
+  });
 });

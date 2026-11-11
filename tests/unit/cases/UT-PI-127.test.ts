@@ -1,18 +1,73 @@
 /**
- * Case ID: UT-PI-127  ·  STATUS: skeleton
+ * Case ID: UT-PI-127  ·  STATUS: real
  *
  * 责任：分支 L89 `!context.projectName`（!；graphrag-tools.ts）
  * 维度坐标：`validateDocSearchContext` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-127.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
+import {
+  ExecPolicyViolationError,
+  assertExecutablesAllowed,
+  assertRemoteExecutableAllowed,
+  parseExecutable,
+  parseExecutables,
+  splitCommands,
+  tokenize,
+} from "../../../src/tool-exec-policy.js";
+import {
+  buildSystemPrompt,
+  discussionMessage,
+  initialPrompt,
+  isProviderUnavailableMessage,
+  normalizeRawUsage,
+} from "../../../src/pi-runtime.js";
+import {
+  cacheKey,
+  clearPrefetchCache,
+  prefetchCacheSize,
+  prefetchSkillContext,
+  renderDocEntry,
+  renderMemoryEntry,
+  renderSkillContext,
+  withTimeout,
+} from "../../../src/skill-prefetch.js";
+import {
+  Mem0Adapter,
+  Mem0ApiError,
+  mapStatusToCode as mapMem0Status,
+} from "../../../src/mem0-client.js";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  mapStatusToCode as mapGraphragStatus,
+} from "../../../src/graphrag-client.js";
+import { fakeFetch } from "./support/pi-fix.js";
 
-describe("UT-PI-127 · validateDocSearchContext（graphrag-tools.ts:85）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 graphrag-tools.ts:89 的分支（!：!context.projectName）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：validateDocSearchContext(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-127 · validateDocSearchContext · 状态分支 × 合法迁移", () => {
+  it("takes the negation branch only for a falsy project name", async () => {
+    const { validateDocSearchContext } = await import("../../../src/graphrag-tools.js");
+    // 步骤 1：构造使 ! 取真的输入——projectName 为空串；再构造 projectName 为真值的输入
+    const falsy = { role: "tester", projectName: "" };
+    const truthy = { role: "tester", projectName: "piko" };
+
+    // 步骤 2：调用 validateDocSearchContext，断言取真侧
+    expect(() => validateDocSearchContext(falsy as any)).toThrow("projectName required");
+
+    // 步骤 3：构造使该分支取假的输入——projectName 是非空字符串
+    expect(() => validateDocSearchContext(truthy as any)).not.toThrow();
+
+    // 步骤 4：再次调用 validateDocSearchContext，断言取假侧——继续往下走正则守卫
+    expect(validateDocSearchContext(truthy as any)).toBeUndefined();
+  });
+
 });

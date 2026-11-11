@@ -1,18 +1,51 @@
 /**
- * Case ID: UT-PI-019  ·  STATUS: skeleton
+ * Case ID: UT-PI-019  ·  STATUS: real
  *
  * 责任：参数 `defaultScope: string` 的 `空` 类（graphrag-client.ts:109）
  * 维度坐标：`GraphRAGAdapter.constructor` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-019.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  type GraphRAGSearchOptions,
+} from "../../../src/graphrag-client.js";
+import {
+  jsonResponse,
+  rawResponse,
+  stubFetch,
+} from "./support/b-graphrag-fix.js";
 
-describe("UT-PI-019 · GraphRAGAdapter.constructor（graphrag-client.ts:109）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `defaultScope: string`，其余参数取合法等价类（graphrag-client.ts:109）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用；缺省态＝与显式默认值同构）
-  // 待实现：构造输入 → new GraphRAGAdapter.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-019 用例文档 §3）
+describe("UT-PI-019 · GraphRAGAdapter.constructor · 字符串/路径/枚举输入 × 空", () => {
+  it("resolves an empty, missing or null defaultScope to the index path", async () => {  // resolves an empty, missing or null defaultScope to the index path
+    const { calls } = stubFetch(() => jsonResponse({ hits: { hits: [] } }));
+    try {
+      // 步骤 1/2：defaultScope 的 ''（空串）、undefined（缺省）、null（显式空值）三态
+      const empty = new GraphRAGAdapter("https://g.example.com", "key", "");
+      const missing = new GraphRAGAdapter(
+        "https://g.example.com",
+        "key",
+        undefined as unknown as string,
+      );
+      const nulled = new GraphRAGAdapter(
+        "https://g.example.com",
+        "key",
+        null as unknown as string,
+      );
+      expect(empty).toBeInstanceOf(GraphRAGAdapter);
+      await empty.search("q");
+      await missing.search("q");
+      await nulled.search("q");
+
+      // 步骤 3：逐值对账
+      expect(calls.map((c) => c.url)).toEqual([
+        "https://g.example.com//_search", // 空串不是 nullish → 索引段为空
+        "https://g.example.com/all/_search", // 缺省 → 构造器默认值 "all"
+        "https://g.example.com/all/_search", // null 是 nullish → ?? "all"
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

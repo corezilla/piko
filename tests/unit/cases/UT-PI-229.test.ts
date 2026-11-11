@@ -1,18 +1,40 @@
 /**
- * Case ID: UT-PI-229  ·  STATUS: skeleton
+ * Case ID: UT-PI-229  ·  STATUS: real
  *
  * 责任：可选参数 `options` 缺省/显式两态（mem0-client.ts:88）
  * 维度坐标：`search` × `纯函数/无副作用` × `未知枚举`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-229.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter, type Mem0SearchOptions } from "../../../src/mem0-client.js";
+import { bodyOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-229 · search（mem0-client.ts:88）", () => {
-  test.todo("纯函数/无副作用 × 未知枚举");
-  // 输入构造：按 `未知枚举` 类构造 `options: Mem0SearchOptions`，其余参数取合法等价类（mem0-client.ts:88）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → search(/* 参数 */) → 逐值断言（Oracle：UT-PI-229 用例文档 §3）
+describe("UT-PI-229 · search · 纯函数/无副作用 × 未知枚举", () => {
+  it("treats an omitted options as identical to the explicit defaults", async () => {  // treats an omitted options as identical to the explicit defaults
+    const ff = scriptedFetch([{ status: 200, body: "{}" }]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      const adapter = new Mem0Adapter("https://mem0.test", "key");
+      // 步骤 1/2：三态——缺省 / 显式默认值 / 未知枚举值
+      await adapter.search("q", "u");
+      const omitted = bodyOf(ff.calls[0]!);
+
+      await adapter.search("q", "u", { max_results: 5, filters: {} });
+      const explicit = bodyOf(ff.calls[1]!);
+      // 步骤 3：缺省态与显式默认值同构
+      expect(explicit).toEqual(omitted);
+
+      const unknown = { max_results: 5, filters: {}, unknown_option: "x" } as unknown as Mem0SearchOptions;
+      await adapter.search("q", "u", unknown);
+      // 未知枚举值不被拒绝：多余的 options 键被忽略，请求体与缺省态同构
+      expect(bodyOf(ff.calls[2]!)).toEqual(omitted);
+
+      // 未知 filter 键按 ISD 约定原样透传
+      await adapter.search("q", "u", { filters: { unknown_enum: "v" } });
+      expect(bodyOf(ff.calls[3]!).filters).toEqual({ user_id: "u", unknown_enum: "v" });
+      expect(ff.calls.length).toBe(4);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

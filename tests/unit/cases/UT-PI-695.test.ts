@@ -1,18 +1,37 @@
 /**
- * Case ID: UT-PI-695  ·  STATUS: skeleton
+ * Case ID: UT-PI-695  ·  STATUS: real
  *
  * 责任：分支 L148 `catch (e)`（catch；skill-tools.ts）
  * 维度坐标：`execute` × `错误路径` × `每个 typed 错误码`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-695.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { createMem0LookupTool } from "../../../src/skill-tools.js";
+import { Mem0ApiError } from "../../../src/mem0-client.js";
+import { fakeMem0, runExecute, skillContext } from "./support/c-skilltools-fix.js";
 
-describe("UT-PI-695 · execute（skill-tools.ts:136）", () => {
-  test.todo("错误路径 × 每个 typed 错误码");
-  // 输入构造：使 skill-tools.ts:148 的分支（catch：catch (e)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execute(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-695 · execute · 错误路径 × 每个 typed 错误码", () => {
+  it("takes the catch branch on both sides", async () => {  // takes the catch branch on both sides
+    // 步骤 1：取真侧 —— search 拒绝，catch 被走到
+    const failing = fakeMem0({ searchError: new Mem0ApiError(500, "server_error", "boom") });
+    const failingTool = createMem0LookupTool({ mem0: failing.mem0, context: skillContext() });
+    // 步骤 2：调用 execute(…)
+    const fallback = await runExecute(failingTool, { query: "q" });
+    // 观察：取真侧被走到 —— 返回降级结果，没有 count
+    expect(fallback).toEqual({
+      content: [{ type: "text", text: "memory unavailable: server_error" }],
+      details: { error: "server_error", status: 500 },
+    });
+    expect(fallback.details).not.toHaveProperty("count");
+    // 步骤 3 / 4：取假侧 —— search 正常返回，catch 不被走到
+    const results = [{ id: "m1", memory: "remember", score: 0.9, metadata: {}, created_at: "2026-01-01T00:00:00.000Z" }];
+    const ok = fakeMem0({ results });
+    const okTool = createMem0LookupTool({ mem0: ok.mem0, context: skillContext() });
+    const success = await runExecute(okTool, { query: "q" });
+    expect(success).toEqual({
+      content: [{ type: "text", text: JSON.stringify(results) }],
+      details: { count: 1 },
+    });
+    expect(success.details).not.toHaveProperty("error");
+  });
 });

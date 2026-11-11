@@ -1,18 +1,31 @@
 /**
- * Case ID: UT-PI-718  ·  STATUS: skeleton
+ * Case ID: UT-PI-718  ·  STATUS: real
  *
  * 责任：参数 `_invocation: inferred` 的 `边界(上/下/零/空/满)` 类（skill-tools.ts:184）
  * 维度坐标：`execute` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-718.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { createMem0RecordTool } from "../../../src/skill-tools.js";
+import { fakeMem0, runExecute, skillContext, fakeInvocation } from "./support/c-skilltools-fix.js";
 
-describe("UT-PI-718 · execute（skill-tools.ts:184）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `_invocation: inferred`，其余参数取合法等价类（skill-tools.ts:184）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-718 用例文档 §3）
+describe("UT-PI-718 · execute · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("ignores the boundary invocations", async () => {  // ignores the boundary invocations
+    // 步骤 1：按 `边界(上/下/零/空/满)` 类构造 `_invocation`
+    //   —— id 为空串、id 很长
+    const boundaries = [
+      { invocationId: "", operationId: "", turnId: "" },
+      { invocationId: "i".repeat(512), operationId: "o".repeat(512), turnId: "t".repeat(512) },
+    ];
+    for (const overrides of boundaries) {
+      const invocation = fakeInvocation(overrides);
+      const fake = fakeMem0({ ids: ["m-1"] });
+      const tool = createMem0RecordTool({ mem0: fake.mem0, context: skillContext() });
+      // 步骤 2：调用 execute(…)
+      const result = await runExecute(tool, { content: "## Lesson\nkeep it small" }, { invocation });
+      // 步骤 3：逐值对账 —— 边界 invocation 既不被读也不影响结果
+      expect(result.details).toEqual({ ids: ["m-1"] });
+      expect(fake.calls.add).toHaveLength(1);
+    }
+  });
 });

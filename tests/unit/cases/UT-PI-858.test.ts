@@ -1,18 +1,29 @@
 /**
- * Case ID: UT-PI-858  ·  STATUS: skeleton
+ * Case ID: UT-PI-858  ·  STATUS: real
  *
  * 责任：分支 L78 `? typeof input === "string" :`（ternary；tool-host-policy.ts）
  * 维度坐标：`makePolicyFetch` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-858.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  PolicyViolationError,
+  currentAllowlist,
+  enterNetworkScope,
+  exitNetworkScope,
+  installNetworkPolicy,
+  makePolicyFetch,
+  restoreNetworkPolicy,
+} from "../../../src/tool-host-policy.js";
 
-describe("UT-PI-858 · makePolicyFetch（tool-host-policy.ts:74）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 tool-host-policy.ts:78 的分支（ternary：? typeof input === "string" :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：makePolicyFetch(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-858 · makePolicyFetch · 状态分支 × 合法迁移", () => {
+  it("reads a string input directly and stringifies other inputs", async () => {  // reads a string input directly and stringifies other inputs
+    // 步骤 1：取真侧——input 是字符串
+    enterNetworkScope(["a.com"]);
+    const policy = makePolicyFetch((async () => new Response("ok", { status: 200 })) as unknown as typeof fetch);
+    await expect(policy("not a url")).rejects.toThrow(/^not a URL: not a url$/);
+    // 步骤 3/4：取假侧——input 不是字符串，走 input.toString()
+    const object = { toString: () => "not a url" };
+    await expect(policy(object as unknown as RequestInfo)).rejects.toThrow(/^not a URL: not a url$/);
+  });
 });

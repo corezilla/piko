@@ -1,18 +1,35 @@
 /**
- * Case ID: UT-PI-214  ·  STATUS: skeleton
+ * Case ID: UT-PI-214  ·  STATUS: real
  *
  * 责任：参数 `baseUrl: string` 的 `空` 类（mem0-client.ts:73）
  * 维度坐标：`Mem0Adapter.constructor` × `字符串/路径/枚举输入` × `空`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-214.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { Mem0Adapter } from "../../../src/mem0-client.js";
+import { headersOf, scriptedFetch } from "./support/a1-mem0-fix.js";
 
-describe("UT-PI-214 · Mem0Adapter.constructor（mem0-client.ts:73）", () => {
-  test.todo("字符串/路径/枚举输入 × 空");
-  // 输入构造：按 `空` 类构造 `baseUrl: string`，其余参数取合法等价类（mem0-client.ts:73）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new Mem0Adapter.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-214 用例文档 §3）
+describe("UT-PI-214 · Mem0Adapter.constructor · 字符串/路径/枚举输入 × 空", () => {
+  it("accepts an empty baseUrl and builds the v3 path from it verbatim", async () => {  // accepts an empty baseUrl and builds the v3 path from it verbatim
+    const ff = scriptedFetch([{ status: 200, body: "{}" }]);
+    vi.stubGlobal("fetch", ff.fetch);
+    try {
+      // 步骤 1/2：baseUrl 三态——空串 / undefined / null；apiKey 取合法等价类
+      const empty = new Mem0Adapter("", "key");
+      await empty.search("q", "u");
+      expect(ff.calls[0]!.url).toBe("/v3/memories/search/");
+      expect(headersOf(ff.calls[0]!).Authorization).toBe("Token key");
+
+      const undef = new Mem0Adapter(undefined as unknown as string, "key");
+      await undef.search("q", "u");
+      expect(ff.calls[1]!.url).toBe("undefined/v3/memories/search/");
+
+      const nul = new Mem0Adapter(null as unknown as string, "key");
+      await nul.search("q", "u");
+      expect(ff.calls[2]!.url).toBe("null/v3/memories/search/");
+      expect(ff.calls.length).toBe(3);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

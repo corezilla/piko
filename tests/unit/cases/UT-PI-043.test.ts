@@ -1,18 +1,53 @@
 /**
- * Case ID: UT-PI-043  ·  STATUS: skeleton
+ * Case ID: UT-PI-043  ·  STATUS: real
  *
  * 责任：分支 L194 `data.hits?.hits ?? []`（??；graphrag-client.ts）
  * 维度坐标：`search` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-043.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  GraphRAGAdapter,
+  GraphRAGApiError,
+  type GraphRAGSearchOptions,
+} from "../../../src/graphrag-client.js";
+import {
+  jsonResponse,
+  rawResponse,
+  stubFetch,
+} from "./support/b-graphrag-fix.js";
 
-describe("UT-PI-043 · search（graphrag-client.ts:130）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 graphrag-client.ts:194 的分支（??：data.hits?.hits ?? []）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：search(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-043 · search · 状态分支 × 合法迁移", () => {
+  it("maps the hit list when present and returns an empty list otherwise", async () => {  // maps the hit list when present and returns an empty list otherwise
+    let payload: unknown = {
+      hits: {
+        hits: [
+          { _id: "d1", _score: 1, _source: { content: "c" } },
+          { _id: "d2", _score: 2, _source: { content: "d" } },
+        ],
+      },
+    };
+    const { calls } = stubFetch(() => jsonResponse(payload));
+    try {
+      const adapter = new GraphRAGAdapter("https://g.example.com", "key", "docs");
+
+      // 步骤 1/2：取真侧——hits.hits 有值
+      const hits = await adapter.search("q");
+      expect(hits).toEqual([
+        { id: "d1", content: "c", score: 1, metadata: {}, created_at: "" },
+        { id: "d2", content: "d", score: 2, metadata: {}, created_at: "" },
+      ]);
+
+      // 步骤 3/4：取假侧——hits.hits 缺省 / 为 null
+      payload = { hits: { hits: null } };
+      expect(await adapter.search("q")).toEqual([]);
+      payload = { hits: {} };
+      expect(await adapter.search("q")).toEqual([]);
+      payload = {};
+      expect(await adapter.search("q")).toEqual([]);
+      expect(calls.length).toBe(4);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

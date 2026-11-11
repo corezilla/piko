@@ -98,7 +98,7 @@ export type Mem0RecordParams = Static<typeof Mem0RecordSchema>;
 // Validation helper
 // ============================================================
 
-function validateContext(context: SkillToolContext): void {
+export function validateContext(context: SkillToolContext): void {
   if (!context.role || context.role.trim() === "") {
     throw new Error("role required");
   }

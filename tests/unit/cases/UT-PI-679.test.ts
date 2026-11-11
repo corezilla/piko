@@ -1,18 +1,29 @@
 /**
- * Case ID: UT-PI-679  ·  STATUS: skeleton
+ * Case ID: UT-PI-679  ·  STATUS: real
  *
- * 责任：参数 `params: inferred` 的 `每等价类合法值` 类（skill-tools.ts:136）
- * 维度坐标：`execute` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
+ * 责任：参数 `params: inferred` 的 `恰好通过` 类（skill-tools.ts:136）
+ * 维度坐标：`execute` × `数值/长度上限参数` × `恰好通过`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-679.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { createMem0LookupTool, Mem0LookupSchema } from "../../../src/skill-tools.js";
+import { fakeMem0, runExecute, skillContext } from "./support/c-skilltools-fix.js";
 
-describe("UT-PI-679 · execute（skill-tools.ts:136）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `params: inferred`，其余参数取合法等价类（skill-tools.ts:136）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-679 用例文档 §3）
+describe("UT-PI-679 · execute · 数值/长度上限参数 × 恰好通过", () => {
+  it("forwards the maximum result count that the schema allows", async () => {  // forwards the maximum result count that the schema allows
+    // 步骤 1：按 `恰好通过` 类构造 params —— max_results 取 schema 的上界 20
+    const fake = fakeMem0();
+    const tool = createMem0LookupTool({ mem0: fake.mem0, context: skillContext() });
+    // 步骤 2：调用 execute(…)
+    const result = await runExecute(tool, { query: "q", max_results: 20 });
+    // 步骤 3：逐值对账 —— 上界值原样透传给 mem0
+    expect(fake.calls.search).toHaveLength(1);
+    expect(fake.calls.search[0]).toEqual({ query: "q", user_id: "tester:piko", options: { max_results: 20 } });
+    expect(result).toEqual({ content: [{ type: "text", text: "[]" }], details: { count: 0 } });
+    // 判据来源：schema 声明的上界就是 20
+    const schema = Mem0LookupSchema as unknown as {
+      properties: { max_results: { minimum: number; maximum: number; default: number } };
+    };
+    expect(schema.properties.max_results.maximum).toBe(20);
+  });
 });

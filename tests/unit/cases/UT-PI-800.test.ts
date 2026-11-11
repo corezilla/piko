@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-PI-800  ·  STATUS: skeleton
+ * Case ID: UT-PI-800  ·  STATUS: real
  *
  * 责任：返回站点 L234 值 `value.slice(1, -1)` 逐值断言（tool-exec-policy.ts）
  * 维度坐标：`stripQuotes` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-800.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { stripQuotes } from "../../../src/tool-exec-policy.js";
 
-describe("UT-PI-800 · stripQuotes（tool-exec-policy.ts:229）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 tool-exec-policy.ts:234 的返回站点（值 value.slice(1, -1)）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：stripQuotes(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-PI-800 · stripQuotes · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the exact slice of the quoted value", () => {  // returns the exact slice of the quoted value
+    // 步骤 1：到达 L234（value.slice(1, -1)）的等价类
+    // 步骤 2：调用 stripQuotes
+    // 步骤 3：断言返回值逐值对账
+    expect(stripQuotes('"abc"')).toBe("abc");
+    expect(stripQuotes("'abc'")).toBe("abc");
+    // 只切掉最外层各一个字符
+    expect(stripQuotes('""')).toBe("");
+    expect(stripQuotes('"a"b"')).toBe('a"b');
+  });
 });
