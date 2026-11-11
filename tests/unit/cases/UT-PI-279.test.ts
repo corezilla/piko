@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-279.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-279 · PiRuntime.constructor · 字符串/路径/枚举输入 × 超长", () => {
   it("accepts an over-long graphrag key when identity doc_search is configured", async () => {  // accepts an over-long graphrag key when identity doc_search is configured
     // 步骤 1：超长 graphrag key
     const long = "g".repeat(10000);
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
       graphragApiKey: long,
     });
     try {

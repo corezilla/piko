@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-353.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-353 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true side of the optional chaining on the doc search default scope", async () => {  // takes the true side of the optional chaining on the doc search default scope
     // 步骤 1：doc_search 配了 default_scope ⇒ 可选链取真
     const fx = await piFixture({
       config: piConfig({
-        identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.internal", default_scope: "design" } },
+        identity: piIdentity({ doc_search: { base_url: "https://graphrag.internal", default_scope: "design" } }),
       }),
       graphragApiKey: "graphrag-key",
     });

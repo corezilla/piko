@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-300.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-300 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the missing-graphrag-key branch", async () => {  // takes the true side of the missing-graphrag-key branch
     // 步骤 1：取真侧 —— identity.doc_search 配了、graphragApiKey 缺失
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
     });
     try {
       // 步骤 2/3：断言取真侧被走到

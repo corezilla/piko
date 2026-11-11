@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-298.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-298 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the doc_search and key conjunction and the false side of the key operand", async () => {  // takes the true side of the doc_search and key conjunction and the false side of the key operand
     // 步骤 1a：doc_search 真 且 key 真 ⇒ adapter 构造
     const both = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
       graphragApiKey: "k",
     });
     try {
@@ -24,7 +24,7 @@ describe("UT-PI-298 · PiRuntime.constructor · 状态分支 × 合法迁移", (
 
     // 步骤 1b：doc_search 真 但 key 假 ⇒ fail-fast
     const noKey = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
     });
     try {
       expect(noKey.error).toBeInstanceOf(Error);

@@ -6,21 +6,22 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-280.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-280 · PiRuntime.constructor · 字符串/路径/枚举输入 × 注入字符", () => {
   it("accepts a graphrag key with injection characters and passes it to the adapter verbatim", async () => {  // accepts a graphrag key with injection characters and passes it to the adapter verbatim
     // 步骤 1：注入字符
     const injected = "abc'; DROP TABLE tasks; --";
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
       graphragApiKey: injected,
     });
     try {
       // 步骤 2/3：断言被接受，adapter 拿到原样 key（只作 HTTP 头，不进 shell）
       expect(fx.error).toBeUndefined();
       const adapter = fx.state<{ apiKey: string }>("graphragAdapter");
-      expect(adapter.apiKey).toBe(injected);
+      expect(adapter).toBeDefined();
+      expect(adapter?.apiKey).toBe(injected);
     } finally {
       await fx.close();
     }

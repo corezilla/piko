@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-301.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-301 · PiRuntime.constructor · 状态分支 × 每个非法迁移拒绝", () => {
   it("rejects the illegal transition of leaving graphrag unconfigured while doc_search is required", async () => {  // rejects the illegal transition of leaving graphrag unconfigured while doc_search is required
     // 步骤 1：非法迁移 —— 配了 identity.doc_search 却没有 key（不许降级成「无 adapter」）
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
     });
     try {
       // 步骤 2/3：断言迁移被拒绝，adapter 保持 undefined

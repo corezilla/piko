@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-339.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-339 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true side of the doc search and adapter conjunction", async () => {  // takes the true side of the doc search and adapter conjunction
     // 步骤 1a：doc_search 真 且 adapter 真 ⇒ graphrag_search 进清单
     const withDoc = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.internal" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: { base_url: "https://graphrag.internal" } }) }),
       graphragApiKey: "graphrag-key",
       registry: piTools({
         "workspace-standard": {

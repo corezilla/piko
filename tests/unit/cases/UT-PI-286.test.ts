@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-286.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-286 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the memory branch when identity memory is configured with a key", async () => {  // takes the true side of the memory branch when identity memory is configured with a key
     // 步骤 1：取真侧 —— identity.memory 配了 + mem0ApiKey 给了
     const truthy = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: "mem0-key",
     });
     try {
@@ -25,7 +25,7 @@ describe("UT-PI-286 · PiRuntime.constructor · 状态分支 × 合法迁移", (
 
     // 步骤 3：取假侧 —— 配了 memory 但没给 key ⇒ fail-fast
     const falsy = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
     });
     try {
       // 步骤 4：断言取假侧被走到 —— 构造抛错

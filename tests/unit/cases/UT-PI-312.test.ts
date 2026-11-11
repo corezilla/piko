@@ -17,8 +17,8 @@ describe("UT-PI-312 · PiRuntime.constructor · 状态分支 × 合法迁移", (
       // 步骤 2/3：读回权威事实源 —— repo 被构造出来，且带上了 session_root
       const repo = fx.state<{ sessionsRootInput?: string }>("repo");
       expect(repo).toBeDefined();
-      expect(repo!.sessionsRootInput).toBe(fx.config.pi.session_root);
-      expect(repo!.sessionsRootInput).toBe(join(fx.root, "sessions"));
+      expect(repo?.sessionsRootInput).toBe(fx.config.pi.session_root);
+      expect(repo?.sessionsRootInput).toBe(join(fx.root, "sessions"));
     } finally {
       await fx.close();
     }

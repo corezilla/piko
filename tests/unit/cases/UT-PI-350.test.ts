@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-350.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-350 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true and the false side of the identity ternary in the prompt construction", async () => {  // takes the true and the false side of the identity ternary in the prompt construction
     // 步骤 1a：identity 存在 ⇒ 取真侧，系统提示带上身份块
     const withIdentity = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer" } }),
+      config: piConfig({ identity: piIdentity({}) }),
     });
     const stubA = stubModelFetch();
     try {

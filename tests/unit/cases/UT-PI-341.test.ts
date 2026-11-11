@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-341.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-341 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true side of the skill dependency check and registers the two memory tools", async () => {  // takes the true side of the skill dependency check and registers the two memory tools
     // 步骤 1：skillDeps 建出 ⇒ 工具清单里有 mem0_lookup 与 mem0_record
     const fx = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: "mem0-key",
       registry: piTools({
         "workspace-standard": {

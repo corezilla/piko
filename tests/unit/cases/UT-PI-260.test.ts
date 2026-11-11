@@ -6,7 +6,7 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-260.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-260 · PiRuntime.constructor · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
   it("accepts the boundary values of the config parameter", async () => {  // accepts the boundary values of the config parameter
@@ -14,7 +14,7 @@ describe("UT-PI-260 · PiRuntime.constructor · 纯函数/无副作用 × 边界
     const configs = [
       piConfig({ workspace: { roots: {}, staging_root: "" } }),
       piConfig({ llmtier: { base_url: "", api_key_secret_ref: "env:PIKO_LLM_API_KEY", models_timeout_ms: 0 } }),
-      piConfig({ identity: { role: "", name: "" } }),
+      piConfig({ identity: piIdentity({ role: "", name: "" }) }),
     ];
 
     // 步骤 2：逐个构造

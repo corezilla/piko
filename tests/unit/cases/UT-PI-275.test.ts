@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-275.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-275 · PiRuntime.constructor · 字符串/路径/枚举输入 × 超长", () => {
   it("accepts an over-long mem0 key when identity memory is configured", async () => {  // accepts an over-long mem0 key when identity memory is configured
     // 步骤 1：超长 mem0 key
     const long = "m".repeat(10000);
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: long,
     });
     try {

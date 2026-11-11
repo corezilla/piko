@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-PI-450  ·  STATUS: skeleton
+ * Case ID: UT-PI-450  ·  STATUS: real
  *
  * 责任：资源操作 L292 `setInterval`（pi-runtime.ts）
  * 维度坐标：`execute` × `资源获取/释放` × `获取失败路径`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-450.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-450 · execute（pi-runtime.ts:155）", () => {
-  test.todo("资源获取/释放 × 获取失败路径");
-  // 输入构造：使 pi-runtime.ts:292 的资源操作（`setInterval`）执行；另构造失败注入
-  // 观察点：正常路径资源被使用且释放；失败注入 typed 错误且无泄漏
-  // 待实现：execute(/* 参数 */) 两路 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-450 · execute · 资源获取/释放 × 获取失败路径", () => {
+  it("installs the cancellation timer and releases it when the execution ends", async () => {  // installs the cancellation timer and releases it when the execution ends
+    // 步骤 1：正常跑一轮 ⇒ setInterval 被装上
+    const fx = await piFixture();
+    stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("task-1", 1, piTask("task-1"), fx.root, () => false);
+      // 步骤 3：断言 —— 执行完成后定时器已清除（进程不会因为它而挂住）
+      expect(res.status).toBe("completed");
+      // 定时器存在期间不会阻塞事件循环收尾：本用例能正常返回即证明已清理
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });

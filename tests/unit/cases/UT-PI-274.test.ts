@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-274.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-274 · PiRuntime.constructor · 字符串/路径/枚举输入 × 空", () => {
   it("rejects an empty mem0 key when identity memory is configured", async () => {  // rejects an empty mem0 key when identity memory is configured
     // 步骤 1：配了 identity.memory，但 mem0ApiKey 是空串
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: "",
     });
     try {

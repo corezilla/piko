@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-288.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-288 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the memory and key conjunction and the false side of the key operand", async () => {  // takes the true side of the memory and key conjunction and the false side of the key operand
     // 步骤 1a：memory 为真 且 key 为真 ⇒ adapter 构造
     const both = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: "k",
     });
     try {
@@ -24,7 +24,7 @@ describe("UT-PI-288 · PiRuntime.constructor · 状态分支 × 合法迁移", (
 
     // 步骤 1b：memory 为真 但 key 为假 ⇒ fail-fast（key 操作数取假）
     const noKey = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
     });
     try {
       expect(noKey.error).toBeInstanceOf(Error);

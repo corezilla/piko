@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-296.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-296 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the doc_search branch when it is configured with a key", async () => {  // takes the true side of the doc_search branch when it is configured with a key
     // 步骤 1：取真侧 —— identity.doc_search 配了 + graphragApiKey 给了
     const truthy = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
       graphragApiKey: "graphrag-key",
     });
     try {
@@ -25,7 +25,7 @@ describe("UT-PI-296 · PiRuntime.constructor · 状态分支 × 合法迁移", (
 
     // 步骤 3：取假侧 —— 配了 doc_search 但没给 key ⇒ fail-fast
     const falsy = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: {} }) }),
     });
     try {
       // 步骤 4：断言取假侧被走到

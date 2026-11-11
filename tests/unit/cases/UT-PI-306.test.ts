@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-306.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-306 · PiRuntime.constructor · 错误路径 × 每个 typed 错误码", () => {
   it("throws the typed mem0 key error when identity memory is configured without a key", async () => {  // throws the typed mem0 key error when identity memory is configured without a key
     // 步骤 1：构造触发 L123 throw 的输入
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
     });
     try {
       // 步骤 2：断言错误被抛出，消息逐值相等

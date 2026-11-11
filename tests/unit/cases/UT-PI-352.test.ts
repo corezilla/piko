@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-352.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-352 · execute · 状态分支 × 合法迁移", () => {
   it("falls back to an empty default scope when the doc search config has none", async () => {  // falls back to an empty default scope when the doc search config has none
     // 步骤 1：doc_search 没配 default_scope ⇒ ?? 回落为空串
     const fx = await piFixture({
       config: piConfig({
-        identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.internal" } },
+        identity: piIdentity({ doc_search: { base_url: "https://graphrag.internal" } }),
       }),
       graphragApiKey: "graphrag-key",
     });

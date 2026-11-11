@@ -16,7 +16,7 @@ describe("UT-PI-369 · execute · 错误路径 × 每个 typed 错误码", () =>
     const { piConfig, piTools } = await import("./support/pi-runtime-fix.js");
     const store = new TaskStore(":memory:", 1000);
     const hostile = {
-      async report(fact: { kind: string }): Promise<never> {
+      async report(fact: { kind: string }): Promise<{ ok: boolean }> {
         if (fact.kind === "providerCall") throw new Error("channel down");
         return { ok: true };
       },

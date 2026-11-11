@@ -1,18 +1,49 @@
 /**
- * Case ID: UT-PI-459  ·  STATUS: skeleton
+ * Case ID: UT-PI-459  ·  STATUS: real
  *
  * 责任：返回站点 L272 值 `{block:{reason:"UnsafeRetryBlocked",ter…` 逐值断言（pi-runtime.ts）
  * 维度坐标：`execute` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-459.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { PiRuntime } from "../../../src/pi-runtime.js";
+import { TaskStore } from "../../../src/store.js";
+import { piConfig, piTask, piTools, stubModelFetch, sseResponse, toolCallSse, textResponseSse, recordingChannel } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-459 · execute（pi-runtime.ts:155）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：使 pi-runtime.ts:272 的返回站点（值 {block:{reason:"UnsafeRetryBlocked",terminate…）被到达
-  // 观察点：该返回路径的返回值逐值对账（结构、字段、顺序），无未声明副作用
-  // 待实现：execute(/* 参数 */) → 断言（Oracle：用例文档 §3）
+describe("UT-PI-459 · execute · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("returns the unsafe retry block decision from the tool gate", async () => {  // returns the unsafe retry block decision from the tool gate
+    // 步骤 1：准入返回 UnsafeRetryBlocked ⇒ before_tool 返回 block 决定
+    const { mkdtemp } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const sessionRoot = await mkdtemp(join(tmpdir(), "piko-pi-session-"));
+    const store = new TaskStore(":memory:", 1000);
+    const recorded = recordingChannel({ reserveTool: "UnsafeRetryBlocked" });
+    const runtime = new PiRuntime(
+      piConfig({ pi: { version: "0.85.1", commit: "0".repeat(40), session_root: sessionRoot } }),
+      piTools({ "workspace-standard": { bash: { effect: "read_only", replay: "safe" } } as never }),
+      store,
+      recorded.channel,
+      "k",
+    );
+    let n = 0;
+    stubModelFetch(() => {
+      n += 1;
+      return n === 1
+        ? sseResponse(toolCallSse("bash", { command: "ls" }))
+        : sseResponse(textResponseSse("fallback"));
+    });
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await runtime.execute("task-1", 1, piTask("task-1"), "/tmp", () => false);
+      // 步骤 3：断言 —— block 的 reason 是 UnsafeRetryBlocked
+      expect(res.status).toBe("failed");
+      expect(res.failure?.code).toBe("UnsafeRetryBlocked");
+      expect(res.failure?.message).toBe("A non-replayable tool call was encountered again.");
+    } finally {
+      vi.unstubAllGlobals();
+      await runtime.close();
+      store.close();
+    }
+  });
 });

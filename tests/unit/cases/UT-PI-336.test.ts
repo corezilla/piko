@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-336.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-336 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true side of the memory and adapter conjunction", async () => {  // takes the true side of the memory and adapter conjunction
     // 步骤 1a：identity.memory 真 且 adapter 真 ⇒ skillDeps 建出，两个 mem0 工具进清单
     const withMemory = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
       mem0ApiKey: "mem0-key",
       registry: piTools({
         "workspace-standard": {

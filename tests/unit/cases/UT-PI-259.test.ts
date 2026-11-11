@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-259.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-259 · PiRuntime.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
   it("accepts the legal equivalent classes of the config parameter and constructs without throwing", async () => {  // accepts the legal equivalent classes of the config parameter and constructs without throwing
     // 步骤 1：每个等价类一个代表值 —— identity 有/无、workspace.roots 有/无
     const configs = [
       piConfig(),
-      piConfig({ identity: { role: "developer", name: "alice:developer" } }),
+      piConfig({ identity: piIdentity({}) }),
       piConfig({ workspace: { roots: {}, staging_root: "/tmp" } }),
     ];
 

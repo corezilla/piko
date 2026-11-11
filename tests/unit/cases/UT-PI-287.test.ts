@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-287.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-287 · PiRuntime.constructor · 状态分支 × 每个非法迁移拒绝", () => {
   it("rejects the illegal transition of configuring memory without a key", async () => {  // rejects the illegal transition of configuring memory without a key
     // 步骤 1：非法迁移 —— 配了 identity.memory 却没给 mem0ApiKey
     const fx = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
     });
     try {
       // 步骤 2/3：断言迁移被拒绝 —— 错误 typed 化（Error + 可判别消息），且无部分写入

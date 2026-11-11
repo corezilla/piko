@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-340.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-340 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true and the false side of the optional chaining on identity for the doc search tools", async () => {  // takes the true and the false side of the optional chaining on identity for the doc search tools
     // 步骤 1a：identity 存在 ⇒ 可选链取真
     const withIdentity = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.internal" } } }),
+      config: piConfig({ identity: piIdentity({ doc_search: { base_url: "https://graphrag.internal" } }) }),
       graphragApiKey: "graphrag-key",
       registry: piTools({
         "workspace-standard": {

@@ -31,6 +31,28 @@ export function piConfig(over: Partial<RuntimeConfig> = {}): RuntimeConfig {
   } as unknown as RuntimeConfig;
 }
 
+/**
+ * 构造 identity 段。
+ *
+ * `RuntimeConfig["identity"]` 把 `memory` 写成必填，但 PI 的构造器只按
+ * 「配了 memory / 没配 memory」两态分支——`doc_search` 单独配置是合法的。
+ * 用例要表达的是**分支语义**而不是类型完整性，所以这里放宽 memory 为可选，
+ * 运行时行为与源码一致。
+ */
+export function piIdentity(over: {
+  role?: string;
+  name?: string;
+  memory?: { provider?: "mem0"; api_key_secret_ref?: string; base_url?: string };
+  doc_search?: { provider?: "graphrag"; api_key_secret_ref?: string; base_url?: string; default_scope?: string };
+}): NonNullable<RuntimeConfig["identity"]> {
+  return {
+    role: over.role ?? "developer",
+    name: over.name ?? "alice:developer",
+    ...(over.memory ? { memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY", ...over.memory } as never } : {}),
+    ...(over.doc_search ? { doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com", ...over.doc_search } as never } : {}),
+  } as unknown as NonNullable<RuntimeConfig["identity"]>;
+}
+
 /** 一份最小可用的 ToolRegistry。缺省给一个空 profile 的 workspace-standard。 */
 export function piTools(
   profiles: Record<string, Record<string, ToolPolicy>> = { "workspace-standard": {} },

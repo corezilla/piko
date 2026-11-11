@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-293.md（脚本的唯一依据）
  */
 import { describe, expect, it } from "vitest";
-import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
+import { piConstructor, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-293 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
   it("takes the true side of the memory and missing-key conjunction", async () => {  // takes the true side of the memory and missing-key conjunction
     // 步骤 1a：memory 真、!key 真 ⇒ fail-fast
     const both = await piConstructor({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      config: piConfig({ identity: piIdentity({ memory: {} }) }),
     });
     try {
       expect(both.error).toBeInstanceOf(Error);

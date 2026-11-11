@@ -6,13 +6,13 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-351.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-351 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true and the false side of the identity ternary in the skill prefetch", async () => {  // takes the true and the false side of the identity ternary in the skill prefetch
     // 步骤 1a：identity 存在 ⇒ 取真侧，预取带上 role 与 workspace_ref
     const withIdentity = await piFixture({
-      config: piConfig({ identity: { role: "developer", name: "alice:developer" } }),
+      config: piConfig({ identity: piIdentity({}) }),
     });
     stubModelFetch();
     try {

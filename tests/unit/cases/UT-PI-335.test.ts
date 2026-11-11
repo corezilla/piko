@@ -6,14 +6,14 @@
  * 用例文档：docs/70_verification/unit/cases/UT-PI-335.md（脚本的唯一依据）
  */
 import { describe, expect, it, vi } from "vitest";
-import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools, piIdentity } from "./support/pi-runtime-fix.js";
 
 describe("UT-PI-335 · execute · 状态分支 × 合法迁移", () => {
   it("takes the true side of the memory dependency check when identity memory is configured", async () => {  // takes the true side of the memory dependency check when identity memory is configured
     // 步骤 1：identity.memory 配了 + key 给了 ⇒ mem0Adapter 存在 ⇒ skillDeps 被建
     const fx = await piFixture({
       config: piConfig({
-        identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } },
+        identity: piIdentity({ memory: {} }),
       }),
       mem0ApiKey: "mem0-key",
       registry: piTools({
