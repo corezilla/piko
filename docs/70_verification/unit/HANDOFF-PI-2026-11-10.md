@@ -1,4 +1,4 @@
-# Handoff：piko UT 层 —— PI 模块收尾（2026-11-10）
+# Handoff：piko UT 层 —— PI 模块收尾（2026-11-11）
 
 > 这是给**新会话**的交接文档。读完这一份就能接着干，不需要回读旧 transcript。
 
@@ -35,7 +35,7 @@ UT 层共 **3,282 个登记 Case**。开工时 **2,781 个已实现 / 501 个骨
 - **提交前**必须跑 `detect_changes()`：`node .gitnexus/run.cjs detect-changes --repo piko --branch main`
 - impact 返回 **HIGH/CRITICAL** 必须先警告用户（本轮 `stripQuotes`=CRITICAL、`validateContext`=HIGH，
   但两处改动都只是**加 `export` 关键字、函数体一行未动、且不改变任何行号**，已在最终报告里说明）。
-- 索引已重建（`node .gitnexus/run.cjs analyze .`），当前 commit `6b78ea0`。
+- 索引已重建（`node .gitnexus/run.cjs analyze .`），当前 commit `c11066b`。
 
 ### 1.3 Case ID 的致命陷阱（`G-UT-DENOM-4`）
 
@@ -46,25 +46,44 @@ UT 层共 **3,282 个登记 Case**。开工时 **2,781 个已实现 / 501 个骨
 - 改 `src/` 时**只加 `export`、不加删行**，行号就稳。
 - 可以安全跑的生成脚本：`node scripts/gen-ut-case-docs.mjs`（它只读脚本里的 `STATUS:`，不重新派生 ID）。
 
+### 1.4 已知的门禁现状（不是本轮引入，别以为是自己搞坏的）
+
+| 门 | 命令 | 现状 |
+|---|---|---|
+| tsc | `npx tsc --noEmit` | ✅ 0 错误 |
+| vitest | `npx vitest run tests/unit/cases/` | ✅ 3,069 passed / 213 todo / 0 failed（3,282 files） |
+| checklist | `python3 /Users/ben/work/STD/scripts/validate-checklist --project-root .` | ✅ rc=0（6 checked, 0 error） |
+| design | `python3 /Users/ben/work/STD/scripts/validate-design --project-root . --baseline docs/std-validation-baseline.json` | ✅ rc=0（new=0, inherited=24） |
+| coverage | `python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .` | ❌ rc=1 —— **只因模块层（缺 19 格）与系统层（缺 17 格）**；**单元层通过**（136 符号 / 25 格全覆盖 / 3,282 Case / 下界 204） |
+| review | `node scripts/review-ut-cases.mjs` | ❌ 752 findings（C4 594 · C1 158）—— **上一轮就有的**（基线 commit `5c8b3f8` 是 779 findings，本轮已从 779 降到 752） |
+
+`review-ut-cases.mjs` 的 C4/C1 全部落在 **MATRIX / TRANSFER / WORKER** 三个模块（`G-UT-DENOM-4`
+的枚举表行号漂移），**与 PI 无关**。C6（脚本未标 STATUS）本轮已清零——`UT-PI-005` 原是个探针
+文件（`describe("probe")`、无 `STATUS:`），已重写成真断言。
+
 ---
 
 ## 2. 已完成的工作
 
-### 2.1 本轮（本次会话）新写的 288 个 Case
+### 2.1 本轮（PI 批次，commit `c11066b`）新写的 288 个 Case
 
 | 范围 | Case 数 | 状态 |
 |---|---|---|
 | `mapStatusToCode`（mem0-client.ts） | 15 | ✅ 我手写 |
-| `stripQuotes`（tool-exec-policy.ts） | 10 | ✅ 我手写 |
-| `tool-host-policy.ts`（PolicyViolationError/currentAllowlist/enterNetworkScope/installNetworkPolicy/restoreNetworkPolicy/makePolicyFetch） | 32 | ✅ 我手写 |
+| `stripQuotes` + `tool-host-policy.ts` | 42 | ✅ 我手写 |
 | mem0 `search` + `Mem0Adapter.constructor` | 45 | ✅ agent |
 | graphrag `search` + `GraphRAGAdapter.constructor` + `createGraphragSearchTool.execute` | 36 | ✅ agent |
 | skill-tools `execute` + `validateContext` + `createMem0LookupTool` + `createMem0RecordTool` | 72 | ✅ agent |
 | `preflightModelProvider` + `prefetchSkillContext` | 25 | ✅ agent |
-| `mem0 add` + `pollForExtractedMemory` | 53 | ⚠️ agent 因 API 529 中断，**但 53 个文件已全部落地**；其中 2 个有真 bug，我已修（见 §6.5） |
+| mem0 `add` + `pollForExtractedMemory` | 53 | ⚠️ agent 因 API 529 中断，**但 53 个文件已全部落地**；其中 2 个有真 bug，我已修（见 §6.5） |
 | **合计已落地** | **288** | |
 
 **288 个全部已实现并通过。**
+
+收尾时另外**重写**了 1 个已有文件 `UT-PI-005`（`model` 的 `空` 格）——它原本不是骨架，
+而是一个 `describe("probe")` 探针（只测 dynamic import 能解析），被 `review-ut-cases.mjs`
+的 C6（脚本未标 `STATUS:`）抓出来。现已改为逐值断言 `{models, model}` 的真断言。
+**它不计入 288，但计入最终的实现率。**
 
 ### 2.2 本轮改过的 `src/`（全部是**加 export**，行号未变）
 
@@ -84,31 +103,43 @@ UT 层共 **3,282 个登记 Case**。开工时 **2,781 个已实现 / 501 个骨
   输入一个 JSON 清单（`{cid: {imports, title, body, sync?}}`），自动从**用例文档 §3.1 标题**取「责任」、
   从 **case-index.json** 取维度坐标，生成头部与 `describe` 标题完全对齐登记行的脚本。
   用法：`python3 scripts/case_writer_generic.py <spec.json>`
-- `tests/unit/cases/support/pi-runtime-fix.ts` —— **PI 专用装置**（见 §4.3）。
+- `tests/unit/cases/support/pi-runtime-fix.ts` —— **PI 专用装置**（见 §4.1）。
 - 其它 agent 建的 support：`support/a1-mem0-fix.ts`、`support/b-graphrag-fix.ts`、
   `support/c-skilltools-fix.ts`、`support/d-preflight-fix.ts`。
+
+### 2.4 顺手修掉的一个仓库污染
+
+`:memory!` —— 一个 **SQLite 数据库文件**，被 commit `f6b9882` 误提交进仓库根。
+根因：IPC 批次的 `UT-IPC-058` 把 `new TaskStore(":memory:", 1000)` 写成了 `":memory!"`，
+而 `src/store.ts:45` 只对**精确**的 `":memory:"` 跳过建目录，于是 SQLite 在仓库根建了
+一个叫 `:memory!` 的文件。已修 typo、已 `git rm --cached`、已从磁盘删除。
+**写 Case 时注意：内存 store 路径必须是精确的 `":memory:"`。**
 
 ---
 
 ## 3. 剩下要做的 213 个 Case
 
-| 符号 | 文件 | Case 数 | Case ID |
-|---|---|---|---|
-| `execute` | `src/pi-runtime.ts` | **153** | UT-PI-314 … UT-PI-466（+ UT-PI-694…697、723…726） |
-| `PiRuntime.constructor` | `src/pi-runtime.ts` | **54** | UT-PI-259 … UT-PI-312 |
-| `model` | `src/pi-runtime.ts` | 1 | UT-PI-313 |
-| `close` | `src/pi-runtime.ts` | 1 | UT-PI-467 |
-| `discussionMessage` | `src/pi-runtime.ts` | 1 | UT-PI-001 |
-| `initialPrompt` | `src/pi-runtime.ts` | 1 | UT-PI-003 |
-| `isProviderUnavailableMessage` | `src/pi-runtime.ts` | 1 | UT-PI-004 |
-| `normalizeRawUsage` | `src/pi-runtime.ts` | 1 | UT-PI-006 |
+全部在 `src/pi-runtime.ts`。`grep -rl "test.todo(" tests/unit/cases/` 应报 **213**
+（`grep -rl "STATUS: skeleton"` 报的是同一批 213 个，两份列表完全一致）。
 
-外加**上一轮中断的 53 个 mem0 Case**（`add` 35 + `pollForExtractedMemory` 18）：
-~~UT-PI-012、UT-PI-133…166、UT-PI-181…198~~ ✅ **已全部落地并通过**（2 个 bug 已修，见 §6.5）。
+| 符号 | Case 数 | Case ID |
+|---|---|---|
+| `execute` | **153** | UT-PI-314 … UT-PI-466 |
+| `PiRuntime.constructor` | **54** | UT-PI-259 … UT-PI-312 |
+| `model` | 1 | UT-PI-313（另有 UT-PI-005 已实现） |
+| `close` | 1 | UT-PI-467 |
+| `discussionMessage` | 1 | UT-PI-001 |
+| `initialPrompt` | 1 | UT-PI-003 |
+| `isProviderUnavailableMessage` | 1 | UT-PI-004 |
+| `normalizeRawUsage` | 1 | UT-PI-006 |
 
-**实际待写 = 213 个，全部在 `src/pi-runtime.ts`。**
+**完整的剩余 ID 列表**（从 `grep -rl "test.todo(" tests/unit/cases/` 生成，别手数）：
 
-（`grep -rl "todo(" tests/unit/cases/` 报 213，与上表一致。）
+```
+001 003 004 006 | 259..467（连续，无缺口）
+```
+
+`UT-PI-694..697` 与 `UT-PI-723..726` **已实现**，不要重做。
 
 ---
 
@@ -164,15 +195,16 @@ import {
 7. `model()` 返回 `{models, model}`；`model` 是
    `{id, name, api:"openai-responses", provider:"llmtier", baseUrl, reasoning:true,
    input:["text","image"], cost:{…}, contextWindow:262144, maxTokens:32768}`。
+   `models.getModel("llmtier", <id>)` 能取回同一个 model。`model()` **不产生任何 channel 事实**。
 
 ### 4.3 分工建议
 
 | 批次 | Case 数 | 备注 |
 |---|---|---|
-| `PiRuntime.constructor` + `model` + `close` + 4 个纯函数 | 62 | 构造分支为主，最好写 |
+| `PiRuntime.constructor` + `model` + `close` + 4 个纯函数 | 61 | 构造分支为主，最好写 |
 | `execute` 前 1/3（UT-PI-314…364） | 51 | 参数类 + 早期分支 |
 | `execute` 中 1/3（UT-PI-365…415） | 51 | 钩子分支 |
-| `execute` 后 1/3（UT-PI-416…466 等） | 51 | 循环与失败路径 |
+| `execute` 后 1/3（UT-PI-416…467） | 50 | 循环与失败路径 |
 
 **并行 agent 的纪律**（本轮踩过的坑）：
 - 每个 agent 一个 JSON spec（`/tmp/pi/<名字>.json`）＋ `scripts/case_writer_generic.py`。
@@ -206,7 +238,8 @@ import {
 
 ### 5.2 上一轮已登记、本轮仍有效的
 
-`G-UT-REPO-1..5`、`G-UT-WORKER-1..2`、`G-UT-DENOM-4`、`G-EXEC-UT-3`（见方案文档 §7.1）。
+`G-UT-REPO-1..5`、`G-UT-WORKER-1..2`、`G-UT-IPC-1`、`G-UT-MATRIX-1`、`G-UT-QUEUE-1`、
+`G-UT-CONFIG-1`、`G-UT-BRANCH-1`、`G-UT-DENOM-4`、`G-EXEC-UT-3`（见方案文档 §7.1 与缺口表）。
 
 ---
 
@@ -214,13 +247,18 @@ import {
 
 1. **确认没有骨架**：`grep -rl "todo(" tests/unit/cases/` 应为 0。
 2. **清理**：`tests/unit/cases/` 下只允许 `UT-*.test.ts` 和 `support/`；
-   删掉 `tests/unit/proto/`（本轮临时验证用，可直接 `rm -rf`）。
+   删掉任何 `tests/unit/proto/` 之类的临时目录。
 3. **重生成 Case 文档**：`node scripts/gen-ut-case-docs.mjs`
    —— 它只读脚本里的 `STATUS: real`，**不会重新派生 ID**。
-4. **重建索引（不重新派生 ID）**：检查 `scripts/` 里哪个脚本负责写 `case-index.json` 的 `status` 字段
-   （`gen-ut-case-docs.mjs` 或 `derive-ut-cases-full.mjs`）。**`derive-ut-cases-full.mjs` 会重新编号 ——
-   绝对不能跑。** 若只有它能更新 `status`，就**只手工更新 `case-index.json` 里已实现行的
-   `status`/`report` 字段**（该文件虽是生成物，但这一处必须手改），并在方案文档里说明。
+4. **重建索引（不重新派生 ID）**：`docs/70_verification/unit/case-index.json` 由
+   `scripts/derive-ut-cases-full.mjs` 生成（`scripts/derive-ut-cases-full.mjs:296`），**而这个脚本会
+   重新派生 ID —— 绝对不能跑**。它的 `status` 字段来自**用例文档 §1 总账行**
+   （`实现状态：\`Implemented\``），所以正确做法是：
+   - 跑 `node scripts/gen-ut-case-docs.mjs` 让用例文档的 §1 总账行与脚本的 `STATUS:` 一致；
+   - **然后只手工更新 `case-index.json` 里已实现行的 `status`/`report`/`script` 字段**（该文件虽是
+     生成物，但这一处必须手改），并在方案文档里说明这一处是手改的。
+   - 现状：`case-index.json` 的 `status_counts` 还是 `{Implemented: 1763, Planned: 1519}`，
+     **严重滞后于磁盘真实状态**（磁盘已是 3,069 real / 213 skeleton）。
 5. **跑门**（全绿才算完）：
    ```bash
    npx tsc --noEmit
@@ -230,14 +268,22 @@ import {
    python3 /Users/ben/work/STD/scripts/validate-design --project-root . --baseline docs/std-validation-baseline.json
    node scripts/review-ut-cases.mjs
    ```
-   （`review-ut-cases.mjs` 读 `/tmp/ut-cases-full.json` 和 `/tmp/ut-denominator.json`——
-   **这两个临时文件可能已随重启丢失**，需要从 `docs/70_verification/unit/` 下的既有产物重建，
-   但**重建时不得改变 ID**。）
+   **已知预期**（见 §1.4，**不是本轮引入**）：
+   - `validate-coverage` rc=1 —— **只因模块层（缺 19 格）与系统层（缺 17 格）**。单元层通过。
+     这两层的缺口是 `G-MT-DIM-1`（19）与 `G-ST-DIM-1`（17），**属于另外两个层的工作**，
+     单元层不该替它们修。要么在方案文档里如实登记，要么另起两批补。
+   - `review-ut-cases.mjs` 的 C4/C1 共 752 条**全在 MATRIX/TRANSFER/WORKER**，
+     根因是 `G-UT-DENOM-4`（枚举表行号漂移）。**PI 相关的必须清零**。
+   - `review-ut-cases.mjs` 读 `/tmp/ut-cases-full.json` 和 `/tmp/ut-denominator.json`——
+     **这两个文件目前还在**（2026-11-09 生成），但重启/清理后可能丢。
+     重建时**不得改变 ID**。
 6. **更新方案文档** `docs/70_verification/unit/unit-test-scheme.md`：
-   - §6 分母表（UT 已实现/待实现）
-   - §6.1A 分卷表与实现率
+   - §6 分母表（UT 已实现/待实现）—— 现在的数字是 **2,706/3,282（82.5%）**，已过期，
+     写完最后 213 个后应为 **3,282/3,282（100%）**。
+   - §6.1A 分卷表与实现率 —— 现在的数字是「2,568 条已实现，PI（853）一条分卷待写」，同样过期。
    - §7.1 缺口表：**补上 §5.1 那 12 条 `G-UT-PI-*`**
    - Issue-log 表：补上新缺陷的记录
+   - 缺口表里 `G-EXEC-UT-3` 的描述（现在写「2,706 已实现 / 576 骨架」）也要跟着更新。
 7. **更新 checklist 结果** `docs/70_verification/unit/unit-test-scheme.checklist-result.json`：
    逐项填结果 + 证据（数字、vitest 结论、tsc 结论）。
 8. **封面计数**：`Std Conformance Total/Passed` 与 `Checklist Total/Conformed` 两组都要有数字
@@ -245,7 +291,7 @@ import {
 9. **`detect_changes()`**：`node .gitnexus/run.cjs detect-changes --repo piko --branch main`，
    确认改动只影响预期符号与执行流。
 10. **提交**。commit message 结尾加：
-    `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`
+    `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
 
 ### 6.5 中断批次（A2）遗留的两个 bug —— **已修好，勿回退**
 
@@ -265,16 +311,26 @@ A2 agent 因 API 529 中断，但 53 个文件已落地。其中 2 个有真 bug
 **必须**用 `drainPoll`（`vi.advanceTimersByTimeAsync`）推进，
 或者让第一轮就命中、不进 sleep 分支。裸 `await` 一个带 sleep 的轮询 = 挂死。
 
+### 6.6 收尾时顺手发现并已修的两处（勿回退）
+
+1. **`UT-IPC-058` 的 `":memory!"` typo** —— 见 §2.4。
+2. **`UT-PI-005` 原来是个探针**（`describe("probe")`、无 `STATUS:`、只测 dynamic import 能解析），
+   被 `review-ut-cases.mjs` 的 C6 抓出来。已重写成 `model()` 的真断言
+   （逐值断言 `{models, model}`，并断言 `fx.facts` 为空 = 无残留副作用）。
+
 ---
 
 ## 7. 现状快照（供新会话核对）
 
-- 分支：`main`；HEAD `6b78ea0`（`feat(unit): REPO's 652 Cases and PI's policy layer as real assertions`）。
-- 工作区：**367 个已修改文件 ＋ 8 个新增未跟踪**（全是本轮写的 Case 脚本与 support 文件）。
-  **本轮的成果尚未提交** —— 新会话第一件事是 `git status` 看清楚，别丢。
+- 分支：`main`；HEAD `c11066b`（`feat(unit): the PI module's memory, graphrag, skill and policy Cases as real assertions`）。
+- 工作区：**干净**。本轮成果已提交。
+- **未 push**：`c11066b`、`6b78ea0`、`b46687b`、`ff45e05`、`7da5f98` 共 5 个 commit，
+  `origin/main` 还停在 `31eba54`。
 - `npx tsc --noEmit`：**零错误**。
 - `npx vitest run tests/unit/cases/`：**3,069 passed / 213 todo（3,282 files），0 failed**。
-  （修之前的中间状态是 2 failed：`UT-PI-158` 真实 DNS、`UT-PI-189` 挂死 300s；已修。）
+- `validate-checklist` rc=0、`validate-design` rc=0（new=0）、`validate-coverage` rc=1（只因模块/系统层）。
+- `review-ut-cases.mjs`：752 findings，全部在 MATRIX/TRANSFER/WORKER（`G-UT-DENOM-4`），
+  **PI 的 0 条**。基线是 779，本轮降了 27。
 - 五个并行 agent 中 **4 个正常完成**（graphrag 36、mem0 search 45、skill-tools 72、preflight 25），
   **1 个因 API 529 中断**（mem0 add + poll，53 个）——但它的 53 个文件全部落地，
   只有 2 个有 bug，已在 §6.5 修好。
