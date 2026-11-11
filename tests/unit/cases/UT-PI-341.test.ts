@@ -1,18 +1,39 @@
 /**
- * Case ID: UT-PI-341  ·  STATUS: skeleton
+ * Case ID: UT-PI-341  ·  STATUS: real
  *
  * 责任：分支 L189 `if (skillDeps)`（if；pi-runtime.ts）
  * 维度坐标：`execute` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-341.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch, piConfig, piTools } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-341 · execute（pi-runtime.ts:155）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:189 的分支（if：if (skillDeps)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execute(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-341 · execute · 状态分支 × 合法迁移", () => {
+  it("takes the true side of the skill dependency check and registers the two memory tools", async () => {  // takes the true side of the skill dependency check and registers the two memory tools
+    // 步骤 1：skillDeps 建出 ⇒ 工具清单里有 mem0_lookup 与 mem0_record
+    const fx = await piFixture({
+      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } } }),
+      mem0ApiKey: "mem0-key",
+      registry: piTools({
+        "workspace-standard": {
+          mem0_lookup: { effect: "read_only", replay: "safe" },
+          mem0_record: { effect: "read_only", replay: "safe" },
+        } as never,
+      }),
+    });
+    const stub = stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("run-1", 1, piTask("task-1"), fx.root, () => false);
+      // 步骤 3：断言
+      expect(res.status).toBe("completed");
+      const body = stub.calls[0]?.body as { tools?: { name?: string }[] } | undefined;
+      const names = (body?.tools ?? []).map((t) => t.name);
+      expect(names).toContain("mem0_lookup");
+      expect(names).toContain("mem0_record");
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });

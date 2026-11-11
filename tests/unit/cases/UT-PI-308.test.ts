@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-PI-308  ·  STATUS: skeleton
+ * Case ID: UT-PI-308  ·  STATUS: real
  *
  * 责任：状态写 L120 → `this.mem0Adapter`（pi-runtime.ts）
  * 维度坐标：`PiRuntime.constructor` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-308.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-308 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:120 对 `this.mem0Adapter` 的写被执行
-  // 观察点：写后读回权威事实源（对象状态）逐值对账
-  // 待实现：new PiRuntime.constructor(/* 构造参数 */) → 读回对账（Oracle：用例文档 §3）
+describe("UT-PI-308 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
+  it("writes the mem0 adapter instance into the runtime state", async () => {  // writes the mem0 adapter instance into the runtime state
+    // 步骤 1：构造前置状态 —— identity.memory 配了 + key 给了
+    const fx = await piConstructor({
+      config: piConfig({ identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY", base_url: "https://mem0.internal" } } }),
+      mem0ApiKey: "mem0-key",
+    });
+    try {
+      // 步骤 2/3：读回权威事实源（对象状态直接读），逐值对账写入语义
+      const adapter = fx.state<{ baseUrl: string; apiKey: string }>("mem0Adapter");
+      expect(adapter).toBeDefined();
+      expect(adapter!.baseUrl).toBe("https://mem0.internal");
+      expect(adapter!.apiKey).toBe("mem0-key");
+    } finally {
+      await fx.close();
+    }
+  });
 });

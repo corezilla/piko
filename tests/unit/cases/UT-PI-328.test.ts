@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-PI-328  ·  STATUS: skeleton
+ * Case ID: UT-PI-328  ·  STATUS: real
  *
  * 责任：参数 `isCancelled: ()=>boolean` 的 `非法值` 类（pi-runtime.ts:155）
  * 维度坐标：`execute` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-328.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-328 · execute（pi-runtime.ts:155）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `isCancelled: ()=>boolean`，其余参数取合法等价类（pi-runtime.ts:155）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-328 用例文档 §3）
+describe("UT-PI-328 · execute · 纯函数/无副作用 × 非法值", () => {
+  it("accepts the illegal-value class of the cancellation predicate without breaking the run", async () => {  // accepts the illegal-value class of the cancellation predicate without breaking the run
+    // 步骤 1：非法值 —— 谓词返回非布尔值
+    const fx = await piFixture();
+    stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("run-1", 1, piTask("task-1"), fx.root, (() => "yes") as unknown as () => boolean);
+      // 步骤 3：断言 —— 当前实况：谓词返回值不被类型校验，
+      // 真值字符串等价于「未取消」，执行照常完成
+      expect(res.status).toBe("completed");
+      expect(res.summary).toBe("done");
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });

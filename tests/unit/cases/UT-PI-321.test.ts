@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-PI-321  ·  STATUS: skeleton
+ * Case ID: UT-PI-321  ·  STATUS: real
  *
  * 责任：参数 `task: TaskRequest` 的 `边界(上/下/零/空/满)` 类（pi-runtime.ts:155）
  * 维度坐标：`execute` × `纯函数/无副作用` × `边界(上/下/零/空/满)`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-321.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-321 · execute（pi-runtime.ts:155）", () => {
-  test.todo("纯函数/无副作用 × 边界(上/下/零/空/满)");
-  // 输入构造：按 `边界(上/下/零/空/满)` 类构造 `task: TaskRequest`，其余参数取合法等价类（pi-runtime.ts:155）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-321 用例文档 §3）
+describe("UT-PI-321 · execute · 纯函数/无副作用 × 边界(上/下/零/空/满)", () => {
+  it("accepts the boundary values of the task parameter", async () => {  // accepts the boundary values of the task parameter
+    // 步骤 1：边界 —— 空 instruction、空路径数组、空 task_id
+    const tasks = [
+      piTask("task-1", { instruction: "" }),
+      piTask("task-1", { permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" }, output_paths: [] }),
+      piTask(""),
+    ];
+
+    // 步骤 2：逐个执行
+    for (const task of tasks) {
+      const fx = await piFixture();
+      stubModelFetch();
+      try {
+        const res = await fx.runtime.execute("run-1", 1, task, fx.root, () => false);
+        // 步骤 3：断言 —— 边界值不被拒绝
+        expect(res.status).toBe("completed");
+      } finally {
+        vi.unstubAllGlobals();
+        await fx.close();
+      }
+    }
+  });
 });

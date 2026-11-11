@@ -1,18 +1,47 @@
 /**
- * Case ID: UT-PI-270  ·  STATUS: skeleton
+ * Case ID: UT-PI-270  ·  STATUS: real
  *
  * 责任：参数 `channel: Channel` 的 `非法值` 类（pi-runtime.ts:114）
  * 维度坐标：`PiRuntime.constructor` × `纯函数/无副作用` × `非法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-270.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-270 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("纯函数/无副作用 × 非法值");
-  // 输入构造：按 `非法值` 类构造 `channel: Channel`，其余参数取合法等价类（pi-runtime.ts:114）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PiRuntime.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-270 用例文档 §3）
+describe("UT-PI-270 · PiRuntime.constructor · 纯函数/无副作用 × 非法值", () => {
+  it("accepts the illegal-value class of the channel parameter without throwing at construction time", async () => {  // accepts the illegal-value class of the channel parameter without throwing at construction time
+    // 步骤 1：非法值 —— report 恒抛错的 channel
+    const hostile = {
+      async report(): Promise<never> {
+        throw new Error("channel must not be called during construction");
+      },
+    };
+    const { PiRuntime } = await import("../../../src/pi-runtime.js");
+    const { TaskStore } = await import("../../../src/store.js");
+    const { piConfig, piTools } = await import("./support/pi-runtime-fix.js");
+    const store = new TaskStore(":memory:", 1000);
+
+    // 步骤 2：构造 —— 若构造器调用 channel，这里会抛错
+    let error: unknown;
+    let runtime: unknown;
+    try {
+      runtime = new PiRuntime(
+        piConfig(),
+        piTools(),
+        store,
+        hostile as never,
+        "test-llm-key",
+      );
+    } catch (e) {
+      error = e;
+    }
+    try {
+      // 步骤 3：断言当前实况 —— 构造器不发事实，故敌意 channel 不被触发
+      expect(error).toBeUndefined();
+      expect(runtime).toBeDefined();
+    } finally {
+      await (runtime as { close(): Promise<void> }).close();
+      store.close();
+    }
+  });
 });

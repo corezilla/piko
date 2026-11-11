@@ -240,6 +240,67 @@ export interface PiFixtureOptions {
   mem0ApiKey?: string;
   graphragApiKey?: string;
   transfer?: unknown;
+  /** LLM key written to `PIKO_LLM_API_KEY`; defaults to "test-llm-key". */
+  apiKey?: string;
+  /** 传入一个已有的 store；缺省时本 helper 自建一个内存 store。 */
+  store?: TaskStore;
+}
+
+/**
+ * 只构造、不驱动 —— 用于 `PiRuntime.constructor` 的分支与状态写用例。
+ *
+ * 与 `piFixture` 的区别：本 helper **不吞掉构造期抛出的错误**，而是把它们
+ * 连同 runtime 一起交回给用例（`error` 非空即构造失败），这样 fail-fast 分支
+ * （缺 mem0/graphrag key）能被原样断言。
+ *
+ * 用完必须 `await fixture.close()`。
+ */
+export async function piConstructor(options: PiFixtureOptions = {}) {
+  const root = await mkdtemp(join(tmpdir(), "piko-pi-ctor-"));
+  const ownsStore = !options.store;
+  const store = options.store ?? new TaskStore(":memory:", 1000);
+  const recorded = recordingChannel();
+  const config = piConfig({
+    pi: { version: "0.85.1", commit: "0".repeat(40), session_root: join(root, "sessions") },
+    ...options.config,
+  });
+  let runtime: PiRuntime | undefined;
+  let error: unknown;
+  try {
+    runtime = new PiRuntime(
+      config,
+      options.registry ?? piTools(),
+      store,
+      recorded.channel,
+      options.apiKey ?? "test-llm-key",
+      options.mem0ApiKey,
+      options.graphragApiKey,
+      options.transfer as never,
+    );
+  } catch (e) {
+    error = e;
+  }
+  return {
+    root,
+    store,
+    config,
+    /** 构造成功时的 runtime；构造抛错时为 undefined。 */
+    runtime,
+    /** 构造抛出的错误；构造成功时为 undefined。 */
+    error,
+    facts: recorded.facts,
+    /** 读回构造后的私有状态（adapter / repo 等）。构造失败时返回 undefined。 */
+    state<T = unknown>(key: string): T | undefined {
+      if (!runtime) return undefined;
+      return (runtime as unknown as Record<string, T>)[key];
+    },
+    async close() {
+      if (runtime) await runtime.close();
+      // 自建的 store 由本 helper 关闭；调用方传入的不动（由调用方负责）
+      if (ownsStore) store.close();
+      await rm(root, { recursive: true, force: true });
+    },
+  };
 }
 
 /**

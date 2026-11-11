@@ -1,18 +1,31 @@
 /**
- * Case ID: UT-PI-326  ·  STATUS: skeleton
+ * Case ID: UT-PI-326  ·  STATUS: real
  *
  * 责任：参数 `isCancelled: ()=>boolean` 的 `每等价类合法值` 类（pi-runtime.ts:155）
  * 维度坐标：`execute` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-326.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-326 · execute（pi-runtime.ts:155）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `isCancelled: ()=>boolean`，其余参数取合法等价类（pi-runtime.ts:155）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-326 用例文档 §3）
+describe("UT-PI-326 · execute · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("accepts the legal equivalent classes of the cancellation predicate", async () => {  // accepts the legal equivalent classes of the cancellation predicate
+    // 步骤 1：每个等价类一个代表值 —— 恒 false、恒 true、计数到第 N 次才 true
+    const predicates = [() => false, () => true, (() => { let n = 0; return () => ++n > 2; })()];
+
+    // 步骤 2：逐个执行
+    for (const isCancelled of predicates) {
+      const fx = await piFixture();
+      stubModelFetch();
+      try {
+        const res = await fx.runtime.execute("run-1", 1, piTask("task-1"), fx.root, isCancelled);
+        // 步骤 3：断言 —— 谓词只被轮询，不影响正常完成路径的返回结构
+        expect(res.status).toBe("completed");
+        expect(res.summary).toBe("done");
+      } finally {
+        vi.unstubAllGlobals();
+        await fx.close();
+      }
+    }
+  });
 });

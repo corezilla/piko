@@ -1,18 +1,28 @@
 /**
- * Case ID: UT-PI-292  ·  STATUS: skeleton
+ * Case ID: UT-PI-292  ·  STATUS: real
  *
  * 责任：分支 L124 `{ this.mem0Adapter = undefined; }`（else；pi-runtime.ts）
  * 维度坐标：`PiRuntime.constructor` × `状态分支` × `每个非法迁移拒绝`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-292.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-292 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("状态分支 × 每个非法迁移拒绝");
-  // 输入构造：使 pi-runtime.ts:124 的分支（else：{ this.mem0Adapter = undefined; }）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：new PiRuntime.constructor(/* 构造参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-292 · PiRuntime.constructor · 状态分支 × 每个非法迁移拒绝", () => {
+  it("rejects the illegal transition of leaving mem0 unconfigured while memory is required", async () => {  // rejects the illegal transition of leaving mem0 unconfigured while memory is required
+    // 步骤 1：非法迁移 —— 配了 identity.memory 却没有 key（不许降级成「无 adapter」）
+    const fx = await piConstructor({
+      config: (await import("./support/pi-runtime-fix.js")).piConfig({
+        identity: { role: "developer", name: "alice:developer", memory: { provider: "mem0", api_key_secret_ref: "env:MEM0_API_KEY" } },
+      }),
+    });
+    try {
+      // 步骤 2/3：断言迁移被拒绝，且 adapter 保持 undefined（没被偷偷降级）
+      expect(fx.error).toBeInstanceOf(Error);
+      expect((fx.error as Error).message).toBe("mem0ApiKey required when identity.memory configured");
+      expect(fx.state("mem0Adapter")).toBeUndefined();
+    } finally {
+      await fx.close();
+    }
+  });
 });

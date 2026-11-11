@@ -1,18 +1,27 @@
 /**
- * Case ID: UT-PI-319  ·  STATUS: skeleton
+ * Case ID: UT-PI-319  ·  STATUS: real
  *
  * 责任：参数 `epoch: number` 的 `−1 通过` 类（pi-runtime.ts:155）
  * 维度坐标：`execute` × `数值/长度上限参数` × `−1 通过`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-319.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-319 · execute（pi-runtime.ts:155）", () => {
-  test.todo("数值/长度上限参数 × −1 通过");
-  // 输入构造：按 `−1 通过` 类构造 `epoch: number`，其余参数取合法等价类（pi-runtime.ts:155）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → execute(/* 参数 */) → 逐值断言（Oracle：UT-PI-319 用例文档 §3）
+describe("UT-PI-319 · execute · 数值/长度上限参数 × −1 通过", () => {
+  it("accepts a negative epoch value without rejecting it", async () => {  // accepts a negative epoch value without rejecting it
+    // 步骤 1：epoch = -1
+    const fx = await piFixture();
+    stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("run-1", -1, piTask("task-1"), fx.root, () => false);
+      // 步骤 3：断言 —— 当前实况：epoch 无下界校验（-1 也不被拒绝）
+      expect(res.status).toBe("completed");
+      expect(res.failure).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });

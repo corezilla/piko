@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-PI-299  ·  STATUS: skeleton
+ * Case ID: UT-PI-299  ·  STATUS: real
  *
  * 责任：分支 L129 `config.identity?.doc_search`（?.；pi-runtime.ts）
  * 维度坐标：`PiRuntime.constructor` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-299.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-299 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:129 的分支（?.：config.identity?.doc_search）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：new PiRuntime.constructor(/* 构造参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-299 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
+  it("takes the true and the false side of the optional chaining on identity for doc_search", async () => {  // takes the true and the false side of the optional chaining on identity for doc_search
+    // 步骤 1a：identity 存在 ⇒ 可选链取真
+    const withIdentity = await piConstructor({
+      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+      graphragApiKey: "k",
+    });
+    try {
+      expect(withIdentity.error).toBeUndefined();
+      expect(withIdentity.state("graphragAdapter")).toBeDefined();
+    } finally {
+      await withIdentity.close();
+    }
+
+    // 步骤 1b：identity 为 undefined ⇒ 可选链短路
+    const withoutIdentity = await piConstructor({ graphragApiKey: "k" });
+    try {
+      expect(withoutIdentity.error).toBeUndefined();
+      expect(withoutIdentity.state("graphragAdapter")).toBeUndefined();
+    } finally {
+      await withoutIdentity.close();
+    }
+  });
 });

@@ -1,18 +1,26 @@
 /**
- * Case ID: UT-PI-301  ·  STATUS: skeleton
+ * Case ID: UT-PI-301  ·  STATUS: real
  *
  * 责任：分支 L138 `{ this.graphragAdapter = undefined; }`（else；pi-runtime.ts）
  * 维度坐标：`PiRuntime.constructor` × `状态分支` × `每个非法迁移拒绝`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-301.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor, piConfig } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-301 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("状态分支 × 每个非法迁移拒绝");
-  // 输入构造：使 pi-runtime.ts:138 的分支（else：{ this.graphragAdapter = undefined; }）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：new PiRuntime.constructor(/* 构造参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-301 · PiRuntime.constructor · 状态分支 × 每个非法迁移拒绝", () => {
+  it("rejects the illegal transition of leaving graphrag unconfigured while doc_search is required", async () => {  // rejects the illegal transition of leaving graphrag unconfigured while doc_search is required
+    // 步骤 1：非法迁移 —— 配了 identity.doc_search 却没有 key（不许降级成「无 adapter」）
+    const fx = await piConstructor({
+      config: piConfig({ identity: { role: "developer", name: "alice:developer", doc_search: { provider: "graphrag", api_key_secret_ref: "env:GRAPHRAG_API_KEY", base_url: "https://graphrag.example.com" } } }),
+    });
+    try {
+      // 步骤 2/3：断言迁移被拒绝，adapter 保持 undefined
+      expect(fx.error).toBeInstanceOf(Error);
+      expect((fx.error as Error).message).toBe("graphragApiKey required when identity.doc_search configured");
+      expect(fx.state("graphragAdapter")).toBeUndefined();
+    } finally {
+      await fx.close();
+    }
+  });
 });

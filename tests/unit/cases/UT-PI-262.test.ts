@@ -1,18 +1,32 @@
 /**
- * Case ID: UT-PI-262  ·  STATUS: skeleton
+ * Case ID: UT-PI-262  ·  STATUS: real
  *
  * 责任：参数 `registry: ToolRegistry` 的 `每等价类合法值` 类（pi-runtime.ts:114）
  * 维度坐标：`PiRuntime.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-262.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor, piTools } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-262 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `registry: ToolRegistry`，其余参数取合法等价类（pi-runtime.ts:114）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PiRuntime.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-262 用例文档 §3）
+describe("UT-PI-262 · PiRuntime.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("accepts the legal equivalent classes of the registry parameter", async () => {  // accepts the legal equivalent classes of the registry parameter
+    // 步骤 1：每个等价类一个代表值 —— 空 profile、多个 profile
+    const registries = [
+      piTools({}),
+      piTools({ "workspace-standard": {} }),
+      piTools({ "workspace-standard": {}, "readonly": {} }),
+    ];
+
+    // 步骤 2：逐个构造
+    for (const registry of registries) {
+      const fx = await piConstructor({ registry });
+      try {
+        // 步骤 3：断言被接受 —— 构造器不校验 profile 存在性（那是 execute 的职责）
+        expect(fx.error).toBeUndefined();
+        expect(fx.runtime).toBeDefined();
+      } finally {
+        await fx.close();
+      }
+    }
+  });
 });

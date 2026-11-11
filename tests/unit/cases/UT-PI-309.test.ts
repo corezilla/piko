@@ -1,18 +1,22 @@
 /**
- * Case ID: UT-PI-309  ·  STATUS: skeleton
+ * Case ID: UT-PI-309  ·  STATUS: real
  *
  * 责任：状态写 L125 → `this.mem0Adapter`（pi-runtime.ts）
  * 维度坐标：`PiRuntime.constructor` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-309.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-309 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:125 对 `this.mem0Adapter` 的写被执行
-  // 观察点：写后读回权威事实源（对象状态）逐值对账
-  // 待实现：new PiRuntime.constructor(/* 构造参数 */) → 读回对账（Oracle：用例文档 §3）
+describe("UT-PI-309 · PiRuntime.constructor · 状态分支 × 合法迁移", () => {
+  it("writes undefined to the mem0 adapter state when memory is not configured", async () => {  // writes undefined to the mem0 adapter state when memory is not configured
+    // 步骤 1：前置状态 —— identity 完全没有配 memory
+    const fx = await piConstructor();
+    try {
+      // 步骤 2/3：读回权威事实源 —— 该状态写落在 else 侧，值为 undefined
+      expect(fx.state("mem0Adapter")).toBeUndefined();
+    } finally {
+      await fx.close();
+    }
+  });
 });

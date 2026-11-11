@@ -1,18 +1,38 @@
 /**
- * Case ID: UT-PI-265  ·  STATUS: skeleton
+ * Case ID: UT-PI-265  ·  STATUS: real
  *
  * 责任：参数 `store: TaskStore` 的 `每等价类合法值` 类（pi-runtime.ts:114）
  * 维度坐标：`PiRuntime.constructor` × `纯函数/无副作用` × `每等价类合法值`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-265.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { piConstructor } from "./support/pi-runtime-fix.js";
+import { TaskStore } from "../../../src/store.js";
 
-describe("UT-PI-265 · PiRuntime.constructor（pi-runtime.ts:114）", () => {
-  test.todo("纯函数/无副作用 × 每等价类合法值");
-  // 输入构造：按 `每等价类合法值` 类构造 `store: TaskStore`，其余参数取合法等价类（pi-runtime.ts:114）
-  // 观察点：该类的预期语义（合法＝正常返回；边界＝按 ISD 语义；非法＝typed 错误且无副作用）
-  // 待实现：构造输入 → new PiRuntime.constructor(/* 构造参数 */) → 逐值断言（Oracle：UT-PI-265 用例文档 §3）
+describe("UT-PI-265 · PiRuntime.constructor · 纯函数/无副作用 × 每等价类合法值", () => {
+  it("accepts the legal equivalent classes of the store parameter", async () => {  // accepts the legal equivalent classes of the store parameter
+    // 步骤 1：每个等价类一个代表值 —— 空库、已有 task 的库
+    const empty = new TaskStore(":memory:", 1000);
+    const seeded = new TaskStore(":memory:", 1000);
+    seeded.createOrGet(
+      { task_id: "t-1", instruction: "go", workspace_ref: "piko", permissions: { read_paths: [], write_paths: [], tool_profile_ref: "workspace-standard" }, output_paths: [] },
+      "slinky",
+      10,
+    );
+
+    // 步骤 2：逐个用该 store 构造
+    for (const store of [empty, seeded]) {
+      const fx = await piConstructor({ store });
+      try {
+        // 步骤 3：断言被接受 —— 构造器不读 store，只持有引用
+        expect(fx.error).toBeUndefined();
+        expect(fx.runtime).toBeDefined();
+        expect(fx.facts).toEqual([]);
+      } finally {
+        await fx.close();
+      }
+    }
+    empty.close();
+    seeded.close();
+  });
 });
