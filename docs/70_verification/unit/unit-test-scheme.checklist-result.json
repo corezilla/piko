@@ -2,9 +2,9 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.unit-test-review-checklist",
   "document_id": "unit-test-scheme",
-  "document_version": "0.1.0-draft.6",
+  "document_version": "0.1.0-draft.7",
   "total": 26,
-  "conformed": 18,
+  "conformed": 19,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
@@ -19,7 +19,7 @@
     {
       "id": "§2 分母对齐：ISD 设计验证项每条有对应家族行与 Case 入口，未覆盖项有显式 N/A/Tailored 依据，无孤儿",
       "result": "deviation",
-      "evidence": "方案 §7.1.6 登记 G-UT-DENOM-1：ISD §5.1 的 51 个接口符号中 31 个没有 Case 专属覆盖，逐项列于 §1.1 对账表",
+      "evidence": "分母 3,282 与 case-index.json total 一致；69 条 VRC 仍未逐条绑定（G-UT-VRC-1）；未覆盖面见 §5.6（Tailored-N/A 4 条 + G-MT-DIM-1/G-ST-DIM-1）",
       "deviation_id": "G-UT-DENOM-1"
     },
     {
@@ -106,8 +106,8 @@
     },
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
-      "result": "deviation",
-      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集（`case-index.json` 的 design/script 两腿均满）；真脚本 3,282 条（全量断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
+      "result": "conformed",
+      "evidence": "案例索引 case-index.json 四腿均满 3,282（design／script／report／scheme）；Run ut-run-20261111-01 的 vitest-cases.json 与索引按 case_id 双向差集为 0；报告 tests/unit/reports/unit-test-report.md §3 逐模块复算",
       "deviation_id": "G-EXEC-UT-3"
     },
     {
@@ -134,7 +134,7 @@
     {
       "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
       "result": "deviation",
-      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝19（原有 7 条 ＋ 新增 G-UT-PI-1..12）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
+      "evidence": "方案 §7.1 Review Verdict＝部分放行；未关闭 Critical 19；放行范围＝已登记 3,282 条 Case 的执行；Run 报告 §10 给出 CONDITIONAL PASS 与不放行「全覆盖」结论",
       "deviation_id": "G-UT-DENOM-1"
     },
     {
@@ -143,7 +143,7 @@
       "evidence": "放行范围按 §6 的 12 个模块前缀与 §2.3 的 10 个对象类型给出，可直接据此裁剪补测波次"
     }
   ],
-  "executed_at": "2026-11-11T10:30:00Z",
+  "executed_at": "2026-11-11T15:40:00Z",
   "executed_by": "Claude",
-  "review_decision_ref": null
+  "review_decision_ref": "tests/unit/reports/unit-test-report.md#10-review-decision"
 }

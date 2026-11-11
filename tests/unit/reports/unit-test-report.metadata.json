@@ -3,11 +3,13 @@
   "authority": "piko",
   "document_id": "unit-test-report",
   "document_type": "tests.unit-test-report",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "Piko unit-test-report",
   "document_owner": "Piko QA",
   "authors": [
-    "Claude"
+    "Claude",
+    "opencode",
+    "corezilla"
   ],
   "template_id": "tests.unit-test-report",
   "template_version": "0.4.0",
@@ -27,6 +29,6 @@
   "parent_document_id": "unit-test-scheme",
   "supersedes": null,
   "created_at": "2026-11-03",
-  "last_modified_at": "2026-11-03",
+  "last_modified_at": "2026-11-11",
   "design_object_id": null
 }

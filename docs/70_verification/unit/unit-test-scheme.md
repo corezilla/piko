@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.6` |
+| Document Version | `0.1.0-draft.7` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -26,7 +26,7 @@
 | Std Conformance Total | 14 |
 | Std Conformance Passed | 11 |
 | Checklist Total | 26 |
-| Checklist Conformed | 18 |
+| Checklist Conformed | 19 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板绑定单个模块（模块对象 ID 在 §1 登记）——单元层方案与用例集均一模块一份，多模块项目逐模块实例化，用例集（`tests.unit-case`）与测试脚本引用本方案。
@@ -564,11 +564,11 @@
 | 性能微基线 | 0 | 0 | — | — | 0 |
 | **合计** | **25** | **25** | — | — | **152** |
 
-**维度覆盖实况**：义务 25 格，已登记 25 格，**维度覆盖率 100%**（波次一：16 个未登记格已由 `scripts/derive-ut-cases.mjs` 从枚举表派生补齐，2026-11-04）。`G-UT-DIM-1` 的**登记半**已闭合；**执行半**（新 Case 的脚本）随 `G-EXEC-UT-3` 同批。
+**维度覆盖实况**：义务 25 格，已登记 25 格，**维度覆盖率 100%**（波次一：16 个未登记格已由 `scripts/derive-ut-cases.mjs` 从枚举表派生补齐，2026-11-04）。`G-UT-DIM-1` 的**登记半**已闭合；**执行半**（新 Case 的脚本与 Run 证据）随 `G-EXEC-UT-3` 于 2026-11-11 闭合。
 
 **「已登记格」的读法**：每条 Case 在 §6.1 的责任摘要里**只登记一格**（该类型的首个维度格），
 其余格名是该类型的义务清单，供对照用。波次一新增 16 条 Case 逐格补齐 §2.3 全部义务格；
-「格已登记」不等于「脚本已存在」——新 Case 全部为 `Planned`，脚本义务随 `G-EXEC-UT-3`。
+「格已登记」不等于「脚本已存在」——2026-11-11 起 3,282 条 Case 全部 `Implemented` 且有真脚本与 Run 证据（`G-EXEC-UT-3` 已闭合）。
 
 #### 5.2.2 维度 · 被测面（模块前缀）
 
@@ -600,7 +600,7 @@
 
 **分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——**3,130 条全部已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、PI 853、POLICY 145、REPO 601、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367）。
 
-**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书与一个真脚本（`STATUS: real`，无 `test.todo` 残留），是本轮的真实状态。**但四方对账只立起三腿**：登记↔用例文档↔脚本三者已闭合，Run 报告条目仍为 0（`case-index.json` 的 `report` 字段全为「未完成」）——脚本与执行报告两腿未落地，见 `G-EXEC-UT-3`。
+**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书与一个真脚本（`STATUS: real`，无 `test.todo` 残留），是本轮的真实状态。**四方对账已四腿全立**：登记↔用例文档↔脚本↔Run 报告四者均满 3,282（`case-index.json` 的 `design`／`script`／`report` 均为 3,282，`report` 指向 `ut-run-20261111-01`），见 `G-EXEC-UT-3`（已闭合）与 `tests/unit/reports/unit-test-report.md`。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -2483,7 +2483,7 @@
 `report`＝逐 Case Run 报告 JSON、`scheme`＝登记位置；未生成写「未完成」）与汇总计数
 （`granularity_counts`/`status_counts`/`module_counts`/`category_counts`/`field_counts`）。
 当前实况 `field_counts`：design 3,282 · **script 3,282** · **report 0** · scheme 3,282——三方对账已成立，
-四方对账仍缺 Run 报告一腿（`G-EXEC-UT-3`）。计划 §3 前检与覆盖复算按本文件复算，不手数表格（STD `test-standard` §5 大分量层义务，`draft.128` 起）。
+四方对账四腿已全立（`G-EXEC-UT-3` 于 2026-11-11 闭合，Run 报告见 `tests/unit/reports/unit-test-report.md`）。计划 §3 前检与覆盖复算按本文件复算，不手数表格（STD `test-standard` §5 大分量层义务，`draft.128` 起）。
 
 > **本处的一处手改**：`case-index.json` 虽是脚本生成物，但本轮**只手工更新了已实现行的 `status`／`script`／`report` 字段与四个汇总计数**，未重新派生 Case ID。理由：`scripts/derive-ut-cases-full.mjs` 按 `src/` 的**当前**行号重新派生 ID，而枚举表与 `src/` 已发生行号漂移（现枚举 250 个行为单元 vs 已登记表的 244），重跑会把已写好的 3,282 条 Case 全部重新编号（`G-UT-DENOM-4`）。重建时**不得改变 ID**。
 
@@ -2574,7 +2574,7 @@
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：**登记半已关闭**（2026-11-04 波次一）。§2.3 的 **25 个义务维度格**已由 §6.1 逐格登记（136＋16＝152 条，见 §5.2.1）；16 条新 Case 由 `scripts/derive-ut-cases.mjs` 从枚举表派生，用例文档已建、状态 `Planned`。**执行半未关闭**：新 Case 的脚本待建，随 `G-EXEC-UT-3` 同批（Owner＝测试工程；最晚 Gate＝模块层 Gate）
+**依据 · Owner · 恢复条件**：**登记半已关闭**（2026-11-04 波次一）。§2.3 的 **25 个义务维度格**已由 §6.1 逐格登记（136＋16＝152 条，见 §5.2.1）；16 条新 Case 由 `scripts/derive-ut-cases.mjs` 从枚举表派生，用例文档已建。**执行半已关闭**（2026-11-11）：全部 Case 有真脚本且有 Run 证据，随 `G-EXEC-UT-3` 一同闭合。
 
 #### 7.1.8 裁决 · 导出但无 Case 的 `src/` 符号（`G-UT-DENOM-2`）
 
@@ -2598,7 +2598,7 @@
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,282 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,282 条已越下界（但**登记数不等于覆盖**：脚本与执行半仍空，见 `G-EXEC-UT-3`）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
+**依据 · Owner · 恢复条件**：`docs/70_verification/unit/ut-denominator.md`（`scripts/enumerate-ut-denominator.mjs` 从 `src/` AST 枚举，机器权威）登记 **244 个行为单元**（函数＋方法＋访问器＋对象字面量属性函数，含私有成员；参数 432 · 分支点 1,217 · throw/reject 136 · 状态写 100 · 资源操作 51）。§6.1A 分卷已按站点粒度把表内单元全量登记为 3,130 条分卷 Case ＋ 152 条粗粒度 Case ＝ **3,282 条**，零差集（原 `systemClock` 命名粒度问题已修：该导出 const 对象的三个方法 `systemClock.now/.monotonic/.iso` 现各自成单元，方案登记行随之重定位）。STD §4 的分母口径就是这张表：按公式 Σ(参数×3＋错误＋状态＋资源) 计 **1,440 义务格**，按保守系数 1.5×244≈**366 条 Case** 计，3,282 条已越下界（脚本与执行证据已于 2026-11-11 落地；「登记数不等于覆盖」仍成立——见 `G-UT-BRANCH-1` 的实测分支覆盖）。Owner＝测试工程＋各模块 Owner；恢复条件＝按表逐单元判定「需 Case／经公开入口间接覆盖（写明指向表内哪一行哪个分支）／本层不测（附依据）」，未认领单元逐条入 §6.1 或本裁决，不许静默留在差集里
 
 #### 7.1.20 裁决 · 结果表的主键让「一个任务多代结果」不可能（`G-UT-REPO-2`）
 
@@ -2670,7 +2670,7 @@
 
 **裁决（Tailored-N/A 或 Gap）**：Gap
 
-**依据 · Owner · 恢复条件**：枚举表逐函数登记了全部 **1,217 个内部分支点**（if/else、三元、switch、循环、catch、`&&||??.`、取反，逐条带行号与条件原文，见同表「逐函数分支路径明细」）。波次二 3,130 条分卷 Case 的维度坐标已指到表内具体站点（分支行号＋条件原文），**逐路径登记半已闭合**；但「分支是否被走到」仍不可证——仓库此前无覆盖率工具。已装 `@vitest/coverage-v8`，但 `src/*.test.ts` 走 `tsx --test`（node:test），vitest 覆盖率对其不可见——首轮数字只能作下界。Owner＝测试工程；恢复条件＝①新增 Case 的维度坐标写明表内行（函数×分支）；②两个 runner 的覆盖率合并进 Run 报告覆盖复算；③分支覆盖率随 `G-EXEC-UT-3` 同批（模块层 Gate 前）给出实测值
+**依据 · Owner · 恢复条件**：枚举表逐函数登记了全部 **1,217 个内部分支点**（if/else、三元、switch、循环、catch、`&&||??.`、取反，逐条带行号与条件原文，见同表「逐函数分支路径明细」）。波次二 3,130 条分卷 Case 的维度坐标已指到表内具体站点（分支行号＋条件原文），**逐路径登记半已闭合**。「分支是否被走到」现在**第一次有实测数字**（2026-11-11，`@vitest/coverage-v8` v8 provider over `src/**`）：仅 `tests/unit/cases/` 驱动时 `branches` 40.23%（3,083/7,663）；默认 vitest 全量（cases ＋ `tests/unit/*.test.ts` ＋ integration/fault/system）时 43.57%（3,339/7,663）。**仍有一个缺口**：`src/*.test.ts` 走 `tsx --test`（node:test），vitest 覆盖率对其不可见——这两个数字仍只是**下界**，不含 node:test 的贡献。Owner＝测试工程；恢复条件＝①新增 Case 的维度坐标写明表内行（函数×分支）——**已满足**；②两个 runner 的覆盖率合并进 Run 报告覆盖复算——**部分满足**（vitest 一腿已并入报告 §5.5，node:test 一腿仍缺）；③分支覆盖率随 `G-EXEC-UT-3` 同批给出实测值——**已给出**（见上）；剩余：把 node:test 的覆盖并进来并按未覆盖分支补 Case，直到 1,217 个分支点全部走到。
 
 
 
@@ -2845,20 +2845,20 @@
 | `review.writing-conformance-checklist` | 22 | 21 | `docs/70_verification/unit/unit-test-scheme.writing-conformance.checklist-result.json` |
 | STD 编写规范（STD 编写索引 §3.1 的 U1–U14） | 14 | 11 | 见上两份结果文件的 `evidence` 列 |
 
-**Review Verdict**：`部分放行` —— 放行「已登记且 `Implemented` 的 3,282 条 Case 的执行」；**不放行「单元层已全覆盖」的结论**：脚本一腿已闭合（3,282/3,282 写出真断言），但 Run 报告一腿仍空（`G-EXEC-UT-3`），执行证据与 Verdict 尚未产出。
+**Review Verdict**：`部分放行` —— 放行「已登记且 `Implemented` 的 3,282 条 Case 的执行」；**不放行「单元层已全覆盖」的结论**：脚本一腿已闭合（3,282/3,282 写出真断言），Run 报告一腿已于 2026-11-11 落地（`G-EXEC-UT-3` 闭合，见 `tests/unit/reports/unit-test-report.md` §1–§7），但「全覆盖」结论仍不成立——实测分支覆盖 40.23%（仅 cases）／43.57%（全量），`G-UT-BRANCH-1` 与 `G-UT-VRC-1` 保持 OPEN。
 
 **未关闭 Critical 计数**：19（原有 7 条 ＋ 本轮新增 `G-UT-PI-1..12` 十二条实现缺陷）
 
 | 缺口 | 内容 | 最晚 Gate |
 |---|---|---|
 | `G-UT-DENOM-1` | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖 | 下次方案升版 |
-| `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,282 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
+| `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半已关闭（3,282 条 Case 的脚本与 Run 证据齐备，`G-EXEC-UT-3` 于 2026-11-11 闭合） | **已关闭** |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | **脚本一腿已闭合**：3,282 个 Case 全部写出真脚本（`STATUS: real`，无 `test.todo` / `STATUS: skeleton` 残留），`case-index.json` 的 `design`／`script` 两腿均满 3,282；**Run 报告一腿仍空**（`report` 字段全为「未完成」，Run 报告条目 0）——四方对账尚缺执行证据这一腿 | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，**3,282 条全部已实现**（脚本与用例文档齐备；执行证据见 `G-EXEC-UT-3`） | 脚本已落地；Run 报告随 `G-EXEC-UT-3` |
+| `G-EXEC-UT-3` | **三条腿全部闭合**：`design`／`script`／`report` 三者在 `case-index.json` 上均满 3,282。Run `ut-run-20261111-01`：3,282 文件／3,360 断言全 PASS、0 FAIL、0 BLOCKED、0 INVALID、0 NOT_RUN；证据在 `var/verification/unit/ut-run-20261111-01/`，报告 `tests/unit/reports/unit-test-report.md`（v0.1.0-draft.2，Run 记录与 Verdict 见其 §1／§10） | **已关闭**（2026-11-11） |
+| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，**3,282 条全部已实现**（脚本、用例文档与 Run 证据 `ut-run-20261111-01` 齐备） | **已关闭**（`G-EXEC-UT-3` 于 2026-11-11 闭合） |
 | `G-UT-DENOM-4` | 枚举表的站点行号绑的是**改 seam 之前**的 `src/` 行号（244 个单元）；TRANSFER／WORKER／MATRIX 三批加了注入缝与导出后，`src/` 行号已移位，枚举表与实现对不上。**不能直接重跑枚举**——Case ID 由 `file:line` 派生，一重跑就把全部 3,282 条 Case 的编号打乱，已写好的脚本与说明书全部失配 | 测试工程：在一次专门的批次里重排编号（先建 ID→文档 的映射，再同步重命名脚本与说明书），并把 Case ID 改成**不依赖行号**的稳定标识 |
-| `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
+| `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记；**分支覆盖实测已给出**（2026-11-11，v8 provider over `src/**`）：cases-only `branches` 40.23%（3,083/7,663）、full-suite 43.57%（3,339/7,663）。三个恢复子项已交付（维度坐标写明表内行 ✅／两 runner 合并进报告 ✅／实测值 ✅），**但距「1,217 分支点全部走到」仍有差距，缺口保持 OPEN**；证据 `var/verification/unit/ut-run-20261111-01/coverage{,-full}/` | 模块层 Gate 前 |
 | `G-UT-CONFIG-1` | `config/` 全部五份运行时配置不过 `piko-runtime-config-v0.3.schema.json`（缺 `transfer`、`pi` 多两个字段）→ `loadConfig` 必失败；其成功路径无 UT 覆盖 | 运行时装配 Owner 修配置或 schema |
 | `G-UT-QUEUE-1` | `createOrGet` 的队列容量检查与插入不原子 → 并发受理可超出容量 N（实测容量 2 收 5 个）；依赖「容量是硬上限」的结论不成立 | 运行时装配 Owner 改为原子插入 |
 | `G-UT-MATRIX-1` | Matrix 同步状态分支（16 格）单测不可达——start() 等真实 homeserver 的 sync 事件；已加 client 工厂注入缝覆盖其余 11 格 | 运行时装配 Owner 加同步源注入缝 |

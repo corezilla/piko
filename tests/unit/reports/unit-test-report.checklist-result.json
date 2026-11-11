@@ -1,0 +1,85 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.test-report-review-checklist",
+  "document_id": "unit-test-report",
+  "document_version": "0.1.0-draft.2",
+  "total": 14,
+  "conformed": 9,
+  "items": [
+    {
+      "id": "§1 被审报告对应的 scheme 清单版本与 plan Run ID 一致，无混版",
+      "result": "conformed",
+      "evidence": "§1 绑定 unit-test-plan v0.1.0-draft.4 / unit-test-scheme v0.1.0-draft.6 / Run ut-run-20261111-01；§0 保留上一轮 ut-run-20261103-01，不混版统计"
+    },
+    {
+      "id": "§1 证据目录（junit/logs/逐 Case 结果 JSON）可定位且与被审 Run 对应",
+      "result": "conformed",
+      "evidence": "var/verification/unit/ut-run-20261111-01/ 含 command.txt、versions.txt、vitest-cases.json（逐 Case 断言结果）、node-test.out、coverage/、coverage-full/"
+    },
+    {
+      "id": "§2 清单每个 Case 在报告 §3 有一行，无静默缺失",
+      "result": "conformed",
+      "evidence": "§3.2 逐模块汇总 12 行合计 3,282；§3.1 说明逐 Case 数据在 case-index.json 与 vitest-cases.json 双源可查，双向差集均为 0"
+    },
+    {
+      "id": "§2 NOT_RUN/BLOCKED/INVALID 如实保留并写明原因与承接去向",
+      "result": "na",
+      "evidence": "本轮三项均为 0；不适用该项的保留要求"
+    },
+    {
+      "id": "§2 Verdict 与原始证据一致（抽查 ≥3 条含至少一条失败或非 PASS）",
+      "result": "deviation",
+      "evidence": "已抽查 BOOT/REPO/PI/IPC 四个模块的 PASS 记录并核对 vitest-cases.json；但本轮 3,360 条断言全部 passed，无失败或非 PASS 记录可供抽查",
+      "deviation_id": "G-UT-REPORT-1"
+    },
+    {
+      "id": "§3 偏差（偏离 Case 文档的执行）有原因与批准记录",
+      "result": "conformed",
+      "evidence": "§4.1：无偏差，本轮全部 Case 按其用例文档断言点执行"
+    },
+    {
+      "id": "§3 无效执行（未命中、环境错配）单独标记，不计入有效样本",
+      "result": "na",
+      "evidence": "INVALID 0 条，无无效执行样本"
+    },
+    {
+      "id": "§3 偶发失败的复现状态与修复状态分开记录，无因果证据只能标未复现",
+      "result": "na",
+      "evidence": "无失败记录"
+    },
+    {
+      "id": "§4 报告覆盖复算节与 scheme 分母对得上，缺口显式列出",
+      "result": "conformed",
+      "evidence": "§5.1–5.6 逐来源 ID 复算到 3,282；§5.6 列出未执行面与 G-MT-DIM-1/G-ST-DIM-1；§5.5 给出量级自检与实测覆盖率"
+    },
+    {
+      "id": "§4 测量值登记齐：口径（百分位/均值）、样本量、基线或预算出处",
+      "result": "conformed",
+      "evidence": "§5.5 表格给出 v8 provider 的 statements/branches/functions/lines 四个口径与 covered/total 样本量；§3.1.1 说明方案 §7.1.3 已裁决无性能预算，故不设阈值"
+    },
+    {
+      "id": "§4 越界项标 Blocked 并写偏差幅度，无“接近就算过”",
+      "result": "conformed",
+      "evidence": "§5.5 明确写「40.23%/43.57% 不是覆盖达标证明」，G-UT-BRANCH-1 保持 OPEN；未把低覆盖率写成通过"
+    },
+    {
+      "id": "§5 失败关联缺陷且指向回归 Case/Run",
+      "result": "deviation",
+      "evidence": "无 FAIL 可关联；§6 明确区分「测试失败＝0」与「实现缺陷＝19 条非本报告 FAIL」两者，未把实现缺陷伪装成 FAIL，也未把 FAIL 缺失写成无缺陷",
+      "deviation_id": "G-UT-REPORT-2"
+    },
+    {
+      "id": "§5 残余风险与开放问题有 Owner 与期限",
+      "result": "conformed",
+      "evidence": "§6 残余风险表 5 行均带触发条件与缓解；§7 开放问题表给出责任方与期限；§8.1–8.4 逐条 Owner/最晚 Gate"
+    },
+    {
+      "id": "§5 Gate 判定依据可复算，批准动作留给有权人，无越权表述",
+      "result": "conformed",
+      "evidence": "§7 以计划 §7 的规则逐条复算给「条件接受」；明写「这是 Gate 建议，不是批准」「本层 PASS 不关闭模块层 Gate」"
+    }
+  ],
+  "executed_at": "2026-11-11T15:40:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}
