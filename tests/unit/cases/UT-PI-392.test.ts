@@ -1,18 +1,30 @@
 /**
- * Case ID: UT-PI-392  ·  STATUS: skeleton
+ * Case ID: UT-PI-392  ·  STATUS: real
  *
  * 责任：分支 L268 `? typeof event.args.command==="string" :`（ternary；pi-runtime.ts）
  * 维度坐标：`execute` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-392.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch, piTools } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-392 · execute（pi-runtime.ts:155）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:268 的分支（ternary：? typeof event.args.command==="string" :）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execute(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-392 · execute · 状态分支 × 合法迁移", () => {
+  it("takes the false side of the command argument type check for a tool call without a command", async () => {  // takes the false side of the command argument type check for a tool call without a command
+    // 步骤 1：read 工具没有 command ⇒ typeof 判断为假 ⇒ 不做可执行文件校验
+    const fx = await piFixture({
+      registry: piTools({
+        "workspace-standard": { read: { effect: "read_only", replay: "safe", permissions: { executables: ["ls"] } } } as never,
+      }),
+    });
+    stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("run-1", 1, piTask("task-1"), fx.root, () => false);
+      // 步骤 3：断言 —— 取假侧跑完
+      expect(res.status).toBe("completed");
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });

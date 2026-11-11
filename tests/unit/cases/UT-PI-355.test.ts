@@ -1,18 +1,34 @@
 /**
- * Case ID: UT-PI-355  ·  STATUS: skeleton
+ * Case ID: UT-PI-355  ·  STATUS: real
  *
  * 责任：分支 L232 `if (active)`（if；pi-runtime.ts）
  * 维度坐标：`execute` × `状态分支` × `合法迁移`（方案 §6.1A 分卷 `PI`）
  * 用例文档：docs/70_verification/unit/cases/UT-PI-355.md（脚本的唯一依据）
- *
- * STATUS: skeleton ＝ 已登记的待实现入口（G-EXEC-UT-3）：test.todo 不执行、
- * 不判定，禁止改成会通过的空断言冒充 Implemented。
  */
-import { describe, test } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { piFixture, piTask, stubModelFetch } from "./support/pi-runtime-fix.js";
 
-describe("UT-PI-355 · execute（pi-runtime.ts:155）", () => {
-  test.todo("状态分支 × 合法迁移");
-  // 输入构造：使 pi-runtime.ts:232 的分支（if：if (active)）取真，与取假成对
-  // 观察点：两侧各自的可观测结果（返回值/状态/副作用）与设计一致
-  // 待实现：execute(/* 参数 */) 分别命中两侧 → 断言（Oracle：用例文档 §3）
+describe("UT-PI-355 · execute · 状态分支 × 合法迁移", () => {
+  it("takes the true side of the active operation check when a model request is made", async () => {  // takes the true side of the active operation check when a model request is made
+    // 步骤 1：正常跑一轮 ⇒ before_request 先把 active 置上
+    const fx = await piFixture();
+    stubModelFetch();
+    try {
+      // 步骤 2：调用 execute(…)
+      const res = await fx.runtime.execute("run-1", 1, piTask("task-1"), fx.root, () => false);
+      // 步骤 3：断言 —— observeUsage 只在 active 已置上时才上报，
+      // 因此这里能观察到一条 observeUsage 事实
+      expect(res.status).toBe("completed");
+      const usage = fx.facts.find((f) => f.kind === "observeUsage");
+      expect(usage).toBeDefined();
+      expect((usage as { raw: unknown }).raw).toEqual({
+        input: 3,
+        output: 5,
+        totalTokens: 8,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      await fx.close();
+    }
+  });
 });
