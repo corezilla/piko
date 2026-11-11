@@ -118,4 +118,4 @@
 ## 4. 集合状态汇总与缺口
 
 - **实现状态**：`Implemented`（与 §1 一致）
-- **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本待建 → `G-EXEC-UT-3`（Piko QA，波次二排期内）
+- **本 Case 承担的缺口清单（格＋Owner＋最晚关闭 Gate）**：脚本已建（`STATUS: real`）；Run 报告条目待建 → `G-EXEC-UT-3`（Piko QA，模块层 Gate 前）
