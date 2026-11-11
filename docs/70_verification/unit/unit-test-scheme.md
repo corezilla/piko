@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.5` |
+| Document Version | `0.1.0-draft.6` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla, Claude |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-11-04` |
+| Last Modified Date | `2026-11-11` |
 | Template ID | `tests.unit-test-scheme` |
 | Template Version | `4.1.0` |
 | Template Conformance | `tailored` |
@@ -586,7 +586,7 @@
 | `UT-IPC` | 共享 IPC | `src/ipc.ts`（无独立 ISD） | 12 | 12 | 0 |
 | `UT-MATRIX` | matrix-runtime | `piko-matrix-adapter-impl.isd.md` | 13 | 13 | 0 |
 | `UT-OBS` | observability | `piko-observability-impl.isd.md` | 8 | 8 | 0 |
-| `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 12 | 0 | 12 |
+| `UT-PI` | pi-adapter | `piko-pi-adapter-impl.isd.md` | 12 | 12 | 0 |
 | `UT-POLICY` | policy | `piko-policy-impl.isd.md` | 11 | 11 | 0 |
 | `UT-REPO` | task-repository | `piko-task-repository-impl.isd.md` | 51 | 51 | 0 |
 | `UT-SCHED` | scheduler | `piko-scheduler-impl.isd.md` | 5 | 5 | 0 |
@@ -594,13 +594,13 @@
 | `UT-TRANSFER` | transfer | `piko-transfer-impl.isd.md` | 9 | 9 | 0 |
 | `UT-USAGE` | usage | `piko-usage-impl.isd.md` | 2 | 2 | 0 |
 | `UT-WORKER` | worker | `piko-worker-impl.isd.md` | 15 | 15 | 0 |
-| **合计** | — | — | **152** | **138** | **14** |
+| **合计** | — | — | **152** | **152** | **0** |
 
-**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **2,706/3,282 已实现，实现率 82.5%**——已写出真断言的模块：USAGE（28）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）、WORKER（382）、REPO（652）十一个模块（断言全绿）；其余 PI（865）仍有 576 条为 `Planned`（用例文档已建、脚本为骨架待写）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；低于 100% 的裁决随 `G-EXEC-UT-3` 同批。
+**实现率**：按 §6 登记状态二值随每行登记（权威源＝各用例文档的实现状态字段），本轮 **3,282/3,282 已实现，实现率 100%**——十二个模块全部写出真断言且断言全绿：USAGE（28）、OBS（127）、BOOT（200）、SCHED（39）、TAPI（135）、POLICY（156）、IPC（183）、MATRIX（226）、TRANSFER（289）、WORKER（382）、REPO（652）、PI（865）。实现率数字进 Run 报告的覆盖复算（`unit-test-report` §3）；100% 说的是「登记的 Case 都有脚本与文档」，**执行状态与 Verdict 仍只在 Run 报告**（STD U10：`Designed`／`已实现`／执行状态三层不得混用）。
 
-**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——其中 **2,568 条已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、POLICY 145、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367、REPO 601），PI（853）一条分卷待写。
+**分卷登记另计 3,130 条**（§6.1A，逐站点粒度）——**3,130 条全部已实现**（BOOT 190、IPC 171、MATRIX 213、OBS 119、PI 853、POLICY 145、REPO 601、SCHED 34、TAPI 131、TRANSFER 280、USAGE 26、WORKER 367）。
 
-**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书（文档齐），2,706 条写出真脚本，其余 576 条仍是骨架脚本（脚本缺），是本轮的真实状态。
+**「实现率」与「维度覆盖 100%」不矛盾**：实现率回答「登记的 Case 有没有脚本与文档」，维度覆盖率回答「义务格有没有被登记」。本轮 3,282 条 Case 全部有一份说明书与一个真脚本（`STATUS: real`，无 `test.todo` 残留），是本轮的真实状态。**但四方对账只立起三腿**：登记↔用例文档↔脚本三者已闭合，Run 报告条目仍为 0（`case-index.json` 的 `report` 字段全为「未完成」）——脚本与执行报告两腿未落地，见 `G-EXEC-UT-3`。
 
 
 ## 6. 覆盖分母与 Case 登记
@@ -2459,7 +2459,7 @@
 
 | 分卷 | 文件 | Case 数 | 登记状态 |
 |---|---|--:|---|
-| `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 853 | 待实现 |
+| `PI` | [unit-test-scheme-pi.md](volumes/unit-test-scheme-pi.md) | 853 | **已实现** |
 | `REPO` | [unit-test-scheme-repo.md](volumes/unit-test-scheme-repo.md) | 601 | **已实现** |
 | `WORKER` | [unit-test-scheme-worker.md](volumes/unit-test-scheme-worker.md) | 367 | **已实现** |
 | `TRANSFER` | [unit-test-scheme-transfer.md](volumes/unit-test-scheme-transfer.md) | 280 | **已实现** |
@@ -2471,19 +2471,21 @@
 | `OBS` | [unit-test-scheme-obs.md](volumes/unit-test-scheme-obs.md) | 119 | **已实现** |
 | `SCHED` | [unit-test-scheme-sched.md](volumes/unit-test-scheme-sched.md) | 34 | **已实现** |
 | `USAGE` | [unit-test-scheme-usage.md](volumes/unit-test-scheme-usage.md) | 26 | **已实现** |
-| **合计** | — | **3130** | 2,568 已实现 / 562 待实现 |
+| **合计** | — | **3130** | **3,130 全部已实现** |
 
 **与 §6.1 的关系**：§6.1 的 152 条是**粗粒度符号×类型登记**（波次一，含 16 条补齐义务格的新行）；
 本分卷是**逐站点细粒度登记**（每参数×必测类、每分支、每 throw/状态写/资源/返回站点一条）。
 两者按 STD「同一 Case 属多维度时只登记一次」各自成集、不复算：本层 Case 总数 = §6.1 的 152 ＋ 分卷 3130 = **3282**。
-分卷里 2,568 条已写出真脚本，562 条仍是骨架（PI 一条分卷，执行半随 `G-EXEC-UT-3` 与波次二排期）。
+分卷里 3,130 条全部已写出真脚本（无骨架残留）。
 
-**机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成，勿手改）——
-全层 3,360 条逐条一行，含四方对账字段（`design`＝用例文档、`script`＝点名该 Case ID 的测试文件、
+**机器可读 Case 索引**：[`case-index.json`](case-index.json)（同目录，由 `scripts/derive-ut-cases-full.mjs` 随分卷一并生成）——
+全层 3,282 条逐条一行，含四方对账字段（`design`＝用例文档、`script`＝点名该 Case ID 的测试文件、
 `report`＝逐 Case Run 报告 JSON、`scheme`＝登记位置；未生成写「未完成」）与汇总计数
 （`granularity_counts`/`status_counts`/`module_counts`/`category_counts`/`field_counts`）。
-当前实况 `field_counts`：design 152 · **script 45** · **report 0** · scheme 3,360——四方对账不成立即在此可见
-（`G-EXEC-UT-3`）。计划 §3 前检与覆盖复算按本文件复算，不手数表格（STD `test-standard` §5 大分量层义务，`draft.128` 起）。
+当前实况 `field_counts`：design 3,282 · **script 3,282** · **report 0** · scheme 3,282——三方对账已成立，
+四方对账仍缺 Run 报告一腿（`G-EXEC-UT-3`）。计划 §3 前检与覆盖复算按本文件复算，不手数表格（STD `test-standard` §5 大分量层义务，`draft.128` 起）。
+
+> **本处的一处手改**：`case-index.json` 虽是脚本生成物，但本轮**只手工更新了已实现行的 `status`／`script`／`report` 字段与四个汇总计数**，未重新派生 Case ID。理由：`scripts/derive-ut-cases-full.mjs` 按 `src/` 的**当前**行号重新派生 ID，而枚举表与 `src/` 已发生行号漂移（现枚举 250 个行为单元 vs 已登记表的 244），重跑会把已写好的 3,282 条 Case 全部重新编号（`G-UT-DENOM-4`）。重建时**不得改变 ID**。
 
 ### 6.2 展开后段落块示例（组织方式见 `tests.unit-case` §3）
 
@@ -2843,9 +2845,9 @@
 | `review.writing-conformance-checklist` | 22 | 21 | `docs/70_verification/unit/unit-test-scheme.writing-conformance.checklist-result.json` |
 | STD 编写规范（STD 编写索引 §3.1 的 U1–U14） | 14 | 11 | 见上两份结果文件的 `evidence` 列 |
 
-**Review Verdict**：`部分放行` —— 放行「已登记且 `Implemented` 的 136 条 Case 的执行」；16 条波次一新 Case 仅登记（`Planned`），**不放行「单元层已全覆盖」的结论**。
+**Review Verdict**：`部分放行` —— 放行「已登记且 `Implemented` 的 3,282 条 Case 的执行」；**不放行「单元层已全覆盖」的结论**：脚本一腿已闭合（3,282/3,282 写出真断言），但 Run 报告一腿仍空（`G-EXEC-UT-3`），执行证据与 Verdict 尚未产出。
 
-**未关闭 Critical 计数**：7
+**未关闭 Critical 计数**：19（原有 7 条 ＋ 本轮新增 `G-UT-PI-1..12` 十二条实现缺陷）
 
 | 缺口 | 内容 | 最晚 Gate |
 |---|---|---|
@@ -2853,8 +2855,8 @@
 | `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半（3,282 条 Case 的脚本）随 `G-EXEC-UT-3` | 模块层 Gate 前 |
 | `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
-| `G-EXEC-UT-3` | 3,282 个 Case 中 2,706 个（USAGE＋OBS＋BOOT＋SCHED＋TAPI＋POLICY＋IPC＋MATRIX＋TRANSFER＋WORKER＋REPO 十一个模块）已写出真脚本，576 个仍是骨架（`STATUS: skeleton` ＋ `test.todo`）；Run 报告条目 0 —— 四方对账的脚本与报告两腿未落地 | 模块层 Gate 前 |
-| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，其中 2,706 条已实现 | 脚本随波次二排期 |
+| `G-EXEC-UT-3` | **脚本一腿已闭合**：3,282 个 Case 全部写出真脚本（`STATUS: real`，无 `test.todo` / `STATUS: skeleton` 残留），`case-index.json` 的 `design`／`script` 两腿均满 3,282；**Run 报告一腿仍空**（`report` 字段全为「未完成」，Run 报告条目 0）——四方对账尚缺执行证据这一腿 | 模块层 Gate 前 |
+| `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，**3,282 条全部已实现**（脚本与用例文档齐备；执行证据见 `G-EXEC-UT-3`） | 脚本已落地；Run 报告随 `G-EXEC-UT-3` |
 | `G-UT-DENOM-4` | 枚举表的站点行号绑的是**改 seam 之前**的 `src/` 行号（244 个单元）；TRANSFER／WORKER／MATRIX 三批加了注入缝与导出后，`src/` 行号已移位，枚举表与实现对不上。**不能直接重跑枚举**——Case ID 由 `file:line` 派生，一重跑就把全部 3,282 条 Case 的编号打乱，已写好的脚本与说明书全部失配 | 测试工程：在一次专门的批次里重排编号（先建 ID→文档 的映射，再同步重命名脚本与说明书），并把 Case ID 改成**不依赖行号**的稳定标识 |
 | `G-UT-BRANCH-1` | 1,217 个内部分支点已由分卷 Case 逐路径登记（待实现）；分支覆盖率实测随脚本落地 | 模块层 Gate 前 |
 | `G-UT-CONFIG-1` | `config/` 全部五份运行时配置不过 `piko-runtime-config-v0.3.schema.json`（缺 `transfer`、`pi` 多两个字段）→ `loadConfig` 必失败；其成功路径无 UT 覆盖 | 运行时装配 Owner 修配置或 schema |
@@ -2868,6 +2870,18 @@
 | `G-UT-REPO-4` | 写入类接口对「目标不存在」的语义不一致——`setInputStaging`/`setArtifactDelivery` fail closed 抛 typed `TaskNotFound`，而 `markTurn`/`terminalModel`/`terminalTool` 静默 no-op，`recordProviderCall` 抛裸外键错误；`status`/`latency_ms`/`replay` 等非法值冒裸 SQLite 错误 | 运行时装配 Owner 统一写入接口的 not-found 与非法值语义 |
 | `G-UT-REPO-5` | `attempt`/`lease_epoch` 无下界约束——`0`／`-1` 被当合法绑定值传进 SQL，CAS 比对不上后静默失败（返回 false／匹配 0 行）而非被判非法 | 运行时装配 Owner 校验下界，或在设计里明确它们的接受语义 |
 | `G-UT-IPC-1` | 两条命令通道的 onCommand 形状不一致（ProcessChannel 交剥出的命令、attachChildToHandler 交整条消息） | 运行时装配 Owner 统一形状 |
+| `G-UT-PI-1` | PI 的 HTTP 客户端几乎零入参校验——`Mem0Adapter`/`GraphRAGAdapter` 的构造器与 `search`/`add` 的 `query`/`max_results`/`filters`/`baseUrl`/`apiKey`/`scope` 全部原样透传：超长、注入字符、`NaN`、非对象都不拒；`scope` 无白名单；`baseUrl` 不做路径规范化（只有 index 段被 `encodeURIComponent`） | 运行时装配 Owner 在适配器边界加校验，或在 ISD 明确「零校验」的接受语义 |
+| `G-UT-PI-2` | PI 的错误不 typed 化——`search`/`add` 的空 `user_id`/`query` 抛普通 `Error` 而非 `Mem0ApiError`/`GraphRAGApiError`；`skill-tools` 的 `validateContext` 与 `preflightModelProvider` 抛的也是普通 `Error`（无 `code`/`status`）。用例文档统一要求「typed 错误码逐值对 ISD 错误表」，**与 ISD 自身写法也冲突**（ISD §11.3 自己写的就是 `Error`） | 运行时装配 Owner 统一抛 typed 错误，或修订 ISD 的错误表口径 |
+| `G-UT-PI-3` | `skill-tools` 的 execute 把 `Mem0ApiError` 降级成「成功」——文档要求「不降级为成功」，实现却返回 `{content:[{text:"memory unavailable: <code>"}], details:{error,status}}`；且 `mem0_record` 的 `details` 没有 `status`（lookup 有），两侧不对称 | 运行时装配 Owner 让工具错误以 typed 失败上抛，并补齐 `mem0_record` 的 `details.status` |
+| `G-UT-PI-4` | schema 只在 TypeBox 里、运行时零校验——`mem0_lookup` 的 `max_results≤20`、`mem0_record` 的 `content` 10–5000 / `tags≤10` 全部不校验 | 运行时装配 Owner 在 execute 里校验参数，或由 schema 生成的校验器接管 |
+| `G-UT-PI-5` | `skill-tools` 的五个 execute 参数里四个从未被引用（`_toolCallId`/`_toolContext`/`_invocation`/`_context`），`_onUpdate` 也从不调用 ⇒ 非法值被静默忽略 | 运行时装配 Owner 消费这些参数（校验并回传进度） |
+| `G-UT-PI-6` | `mapStatusToCode` 的 5xx 特判与兜底返回值相同（都是 `"server_error"`）⇒ 该分支在可观测层面**不可区分**，属冗余分支 | 运行时装配 Owner 区分 5xx 的细分码，或删掉冗余分支 |
+| `G-UT-PI-7` | `enterNetworkScope` 的三态不等价——`[]` = 不限制（放行）、`null` = 短路放行、`undefined` = 策略崩在 `allowlist.length`（TypeError） | 运行时装配 Owner 统一三态语义，或在类型上排除 `undefined` |
+| `G-UT-PI-8` | mem0 `search` 就地改写调用方的 `filters` 对象（`metadata.tags`→`categories`、`metadata.X`→`metadata`）⇒ 调用方的入参被副作用污染 | 运行时装配 Owner 复制后再改写，不动调用方对象 |
+| `G-UT-PI-9` | `createGraphragSearchTool` 的 `details.scope` 与实际查询 scope 不一致——`details.scope = params.scope ?? "all"`，请求却打在**适配器 `defaultScope`** 上 | 运行时装配 Owner 让 `params.scope` 真正传到适配器 |
+| `G-UT-PI-10` | `closeIntake` 一直返回 false 时 `execute` 死循环（discussion 任务、无待处理回合时 `for(;;)` 无限重入）。本轮的 UT 用例用计数型 channel（`closeIntake: (_f, n) => n < 3`）安全地走到循环分支 | 运行时装配 Owner 给循环加退出条件或重入上限 |
+| `G-UT-PI-11` | mem0-client 的 ISD 还是 v1 协议（Bearer + `/v1/memories/search/` + `{query,user_id,limit,filters}`），实现已迁 v3（`Token` + `/v3/...` + `{query,filters:{user_id},top_k}`）⇒ **文档漂移** | 运行时装配 Owner 修订 ISD 到 v3 协议 |
+| `G-UT-PI-12` | `preflightModelProvider` 的 `timeout` 语义偏差——`timeout=-1` 被 Node 钳到 1ms 而不是立即；超时表现为 fetch 层 `AbortError`（`The operation was aborted.`）而不是 typed 错误 | 运行时装配 Owner 明确 timeout 语义并把超时转成 typed 错误 |
 
 **放行范围**：按 §5.2.2 的 12 个模块前缀与 §5.2.1 的 9 个对象类型给出，可据此裁剪下一轮补测波次。
 

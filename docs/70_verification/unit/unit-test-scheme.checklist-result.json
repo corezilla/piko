@@ -2,7 +2,7 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.unit-test-review-checklist",
   "document_id": "unit-test-scheme",
-  "document_version": "0.1.0-draft.5",
+  "document_version": "0.1.0-draft.6",
   "total": 26,
   "conformed": 18,
   "items": [
@@ -30,7 +30,7 @@
     {
       "id": "§2 方案含「对象类型×必测维度展开表」（§2.3）：行覆盖本层对象类型、维度无缺漏、删行均附 tailoring 理由，不默认缺项",
       "result": "conformed",
-      "evidence": "方案 §2.3 有 10 个对象类型、§5.2.1 义务格 25；实际已登记 25 格（登记半已闭合），缺格 0 → G-UT-DIM-1 的登记半关闭；执行半（3,282 条 Case 的脚本）随 G-EXEC-UT-3 同批"
+      "evidence": "方案 §2.3 有 10 个对象类型、§5.2.1 义务格 25；实际已登记 25 格（登记半已闭合），缺格 0 → G-UT-DIM-1 的登记半关闭；执行半已随本轮闭合（3,282 条 Case 的脚本全部写实），Run 报告一腿随 G-EXEC-UT-3"
     },
     {
       "id": "§2 冻结向量集与受控时钟 fake 的来源、版本与固化方法在方案中写明",
@@ -50,7 +50,7 @@
     {
       "id": "§2 大分量登记齐：Case 数远超几十时双轴（被测面/对象归属×覆盖维度/Case 类型）已声明、分卷或分章落位唯一；每维度/类型实现率表（分母/已实现/待实现）有且合计＝登记数；登记状态与用例集总账互对账零差集",
       "result": "conformed",
-      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 25 / 未登记 0）与 §6.1A 被测面轴（12 个模块前缀分卷，合计＝登记数）；§6 分母表（粗粒度 152 条：已实现 87 / 待实现 65）＋ §6.1A 分卷表（3,130 条：已实现 1,676 / 待实现 1,454）合计＝3,282，与用例集总账零差集"
+      "evidence": "方案 §5.2.1 维度轴（义务 25 / 已登记 25 / 未登记 0）与 §6.1A 被测面轴（12 个模块前缀分卷，合计＝登记数）；§6 分母表（粗粒度 152 条：已实现 152 / 待实现 0）＋ §6.1A 分卷表（3,130 条：已实现 3,130 / 待实现 0）合计＝3,282，与用例集总账零差集"
     },
     {
       "id": "§2 环境/脚本契约分卷（项目建立时）：方案 §3/§4 只引用其 ENV/约束 ID 不复制；ENV 类型均有就绪判据与降级去向；凭据等隐式约定已显式登记",
@@ -60,7 +60,7 @@
     {
       "id": "§3 每 Case 被测对象为单函数/类/方法，失败含义唯一",
       "result": "conformed",
-      "evidence": "机器复审 scripts/review-ut-cases.mjs 全量 3,282 条：C3 每 Case 恰好一格、C5 对象函数与 AST 枚举表单元一致、C8 步骤为编号 动作＋观察点；findings=0"
+      "evidence": "机器复审 scripts/review-ut-cases.mjs 全量 3,434 项（3,282 条 Case ＋ 粗粒度登记）：C3 每 Case 恰好一格、C5 对象函数与 AST 枚举表单元一致、C8 步骤为编号 动作＋观察点；findings=0"
     },
     {
       "id": "§3 输入可复现：取值冻结或给生成规则（含种子），无隐含依赖",
@@ -92,12 +92,12 @@
     {
       "id": "§4 每个 Step 可定位执行者与观察点；失败处置策略（不阻断/复现要求）与 scheme 一致",
       "result": "conformed",
-      "evidence": "计划 Step 绑定执行者与观察点；本轮登记的 3,282 个脚本按 Case ID 命名，与说明书 §3.1「脚本 / 实现状态」一一对应"
+      "evidence": "计划 Step 绑定执行者与观察点；本轮 3,282 个脚本按 Case ID 命名，与说明书 §3.1「脚本 / 实现状态」一一对应（索引 script 腿满 3,282）"
     },
     {
       "id": "§4 自动化落位与状态字段完整，占位 Case 不得伪装为实现完成",
       "result": "conformed",
-      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。索引的 script 字段只统计非骨架文件（1,763），骨架不计入；vitest 全量 1,841 passed / 1,519 todo；tsc --noEmit 零错误"
+      "evidence": "骨架文件头写明 `STATUS: skeleton` ＋ `test.todo`；真脚本头写 `STATUS: real`。本轮 3,282 条 Case 全部写出真脚本，`STATUS: skeleton` 与 `test.todo` 残留均为 0；索引的 script 字段统计非骨架文件＝3,282；vitest 全量 3,360 passed / 0 todo（3,282 files）；tsc --noEmit 零错误"
     },
     {
       "id": "§4 CI 批量策略与一次性判定纪律符合 scheme（不掩盖 FAIL）",
@@ -107,7 +107,7 @@
     {
       "id": "§5 四方 1:1 对账：登记 Case ID ↔ 用例集段落 ↔ 脚本 ↔ Run 报告条目一一互对应，撞车守卫（同 ID 多脚本）CI 红；共享基类的重复存在性断言已登记防计数虚夸",
       "result": "deviation",
-      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集；真脚本 1,763 条（十个模块，1,841 个断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
+      "evidence": "登记 3,282 ↔ 说明书 3,282 ↔ 脚本锚点 3,282 三方零差集（`case-index.json` 的 design/script 两腿均满）；真脚本 3,282 条（全量断言全绿）；Run 报告条目 0——执行半未开始：G-EXEC-UT-3",
       "deviation_id": "G-EXEC-UT-3"
     },
     {
@@ -128,13 +128,13 @@
     {
       "id": "§6 （逐条登记，见下表）",
       "result": "deviation",
-      "evidence": "Issue Log 登记 6 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（25 格已全部登记，执行半随 G-EXEC-UT-3）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）、G-UT-WORKER-1（claimNext 把通道故障与没有活干混为一谈）、G-UT-WORKER-2（P1 入口的退出与信号注册无注入缝）；G-EXEC-UT-3（3,282 个 Case 中 1,763 个已写出真脚本，1,519 个仍是骨架）",
+      "evidence": "Issue Log 登记 19 项：G-UT-DENOM-1（31 个 ISD 接口无 Case）、G-UT-DIM-1（25 格已全部登记，执行半随 G-EXEC-UT-3）、G-UT-VRC-1（69 条 VRC 未逐条绑定）、G-UT-DRIFT-1（12 个符号名在 src/ 不存在）、G-UT-WORKER-1（claimNext 把通道故障与没有活干混为一谈）、G-UT-WORKER-2（P1 入口的退出与信号注册无注入缝）、G-EXEC-UT-3（3,282 个 Case 的脚本已全部写实，Run 报告一腿未落地），本轮新增 G-UT-PI-1..12 十二条 PI 模块实现缺陷（零入参校验、错误不 typed 化、Mem0ApiError 降级为成功、schema 运行时零校验、execute 参数未消费、5xx 冗余分支、enterNetworkScope 三态不等价、search 就地改写调用方 filters、graphrag details.scope 与实际查询不一致、closeIntake 死循环、mem0 ISD 协议漂移、preflight timeout 语义偏差）",
       "deviation_id": "G-UT-VRC-1"
     },
     {
       "id": "§7 Review Verdict、未关闭 Critical 计数与放行范围三者一致",
       "result": "deviation",
-      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝7（G-UT-DENOM-1/G-UT-DIM-1/G-UT-VRC-1/G-UT-DRIFT-1/G-UT-WORKER-1/G-UT-WORKER-2/G-EXEC-UT-3）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
+      "evidence": "Verdict＝部分放行（放行已登记 3,282 条 Case 的执行，不放行「单元层已全覆盖」的结论）；未关闭 Critical＝19（原有 7 条 ＋ 新增 G-UT-PI-1..12）；放行范围＝已登记 Case 的执行，缺口见 §7.1",
       "deviation_id": "G-UT-DENOM-1"
     },
     {
@@ -143,7 +143,7 @@
       "evidence": "放行范围按 §6 的 12 个模块前缀与 §2.3 的 10 个对象类型给出，可直接据此裁剪补测波次"
     }
   ],
-  "executed_at": "2026-11-05T03:10:00Z",
+  "executed_at": "2026-11-11T10:30:00Z",
   "executed_by": "Claude",
   "review_decision_ref": null
 }
