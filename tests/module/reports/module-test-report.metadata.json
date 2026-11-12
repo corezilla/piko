@@ -3,7 +3,7 @@
   "authority": "piko",
   "document_id": "module-test-report",
   "document_type": "tests.module-test-report",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "title": "Piko module-test-report",
   "document_owner": "Piko QA",
   "authors": [
@@ -27,6 +27,6 @@
   "parent_document_id": "module-test-scheme",
   "supersedes": null,
   "created_at": "2026-10-11",
-  "last_modified_at": "2026-10-11",
+  "last_modified_at": "2026-11-12",
   "design_object_id": null
 }

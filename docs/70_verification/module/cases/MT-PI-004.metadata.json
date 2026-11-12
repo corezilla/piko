@@ -1,0 +1,32 @@
+{
+  "project": "piko",
+  "authority": "piko",
+  "document_id": "MT-PI-004",
+  "document_type": "tests.module-case",
+  "document_version": "0.1.0-draft.1",
+  "title": "Piko Case MT-PI-004",
+  "document_owner": "Piko QA",
+  "authors": [
+    "opencode"
+  ],
+  "template_id": "tests.module-case",
+  "template_version": "3.0.9",
+  "template_sha256": "61aedb9142eba8314772a2e91fa858b60d9c117d1b5b825492bcb61cbd96be11",
+  "template_conformance": "tailored",
+  "tailoring_ref": "piko-std-tailoring-v0.1",
+  "migration_map_ref": null,
+  "design_level": "module",
+  "domain": [
+    "mixed"
+  ],
+  "status": "draft",
+  "visibility": "project",
+  "source_repository": "corezilla/piko",
+  "source_path": "docs/70_verification/module/cases/MT-PI-004.md",
+  "reviewed_commit": null,
+  "parent_document_id": "module-test-scheme",
+  "supersedes": null,
+  "created_at": "2026-11-12",
+  "last_modified_at": "2026-11-12",
+  "design_object_id": null
+}

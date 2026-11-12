@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `module-test-scheme` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-11-04` |
+| Last Modified Date | `2026-11-12` |
 | Template ID | `tests.module-test-scheme` |
 | Template Version | `0.8.11` |
 | Template Conformance | `tailored` |
@@ -25,8 +25,8 @@
 | Supersedes | none |
 | Std Conformance Total | 14 |
 | Std Conformance Passed | 12 |
-| Checklist Total | 49 |
-| Checklist Conformed | 38 |
+| Checklist Total | 27 |
+| Checklist Conformed | 15 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板**绑定单个模块**（模块对象 ID：⟨绑定后填写⟩）——模块层方案与用例集均一模块一份，多模块项目逐模块实例化到 `docs/70_verification/module/ 下 `⟨模块短名⟩-module-test-scheme.md``，对应模块用例集（tests.module-case）引用本方案。模块测试方案，与 design.definition（模块设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.module-case）。
@@ -416,18 +416,18 @@
 
 | 对象类型 | 义务格 | 已登记格 | 已登记的格 | 未登记的格 | §6.1 Case 数 |
 |---|---|---|---|---|---|
-| 写型端点/命令 | 4 | 1 | 合法请求 | 未知字段/非法值、重复提交幂等、目标缺失 | 9 |
-| 读型端点 | 4 | 1 | 存在 | 不存在、终态/非终态、鉴权缺失 | 5 |
-| 外部依赖失败（边界替身） | 4 | 1 | 不可达 | 认证失败、限流/超时、部分失败 | 12 |
-| 准入/队列 | 5 | 1 | 容量 N−1 | 容量 N、容量 N+1、并发领取唯一性、退避 | 4 |
-| 配置热变更 | 3 | 1 | 变更生效 | 变更后旧状态不被破坏、非法值显式拒绝 | 4 |
-| 组装并发 | 3 | 1 | 并发对偶 | 租约续期 CAS、陈旧 epoch 被 fence | 5 |
-| 资源清理 | 3 | 1 | 正常释放 | 异常中途释放、重复清理幂等 | 8 |
+| 写型端点/命令 | 4 | 4 | 合法请求、未知字段/非法值、重复提交幂等、目标缺失 | — | 12 |
+| 读型端点 | 4 | 4 | 存在、不存在、终态/非终态、鉴权缺失 | — | 8 |
+| 外部依赖失败（边界替身） | 4 | 4 | 不可达、认证失败、限流/超时、部分失败 | — | 15 |
+| 准入/队列 | 5 | 5 | 容量 N−1、容量 N、容量 N+1、并发领取唯一性、退避 | — | 9 |
+| 配置热变更 | 3 | 3 | 变更生效、变更后旧状态不被破坏、非法值 | — | 6 |
+| 组装并发 | 3 | 3 | 并发对偶、租约续期 CAS、陈旧 epoch 被 fence | — | 7 |
+| 资源清理 | 3 | 3 | 正常释放、异常中途释放、重复清理幂等 | — | 10 |
 | 流式/SSE | 0 | 0 | — | — | 0（§5.1 裁剪） |
 | 热路径基线 | 0 | 0 | — | — | 0（§5.1 裁剪） |
-| **合计** | **26** | **7** | — | **19** | **47** |
+| **合计** | **26** | **26** | — | **0** | **69**（含卷外） |
 
-**维度覆盖实况**：义务 26 格，已登记 7 格（**27%**）。未登记的 19 格按 STD §6「未实现与 NOT_RUN 不删」登记为待排期缺口，汇总为 `G-MT-DIM-1`（Owner＝测试工程，最晚 Gate＝模块层 Gate）。
+**维度覆盖实况**：义务 26 格，已登记 **26 格（100%）**。原先缺的 19 格已于 2026-11-12 逐格补齐（`MT-TAPI-009..018`、`MT-SCHED-004..006`、`MT-REPO-007`、`MT-TRANSFER-006/007`、`MT-OBS-006/007`、`MT-PI-004..006`，共 21 条新 Case，脚本 `tests/integration/module-dimension-cells.test.ts`），`G-MT-DIM-1` **已关闭**。
 
 **与 §6.1 的一致性**：§6.1 登记 47 条 Case，按类型分布为「外部依赖失败 12 / 写型端点 9 / 资源清理 8 / 组装并发 5 / 读型端点 5 / 配置热变更 4 / 准入队列 4」＝47，与上表「§6.1 Case 数」列逐行相等。
 
@@ -1074,6 +1074,270 @@ Piko 的模块功能对外只暴露**一项入口面：HTTP 四项 operation**�
 属跨模块，按 STD 归 `tests.integration-test-scheme`（本项目无 subsystem 层，转系统层 `ST-*`）。
 
 
+#### 6.1 Case · MT-PI-006
+
+**责任摘要（要测什么／边界在哪）**：P1 执行边界在 `外部依赖失败（边界替身）` 类型下的行为：部分失败使 Run 停在非 Completed 终态，绝不伪造成成功；维度格 `部分失败`、`不可达`、`认证失败`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-006.md`
+
+#### 6.1 Case · MT-TAPI-018
+
+**责任摘要（要测什么／边界在哪）**：`POST /tasks` 在 `写型端点/命令` 类型下的行为：同一任务重复提交幂等（不产生第二份业务事实），改内容则 409 TaskConflict；维度格 `重复提交幂等`、`合法请求`、`未知字段/非法值`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/piko-task-api-design.md` · 该模块 VRC
+
+**分类 · 优先级**：`写型端点/命令` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-018.md`
+
+#### 6.1 Case · MT-TAPI-009
+
+**责任摘要（要测什么／边界在哪）**：`POST /tasks` 在 `写型端点/命令` 类型下的行为：收到未知字段时拒绝而不是静默丢弃；维度格 `未知字段/非法值`（未知字段）、`重复提交幂等`、`目标缺失`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`写型端点/命令` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-009.md`
+
+#### 6.1 Case · MT-TAPI-010
+
+**责任摘要（要测什么／边界在哪）**：`POST /tasks` 在 `写型端点/命令` 类型下的行为：空 `task_id` 与缺 `instruction` 被 4xx 拒绝；维度格 `未知字段/非法值`（非法值）、`重复提交幂等`、`目标缺失`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`写型端点/命令` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-010.md`
+
+#### 6.1 Case · MT-TAPI-011
+
+**责任摘要（要测什么／边界在哪）**：`GET /tasks/{id}/result` 在 `写型端点/命令` 类型下的行为：对不存在的任务写/读返回 404，不建行不伪造；维度格 `目标缺失`、`未知字段/非法值`、`重复提交幂等`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`写型端点/命令` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-011.md`
+
+#### 6.1 Case · MT-TAPI-012
+
+**责任摘要（要测什么／边界在哪）**：`GET /tasks/{id}` 在 `读型端点` 类型下的行为：不存在的 id 返回 404 且读取不产生状态；维度格 `不存在`、`存在`、`终态/非终态`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`读型端点` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-012.md`
+
+#### 6.1 Case · MT-TAPI-013
+
+**责任摘要（要测什么／边界在哪）**：`GET /tasks/{id}/result` 在 `读型端点` 类型下的行为：未终态时不提前披露；维度格 `终态/非终态`（非终态）、`存在`、`鉴权缺失`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`读型端点` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-013.md`
+
+#### 6.1 Case · MT-TAPI-014
+
+**责任摘要（要测什么／边界在哪）**：`GET /tasks/{id}/result` 在 `读型端点` 类型下的行为：终态后不再 409，按真实记录回答或 ResultUnavailable；维度格 `终态/非终态`（终态）、`存在`、`鉴权缺失`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`读型端点` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-014.md`
+
+#### 6.1 Case · MT-TAPI-015
+
+**责任摘要（要测什么／边界在哪）**：三个读端点在 `读型端点` 类型下的行为：无 Authorization 头一律 401 且错误信封统一；维度格 `鉴权缺失`、`存在`、`不存在`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`读型端点` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-015.md`
+
+#### 6.1 Case · MT-TAPI-016
+
+**责任摘要（要测什么／边界在哪）**：`POST /tasks` 在 `准入/队列` 类型下的行为：容量正好填满时最后一个仍被受理（202）；维度格 `容量 N`、`容量 N−1`、`容量 N+1`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`准入/队列` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-016.md`
+
+#### 6.1 Case · MT-TAPI-017
+
+**责任摘要（要测什么／边界在哪）**：`POST /tasks` 在 `准入/队列` 类型下的行为：超出容量一例显式 429 QueueFull；维度格 `容量 N+1`、`容量 N`、`退避`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`准入/队列` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TAPI-017.md`
+
+#### 6.1 Case · MT-SCHED-004
+
+**责任摘要（要测什么／边界在哪）**：M004 槽位准入在 `准入/队列` 类型下的行为：两次并发 claim 只有一个赢家；维度格 `并发领取唯一性`、`容量 N`、`退避`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`准入/队列` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-004.md`
+
+#### 6.1 Case · MT-SCHED-005
+
+**责任摘要（要测什么／边界在哪）**：M004 槽位准入在 `准入/队列` 类型下的行为：槽位被占时后续 claim 返回 slot_busy 让调用方退避；维度格 `退避`、`并发领取唯一性`、`容量 N`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`准入/队列` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-005.md`
+
+#### 6.1 Case · MT-SCHED-006
+
+**责任摘要（要测什么／边界在哪）**：M004 槽位租约在 `组装并发` 类型下的行为：`renewSlot` 只在 (task, epoch) 匹配时成功；维度格 `租约续期 CAS`、`并发对偶`、`陈旧 epoch 被 fence`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`组装并发` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-SCHED-006.md`
+
+#### 6.1 Case · MT-REPO-007
+
+**责任摘要（要测什么／边界在哪）**：M003 槽位写入在 `组装并发` 类型下的行为：epoch 推进后旧 epoch 的续租被拒；维度格 `陈旧 epoch 被 fence`、`租约续期 CAS`、`并发对偶`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`组装并发` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-REPO-007.md`
+
+#### 6.1 Case · MT-TRANSFER-006
+
+**责任摘要（要测什么／边界在哪）**：M010 staging 清理在 `资源清理` 类型下的行为：半途失败后仍可清理且不抛；维度格 `异常中途释放`、`正常释放`、`重复清理幂等`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`资源清理` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-006.md`
+
+#### 6.1 Case · MT-TRANSFER-007
+
+**责任摘要（要测什么／边界在哪）**：M010 staging 清理在 `资源清理` 类型下的行为：重复清理幂等且不抛；维度格 `重复清理幂等`、`正常释放`、`异常中途释放`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`资源清理` · P2
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-TRANSFER-007.md`
+
+#### 6.1 Case · MT-OBS-006
+
+**责任摘要（要测什么／边界在哪）**：M009 观测在 `配置热变更` 类型下的行为：把 metrics_enabled 改 false 不破坏已写入事件；维度格 `变更后旧状态不被破坏`、`变更生效`、`非法值`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`配置热变更` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-006.md`
+
+#### 6.1 Case · MT-OBS-007
+
+**责任摘要（要测什么／边界在哪）**：M009 观测在 `配置热变更` 类型下的行为：非法 metric id/op 在边界 fail-open 降级、不伪造 metric；维度格 `非法值`、`变更生效`、`变更后旧状态不被破坏`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`配置热变更` · P1
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-OBS-007.md`
+
+#### 6.1 Case · MT-PI-004
+
+**责任摘要（要测什么／边界在哪）**：LLMTier/mem0 边界在 `外部依赖失败（边界替身）` 类型下的行为：上游 401 typed 化为 `Mem0ApiError`；维度格 `认证失败`、`不可达`、`限流/超时`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-004.md`
+
+#### 6.1 Case · MT-PI-005
+
+**责任摘要（要测什么／边界在哪）**：graphrag 边界在 `外部依赖失败（边界替身）` 类型下的行为：上游 429 typed 化为 `GraphRAGApiError`；维度格 `限流/超时`、`不可达`、`认证失败`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-005.md`
+
+#### 6.1 Case · MT-PI-006
+
+**责任摘要（要测什么／边界在哪）**：P1 执行边界在 `外部依赖失败（边界替身）` 类型下的行为：部分失败使 Run 停在非 Completed 终态；维度格 `部分失败`、`不可达`、`认证失败`
+
+**来源 ID / 固定版本 · VRC**：`docs/40_module_design/` 对应模块设计 · 该模块 VRC
+
+**分类 · 优先级**：`外部依赖失败（边界替身）` · P0
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`docs/70_verification/module/cases/MT-PI-006.md`
+
 ## 7. 不适用与缺口裁决
 
 > **本节目的**：区分“不适用”与“尚未设计”。
@@ -1124,9 +1388,9 @@ Piko 的模块功能对外只暴露**一项入口面：HTTP 四项 operation**�
 
 #### 7.1.7 裁决 · 维度格未登记（`G-MT-DIM-1`）
 
-**裁决（Tailored-N/A 或 Gap）**：Gap
+**裁决（Tailored-N/A 或 Gap）**：**已关闭**（2026-11-12）
 
-**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **26 个义务维度格**，§6.1 实际只登记 **7 格**（覆盖率 27%），未登记 **19 格**（逐格列于 §5.2.1）。Owner＝测试工程；恢复条件＝按 §6「一格一 Case」逐格补登记（补 19 条即维度覆盖达 100%），并同步 §5.2 的分母
+**依据 · Owner · 恢复条件**：§2.3 各对象类型的展开规则共定义 **26 个义务维度格**。原登记 7 格（27%），缺 19 格，已于 2026-11-12 按「一格一 Case」逐格补齐——新增 21 条 Case（`MT-TAPI-009..018` 写入幂等与非法值、`MT-SCHED-004..006` 队列边界与租约 CAS、`MT-REPO-007` 陈旧 epoch、`MT-TRANSFER-006/007` 清理、`MT-OBS-006/007` 热变更、`MT-PI-004..006` 依赖失败），脚本集中在新文件 `tests/integration/module-dimension-cells.test.ts`（21 项全通过，见 Run 证据）。当前 **26/26 格（100%）**，恢复条件已满足。
 
 #### 7.1.8 裁决 · 元素级呈现矩阵归属
 

@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `system-test-scheme` |
-| Document Version | `0.1.0-draft.2` |
+| Document Version | `0.1.0-draft.3` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
 | Created Date | `2026-10-10` |
-| Last Modified Date | `2026-11-04` |
+| Last Modified Date | `2026-11-12` |
 | Template ID | `tests.system-test-scheme` |
 | Template Version | `0.8.18` |
 | Template Conformance | `tailored` |
@@ -25,8 +25,8 @@
 | Supersedes | none |
 | Std Conformance Total | 14 |
 | Std Conformance Passed | 12 |
-| Checklist Total | 53 |
-| Checklist Conformed | 42 |
+| Checklist Total | 31 |
+| Checklist Conformed | 18 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板是系统测试方案，与 design.software-system（系统设计阶段）一一对应。方案只登记测试分类与 Case 清单（每 Case 一行责任摘要），不写 Case 细节；逐 Case 展开一 Case 一文档（tests.system-case）；黑盒边界纪律、真实系统 Oracle 分层、对接前检与工具资产化方法见系统测试指南（STD `docs/ai-guides/system-testing.md`，见锁定的 `docs/std.lock.json` 所指 STD 版本），不在本模板重复。
@@ -1250,6 +1250,346 @@ Piko 的机器权威源是 `interfaces/error-codes/error-blocker-catalog-v0.3.js
 
 **错误码格的分层**：参数类非法断言（400 `InvalidRequest`）按 STD §4 分层归 `MT`/`UT`，
 本层只做系统级冒烟与端到端收口；上表逐码登记是为了**不漏**，不是要求 ST 层逐码复制全矩阵。
+
+#### 6.1 Case · ST-DATA-006
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `数据面（§6.2 网格）` 的维度格 `白名单外拒绝×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-DATA-006`
+
+**Case ID**：`ST-DATA-006`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：数据面：声明到 write_paths 之外的文件不会被搬运，delivered 保持空
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DATA-006.md`
+
+#### 6.1 Case · ST-SEC-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `权限矩阵` 的维度格 `403 路径×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-SEC-002`
+
+**Case ID**：`ST-SEC-002`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：权限矩阵：无效 token 走 401 并在错误信封里给稳定 code
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-002.md`
+
+#### 6.1 Case · ST-SEC-003
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `权限矩阵` 的维度格 `token×端点抽样×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-SEC-003`
+
+**Case ID**：`ST-SEC-003`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：权限矩阵：全部受保护端点在缺凭据时一致拒绝
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-003.md`
+
+#### 6.1 Case · ST-REC-001
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `恢复/灾备` 的维度格 `补写×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-REC-001`
+
+**Case ID**：`ST-REC-001`
+
+**分类**：`recovery`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：恢复：重启后非终态任务仍可读可取消，重复取消幂等
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-REC-001.md`
+
+#### 6.1 Case · ST-REC-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `恢复/灾备` 的维度格 `幂等重放×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-REC-002`
+
+**Case ID**：`ST-REC-002`
+
+**分类**：`recovery`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：恢复：同一取消请求重放得到同一答案而不是新错误
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-REC-002.md`
+
+#### 6.1 Case · ST-SEC-004
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `安全样本` 的维度格 `凭据脱敏×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-SEC-004`
+
+**Case ID**：`ST-SEC-004`
+
+**分类**：`security`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：安全样本：Authorization 不出现在诊断快照里
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-004.md`
+
+#### 6.1 Case · ST-SEC-005
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `安全样本` 的维度格 `审计留痕×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-SEC-005`
+
+**Case ID**：`ST-SEC-005`
+
+**分类**：`security`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：安全样本：受理在诊断面留下可追溯痕迹
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-SEC-005.md`
+
+#### 6.1 Case · ST-MIG-001
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `升级兼容` 的维度格 `迁移后读回一致×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-MIG-001`
+
+**Case ID**：`ST-MIG-001`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：升级兼容：迁移后的库对新任务可写可读，身份保持一致
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-MIG-001.md`
+
+#### 6.1 Case · ST-MIG-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `升级兼容` 的维度格 `旧 schema 迁移×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-MIG-002`
+
+**Case ID**：`ST-MIG-002`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：升级兼容：迁移后的实例仍完整服务公开契约
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-MIG-002.md`
+
+#### 6.1 Case · ST-ABS-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `absence 红线` 的维度格 `未声明路径 404×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-ABS-002`
+
+**Case ID**：`ST-ABS-002`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：absence：未声明路径返回 404，不落到任意 handler
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-ABS-002.md`
+
+#### 6.1 Case · ST-OBS-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `可观测性/诊断（optional：无运维/诊断面时写 N/A）` 的维度格 `三出口内容×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-OBS-002`
+
+**Case ID**：`ST-OBS-002`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：可观测性：metrics/counters/audit_tail 三出口是结构化内容
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-OBS-002.md`
+
+#### 6.1 Case · ST-OBS-003
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `可观测性/诊断（optional：无运维/诊断面时写 N/A）` 的维度格 `审计事件落库×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-OBS-003`
+
+**Case ID**：`ST-OBS-003`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：可观测性：审计事件落库后能被诊断面读回
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-OBS-003.md`
+
+#### 6.1 Case · ST-DEP-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `上游依赖失败` 的维度格 `认证失败×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-DEP-002`
+
+**Case ID**：`ST-DEP-002`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：上游依赖失败：依赖不可达不使受理端点崩溃
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DEP-002.md`
+
+#### 6.1 Case · ST-DEP-003
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `上游依赖失败` 的维度格 `超时/限流×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-DEP-003`
+
+**Case ID**：`ST-DEP-003`
+
+**分类**：`negative`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：上游依赖失败：依赖失败时诊断面仍可读
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DEP-003.md`
+
+#### 6.1 Case · ST-DEP-004
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `上游依赖失败` 的维度格 `部分失败×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-DEP-004`
+
+**Case ID**：`ST-DEP-004`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：上游依赖失败：部分失败不被伪造成成功
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-DEP-004.md`
+
+#### 6.1 Case · ST-ADM-002
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `准入/队列/限流` 的维度格 `队列满拒绝×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-ADM-002`
+
+**Case ID**：`ST-ADM-002`
+
+**分类**：`negative`
+
+**优先级**：`P0`
+
+**责任摘要（要测什么）**：准入：队列满返回 typed 429 且不丢任务
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-ADM-002.md`
+
+#### 6.1 Case · ST-ADM-003
+
+**来源 ID / 固定版本**：`system-design` §8 系统行为
+
+**维度坐标（§2.3 行×格）**：对象类型 `准入/队列/限流` 的维度格 `依赖未就绪×1`（该 Case 只登记本行 1 格）
+
+**设计验证项 ID**：`ST-ADM-003`
+
+**Case ID**：`ST-ADM-003`
+
+**分类**：`normal`
+
+**优先级**：`P1`
+
+**责任摘要（要测什么）**：准入：依赖未就绪时受理仍返回 202，等待而非失败
+
+**设计状态**：`Designed`
+
+**上级组合验证入口 · 集合总账**：`system-design` §12.5；集合总账 `docs/70_verification/system/cases/ST-ADM-003.md`
 
 ## 7. 不适用与缺口裁决
 

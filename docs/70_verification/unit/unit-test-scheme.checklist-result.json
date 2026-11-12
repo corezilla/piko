@@ -2,9 +2,9 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.unit-test-review-checklist",
   "document_id": "unit-test-scheme",
-  "document_version": "0.1.0-draft.7",
+  "document_version": "0.1.0-draft.8",
   "total": 26,
-  "conformed": 19,
+  "conformed": 20,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
@@ -18,9 +18,8 @@
     },
     {
       "id": "§2 分母对齐：ISD 设计验证项每条有对应家族行与 Case 入口，未覆盖项有显式 N/A/Tailored 依据，无孤儿",
-      "result": "deviation",
-      "evidence": "分母 3,282 与 case-index.json total 一致；69 条 VRC 仍未逐条绑定（G-UT-VRC-1）；未覆盖面见 §5.6（Tailored-N/A 4 条 + G-MT-DIM-1/G-ST-DIM-1）",
-      "deviation_id": "G-UT-DENOM-1"
+      "result": "conformed",
+      "evidence": "分母 3,282 与 case-index.json total 一致；VRC 逐条绑定已于 2026-11-12 建立（§A.2：67 绑定 ＋ 2 N/A，G-UT-VRC-1 关闭）；未覆盖面见 §5.6（Tailored-N/A 4 条 + G-MT-DIM-1/G-ST-DIM-1）"
     },
     {
       "id": "§2 normal/boundary/negative/concurrency/recovery/performance/security 七家族均已分配或显式排除（含理由）",

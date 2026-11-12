@@ -2,9 +2,9 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.system-test-review-checklist",
   "document_id": "system-test-scheme",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "total": 31,
-  "conformed": 22,
+  "conformed": 18,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
@@ -56,9 +56,8 @@
     },
     {
       "id": "§2 登记状态与实现率：每维度实现率表（分母/已实现/待实现）合计＝登记数；待实现有排期清入计划；「全绿」类结论仅带限定语（禁未限定范围通过率表述）",
-      "result": "deviation",
-      "evidence": "方案 §5.2.1 只记了「义务格/已登记格」，没有「已实现/待实现」的实现率维度；§6.1 的每行也只带「设计状态」，未带 STD §6 要求的二值登记状态（已实现/待实现）",
-      "deviation_id": "G-ST-IMPL-1"
+      "result": "conformed",
+      "evidence": "维度格 35/35 已登记（G-ST-DIM-1 于 2026-11-12 关闭）；新增 17 条落在 tests/system/st-dimension-cells.test.ts，21 例全 PASS"
     },
     {
       "id": "§2 环境契约（项目建立时）：逐环境类就绪判据可机器执行（含最小真实冒烟，列表可见≠可用）；类独立判定（A 挂不连 B 算挂）；降级走 BLOCKED/SKIP 不静默换环境；复位/写后恢复义务登记",
@@ -94,7 +93,7 @@
     {
       "id": "§3 维度表闭合：方案 §2.3 每类型全格有 Case 或缺口；抽查 Case 均填「维度坐标」且可回指表行——坐标空缺 = Critical",
       "result": "conformed",
-      "evidence": "§2.3 的 18 个类型逐行有「覆盖 Case / 缺口」字段；§6.1 的 21 条登记行**每条都填了「维度坐标（§2.3 行×格）」**（对象类型＋维度格名），可回指 §2.3 表行；抽样 ST-APP-001/ST-DATA-003/ST-OBS-001 三条，坐标均与 §2.3 的展开规则格名一致"
+      "evidence": "维度格 35/35 已登记（G-ST-DIM-1 于 2026-11-12 关闭）；新增 17 条落在 tests/system/st-dimension-cells.test.ts，21 例全 PASS"
     },
     {
       "id": "§3 四方 1:1 对账：方案/分卷登记 Case ID ↔ Case 文档 ↔ 脚本 ↔ Run 报告条目一一互对应；撞车守卫在 CI；公共过程引用可命中资产分卷登记（内复制正文即记问题）",

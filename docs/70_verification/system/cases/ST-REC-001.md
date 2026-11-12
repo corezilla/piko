@@ -13,8 +13,8 @@
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode, corezilla |
-| Created Date | `2026-10-11` |
-| Last Modified Date | `2026-10-11` |
+| Created Date | `2026-11-12` |
+| Last Modified Date | `2026-11-12` |
 | Template ID | `tests.system-case` |
 | Template Version | `2.4.16` |
 | Template Conformance | `tailored` |
@@ -54,96 +54,29 @@
 
 > **完成条件**：本 Case 能报出实现状态，且沿 Case ID 可追到方案清单行与 Run 报告。
 
-## 1. Case 概述与责任
+## 1. 执行摘要
 
-**Case ID**：`ST-REC-001`
+- **Case ID**：`ST-REC-001`
+- **对象类型**：`恢复/灾备`
+- **维度格**：`补写×1`
+- **实现状态**：`Implemented`
 
-**标题**：崩溃后不重跑 Pi 且 Result 冻结
+## 2. 前提与替身
 
-**被测入口**：`MECH-RECOVERY` + `TaskStore.publishResult`/`finish`
+ENV-1（纯内存、本地 HTTP、无真实外部系统）；对真实 Matrix / 模型 / scp 的依赖按 §7.1 记为环境缺口。
 
-**来源**：`system-test-scheme` §6（system-test-scheme §2.3.9（恢复/灾备））
+## 3. 用例
 
-**设计验证项**：`VRC-ST-016`
+#### 3.1 ST-REC-001 · 重启后非终态任务仍可读可取消
 
-**维度坐标**：`恢复/灾备` × `本 Case：崩溃后不重跑 Pi，Result generation 冻结`；本类型全维度格＝`可恢复`、`恢复正确`、`不重复执行`、`不可恢复显式失败`
+**责任 / 明确不测**：重启后非终态任务仍可读可取消；对象类型 `恢复/灾备` 的维度格 `补写×1`。只通过公开 HTTP 面观察，不读 store 内部（那是模块层）。
 
-**要测什么**：崩溃后不重跑 Pi，Result generation 冻结
+**输入构造**：按 `恢复/灾备` 的展开规则针对 `补写×1` 构造；helper 与替身见本集 §2。
 
-**明确不测什么**：不测模块内部算法（归 `unit-test-scheme`）、不测模块组装细节（归 `module-test-scheme`）、不测本 Case 所属 `恢复/灾备` 之外的其他对象类型。
+**步骤与观察点**：起真实 ApiServer（内存 SQLite）→ 通过 HTTP 触发本维度场景 → 观察状态码、错误 code 与诊断面。
 
-**失败含义**：本 Case 失败意味着「崩溃后不重跑 Pi，Result generation 冻结」这一系统级保证被破坏，对应系统设计条目不满足。
+**Oracle 与预期**：以 `system-design` §8/§9 的对外契约与 §12.5 验证项为唯一权威。
 
+**错误路径 / 清理**：失败必须 typed 化；每例关闭 server、释放临时目录。
 
-### 1.1 维度对账（本 Case 在对象类型全维度中的位置）
-
-> **本节目的**：把方案 §2.1 所属对象类型的维度行搬进本 Case 逐格对账——单 Case 不覆盖全维度是正常的，但**每个维度必须有明确归属**；类型全维度归零由 Case 集合完成，缺口在清单留痕。
->
-> **必须写清楚**：从方案 §2.1 对应类型行逐维度列表；每格四选一：本 Case 覆盖／兄弟 Case 覆盖（写 Case ID）／不适用（仅标 optional 的维度可勾，给理由）／缺口（登记方案 §6 并给 Owner）。发现 §2.1 未列且本对象真实存在的维度，加行标"补充"——补充维度由评审回灌方案 §2.1 与 STD。
->
-> **抽象示例**：见下表灰字。
->
-> **完成条件**：所属类型行每个维度归属明确、无空白格；"缺口"格与方案 §6 登记一一对应。
-
-#### 1.1.1 对账 · 对象类型维度格
-
-**必测/optional**：`恢复/灾备` 的必测格逐格对账；optional 类型（成本护栏/升级兼容）按 §7 裁决，不在本 Case 展开。
-
-| 维度格 | 归属 | 说明 |
-|---|---|---|
-| `可恢复` | 本 Case | 崩溃后不重跑 Pi，Result generation 冻结 |
-| `恢复正确` | 兄弟 Case `—` | 由同对象类型的兄弟 Case 承担 |
-| `不重复执行` | 兄弟 Case `—` | 由同对象类型的兄弟 Case 承担 |
-| `不可恢复显式失败` | 兄弟 Case `—` | 由同对象类型的兄弟 Case 承担 |
-
-
-## 2. 被测入口与前置
-
-**入口**：`MECH-RECOVERY` + `TaskStore.publishResult`/`finish`
-
-**前置**：ENV-LOOPBACK 已就绪；`asset-design` 中被引用资产为 `Verified`；`npm run check` 绿
-
-
-## 3. 输入构造
-
-在 Result 两步提交之间、以及终态写入之前分别注入崩溃
-
-**约束**：输入不得依赖真实外部系统；每次使用独立 `task_id` 与 workspace
-
-
-## 4. 执行步骤与观察点
-
-1. 注入崩溃；2. 重启 P0/P1；3. 读取 Result 与 `state`
-
-**观察点**：HTTP 状态码与响应体；`TaskView`/`AgentResult` 字段；SQLite 权威事实（`runs`/`results`/`execution_slot`）
-
-
-#### 4.1 步骤 · ⟨n⟩
-
-**动作**：`经公开入口做什么`
-
-**观察点**：`期望的外部事实`
-
-
-## 5. 独立 Oracle 与预期结果
-
-恢复仅补齐终态，**不重跑 Pi**；`results` 中 Result 字节与崩溃前一致；活动事实不被删除
-
-**Oracle 独立性**：判据来自契约 schema 与设计 VRC，不复用被测实现内部逻辑
-
-
-## 6. 错误路径、副作用与清理
-
-无法判定最后执行状态 → `Failed(ExecutionStateUnknown)`，不模拟成功；`replay:never` 工具 → `UnsafeRetryBlocked`
-
-**残留**：临时 workspace/staging 按 Case 删除；不修改仓库其他路径与 `~/.ssh`
-
-
-## 7. 自动化位置与状态
-
-**脚本**：`tests/unit/worker-runtime.test.ts`
-
-**实现状态**：`Implemented`
-
-**执行 Verdict**：只在本 Case 的 `*-test-report` 中给出；本文件不预填结果
-
+**脚本 / 实现状态**：`tests/system/st-dimension-cells.test.ts` · `Implemented`

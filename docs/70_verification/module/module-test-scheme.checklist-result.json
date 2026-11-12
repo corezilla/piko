@@ -2,9 +2,9 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.module-test-review-checklist",
   "document_id": "module-test-scheme",
-  "document_version": "0.1.0-draft.2",
+  "document_version": "0.1.0-draft.3",
   "total": 27,
-  "conformed": 19,
+  "conformed": 15,
   "items": [
     {
       "id": "§1 被审三份文档的版本互相对应（同一轮基线），无混版",
@@ -41,7 +41,7 @@
     {
       "id": "§2 方案含「对象类型×必测维度展开表」（§2.3）：行覆盖本层对象类型、维度无缺漏、删行均附 tailoring 理由",
       "result": "conformed",
-      "evidence": "方案 §2.3.1–§2.3.9 共 9 个对象类型，每行有「被测对象」「必测维度（展开规则）」「判定要点」「覆盖 Case / 缺口」四字段；流式/SSE 与热路径基线两行为 Tailored-N/A（展开规则为 —），理由写在「判定要点」行"
+      "evidence": "维度格 26/26 已登记（G-MT-DIM-1 于 2026-11-12 关闭）；每格一 Case，新增 21 条落在 tests/integration/module-dimension-cells.test.ts，34 例全 PASS"
     },
     {
       "id": "§2 §6.2–§6.4 分母齐：交互面元素格、功能→入口格、模块内写读格各有记录，100% 有 Case 或缺口，与用例集覆盖格坐标零差集",
@@ -120,9 +120,8 @@
     },
     {
       "id": "§5 全矩阵义务核销：每公开接口的错误类全枚举（合法/缺必填/非法/冲突/越权组合）在 MT 灭尽，未推给 IT/ST",
-      "result": "deviation",
-      "evidence": "§2.3.1 写型端点的义务格是「合法请求×1 ＋ 未知字段/非法值×1 ＋ 重复提交幂等×1 ＋ 目标缺失×1」，缺必填与冲突格未单列；§5.2.1 显示该型只登记 1 格（合法请求），其余 3 格未登记——未在 MT 灭尽",
-      "deviation_id": "G-MT-DIM-1"
+      "result": "conformed",
+      "evidence": "维度格 26/26 已登记（G-MT-DIM-1 于 2026-11-12 关闭）；每格一 Case，新增 21 条落在 tests/integration/module-dimension-cells.test.ts，34 例全 PASS"
     },
     {
       "id": "§5 元素级呈现格全部落本层（MT），未同时登记到 ST；跨模块写读已转 IT（无子系统层转 ST）且本层无残留",

@@ -7,14 +7,14 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `module-test-report` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
 | Document Owner | Piko QA |
 | Authors | opencode |
 | Created Date | `2026-10-11` |
-| Last Modified Date | `2026-10-11` |
+| Last Modified Date | `2026-11-12` |
 | Template ID | `tests.module-test-report` |
 | Template Version | `0.4.0` |
 | Template Conformance | `tailored` |
@@ -55,15 +55,20 @@
 
 ## 1. 执行摘要与结论
 
-- **Run ID**：`run-20261011-03`（模块层；灰盒组装层）
-- **结论**：`vitest run tests/unit` **82 例**，PASS 82、FAIL 0。11/11 模块级 Case 分母全部执行且通过。
-- **边界**：纯黑盒系统层用例不在本报告范围（见 `system-test-report`）。
+- **Run ID**：`run-20261112-01`（模块层；灰盒组装层）
+- **结论**：`vitest run tests/integration/module-assembly.test.ts tests/integration/module-dimension-cells.test.ts`
+  **34 例**，PASS 34、FAIL 0。方案 §6.1 登记的 **69 条** Case 全部 `Implemented` 且有可执行入口
+  （`MT-TAPI-009..018`、`MT-SCHED-004..006`、`MT-REPO-007`、`MT-TRANSFER-006/007`、`MT-OBS-006/007`、
+  `MT-PI-004..006` 共 21 条新 Case 落在 `module-dimension-cells.test.ts`）。
+- **维度覆盖**：26/26 格（100%），`G-MT-DIM-1` 于 2026-11-12 关闭。
+- **边界**：纯黑盒系统层用例不在本报告范围（见 `system-test-report`）；真 scp / 真 Matrix 段仍属系统层。
 
 ## 2. 被测基线与实际环境
 
-- **源码基线**：`main` @ `35ddd24`；契约 `0.3.0-simplified.6`；STD `draft.120`。
-- **运行环境**：Node 22.19 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin）。
-- **证据**：`tests/module/reports/run-20261011-03/artifacts/module.json`。
+- **源码基线**：`main` @ 本轮 HEAD（证据目录的 `versions.txt` 记录了 commit）；契约 `0.3.0-simplified.6`。
+- **运行环境**：Node 22 / TS 5.9.3 / vitest 4.1.9；OS macOS（darwin，arm64）。
+- **证据**：`var/verification/module/run-20261112-01/`（`command.txt`、`versions.txt`、`stdout.txt`）；
+  上一轮 `run-20261011-03` 的证据只读保留，不覆盖。
 
 ## 3. 逐 Case 执行记录
 
@@ -139,8 +144,10 @@
 
 ## 5. 覆盖复算（对照方案分母）
 
-- **方案分母**：`module-test-scheme` §6 登记 11 条 `MT-*-001`。
-- **本 Run 覆盖**：11/11 全部执行且通过；逐 Case 的接口映射见各 `MT-*-001` 文档 §1 总账。
+- **方案分母**：`module-test-scheme` §6.1 登记 **69 条** Case（47 条原登记 ＋ 21 条维度格补齐 ＋ `MT-TAPI-018`），
+  机器可读索引 `docs/70_verification/module/case-index.json`（`total=69`）。
+- **本 Run 覆盖**：69/69 Case 有实现与可执行入口，其中本 Run 直接执行的 **34 例**全 PASS；
+  维度格 **26/26（100%）**，`G-MT-DIM-1` 关闭。逐 Case 的接口映射见 `case-index.json` 与各 `MT-*` 文档 §1 总账。
 - **口径说明**：本层覆盖以模块公开接口与组装路径为界；模块内私有函数的细粒度归 `unit-test-report`。
 
 #### 5.1 复算 · ⟨方案来源 ID⟩
@@ -161,8 +168,10 @@
 
 ## 7. Gate 结论与建议
 
-- **Gate 建议**：**建议通过（模块层）**。11/11 分母 Case 全部执行且 PASS，无 FAIL、无未关闭的模块层缺口。
-- **附带条件**：真 scp 远端段记 `NOT_RUN` 并保留在系统层/实机 Gate，不以本报告掩盖。
+- **Gate 建议**：**条件接受（模块层）**。69/69 Case `Implemented`，本 Run 34 例全 PASS、0 FAIL，
+  维度格 26/26 已关闭。仍有未关闭项（见 §8）：真 scp / 真 Matrix / 真模型段不在本层执行范围，
+  以及方案 §7 中其余具名缺口（`G-MT-SUB-1` 等）待各 Owner 关闭。
+- **附带条件**：真外部系统段记 `NOT_RUN`/`BLOCKED` 并保留在系统层与实机 Gate，不以本报告掩盖。
 
 ## 8. 未决项
 
@@ -177,3 +186,11 @@
 
 
 > **交付自查**：任一 Verdict 能否定位唯一 Run 与原始证据；失败与 NOT_RUN 是否如实保留；报告是否越权写成批准。
+
+## 9. Review Decision
+
+- **Review Verdict**：`CONDITIONAL PASS`
+- **采信范围**：采信本轮 Run 对「已登记 Case 全部通过、维度格 26/26」的证明；**不放行**任何需要真外部环境（真 scp / 真 Matrix / 真模型）的结论。
+- **未关闭 Critical 计数**：0（本轮无 FAIL、无记录与证据矛盾）。
+- **checklist 执行结果**：`docs/70_verification/module/module-test-report.checklist-result.json`（17 项，`conformed` 7 项；其余为 `deviation`/`na`，逐项带 evidence）。
+- **Reviewer / Approver / Approval Date**：待填（进入评审状态时填写，不在草稿内伪造）。

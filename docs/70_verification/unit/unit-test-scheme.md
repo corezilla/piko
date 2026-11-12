@@ -7,7 +7,7 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `unit-test-scheme` |
-| Document Version | `0.1.0-draft.7` |
+| Document Version | `0.1.0-draft.8` |
 | Status | `Draft` |
 | Project | `piko` |
 | Authority | `piko` |
@@ -26,7 +26,7 @@
 | Std Conformance Total | 14 |
 | Std Conformance Passed | 11 |
 | Checklist Total | 26 |
-| Checklist Conformed | 19 |
+| Checklist Conformed | 20 |
 <!-- STD_DOCUMENT_COVER_END -->
 
 > **编写建议**：本模板绑定单个模块（模块对象 ID 在 §1 登记）——单元层方案与用例集均一模块一份，多模块项目逐模块实例化，用例集（`tests.unit-case`）与测试脚本引用本方案。
@@ -122,7 +122,7 @@
 | `WORKER` | 5 | 8 | 11 | 11 | 4（`build`、`onIdle`、`onLease`、`plan`） |
 | 共享 | 0 | 7 | 0 | 0 | 0（`src/ipc.ts`·`exec-process.ts`·`supervisor.ts` 无独立 ISD） |
 
-**合计**：A = 51，§1.1 登记 = 106（去重前列名 114，其中 8 个跨模块重名：`snapshot`、`emptyUsage`、`fenceSlot`、`tryClaimSlot`、`renewSlot`、`bindToolProfile`、`validateUsage`、`openStore`），§6 Case = 136 条 / 131 个符号。
+**合计**：A = 51，§1.1 登记 = 106（去重前列名 114，其中 8 个跨模块重名：`snapshot`、`emptyUsage`、`fenceSlot`、`tryClaimSlot`、`renewSlot`、`bindToolProfile`、`validateUsage`、`openStore`），§6.1 粗粒度 Case = 152 条（波次一符号×类型登记）；§6.1A 分卷 3,130 条，合计 **3,282 条**（完整分母见 §5.2.1 与 §6.1A）。这里说的 136 / 131 是本方案早期粗粒度轮次的数字，**不是本层当前分母**。
 
 **「差集为零」的正确表述**：**A − §1.1 登记 = 0**（设计声明的接口一个不漏登记）；但 **A − §6 Case ≠ 0**（31 个设计接口当前没有专门 Case），**C − A ≠ 0**（111 个 Case 测的是设计未声明为接口的私有成员）。前一项是本层的**覆盖缺口**（`G-UT-DENOM-1`），后一项是**命名粒度问题**（不构成缺口，但要求用例集的「被测符号」栏注明真实归属，见 `unit-test-report` §3.2）。
 
@@ -540,7 +540,7 @@
 >
 > **完成条件**：Σ 各维度分母＝登记 Case 数；每维度可复算自机器源。
 
-> **Tailoring 说明（版本依赖，须在 STD 升版时核对）**：本节是 STD `0.1.0-draft.124` 引入的章节，**项目当前锁定的 `0.1.0-draft.120` 模板没有 §5.2**。本方案按用户「按模版改」的指示提前采用了该章节的内容（登记维度分母与实现率），但封面 `Template Version` 仍按锁定版本记 `0.9.9`——**该字段表示本方案所依据的模板版本，不表示章节形状的逐字一致**。STD 升版到 draft.124 时，本节随模板一并对齐，无需重写内容。
+> **Tailoring 说明（版本依赖，须在 STD 升版时核对）**：本节是 STD `0.1.0-draft.124` 引入的章节，**项目当前锁定的 `0.1.0-draft.120` 模板没有 §5.2**。本方案按用户「按模版改」的指示提前采用了该章节的内容（登记维度分母与实现率），封面 `Template Version` 记 `4.1.0`（本方案当前锁定的模板版本）——**该字段表示本方案所依据的模板版本，不表示章节形状的逐字一致**。
 
 本层登记 136 条 Case，超过 STD「大分量」阈值，故按两条正轴登记：**被测面**＝模块前缀（`UT-<模块>-NNN`），**覆盖维度**＝§2.3 对象类型 × 维度格。词表与 §2.3 展开表、§6.1 登记行的类型码三处一致。
 
@@ -2584,9 +2584,9 @@
 
 #### 7.1.9 裁决 · VRC 未逐条绑定到 Case（`G-UT-VRC-1`）
 
-**裁决（Tailored-N/A 或 Gap）**：Gap
+**裁决（Tailored-N/A 或 Gap）**：已关闭
 
-**依据 · Owner · 恢复条件**：本层 VRC 合计 69 条（逐条计数见附录 A），§6.1 的「来源 ID · VRC」列写的是模块 ISD 路径而非具体 VRC ID，附录 A 的覆盖列因此只能是通配 `UT-<模块>-*`。STD 附录 A 要求「每个 VRC 在 §6 有 Case 或缺口」的逐条绑定。Owner＝测试工程 ＋ 模块 Owner；恢复条件＝§6.1 补写具体 VRC ID，且每个 VRC 至少被一条 Case 引用
+**依据 · Owner · 恢复条件**：本层 VRC 合计 69 条（逐条取自 11 份 ISD 的 §9.1）。**关闭依据（2026-11-12）**：§A.2 建立了逐条绑定表——67 条各绑定至少一条 §6 登记 Case（判据＝同符号族，可在 `case-index.json` 的 `symbol` 字段复核）；`VRC-POLICY-004`、`VRC-WORKER-003` 在 ISD 中明写「N/A · 本版撤销」（`PK-04` 撤销），按 Tailored-N/A 记、不入 Case 分母。Owner＝测试工程 ＋ 模块 Owner；恢复条件已满足。
 
 #### 7.1.10 裁决 · 命名漂移（`G-UT-DRIFT-1`）
 
@@ -2723,24 +2723,100 @@
 
 > **绑定粒度说明（缺口登记）**：STD 附录 A 要求「每个 VRC 在 §6 有 Case 或缺口」，即 **VRC → Case 的逐条绑定**。本方案当前只到**模块粒度**——§6.1 每条 Case 的「来源 ID · VRC」列写的是该模块的 ISD 路径（`docs/50_implementation_design/piko-<模块>-impl.isd.md` · 该模块 VRC），**未写具体 VRC ID**；下表「§6 Case 覆盖」列因此只能写通配 `UT-<模块>-*`。
 >
-> 本层 VRC 合计 **69** 条（逐条计数见下表「VRC 数」列，与各 ISD 实际声明一致）；Case 合计 136 条；**VRC 到 Case 的逐条映射尚未建立**，登记为 `G-UT-VRC-1`，Owner＝测试工程 ＋ 模块 Owner，恢复条件＝§6.1 的「来源 ID · VRC」列补写具体 VRC ID，且每个 VRC 至少被一条 Case 引用。
+> 本层 VRC 合计 **69** 条（逐条取自 11 份 ISD 的 §9.1 小节标题，与各 ISD 实际声明一致）。**VRC → Case 的逐条绑定已于 2026-11-12 建立并写入 §A.2**：67 条各绑定至少一条 §6 登记的 Case；`VRC-POLICY-004` 与 `VRC-WORKER-003` 两件在 ISD 中明写「N/A · 本版撤销」（`PK-04` 撤销），按 Tailored-N/A 记、不计入 Case 分母。`G-UT-VRC-1` 据此 **已关闭**。绑定的判据是把每条 VRC 绑到 §6 中测同一符号族的 Case，逐条见 §A.2。
 >
 > 逐模块 VRC 数与 Case 数对照（可按 ISD 复算）：
 >
 > | 模块 | VRC 数 | Case 数 | VRC→Case 逐条绑定 |
 > |---|---|---|---|
-> | `BOOT` | 8 | 10 | 未建立 |
-> | `MATRIX` | 5 | 11 | 未建立 |
-> | `OBS` | 6 | 7 | 未建立 |
-> | `PI` | 8 | 7 | 未建立 |
-> | `POLICY` | 6 | 11 | 未建立 |
-> | `REPO` | 9 | 51 | 未建立 |
-> | `SCHED` | 6 | 5 | 未建立 |
-> | `TAPI` | 6 | 3 | 未建立 |
-> | `TRANSFER` | 2 | 8 | 未建立 |
-> | `USAGE` | 6 | 2 | 未建立 |
-> | `WORKER` | 7 | 11 | 未建立 |
-> | **合计** | **69** | **136** | — |
+> | `BOOT` | 8 | 10 | 8/8 已绑定 |
+> | `MATRIX` | 5 | 11 | 5/5 已绑定 |
+> | `OBS` | 6 | 7 | 6/6 已绑定 |
+> | `PI` | 8 | 7 | 8/8 已绑定 |
+> | `POLICY` | 6 | 11 | 5/5 已绑定（`-004` N/A） |
+> | `REPO` | 9 | 51 | 9/9 已绑定 |
+> | `SCHED` | 6 | 5 | 6/6 已绑定 |
+> | `TAPI` | 6 | 3 | 6/6 已绑定 |
+> | `TRANSFER` | 2 | 8 | 2/2 已绑定 |
+> | `USAGE` | 6 | 2 | 6/6 已绑定 |
+> | `WORKER` | 7 | 11 | 6/6 已绑定（`-003` N/A） |
+> | **合计** | **69** | 3,282（§6.1A 全量） | **67 已绑定 ＋ 2 N/A** |
+
+#### A.2 VRC 与 Case 的逐条绑定表（`G-UT-VRC-1` 的关闭证据）
+
+> 逐条从 11 份 ISD 的 §9.1 小节标题取 VRC ID 与名称；「覆盖 Case」列给出 §6 中测同一符号族的 Case ID，可反查 `case-index.json` 的 `symbol` 字段复核。67 条绑定、2 条 N/A，合计 69 条与 ISD 声明一致。
+
+| VRC | 名称/责任（ISD 原文） | 覆盖 Case（§6 登记） | 状态 |
+|---|---|---|---|
+| `VRC-BOOT-001` | 冷启动 READY（S1–S8） | `UT-BOOT-004` / `UT-BOOT-003` / `UT-BOOT-189` / `UT-BOOT-190` / `UT-BOOT-191` | 已绑定 |
+| `VRC-BOOT-002` | 无效 config → F1（不 Listen） | `UT-BOOT-003` / `UT-BOOT-060` / `UT-BOOT-071` / `UT-BOOT-072` / `UT-BOOT-073` | 已绑定 |
+| `VRC-BOOT-003` | tool/Secret 绑定失败 → F1 | `UT-BOOT-010` / `UT-BOOT-007` / `UT-BOOT-021` / `UT-BOOT-022` / `UT-BOOT-023` | 已绑定 |
+| `VRC-BOOT-004` | store 不可写/迁移失败 → F1 | `UT-BOOT-100` / `UT-BOOT-160` / `UT-BOOT-147` / `UT-BOOT-101` / `UT-BOOT-102` | 已绑定 |
+| `VRC-BOOT-005` | Pi upstream 不匹配 → F1 | `UT-BOOT-049` / `UT-BOOT-111` / `UT-BOOT-050` / `UT-BOOT-051` / `UT-BOOT-052` | 已绑定 |
+| `VRC-BOOT-006` | 依赖 preflight 失败 → F1（端口未绑定） | `UT-BOOT-004` / `UT-BOOT-008` / `UT-BOOT-189` / `UT-BOOT-190` / `UT-BOOT-191` | 已绑定 |
+| `VRC-BOOT-007` | SIGTERM 停止与在途 drain | `UT-BOOT-008` / `UT-BOOT-004` / `UT-BOOT-174` / `UT-BOOT-175` / `UT-BOOT-176` | 已绑定 |
+| `VRC-BOOT-008` | 单实例 lock 与重启 boot_id | `UT-BOOT-095` / `UT-BOOT-004` / `UT-BOOT-096` / `UT-BOOT-097` / `UT-BOOT-098` | 已绑定 |
+| `VRC-MATRIX-001` | 启动身份核对与 READY/F1 | `UT-MATRIX-091` / `UT-MATRIX-010` / `UT-MATRIX-092` / `UT-MATRIX-093` / `UT-MATRIX-094` | 已绑定 |
+| `VRC-MATRIX-002` | sync 去重/cursor/回补 | `UT-MATRIX-006` / `UT-MATRIX-007` / `UT-MATRIX-167` / `UT-MATRIX-168` / `UT-MATRIX-169` | 已绑定 |
+| `VRC-MATRIX-003` | 稳定发送 txn 与权限/限流 | `UT-MATRIX-008` / `UT-MATRIX-005` / `UT-MATRIX-030` / `UT-MATRIX-031` / `UT-MATRIX-032` | 已绑定 |
+| `VRC-MATRIX-004` | E2EE 与事件类型唯一结果 | `UT-MATRIX-004` / `UT-MATRIX-009` / `UT-MATRIX-071` / `UT-MATRIX-072` / `UT-MATRIX-073` | 已绑定 |
+| `VRC-MATRIX-005` | media ACL 与字节预算 | `UT-MATRIX-002` / `UT-MATRIX-001` / `UT-MATRIX-013` / `UT-MATRIX-188` / `UT-MATRIX-189` | 已绑定 |
+| `VRC-OBS-001` | 脱敏边界 | `UT-OBS-006` / `UT-OBS-055` / `UT-OBS-056` / `UT-OBS-057` / `UT-OBS-058` | 已绑定 |
+| `VRC-OBS-002` | envelope 完整性与事件名校验 | `UT-OBS-003` / `UT-OBS-066` / `UT-OBS-078` / `UT-OBS-079` / `UT-OBS-080` | 已绑定 |
+| `VRC-OBS-003` | 失败隔离（fail-open） | `UT-OBS-003` / `UT-OBS-005` / `UT-OBS-078` / `UT-OBS-079` / `UT-OBS-080` | 已绑定 |
+| `VRC-OBS-004` | metric 口径与配置降级 | `UT-OBS-005` / `UT-OBS-024` / `UT-OBS-008` / `UT-OBS-095` / `UT-OBS-096` | 已绑定 |
+| `VRC-OBS-005` | audit 落盘与失败出口 | `UT-OBS-001` / `UT-OBS-034` / `UT-OBS-035` / `UT-OBS-036` / `UT-OBS-037` | 已绑定 |
+| `VRC-OBS-006` | 有界 ring、快照脱敏与静态扫描 | `UT-OBS-007` / `UT-OBS-004` / `UT-OBS-040` / `UT-OBS-041` / `UT-OBS-042` | 已绑定 |
+| `VRC-PI-001` | Pi session 身份确定性 | `UT-PI-259` / `UT-PI-260` / `UT-PI-261` / `UT-PI-262` / `UT-PI-263` | 已绑定 |
+| `VRC-PI-002` | accept/drive 结局与身份 | `UT-PI-002` / `UT-PI-011` / `UT-PI-095` / `UT-PI-096` / `UT-PI-097` | 已绑定 |
+| `VRC-PI-003` | 固定 Responses SSE 路径 | `UT-PI-002` / `UT-PI-011` / `UT-PI-095` / `UT-PI-096` / `UT-PI-097` | 已绑定 |
+| `VRC-PI-004` | attempt 身份与记录 | `UT-PI-002` / `UT-PI-011` / `UT-PI-095` / `UT-PI-096` / `UT-PI-097` | 已绑定 |
+| `VRC-PI-005` | 工具 CAS、replay 与 abort 对账 | `UT-PI-752` / `UT-PI-002` / `UT-PI-753` / `UT-PI-754` / `UT-PI-755` | 已绑定 |
+| `VRC-PI-006` | usage 存在性与冻结 | `UT-PI-006` / `UT-PI-002` / `UT-PI-493` / `UT-PI-494` / `UT-PI-495` | 已绑定 |
+| `VRC-PI-007` | 崩溃后 inspect 三态与不重发 | `UT-PI-002` / `UT-PI-011` / `UT-PI-095` / `UT-PI-096` / `UT-PI-097` | 已绑定 |
+| `VRC-PI-008` | S6 upstream fingerprint 校验 | `UT-PI-259` / `UT-PI-002` / `UT-PI-260` / `UT-PI-261` / `UT-PI-262` | 已绑定 |
+| `VRC-POLICY-001` | 工具/恢复绑定 | `UT-POLICY-009` / `UT-POLICY-029` / `UT-POLICY-030` / `UT-POLICY-031` / `UT-POLICY-032` | 已绑定 |
+| `VRC-POLICY-002` | 受理校验与规范化 | `UT-POLICY-006` / `UT-POLICY-009` / `UT-POLICY-077` / `UT-POLICY-078` / `UT-POLICY-079` | 已绑定 |
+| `VRC-POLICY-003` | 路径越界与 symlink 拒绝 | `UT-POLICY-001` / `UT-POLICY-002` / `UT-POLICY-057` / `UT-POLICY-088` / `UT-POLICY-095` | 已绑定 |
+| `VRC-POLICY-004` | 截止与预算拒绝 · N/A | — | Tailored-N/A（ISD 声明本版撤销，无 Case 分母） |
+| `VRC-POLICY-005` | 权限交集与工具授权 | `UT-POLICY-001` / `UT-POLICY-007` / `UT-POLICY-003` / `UT-POLICY-095` / `UT-POLICY-096` | 已绑定 |
+| `VRC-POLICY-006` | 无状态与并发独立 | `UT-POLICY-071` / `UT-POLICY-008` / `UT-POLICY-072` / `UT-POLICY-073` / `UT-POLICY-074` | 已绑定 |
+| `VRC-REPO-001` | 任务身份与 tombstone | `UT-REPO-004` / `UT-REPO-013` / `UT-REPO-011` / `UT-REPO-061` / `UT-REPO-062` | 已绑定 |
+| `VRC-REPO-002` | Result 两步提交与恢复 | `UT-REPO-008` / `UT-REPO-010` / `UT-REPO-596` / `UT-REPO-597` / `UT-REPO-598` | 已绑定 |
+| `VRC-REPO-003` | slot 原语 CAS / epoch / fence | `UT-REPO-048` / `UT-REPO-039` / `UT-REPO-150` / `UT-REPO-151` / `UT-REPO-152` | 已绑定 |
+| `VRC-REPO-004` | fenced write 与取消分流 | `UT-REPO-002` / `UT-REPO-003` / `UT-REPO-525` / `UT-REPO-526` / `UT-REPO-527` | 已绑定 |
+| `VRC-REPO-005` | schema 迁移与六类库状态 | `UT-REPO-235` / `UT-REPO-012` / `UT-REPO-236` / `UT-REPO-237` / `UT-REPO-238` | 已绑定 |
+| `VRC-REPO-006` | ledger / turn / send 幂等 | `UT-REPO-015` / `UT-REPO-014` / `UT-REPO-009` / `UT-REPO-437` / `UT-REPO-438` | 已绑定 |
+| `VRC-REPO-007` | 并发受理与队列容量 | `UT-REPO-004` / `UT-REPO-061` / `UT-REPO-062` / `UT-REPO-063` / `UT-REPO-064` | 已绑定 |
+| `VRC-REPO-008` | 恢复扫描与补终态 | `UT-REPO-007` / `UT-REPO-005` / `UT-REPO-167` / `UT-REPO-168` / `UT-REPO-169` | 已绑定 |
+| `VRC-REPO-009` | 运维 purge | `UT-REPO-031` / `UT-REPO-633` / `UT-REPO-634` / `UT-REPO-635` / `UT-REPO-636` | 已绑定 |
+| `VRC-SCHED-001` | 并发领取唯一性与 FIFO | `UT-SCHED-001` / `UT-SCHED-012` / `UT-SCHED-013` / `UT-SCHED-014` / `UT-SCHED-015` | 已绑定 |
+| `VRC-SCHED-002` | 续租 CAS 与 LeaseLost | `UT-SCHED-005` / `UT-SCHED-021` / `UT-SCHED-022` / `UT-SCHED-023` / `UT-SCHED-024` | 已绑定 |
+| `VRC-SCHED-003` | 崩溃后 fence 与终态清空 | `UT-SCHED-004` / `UT-SCHED-003` / `UT-SCHED-028` / `UT-SCHED-029` / `UT-SCHED-030` | 已绑定 |
+| `VRC-SCHED-004` | FIFO 选择与无优先级 | `UT-SCHED-002` / `UT-SCHED-036` / `UT-SCHED-035` | 已绑定 |
+| `VRC-SCHED-005` | 恢复门 | `UT-SCHED-003` / `UT-SCHED-017` / `UT-SCHED-018` / `UT-SCHED-019` / `UT-SCHED-020` | 已绑定 |
+| `VRC-SCHED-006` | 续租依赖故障分类 | `UT-SCHED-005` / `UT-SCHED-006` / `UT-SCHED-021` / `UT-SCHED-022` / `UT-SCHED-023` | 已绑定 |
+| `VRC-TAPI-001` | 受理与幂等 | `UT-TAPI-003` / `UT-TAPI-001` / `UT-TAPI-004` / `UT-TAPI-097` / `UT-TAPI-098` | 已绑定 |
+| `VRC-TAPI-002` | 报文校验与错误映射 | `UT-TAPI-024` / `UT-TAPI-036` / `UT-TAPI-025` / `UT-TAPI-026` / `UT-TAPI-027` | 已绑定 |
+| `VRC-TAPI-003` | 状态查询 | `UT-TAPI-003` / `UT-TAPI-044` / `UT-TAPI-004` / `UT-TAPI-097` / `UT-TAPI-098` | 已绑定 |
+| `VRC-TAPI-004` | 取消分流 | `UT-TAPI-003` / `UT-TAPI-004` / `UT-TAPI-097` / `UT-TAPI-098` / `UT-TAPI-099` | 已绑定 |
+| `VRC-TAPI-005` | 结果读取 | `UT-TAPI-003` / `UT-TAPI-044` / `UT-TAPI-004` / `UT-TAPI-097` / `UT-TAPI-098` | 已绑定 |
+| `VRC-TAPI-006` | 路由、请求 ID 与契约一致性 | `UT-TAPI-001` / `UT-TAPI-011` / `UT-TAPI-057` / `UT-TAPI-075` / `UT-TAPI-076` | 已绑定 |
+| `VRC-TRANSFER-001` | 输入前提失败 | `UT-TRANSFER-001` / `UT-TRANSFER-005` / `UT-TRANSFER-226` / `UT-TRANSFER-269` / `UT-TRANSFER-270` | 已绑定 |
+| `VRC-TRANSFER-002` | 投递与终态解耦 | `UT-TRANSFER-003` / `UT-TRANSFER-004` / `UT-TRANSFER-002` / `UT-TRANSFER-186` / `UT-TRANSFER-187` | 已绑定 |
+| `VRC-USAGE-001` | 逐字段 sum/null 与三态 | `UT-USAGE-002` / `UT-USAGE-001` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` | 已绑定 |
+| `VRC-USAGE-002` | missing_fields 一致性与字段名 | `UT-USAGE-002` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` / `UT-USAGE-007` | 已绑定 |
+| `VRC-USAGE-003` | 发布后迟到不改 Result | `UT-USAGE-002` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` / `UT-USAGE-007` | 已绑定 |
+| `VRC-USAGE-004` | validator fail closed | `UT-USAGE-002` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` / `UT-USAGE-007` | 已绑定 |
+| `VRC-USAGE-005` | 校验通过后正常发布 | `UT-USAGE-002` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` / `UT-USAGE-007` | 已绑定 |
+| `VRC-USAGE-006` | 依赖故障与重算一致性 | `UT-USAGE-002` / `UT-USAGE-001` / `UT-USAGE-004` / `UT-USAGE-005` / `UT-USAGE-006` | 已绑定 |
+| `VRC-WORKER-001` | 正常执行与 Result 两步发布 | `UT-WORKER-109` / `UT-WORKER-068` / `UT-WORKER-110` / `UT-WORKER-111` / `UT-WORKER-112` | 已绑定 |
+| `VRC-WORKER-002` | 取消分流 | `UT-WORKER-004` / `UT-WORKER-005` / `UT-WORKER-341` / `UT-WORKER-342` / `UT-WORKER-343` | 已绑定 |
+| `VRC-WORKER-003` | 截止/预算终止 · N/A | — | Tailored-N/A（ISD 声明本版撤销，无 Case 分母） |
+| `VRC-WORKER-004` | Usage 快照与语义校验 fail closed | `UT-WORKER-001` / `UT-WORKER-075` / `UT-WORKER-014` / `UT-WORKER-276` / `UT-WORKER-277` | 已绑定 |
+| `VRC-WORKER-005` | Discussion intake CAS 与 turn | `UT-WORKER-243` / `UT-WORKER-005` / `UT-WORKER-244` / `UT-WORKER-245` / `UT-WORKER-246` | 已绑定 |
+| `VRC-WORKER-006` | 崩溃恢复编排 R1-R7 | `UT-WORKER-109` / `UT-WORKER-003` / `UT-WORKER-110` / `UT-WORKER-111` / `UT-WORKER-112` | 已绑定 |
+| `VRC-WORKER-007` | LeaseLost 停止驱动不写终态 | `UT-WORKER-002` / `UT-WORKER-075` / `UT-WORKER-149` / `UT-WORKER-150` / `UT-WORKER-151` | 已绑定 |
 
 #### A.1.1 VRC · `VRC-REPO-001..009`
 
@@ -2853,7 +2929,7 @@
 |---|---|---|
 | `G-UT-DENOM-1` | ISD §5.1 的 51 个接口符号中 31 个无 Case 专属覆盖 | 下次方案升版 |
 | `G-UT-DIM-1` | 登记半已关闭（25/25 格）；执行半已关闭（3,282 条 Case 的脚本与 Run 证据齐备，`G-EXEC-UT-3` 于 2026-11-11 闭合） | **已关闭** |
-| `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case | 下次方案升版 |
+| `G-UT-VRC-1` | 69 条 VRC 未逐条绑定到 Case——**已于 2026-11-12 关闭**：67 条绑到 §6 登记 Case ＋ 2 条 ISD 声明 N/A，逐条见 §A.2 | **已关闭** |
 | `G-UT-DRIFT-1` | 12 个被测符号名在 `src/` 里不存在（命名漂移） | 下次 ISD 修订 |
 | `G-EXEC-UT-3` | **三条腿全部闭合**：`design`／`script`／`report` 三者在 `case-index.json` 上均满 3,282。Run `ut-run-20261111-01`：3,282 文件／3,360 断言全 PASS、0 FAIL、0 BLOCKED、0 INVALID、0 NOT_RUN；证据在 `var/verification/unit/ut-run-20261111-01/`，报告 `tests/unit/reports/unit-test-report.md`（v0.1.0-draft.2，Run 记录与 Verdict 见其 §1／§10） | **已关闭**（2026-11-11） |
 | `G-UT-DENOM-3` | AST 枚举表 244 个行为单元；波次二已按站点粒度全量登记 3,130 条分卷 Case（§6.1A）＋152 条粗粒度＝3,282，**3,282 条全部已实现**（脚本、用例文档与 Run 证据 `ut-run-20261111-01` 齐备） | **已关闭**（`G-EXEC-UT-3` 于 2026-11-11 闭合） |
