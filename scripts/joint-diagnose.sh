@@ -14,7 +14,9 @@ DATA=$(cat "$HOME/piko-secrets/llmtier-joint-data-token")
 ADMIN=$(cat "$HOME/piko-secrets/llmtier-joint-admin-token")
 OMLX_KEY=$(cat "$HOME/piko-secrets/piko-llm-key")
 PIKO="${PIKO_URL:-http://127.0.0.1:8788}"
-TIER="${TIER_URL:-http://192.168.1.8:8180}"
+# TIER_URL must be set by the caller: the LLMTier host is deployment-specific
+# and must never be baked into the script (see tools/check_env_leakage.py).
+TIER="${TIER_URL:?TIER_URL is required, e.g. TIER_URL=http://<llmtier-host>:<port>}"
 
 echo "== 1. Piko run/result =="
 VIEW=$(curl -s -m 5 "$PIKO/runs/$RID" -H "Authorization: Bearer $BEARER")

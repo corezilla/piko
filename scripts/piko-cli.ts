@@ -45,7 +45,7 @@
 //
 // Examples:
 //   tsx scripts/piko-cli.ts run "write the answer to reports/result.json"
-//   tsx scripts/piko-cli.ts run "run 'cat /etc/hostname' on a7048@192.168.1.7 via remote_bash and write it to reports/host.json" --output-file reports/host.json
+//   tsx scripts/piko-cli.ts run "run 'cat /etc/hostname' on a7048@<hostname> via remote_bash and write it to reports/host.json" --output-file reports/host.json
 //   tsx scripts/piko-cli.ts status  my-task-001
 //   tsx scripts/piko-cli.ts result my-task-001 --json
 //   tsx scripts/piko-cli.ts repl

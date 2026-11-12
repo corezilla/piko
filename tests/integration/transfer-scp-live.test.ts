@@ -9,7 +9,7 @@ import type { RuntimeConfig } from "../../src/types.js";
 
 /**
  * Real scp data-plane e2e against a live remote host, opt-in via
- * PIKO_SCP_REMOTE (e.g. "mlp@192.168.1.9:"). Uses a hermetic home with a pinned
+ * PIKO_SCP_REMOTE (e.g. "mlp@<hostname>:"). Uses a hermetic home with a pinned
  * known_hosts and the private key via credential_ref — never touches ~/.ssh.
  * Skipped when PIKO_SCP_REMOTE is unset (default CI/local run).
  */

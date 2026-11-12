@@ -24,6 +24,9 @@
 set -euo pipefail
 
 M5AIR_HOST="${M5AIR_HOST:-m5air}"
+# The HIFM test target. Named, never an IP: the SSH client must resolve it and
+# the pinned host key is what makes it trustworthy.
+A7048_HOST="${A7048_HOST:?A7048_HOST is required (host name, e.g. a7048)}"
 M5AIR_ROOT="${M5AIR_ROOT:-/Users/mlp/work/piko}"
 PIKO_PORT="${PIKO_PORT:-8787}"
 OMLX_PORT="${OMLX_PORT:-9000}"
@@ -62,7 +65,7 @@ rsync -az vitest.config.ts vitest.live.config.ts package.json tsconfig.json \
 #     on the host, so piko has a reachable SSH target for local smoke tests.
 #   - a7048 (the HIFM inference host): the workstation's key, which is
 #     already in a7048's authorized_keys. A7048 is Linux/Ubuntu, user
-#     "a7048", at 192.168.1.7; its host key is pinned from the workstation's
+#     "a7048", reached by name; its host key is pinned from the workstation's
 #     known_hosts (NOT accept-new) so the pin is authoritative.
 echo "[deploy] preparing SSH credentials for remote execution"
 ssh "$M5AIR_HOST" "mkdir -p '${M5AIR_ROOT}/var/keys' '${M5AIR_ROOT}/var/staging' '${M5AIR_ROOT}/var/pi-sessions' '${M5AIR_ROOT}/var/ws-m5air/reports' && chmod 700 '${M5AIR_ROOT}/var/keys'"
@@ -119,14 +122,14 @@ print('  runtime.example.json configured')
 PY"
 
 # The tool profile's remote_hosts must name the host as the SSH client will
-# address it: "a7048@192.168.1.7" (A7048 is Linux, user "a7048").
+# address it: "a7048@<hostname>" (A7048 is Linux, user "a7048").
 ssh "$M5AIR_HOST" "cd '${M5AIR_ROOT}' && python3 - <<'PY'
 import json, pathlib
 p = pathlib.Path('config/tool-profiles.json')
 d = json.loads(p.read_text())
 tool = d['profiles']['workspace-exec']['tools'].get('remote_bash')
 if tool is not None:
-    tool['permissions']['remote_hosts'] = ['a7048@192.168.1.7', 'a7048', 'm5air', 'localhost']
+    tool['permissions']['remote_hosts'] = ['a7048@${A7048_HOST}', 'a7048', 'm5air', 'localhost']
     p.write_text(json.dumps(d, indent=2))
     print('  tool-profiles.json remote_hosts configured')
 PY"

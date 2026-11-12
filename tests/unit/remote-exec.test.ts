@@ -198,7 +198,7 @@ describe("MECH-TESTEXEC · ssh client failure vs remote command failure", () => 
       cfg,
       spawner({
         exitCode: 255,
-        stderr: "ssh: connect to host 192.168.1.99 port 22: Operation timed out\n",
+        stderr: "ssh: connect to host unreachable.invalid port 22: Operation timed out\n",
       }),
     );
     expect(result.transport_failed).toBe(true);

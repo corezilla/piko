@@ -94,7 +94,7 @@ const TERMINAL_RESULT = {
   executions: [
     {
       tool_call_id: null,
-      command: "a7048@192.168.1.7: cat /etc/hostname",
+      command: "a7048@a7048.example: cat /etc/hostname",
       exit_code: 0,
       status: "exited",
       output: "a7048-Super-Server\n",

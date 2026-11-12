@@ -5,14 +5,16 @@
 # without losing the property Piko actually depends on: a real Matrix server to
 # verify discussion intake/reply and fail-closed membership loss.
 #
-#   ./scripts/matrix-homeserver.sh up   mlp@192.168.1.9
-#   ./scripts/matrix-homeserver.sh pull mlp@192.168.1.9 /tmp/m5air-matrix
+#   ./scripts/matrix-homeserver.sh up   mlp@<hostname>
+#   ./scripts/matrix-homeserver.sh pull mlp@<hostname> /tmp/m5air-matrix
 #
 # Idempotent: re-running up keeps users/tokens and only recreates the room when
 # asked. Nothing here touches ~/.ssh; it only uses the caller's existing access.
 set -euo pipefail
 
-REMOTE="${2:-mlp@192.168.1.9}"
+# The remote host is deployment-specific. Never bake an address in: pass it as
+# the 2nd argument or via PIKO_REMOTE_HOST, and always by NAME, not by IP.
+REMOTE="${2:-${PIKO_REMOTE_HOST:?PIKO_REMOTE_HOST is required (host name, e.g. mlp@hostname)}}"
 DIR="${3:-/tmp/m5air-matrix}"
 # Remote-side paths, resolved against the remote account's home so the local
 # $HOME can never leak in. `~` inside a quoted ssh command is NOT expanded by
