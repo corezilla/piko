@@ -60,6 +60,10 @@
   （`ST-DATA-006`、`ST-SEC-002..005`、`ST-REC-001/002`、`ST-MIG-001/002`、`ST-ABS-002`、
   `ST-OBS-002/003`、`ST-DEP-002..004`、`ST-ADM-002/003`）落在 `tests/system/st-dimension-cells.test.ts`。
 - **维度覆盖**：35/35 格（100%），`G-ST-DIM-1` 于 2026-11-12 关闭。
+- **真 scp 链路（`run-20261112-02`）**：`transfer-scp-live.test.ts` 对**真实 sshd**（临时密钥、
+  pin 的 known_hosts、loopback 高位端口）执行 **2 例，PASS 2、FAIL 0**。这是真正的 scp 数据面，
+  不是替身。证据 `var/verification/system/run-20261112-02/`。
+- **仍未覆盖**：真模型（oMLX）与真 Matrix（Synapse）两条链路本机无对应服务，保持 `待重验`。
 - **Gate**：**条件接受（系统层）**——本轮 21 例全 PASS 且维度格全登记，但**实机链路（真模型/真 Matrix/真 scp）
   本轮未重跑**，仍是上一轮 `run-20261011-03` 的证据，基线 `35ddd24` 落后 HEAD 108 个 commit，按
   「结果绑定基线」规则标**待重验**，不以本轮纯内存结果替代。
@@ -145,8 +149,9 @@
 ## 5. 覆盖复算（对照方案分母）
 
 - **方案分母**：`system-test-scheme` §6 登记 21 条系统层 Case 分母，逐 Case 文档 21 份已全部撰写。
-- **本 Run 覆盖**：方案 §6.1 的 **38 条** Case 全部 `Implemented`；本 Run 执行的 21 例全 PASS，
-  维度格 35/35（100%）。实机链路（真模型 ×2、真 Matrix、真 scp）依赖外部环境，本轮未重跑，标 `待重验`。
+- **本 Run 覆盖**：方案 §6.1 的 **38 条** Case 全部 `Implemented`；本轮执行的 21 例全 PASS，
+  维度格 35/35（100%）。**真 scp 链路已按当前基线重跑并通过（2/2）**；真模型（oMLX）与真 Matrix（Synapse）
+  本机无服务，仍标 `待重验`，不以纯内存结果替代。
 - **口径**：模块内细粒度由 `module-test-report` 覆盖，单元级由 `unit-test-report` 覆盖，三层不重复计数。
 
 #### 5.1 复算 · ⟨方案来源 ID⟩

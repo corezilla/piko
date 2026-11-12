@@ -4,7 +4,7 @@
   "document_id": "system-test-report",
   "document_version": "0.1.0-draft.2",
   "total": 17,
-  "conformed": 7,
+  "conformed": 8,
   "items": [
     {
       "id": "被审报告对应的 scheme 清单版本与 plan Run ID 一致，无混版",
@@ -24,9 +24,8 @@
     },
     {
       "id": "NOT_RUN/BLOCKED/INVALID 如实保留并写明原因与承接去向",
-      "result": "deviation",
-      "evidence": "实机链路（真模型/真 Matrix/真 scp）本轮未重跑，标待重验",
-      "deviation_id": "G-ST-REPORT-2"
+      "result": "conformed",
+      "evidence": "真 scp 链路已按当前基线重跑通过（run-20261112-02，2/2 PASS）；真模型与真 Matrix 两条链路本机无服务，报告 §1 明记「待重验」并给出承接去向"
     },
     {
       "id": "Verdict 与原始证据一致（抽查 ≥3 条含至少一条失败或非 PASS）",
@@ -42,7 +41,7 @@
     {
       "id": "无效执行（未命中、环境错配）单独标记，不计入有效样本",
       "result": "na",
-      "evidence": "INVALID 0 条"
+      "evidence": "本轮无 INVALID 样本；scp 链路为真实执行，非无效"
     },
     {
       "id": "偶发失败的复现状态与修复状态分开记录，无因果证据只能标未复现",
