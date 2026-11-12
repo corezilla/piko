@@ -12,9 +12,12 @@
 # asked. Nothing here touches ~/.ssh; it only uses the caller's existing access.
 set -euo pipefail
 
+# One loader for every address; see config/hosts.env.example.
+. "$(cd "$(dirname "$0")" && pwd)/load-env.sh"
 # The remote host is deployment-specific. Never bake an address in: pass it as
-# the 2nd argument or via PIKO_REMOTE_HOST, and always by NAME, not by IP.
-REMOTE="${2:-${PIKO_REMOTE_HOST:?PIKO_REMOTE_HOST is required (host name, e.g. mlp@hostname)}}"
+# the 2nd argument or set PIKO_REMOTE_HOST, and always by NAME, not by IP.
+REMOTE="${2:-${PIKO_REMOTE_HOST:-}}"
+piko_require PIKO_REMOTE_HOST "Pass the host as the 2nd argument or set PIKO_REMOTE_HOST (host name, e.g. mlp@m5air)." || exit 1
 DIR="${3:-/tmp/m5air-matrix}"
 # Remote-side paths, resolved against the remote account's home so the local
 # $HOME can never leak in. `~` inside a quoted ssh command is NOT expanded by

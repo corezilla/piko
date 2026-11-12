@@ -6,6 +6,10 @@ config/runtime.json
 .DS_Store
 .pytest_cache/
 config/runtime*.json
+# Per-machine host names and addresses; the example is committed.
+config/hosts.env
+# Local secrets.
+.env
 
 # Local scratch / credential handoff files
 .git-tmp-*

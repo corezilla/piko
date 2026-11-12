@@ -5,7 +5,9 @@
 #   1 Piko run/result   2 Piko prompt(会话JSONL)   3 LLMTier logs(窗口)
 #   4 LLMTier usage     5 oMLX 直连                6 结论
 set -u
-cd /Users/ben/work/piko
+# One loader for every address and secret; see config/hosts.env.example.
+. "$(cd "$(dirname "$0")" && pwd)/load-env.sh"
+cd "${PIKO_REPO_ROOT:?PIKO_REPO_ROOT is required}"
 RID="${1:?usage: joint-diagnose.sh <run_id>}"
 DB="${PIKO_SQLITE_PATH:-$PWD/var/piko-llmtier-joint.sqlite}"
 SESSIONS="${PIKO_SESSION_ROOT:-$PWD/var/pi-sessions-llmtier-joint}"
@@ -13,10 +15,11 @@ BEARER=$(cat "$HOME/piko-secrets/piko-api-bearer")
 DATA=$(cat "$HOME/piko-secrets/llmtier-joint-data-token")
 ADMIN=$(cat "$HOME/piko-secrets/llmtier-joint-admin-token")
 OMLX_KEY=$(cat "$HOME/piko-secrets/piko-llm-key")
-PIKO="${PIKO_URL:-http://127.0.0.1:8788}"
-# TIER_URL must be set by the caller: the LLMTier host is deployment-specific
-# and must never be baked into the script (see tools/check_env_leakage.py).
-TIER="${TIER_URL:?TIER_URL is required, e.g. TIER_URL=http://<llmtier-host>:<port>}"
+PIKO="$PIKO_URL"
+# TIER_URL resolves through load-env.sh: loopback by default, overridable in
+# config/hosts.env or the environment. Never baked into this script.
+piko_require TIER_URL || exit 1
+TIER="$TIER_URL"
 
 echo "== 1. Piko run/result =="
 VIEW=$(curl -s -m 5 "$PIKO/runs/$RID" -H "Authorization: Bearer $BEARER")

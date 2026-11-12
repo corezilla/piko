@@ -100,6 +100,8 @@ Other mappings are in `template-selection.md`.
 | `docs/80_operations/` | `operations.*` |
 | `docs/91_reviews/` | `review.packet` |
 | `interfaces/openapi/`, `interfaces/schemas/`, `interfaces/error-codes/` | Contract artifacts (separate from STD docs) |
+| `scripts/load-env.sh` | **The one place addresses and secrets are read.** Caller env > `config/hosts.env` > loopback defaults. |
+| `config/hosts.env.example` | Host names template; copy to `config/hosts.env` (gitignored). Never an IP. |
 
 ## 6. Hard Rules
 
@@ -108,7 +110,11 @@ Other mappings are in `template-selection.md`.
 3. **Never** fabricate Reviewer / Approver / Approval Date / Git commit hash inside a doc body. Those go in sidecar metadata or are filled when the doc actually reaches that state.
 4. **Never** skip running `validate-design` before commit. Resolve every `[new]` issue or document why it is inherited from a pre-STD era.
 5. **Never** skip the STD chain: read `docs/authoring-index.md` → obey its obligations → write per the template → run the template's review checklist → **submit the checklist result** (document + `*.checklist-result.json`). **"每函数一条" does not close the matrix** (STD `templates/review/unit-test-review-checklist.md` §5): every function × its parameter classes (valid/boundary/invalid) + error paths + resource release, one Case per cell.
-6. **Never** report a document task as done without the checklist result submitted. An unchecked checklist writes `0`/`0`; a fabricated "all green" is worse than an empty field.
+6. **Never** write an IP address into a script, test, config or doc. This machine is
+   `localhost` / `127.0.0.1`; every other host is named and read through
+   `scripts/load-env.sh`. `npm run check` fails on a baked-in address
+   (`scripts/check-no-hardcoded-ip.py`). The topology moves; a literal address does not.
+7. **Never** report a document task as done without the checklist result submitted. An unchecked checklist writes `0`/`0`; a fabricated "all green" is worse than an empty field.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

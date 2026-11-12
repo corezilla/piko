@@ -47,6 +47,12 @@ ALLOWED = {"127.0.0.1", "0.0.0.0", "255.255.255.255"}
 RESERVED_PREFIXES = ("192.0.2.", "198.51.100.", "203.0.113.")
 
 
+# The guard and its own test contain address-shaped strings ON PURPOSE: they
+# are the fixtures that prove the guard fires. Flagging them would make the
+# check fail on itself, so they are skipped by name.
+SELF = {"check-no-hardcoded-ip.py", "check-no-hardcoded-ip.test.ts"}
+
+
 def iter_files(paths: list[str]) -> list[Path]:
     if not paths:
         return [
@@ -55,11 +61,12 @@ def iter_files(paths: list[str]) -> list[Path]:
             if p.is_file()
             and p.suffix in SUFFIXES
             and not any(part in SKIP_DIRS for part in p.parts)
+            and p.name not in SELF
         ]
     out: list[Path] = []
     for raw in paths:
         p = Path(raw)
-        out.extend([p] if p.is_file() else [q for q in p.rglob("*") if q.is_file()])
+        out.extend([p] if p.is_file() else [q for q in p.rglob("*") if q.is_file() and q.name not in SELF])
     return out
 
 

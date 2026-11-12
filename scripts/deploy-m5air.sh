@@ -26,7 +26,8 @@ set -euo pipefail
 M5AIR_HOST="${M5AIR_HOST:-m5air}"
 # The HIFM test target. Named, never an IP: the SSH client must resolve it and
 # the pinned host key is what makes it trustworthy.
-A7048_HOST="${A7048_HOST:?A7048_HOST is required (host name, e.g. a7048)}"
+. "$(cd "$(dirname "$0")" && pwd)/load-env.sh"
+piko_require A7048_HOST "Set A7048_HOST to the HIFM test target's host name (e.g. a7048), never its IP." || exit 1
 M5AIR_ROOT="${M5AIR_ROOT:-/Users/mlp/work/piko}"
 PIKO_PORT="${PIKO_PORT:-8787}"
 OMLX_PORT="${OMLX_PORT:-9000}"

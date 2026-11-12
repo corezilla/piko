@@ -18,9 +18,11 @@
     "check:coverage": "python3 /Users/ben/work/STD/scripts/validate-coverage --project-root .",
     "check:checklist": "python3 /Users/ben/work/STD/scripts/validate-checklist --project-root .",
     "test:scenario": "vitest run --config vitest.live.config.ts tests/integration/scenario-e2e.test.ts",
-    "test:live": "vitest run --config vitest.live.config.ts",
-    "test:xfer": "PIKO_SCP_REMOTE=${PIKO_SCP_REMOTE:-} vitest run tests/integration/transfer-scp-live.test.ts",
-    "check:noip": "python3 scripts/check-no-hardcoded-ip.py"
+    "test:live": "set -a; . ./scripts/load-env.sh; set +a; vitest run --config vitest.live.config.ts",
+    "test:xfer": "set -a; . ./scripts/load-env.sh; set +a; vitest run --config vitest.live.config.ts tests/integration/transfer-scp-live.test.ts",
+    "check:noip": "python3 scripts/check-no-hardcoded-ip.py",
+    "env": "bash scripts/load-env.sh --show",
+    "env:example": "test -f config/hosts.env || cp config/hosts.env.example config/hosts.env"
   },
   "dependencies": {
     "ajv": "8.17.1",

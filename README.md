@@ -8,7 +8,24 @@ Requires Node.js 22.19 or newer. Copy `config/runtime.example.json` to `config/r
 
 ```sh
 npm install
-PIKO_API_BEARER=... PIKO_LLM_API_KEY=... npm start
+npm run env:example     # creates config/hosts.env from the example
+npm start               # secrets come from .env (gitignored), addresses from config/hosts.env
+```
+
+**Addresses and secrets have one entry point: `scripts/load-env.sh`.**
+
+- This machine is `localhost` / `127.0.0.1`.
+- Any other host is named — `A7048_HOST`, `PIKO_REMOTE_HOST` — never written as an IP.
+  An IP names one box on one network at one moment; when the topology moved between
+  the m5pro and m5air setups, every hardcoded address silently pointed at the wrong machine.
+- Precedence is caller > `config/hosts.env` > built-in defaults, and the only built-in
+  defaults are loopback.
+- `npm run env` shows what resolved. `npm run check` fails if a script bakes an address in
+  (`scripts/check-no-hardcoded-ip.py`).
+
+```sh
+npm run env                                          # inspect
+TIER_URL=http://localhost:8181 npm run test:live     # one-off override, wins over the file
 ```
 
 The pinned Pi checkout lives at `upstream/pi` (commit `9767ba2…`). On a fresh checkout, install that checkout's locked dependencies and apply `patches/pi-v0.85.1-piko.patch` there before starting Piko; startup verifies the Pi commit, patch markers, and hashed adapter manifest.
