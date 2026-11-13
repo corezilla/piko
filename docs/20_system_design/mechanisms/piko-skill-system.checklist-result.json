@@ -1,0 +1,126 @@
+{
+  "schema_version": "std-checklist-result.v1",
+  "checklist_id": "review.system-design-review-checklist",
+  "document_id": "piko-skill-system",
+  "document_version": "0.1.0-draft.1",
+  "total": 22,
+  "conformed": 13,
+  "items": [
+    {
+      "id": "被审文档版本与上游引用版本互相对应（同一轮基线），无混版",
+      "result": "conformed",
+      "evidence": "v0.1.0-draft.1 引用 piko-system-design 与 pinned Pi checkout（9767ba2）；无混版"
+    },
+    {
+      "id": "评审范围声明完整：覆盖的章节/条目全集与显式排除项都在册",
+      "result": "conformed",
+      "evidence": "§2.2 能力表覆盖 CAP-SKILL-1..7；§2.2 末尾列出不提供的能力；附录 A 记 tailoring"
+    },
+    {
+      "id": "需求功能点→设计验证项承接无孤儿（双向：需求无落点、设计无来源都记问题）",
+      "result": "deviation",
+      "evidence": "V2+ 的 Behavior/Evolution 尚无编号需求（PK-xx）；本机制承接的是职业技能的口头需求，需求侧需补 ID",
+      "deviation_id": "G-SKILL-REQ-1"
+    },
+    {
+      "id": "每条架构决定有 ADR 引用或说明不需要理由；负向需求在设计有结构性防回归落点",
+      "result": "conformed",
+      "evidence": "§16.1 决定记录 5 条含理由；§11.2 明确技能不得授权作为负向约束"
+    },
+    {
+      "id": "未承接需求段落回流需求侧或记未决项，不由测试侧代拟",
+      "result": "conformed",
+      "evidence": "§16 RISK-SKILL-005 记录契约版本未决，归属明确"
+    },
+    {
+      "id": "架构视图与决策要点完整：组件、连接、部署形态、职责边界",
+      "result": "conformed",
+      "evidence": "§3 参与方表 + 图 M-SKILL-1；§13.4 部署"
+    },
+    {
+      "id": "系统接口清单全量登记并与 contracts/interfaces 对应",
+      "result": "deviation",
+      "evidence": "SkillProfile 的 JSON Schema 还未建（Planned，§4.3.1 注明）",
+      "deviation_id": "G-SKILL-SCHEMA-1"
+    },
+    {
+      "id": "外部可观察预算有数字与口径（吞吐/时延/资源/成本）",
+      "result": "na",
+      "evidence": "本机制无外部性能预算；启动期加载，无请求路径开销"
+    },
+    {
+      "id": "系统机制（system-mechanism）声明与效果链齐备",
+      "result": "conformed",
+      "evidence": "§1 输入→处理→输出 + 图 M-SKILL-0；§3 authority 结论"
+    },
+    {
+      "id": "§3.6.1 旅程登记、§11.2 计费面、§13.2 访问矩阵三节存在且逐格有内容",
+      "result": "na",
+      "evidence": "本机制文档不是系统设计本体，三节归属 piko-system-design"
+    },
+    {
+      "id": "不做清单（shall-not）与退役/absence 红线显式",
+      "result": "conformed",
+      "evidence": "§2.2 末尾不提供的能力；§11.2 权限不扩张"
+    },
+    {
+      "id": "§8.4 命令/页面级交互面与下层模块控件清单闭合",
+      "result": "na",
+      "evidence": "本机制无 UI/命令面"
+    },
+    {
+      "id": "行类别矩阵唯一维护在模块设计 §3.N；§8.4 页面级只作引用登记",
+      "result": "na",
+      "evidence": "无交互面"
+    },
+    {
+      "id": "公开交互面逐命令/逐参数枚举为验证项",
+      "result": "na",
+      "evidence": "无 CLI/UI 面；对外契约只有 profile 配置"
+    },
+    {
+      "id": "每个设计验证项映射到 ST 家族可断言",
+      "result": "deviation",
+      "evidence": "VR-SKILL-1..8 已在 §15.1 给出，但系统中尚无对应 ST Case",
+      "deviation_id": "G-SKILL-VR-1"
+    },
+    {
+      "id": "预算数字给统计口径与测量方法",
+      "result": "na",
+      "evidence": "无预算类指标"
+    },
+    {
+      "id": "难触发场景有公开布景路径（真实依赖或模拟器），不依赖内部状态",
+      "result": "conformed",
+      "evidence": "§15.1 全部用单测/集成；技能目录为文件系统可直接布景"
+    },
+    {
+      "id": "图/正文/契约三处接口集合一致；版本引用闭环",
+      "result": "conformed",
+      "evidence": "§5.1 四个函数与 §4.3.1 结构一致；契约待建已在 RISK-SKILL-005 记录"
+    },
+    {
+      "id": "与子系统设计的承接关系无冲突表述",
+      "result": "conformed",
+      "evidence": "Piko 无 subsystem（系统设计 §4）；本机制为直属机制"
+    },
+    {
+      "id": "（逐条登记，见下表）",
+      "result": "conformed",
+      "evidence": "§16 风险表 7 条，每条有 Owner 与关闭条件"
+    },
+    {
+      "id": "Review Verdict、未关闭 Critical 计数与放行范围三者一致",
+      "result": "conformed",
+      "evidence": "§16 + 文档末尾 Review Decision"
+    },
+    {
+      "id": "放行范围落到条目/段落粒度，能据此裁剪下游工作",
+      "result": "conformed",
+      "evidence": "CAP-SKILL-1..7 逐条标 Implemented/Planned"
+    }
+  ],
+  "executed_at": "2026-11-12T10:00:00Z",
+  "executed_by": "Claude",
+  "review_decision_ref": null
+}
