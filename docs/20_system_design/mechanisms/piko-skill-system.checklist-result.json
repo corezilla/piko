@@ -2,7 +2,7 @@
   "schema_version": "std-checklist-result.v1",
   "checklist_id": "review.system-design-review-checklist",
   "document_id": "piko-skill-system",
-  "document_version": "0.1.0-draft.1",
+  "document_version": "0.1.0-draft.2",
   "total": 22,
   "conformed": 13,
   "items": [
@@ -25,7 +25,7 @@
     {
       "id": "每条架构决定有 ADR 引用或说明不需要理由；负向需求在设计有结构性防回归落点",
       "result": "conformed",
-      "evidence": "§16.1 决定记录 5 条含理由；§11.2 明确技能不得授权作为负向约束"
+      "evidence": "§16.1 决定记录 5 条含理由；§11.2 明确\"技能可见性即其权限\"——profile 清单是白名单，不存在技能提权问题（已按评审意见移除原依赖声明/校验设计）"
     },
     {
       "id": "未承接需求段落回流需求侧或记未决项，不由测试侧代拟",
@@ -120,7 +120,7 @@
       "evidence": "CAP-SKILL-1..7 逐条标 Implemented/Planned"
     }
   ],
-  "executed_at": "2026-11-12T10:00:00Z",
+  "executed_at": "2026-11-13T09:00:00Z",
   "executed_by": "Claude",
   "review_decision_ref": null
 }

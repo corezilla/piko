@@ -7,11 +7,11 @@
 | 文档字段 | 值 |
 |---|---|
 | Document ID | `piko-skill-system` |
-| Document Version | `0.1.0-draft.1` |
+| Document Version | `0.1.0-draft.2` |
 | Status | `Draft` |
 | Project | `piko` |
 | Document Owner | Piko Architecture |
-| Last Modified Date | `2026-11-12` |
+| Last Modified Date | `2026-11-13` |
 | Template ID | `design.system-mechanism` |
 | Template Version | `3.4.0` |
 <!-- STD_DOCUMENT_COVER_END -->
@@ -66,7 +66,7 @@ Slinky 启动一个 Piko 实例时，会告诉它"你这次是测试工程师"�
 变更，L3 随工作累积而变。把它们混成一个机制，就会让"升级 Piko"和"换个角色"互相牵连。
 
 **核心输入 → 处理 → 输出**：输入是一个 profile（指明技能目录在哪里、本角色加载哪些技能）＋ 一次
-任务；处理是"按 profile 解析技能清单 → 从外部目录加载 SKILL.md → 校验依赖是否齐备 → 与项目经验
+任务；处理是"按 profile 解析技能清单 → 从外部目录加载 SKILL.md → 与项目经验
 一起装配进系统提示"；输出是交给 Pi AgentHarness 的 `resources.skills` 与系统提示中的技能区块。
 
 **最重要的取舍**：技能内容**不内置在 Piko 仓库里**，而是放在 Slinky 管理的外部目录，由 profile 指路。
@@ -139,9 +139,9 @@ flowchart LR
 **S-4 技能目录里有个坏文件**：某个 `SKILL.md` 的 frontmatter 缺 `description`。Pi 的 `loadSkills()`
 返回诊断而不抛异常。**可观察结果**：该技能不进提示，其余技能正常工作，诊断记入观测。
 
-**S-5 技能声明的工具没给**：某角色技能要求 `matrix_send`，但本任务的 `tool_profile_ref` 没有它。
-**可观察结果**：按本机制决策（§8 不变量 INV-SKILL-3）加载期拒绝该技能或整份 profile，不静默
-放进一个"模型会去调用不存在工具"的提示里。
+**S-5 清单外的技能**：某角色技能在技能目录里，但不在 profile 的 `skills[]` 里。
+**可观察结果**：该技能**不加载、不进提示**——agent 看不到它。技能与工具权限是两层：
+"看得见哪些能力"由 profile 决定，"能动手碰什么"由任务权限决定（§11.2）。
 
 ### 2.2 能力表
 
@@ -151,7 +151,7 @@ flowchart LR
 | CAP-SKILL-2 · 公共技能强制加载 | 任意 profile | 公共技能集合不可被 profile 排除 | 提供：M006；消费：AgentHarness | **Planned** | VR-SKILL-2 |
 | CAP-SKILL-3 · 角色技能按清单加载 | profile 的 `skills[]` 含角色目录 | 只有清单内的角色技能被加载 | 提供：M006；消费：AgentHarness | **Planned** | VR-SKILL-3 |
 | CAP-SKILL-4 · 项目经验预取 | 任务开始 | `mem0.search(instruction, user_id=role:project)` 结果注入 | 提供：M006；消费：AgentHarness | **Implemented**（V0.1.3，`src/skill-prefetch.ts`） | VR-SKILL-4 |
-| CAP-SKILL-5 · 技能依赖校验 | 加载期 | skill 声明的 tools/paths 与任务权限比对 | 提供：M006 + M002 policy | **Planned** | VR-SKILL-5 |
+| CAP-SKILL-5 · 技能可见性受 profile 约束 | 装配期 | 只加载 `skills[]` 匹配项；清单外的技能不出现 | 提供：M006；消费：AgentHarness | **Planned** | VR-SKILL-3/5 |
 | CAP-SKILL-6 · 加载失败降级 | 目录不可读 / 诊断 warning | 任务继续，无技能运行，失败记入观测 | 提供：M006；消费：M009 observability | **Planned** | VR-SKILL-6 |
 | CAP-SKILL-7 · 技能事实进 Result | 任务结束 | 本次用了哪些技能、命中几条经验 | 提供：M006；消费：M005 worker / M003 | **Planned** | VR-SKILL-7 |
 
@@ -196,7 +196,7 @@ V0.1 已实现的是**第三层（项目经验）**：`src/skill-prefetch.ts` + 
 |---|---|---|---|---|---|
 | **Slinky**（角色编排者） | 负责：决定某实例扮演什么角色、该角色加载哪些技能；持有技能目录 | **决定**：profile 内容、触发角色切换 | 提供 `skill_profile`（经启动参数或 RuntimeConfig） | Piko 之外 | 无（外部系统） |
 | **外部技能目录**（文件系统） | 负责：存放 `SKILL.md`；不负责解释语义 | **事实来源**：技能正文与 frontmatter | 被 `loadSkills()` 读取 | Slinky 管理的路径 | 无 |
-| **Piko · M006 pi-adapter** | 负责：解析 profile、调用 `loadSkills()`、校验依赖、装配 `resources.skills`、注入系统提示 | **执行**：装配；**不决定**技能内容 | 提供 `skillProfile → Skill[]`；消费 Mem0 检索结果 | `src/pi-runtime.ts` | MECH-RUN（任务生命周期） |
+| **Piko · M006 pi-adapter** | 负责：解析 profile、调用 `loadSkills()`、装配 `resources.skills`、注入系统提示 | **执行**：装配；**不决定**技能内容 | 提供 `skillProfile → Skill[]`；消费 Mem0 检索结果 | `src/pi-runtime.ts` | MECH-RUN（任务生命周期） |
 | **Piko · M002 policy** | 负责：判定某任务能否访问某路径/工具 | **决定**：权限判定 | 提供 `authorizePath` / tool-profile 解析 | `src/policy.ts` | MECH-RUN |
 | **Piko · M009 observability** | 负责：记录技能加载诊断与命中事实 | **执行**：记录 | 消费 skill 加载结果 | `src/observability.ts` | 无 |
 | **Mem0**（外部记忆） | 负责：按 `user_id` 存取经验；不负责判定"哪条相关" | **事实来源**：L3 项目经验 | `search` / `add` HTTP | Slinky 或自托管 | 无 |
@@ -259,10 +259,10 @@ flowchart TB
 | Constraint ID / 上级基线与决定状态 | 适用条件 | 系统保证/分配 | 参与方承接与自由度 | 流程/协议/下级落实位置 | 组合验证与证据状态 | 差距/变更影响/裁决责任 |
 |---|---|---|---|---|---|---|
 | CON-SKILL-001 技能目录只读（Piko 不写、不改、不删） | 恒定 | Piko 对技能目录**零写权限** | M006：只用 `loadSkills` 读，不提供写接口 | §4.1.2 / §8 INV-SKILL-2 | VR-SKILL-8 | 无 |
-| CON-SKILL-002 技能不得授予权限 | 恒定 | 技能声明的依赖只用于**校验**，不改变任务权限 | M002 为唯一权限裁决者；M006 只问"在不在" | §5.1.3 / §11.2 | VR-SKILL-5 | 无 |
+| CON-SKILL-002 技能可见性由 profile 决定 | 恒定 | 不在 `skills[]` 的技能不加载、不进提示 | M006 只装配清单匹配项 | §11.2 / §8 INV-SKILL-3 | VR-SKILL-3/5 | 无 |
 | CON-SKILL-003 公共技能不可被 profile 排除 | 恒定 | L1 恒加载 | M006 装配顺序固定 | §5.1.2 / §8 INV-SKILL-1 | VR-SKILL-2 | 无 |
 | CON-SKILL-004 profile.role 与 identity.role 必须一致 | 恒定 | 启动期 fail-fast | M000 启动校验 | §4.3.1 C-2 / §8 INV-SKILL-4 | VR-SKILL-1 | 无 |
-| CON-SKILL-005 技能装配失败不阻断任务（除 strict） | 恒定 | 降级为无技能运行并记诊断 | M006 装配与 M005 执行解耦 | §7.1 BR-SKILL-4/5 / §9.1 | VR-SKILL-6 | 无 |
+| CON-SKILL-005 技能装配失败不阻断任务 | 恒定 | 降级为无技能运行并记诊断 | M006 装配与 M005 执行解耦 | §7.1 BR-SKILL-2 / §9.1 | VR-SKILL-6 | 无 |
 | CON-SKILL-006 技能装配纯函数性 | 恒定 | 同 profile ＋ 同目录 ⇒ 同 `Skill[]` | M006 不得引入时间/随机/调用序依赖 | §8 INV-SKILL-5 | VR-SKILL-2/3 | 无 |
 
 ### 3.2 运行时统筹与确认责任
@@ -295,7 +295,7 @@ flowchart TB
 | CAP-SKILL-1 解析 profile | **M006** 裁决 profile 是否合法 | M000 调用；失败由 M006 判定 | 成功＝进入装配；失败＝`SkillProfileInvalid`，进程不进 READY | 无在途对象 | §5.1.1 |
 | CAP-SKILL-2/3 加载技能 | **Pi `loadSkills`** 决定"什么算合法技能"；**M006** 决定"加载哪些" | Pi 解析 frontmatter；M006 选目录 | 成功＝`Skill[]`＋诊断；无"部分受理"概念（坏技能＝不入，非半份） | 无在途对象 | §5.1.2 |
 | CAP-SKILL-4 经验预取 | **Mem0** 权威持有经验内容 | M006 发起检索并注入 | 成功＝注入；失败＝空经验块，任务继续 | 无 | §5.2.1 / §9.1 |
-| CAP-SKILL-5 依赖校验 | **M002** 权威判定权限 | M006 组织校验 | satisfied / unsatisfied 二态 | 无 | §5.1.3 |
+| CAP-SKILL-5 技能可见性受 profile 约束 | **Slinky** 权威决定清单 | M006 装配 | 只含 `skills[]` 匹配项 | 无 | §11.2 |
 | CAP-SKILL-7 技能事实进 Result | **M003** 持久化 Result；**M005** 决定何时写 | M006 提供事实 | `skills_used` 与装配集合一致 | Result 冻结后不可改（既有语义） | §12.2 |
 
 ### 3.3 拓扑、目标身份与共享故障域
@@ -509,17 +509,7 @@ interface SkillProfile {
 - **拒绝实例**：`skill_roots: ["skills"]`（相对路径）；`role` 与 identity 不符；
   `skills: ["../../etc"]`（逃出根）。
 
-#### 4.3.2 `SkillDependency` · 技能声明的依赖
-
-- **含义**：`SKILL.md` 的 frontmatter 可选声明 `requires.tools` 与 `requires.paths`，
-  用来说明"这个技能要用到哪些工具/路径"。
-- **约束**：声明是**校验用**，不授予权限——权限仍由 `TaskRequest.permissions.tool_profile_ref`
-  与 `write_paths`/`read_paths` 决定（M002 policy 是唯一裁决者）。
-- **为什么需要**：技能说「用 mem0 查经验」而任务根本不给 `mem0_lookup`，模型会去调不存在的工具；
-  声明出来才能在加载期发现（§8 INV-SKILL-3）。
-- **失败出口**：声明未满足 ⇒ 该技能不进提示；是否让整个加载失败由 §7.2 的严格度开关决定。
-
-#### 4.3.3 与 V0.1 `identity` 的关系
+#### 4.3.2 与 V0.1 `identity` 的关系
 
 V0.1 已有：
 
@@ -672,7 +662,6 @@ identity?: {
 |---|---|---|---|---|
 | `SkillProfileInvalid` | profile 解析失败或违反 C-1/C-2/C-3 | 启动期 | 进程不进 READY，报出具体字段 | 是（进程级） |
 | `SkillRootUnreadable` | `skill_roots` 某项不存在或不可读 | 启动期 | 同上 | 是（进程级） |
-| `SkillDependencyUnsatisfied` | 技能的 `requires.tools/paths` 与任务权限不符 | 加载期（每任务） | 按 §7.2 严格度：`strict` ⇒ 该技能剔除并升级为任务失败；`lenient` ⇒ 剔除并记诊断 | 视严格度 |
 | `SkillPathEscapesRoot` | `relPath` 逃出 `skill_root` | 加载期 | 该技能剔除，记诊断；**绝不读取根外文件** | 否 |
 | `SkillNameDuplicate` | C-1 命中多于一个根 | 加载期 | 取第一个，记诊断 | 否 |
 
@@ -680,8 +669,8 @@ identity?: {
 
 - profile 错是**部署错误**，让进程直接起不来比"带着半套技能跑"更容易发现；
 - 技能文件坏是**内容质量问题**，不该让任务失败——这与 Pi 的 `SkillDiagnostic` 是 warning 的取舍一致；
-- 依赖不满足介于两者之间：它说明"配置与权限对不上"，默认按 `lenient` 剔除并记诊断，
-  但允许 profile 声明 `strict: true` 升级为失败（§7.2）。
+- **不存在"技能要求了不该有的权限"这一类失败**：profile 本身就是技能的白名单——
+  不在 `skills[]` 里的技能根本不会被加载，agent 看不到，也就没有"技能提权"这回事（§11.2）。
 
 ### 4.9 编码、布局与共享类型映射
 
@@ -853,18 +842,7 @@ identity?: {
 → 合并 → 8 个技能（坏的那个不进）＋ 1 条诊断
 ```
 
-#### 5.1.3 `checkSkillDependencies(skills, permissions) → { satisfied, unsatisfied }`
-
-- **来源**：本机制新增；权限判定调用 M002 `src/policy.ts`。
-- **签名**：
-  `checkSkillDependencies(skills: Skill[], permissions: TaskPermissions): { satisfied: Skill[]; unsatisfied: Array<{skill, reason}> }`。
-- **输入**：已加载技能、本任务权限（`tool_profile_ref` / `read_paths` / `write_paths`）。
-- **输出**：可用的技能与不可用清单（含原因）。
-- **约束**：**只校验、不授权**——本函数不改变任何权限，只回答"声明的依赖在不在"。
-- **错误**：不抛；结果由调用方按 §7.2 严格度处置。
-- **交互**：同步、每任务一次（因为权限是任务级的）。
-
-#### 5.1.4 `buildSkillPromptBlock(skills) → string`
+#### 5.1.3 `buildSkillPromptBlock(skills) → string`
 
 - **来源**：直接复用 Pi 的 `formatSkillsForSystemPrompt()`
   （`upstream/pi/packages/agent/src/harness/system-prompt.ts`），**Piko 不重写**。
@@ -1007,7 +985,6 @@ identity?: {
 | S2 加载公共技能 | M006 → 外部技能目录 | 内置公共根路径 | `loadSkills` 递归读 `SKILL.md` | 内存中的 L1 集合 | 失败：目录缺失 → 诊断；该技能不入 |
 | S3 加载角色技能 | M006 → 外部技能目录 | `profile.skills[]` 解析后的路径集 | glob 展开后逐个 `loadSkills` | 内存中的 L2 集合 | 失败：诊断 + 跳过；同名冲突取首个 |
 | S4 合并去重 | M006（进程内） | L1 ＋ L2 ＋ 诊断 | L1 优先；同名记 `SkillNameDuplicate` | 进程级 `skillSet` 冻结 | 无失败路径 |
-| S5 依赖校验 | M006 → M002 policy | `skillSet` ＋ 任务权限 | 逐技能比对声明依赖 | 本任务可用集合 | lenient 剔除 / strict 失败 |
 | S6 经验检索 | M006 → Mem0 | `task.instruction` ＋ `user_id` | HTTP 检索 | 经验条目 | 失败 → 空经验块，任务继续 |
 | S7 渲染提示 | M006 → Pi AgentHarness | 可用技能 ＋ 经验 ＋ 身份 | `formatSkillsForSystemPrompt` ＋ `buildSystemPrompt` | `systemPrompt` 字符串 | 无 |
 | S8 建 Harness | M006 → Pi | `resources.skills` ＋ `systemPrompt` | `AgentHarness.create` | Agent 开始执行 | 无 |
@@ -1070,21 +1047,22 @@ sequenceDiagram
   W->>P: execute(task)
   P->>M: search(instruction, user_id=role:project)
   M-->>P: 经验条目（可能为空）
-  P->>P: checkSkillDependencies(skillSet, task.permissions)
   P->>P: buildSkillPromptBlock(可用技能)
   P->>P: 拼装 system prompt（技能块 + 经验块 + 身份块）
   P->>H: AgentHarness.create({resources:{skills}, systemPrompt})
   H-->>P: 执行结果
 ```
 
-**关键点**：L1/L2 是**进程级固定集合**，逐任务只做"依赖校验"与"渲染"；L3 是**逐任务检索**。
+**关键点**：L1/L2 是**进程级固定集合**，逐任务只做"渲染"；L3 是**逐任务检索**。
+技能的白名单就是 profile 本身——不在 `skills[]` 里的技能不存在，任务级的工具权限是另一层，
+由既有的 `before_tool` 机制处理（§11.2）。
 
 ### 6.3 交叠与生命周期裁决
 
 | Process ID | 触发/执行方 | 开放或生效点 | 在途对象处理 | 与其他操作交叠规则 | 唯一流程/验证 |
 |---|---|---|---|---|---|
 | PR-SKILL-LOAD | 启动期，M000/M006 | 进程 READY 前 | 无（尚无任务） | 与 MECH-STARTUP 的 S1–S8 顺序一致：技能加载在配置校验之后、READY 之前 | §5.1.1/5.1.2；VR-SKILL-1 |
-| PR-SKILL-BIND | 每任务，M006 | `execute()` 入口 | 已在跑的任务不受影响 | 不影响 MECH-RUN 的 lease/epoch；纯只读装配 | §5.1.3/5.1.4；VR-SKILL-5 |
+| PR-SKILL-BIND | 每任务，M006 | `execute()` 入口 | 已在跑的任务不受影响 | 不影响 MECH-RUN 的 lease/epoch；纯只读装配 | §5.1.3；VR-SKILL-5 |
 | PR-SKILL-RECORD | 任务中，agent 调 `mem0_record` | 任意时刻 | 不阻塞任务 | 与 MECH-RUN 无冲突（外部写入） | VR-SKILL-4 |
 
 ## 7. 分支和替代流程
@@ -1111,11 +1089,15 @@ sequenceDiagram
 | BR-SKILL-1 profile 缺省 | 无 profile | 只走 L3；与 V0.1 相同 | 任务正常 | 无 |
 | BR-SKILL-2 frontmatter 非法 | 某 SKILL.md 缺 description | 该技能跳过 | 其余正常 | Pi 既有 warning 语义 |
 | BR-SKILL-3 skill_root 不可读 | 目录不存在 | 启动失败 | 不进 READY | §4.8 `SkillRootUnreadable` |
-| BR-SKILL-4 依赖不满足（lenient） | 技能要的工具未授权 | 剔除该技能 | 任务继续 | 记诊断 |
-| BR-SKILL-5 依赖不满足（strict） | 同上 ＋ profile.strict | 任务失败 | Result.failure = SkillDependencyUnsatisfied | §4.8 |
 | BR-SKILL-6 同名技能 | 两根下同名 | 取靠前根 | 记 `SkillNameDuplicate` | C-1 |
 | BR-SKILL-7 Mem0 不可达 | HTTP 错/超时 | 经验块空 | 任务继续 | 记观测 |
-| BR-SKILL-8 技能全被剔除 | 全部依赖不满足 | 无技能区 | 任务继续 | — |
+| BR-SKILL-8 技能清单为空 | `skills: []` 且无公共技能 | 无技能区 | 任务继续 | — |
+
+### 7.2 N/A · 加载严格度
+
+本机制**没有**"严格度"这一层。技能要么在 profile 清单里（加载），要么不在（不存在）；
+没有"加载了但因依赖不满足而被拒绝"的中间态（§11.2）。因此不需要 `strict` 开关，
+也不需要 `SkillDependencyUnsatisfied` 错误码（§4.8）。
 
 ## 8. 状态机与不变量
 
@@ -1139,17 +1121,17 @@ sequenceDiagram
 | From | Event | Guard / 原子边界 | To | Writer | Side effect / 资源变化 | 非法/迟到转换结果 |
 |---|---|---|---|---|---|---|
 | `Unloaded` | 进程启动，S1 通过 | profile 合法 | `Loaded` | M006 | 装配进程级技能集 | 非法 ⇒ 停在 `Unloaded`，进程退出 |
-| `Loaded` | 任务到达，S5 完成 | 依赖校验按 strict 决定 | `Bound` | M006 | 得出本任务可用集合 | strict 失败 ⇒ 任务失败 |
+| `Loaded` | 任务到达 | — | `Bound` | M006 | 任务绑定当前进程级技能集 | 无失败路径 |
 | `Bound` | 任务结束 | — | `Unloaded`（进程仍在） | M005 | 技能集不变，任务级集合丢弃 | — |
 
 | INV-ID | 可验证断言（量词、条件和预期必须明确） | Enforcement / 事实来源 | 反例输入/违反后的结果 | 验证项 |
 |---|---|---|---|---|
 | INV-SKILL-1 | ∀ profile：`skillSet` ⊇ L1 公共集合（与 `profile.skills` 无关） | §5.1.2 装配顺序 | profile 排除 L1 → 该 L1 仍在 | VR-SKILL-2 |
 | INV-SKILL-2 | ∀ 技能文件：Piko 对其目录的写次数 = 0 | 只调用 `loadSkills`（只读） | 目录内容被运行时改写 ⇒ 该断言破坏 | VR-SKILL-6 |
-| INV-SKILL-3 | ∀ 进入提示的技能：其 `requires.tools ⊆ 任务可用工具` 且 `requires.paths ⊆ 可读路径` | §5.1.3 校验后才渲染 | 未校验即渲染 ⇒ 模型调用不存在的工具 | VR-SKILL-5 |
+| INV-SKILL-3 | ∀ 进入提示的技能：该技能 ∈ `profile.skills[]` 匹配集 ∪ L1 公共集 | 装配只取清单匹配项 | 清单外的技能出现在提示里 ⇒ 断言破坏 | VR-SKILL-3/5 |
 | INV-SKILL-4 | `profile.role` = `identity.role` | 启动期 C-2 校验 | 两者不等 ⇒ `SkillProfileInvalid` | VR-SKILL-1 |
 | INV-SKILL-5 | ∀ 两次装配（同 profile、同目录内容）：结果集合相等 | 装配不读时间/随机/调用序 | 目录内容变化 ⇒ 断言按"同目录内容"前提仍成立 | VR-SKILL-2/3 |
-| INV-SKILL-6 | 技能层错误码不出现在 Result.failure（除 strict 的 `SkillDependencyUnsatisfied`） | 装配与执行解耦 | 装配错误被当成任务失败 | VR-SKILL-6 |
+| INV-SKILL-6 | 技能层错误码不出现在 Result.failure | 装配与执行解耦 | 装配错误被当成任务失败 | VR-SKILL-6 |
 
 ### 8.1 资源预留、交付、释放与复位
 
@@ -1181,10 +1163,10 @@ sequenceDiagram
 |---|---|---|---|
 | **INV-SKILL-1** | 公共技能不可被 profile 排除 | 某角色悄悄丢了基础能力 | §5.1.2 固定先加载 L1，且不从结果里按 `skills[]` 过滤 |
 | **INV-SKILL-2** | 技能内容只读，Piko 不写技能目录 | 技能被运行时污染，不可复现 | 只调用 `loadSkills`；不提供写接口 |
-| **INV-SKILL-3** | 不可用的技能不得进入提示 | 模型调用不存在的工具，产生误导性失败 | §5.1.3 校验后才渲染 |
+| **INV-SKILL-3** | 只有 profile 清单内的技能能进入提示 | agent 看到不该有的能力 | 装配只取 `skills[]` 匹配项；公共技能额外强制加载 |
 | **INV-SKILL-4** | `profile.role` == `identity.role` | L3 经验按哪个 role 隔离变得歧义 | 启动期 C-2 校验，fail-fast |
 | **INV-SKILL-5** | 技能装配是**纯函数**：同一 profile ＋ 同一目录清单 ⇒ 同一 `Skill[]` | 同一任务重放得到不同能力，破坏 durable 语义 | 不读时间、不读随机、不按调用次数变化 |
-| **INV-SKILL-6** | 技能加载失败不影响 MECH-RUN 的 lease/epoch/终态 | 技能问题被误报为任务失败 | 加载与执行解耦；错误码不进 Result（除 strict） |
+| **INV-SKILL-6** | 技能加载失败不影响 MECH-RUN 的 lease/epoch/终态 | 技能问题被误报为任务失败 | 加载与执行解耦；错误码不进 Result |
 
 **INV-SKILL-5 是本机制与 durable 语义的关键接口**。V0.1 的 Mem0 检索**不满足**这条（每次内容可能不同），
 所以 L3 **不参与**"同任务同结果"的保证——它被明确标注为"上下文增强，不保证重放一致"，
@@ -1229,10 +1211,10 @@ sequenceDiagram
 | FAIL-SKILL-01 `SkillProfileInvalid` / M006（启动期） | profile 解析或 C-1/C-2/C-3 违反 | 进程级失败，无 Result | 无业务副作用 | 无 | 进程退出 | 修配置后重启 |
 | FAIL-SKILL-02 `SkillRootUnreadable` / M006（启动期） | `skill_roots` 不可读 | 同上 | 无 | 无 | 进程退出 | 修挂载/权限后重启 |
 | FAIL-SKILL-03 frontmatter 解析失败 / Pi | 某技能格式错 | 该技能跳过；其余正常 | 该技能不生效 | 无 | 无 | 无需处理 |
-| FAIL-SKILL-04 `SkillDependencyUnsatisfied` / M002（每任务） | 技能声明的依赖未授权 | lenient：剔除；strict：任务失败 | strict 时 Result.failure 已写 | 无 | 无 | 补权限或改 profile |
 | FAIL-SKILL-05 `SkillPathEscapesRoot` / M006（每任务） | `relPath` 逃出根 | 该技能剔除 | 无（**未读取根外文件**） | 无 | 无 | 修 skill 路径 |
 | FAIL-SKILL-06 Mem0 检索失败 / M006（每任务） | HTTP 错/超时 | 经验块为空 | 无 | 无 | 无 | 后端恢复后下次任务生效 |
 | FAIL-SKILL-07 技能目录运行期消失 / M006 | 目录被删（已加载的仍在内存） | 当前任务不受影响 | 无 | 无 | 无 | 重启后生效 |
+| FAIL-SKILL-08 技能要求的工具不在任务 profile / Pi `before_tool` | 模型调用未启用的工具 | 任务失败，工具失败 | 无 | 无 | 无 | 属既有任务权限语义（§11.2），非本机制 |
 
 ### 9.1 失败分类与处置
 
@@ -1241,7 +1223,6 @@ sequenceDiagram
 | `SkillProfileInvalid` | 启动期 | 否（需改配置） | 进程退出 | 启动日志 + 不退出的错误码 |
 | `SkillRootUnreadable` | 启动期 | 是（修挂载/权限后重启） | 进程退出 | 同上 |
 | `SKILL.md` 解析失败 | 加载期 | 否（内容错） | 该技能跳过 | `skill.load.diagnostic` 事件 |
-| `SkillDependencyUnsatisfied` | 每任务 | 视配置 | lenient 剔除 / strict 失败 | 观测量 + （strict 时）Result.failure |
 | Mem0 检索失败 | 每任务 | 是（下次任务） | 经验块为空 | 观测；不进 Result |
 | 技能目录在运行期被删除 | 运行期 | — | 已加载的技能在内存中继续有效至进程重启 | 无（不影响当前任务） |
 
@@ -1326,7 +1307,7 @@ sequenceDiagram
 |---|---|---|---|---|---|
 | 启动期读取 profile | Slinky（写入者）／Piko（读者） | `RuntimeConfig.skill_profile` | 配置读取，与其他配置同级 | 无独立撤销（改配置需重启） | 审计：启动日志 + `skill.load.profile` 事件 | VR-SKILL-1 |
 | 读取技能目录 | Piko M006（读者）／Slinky（管理者） | `skill_roots` 下文件 | **只读**；路径必须在根内 | 目录撤权 ⇒ 启动失败或诊断 | 审计：`skill.load.diagnostic` | VR-SKILL-6/8 |
-| 技能声明的工具/路径 | 技能作者（声明）／M002（裁决） | `requires.tools` / `requires.paths` | **声明不授权** | 不适用 | 审计：`skill.bind.task` 记 unsatisfied | VR-SKILL-5 |
+| 技能的可见性 | Slinky（profile）／M006（装配） | `profile.skills[]` | 清单外技能不加载、不进提示 | 不适用（无撤销概念） | 审计：`skill.load.profile` 记实际加载数 | VR-SKILL-3/5 |
 | Mem0 经验 | M006（读）／Mem0（持有） | `user_id = ${role}:${project}` | 按 role+project 隔离 | 凭据撤销 ⇒ 检索失败降级为空 | 审计：观测（`experience_hits`） | VR-SKILL-4 |
 
 ### 11.1 信任边界
@@ -1339,17 +1320,27 @@ sequenceDiagram
 | profile 来自 Slinky | 可信（部署配置） | 校验格式，不校验语义 |
 | 技能目录由 Slinky 管理 | **可信，但需人工审阅** | Piko 不扫描内容安全性；技能内容的安全责任在作者 |
 | 技能正文进入系统提示 | 按代码对待 | 内容不经过滤；`relPath` 防穿越是 Piko 唯一做的输入校验 |
-| 技能要求的工具/路径 | **不可信** | 声明只用于校验，**不授予权限**（M002 是唯一裁决者） |
+| 技能与工具权限的关系 | **不适用**——见 §11.2 | 不需要额外边界 |
 
-### 11.2 权限不因技能而扩张（关键）
+### 11.2 技能的可见性就是它的权限
 
-这是本机制最重要的一条安全规则：
+**profile 的 `skills[]` 就是技能的白名单。** 不在清单里的技能不会被加载、不进系统提示，
+agent 看不到它，也就无从调用它依赖的任何东西。所以本机制**不产生**"技能提权"这个问题：
+能看见哪些技能，由 Slinky 下发的 profile 决定；技能本身既不声明也不请求权限。
 
-> **技能可以说"我需要 `matrix_send`"，但它拿不到 `matrix_send`——能不能调，仍由任务的
-> `tool_profile_ref` 与 `write_paths` 决定。**
+两层权限各管各的，互不重叠：
 
-理由：若技能能授权，那么"换一个技能文件"就等于"提权"，而技能文件在外部目录、由别人管理。
-这会把 Piko 的权限围栏（M002 policy）绕开。所以 §5.1.3 的函数名叫 `check`，不叫 `grant`。
+| 层 | 决定什么 | 权威 |
+|---|---|---|
+| **profile.skills[]** | agent **看得见哪些能力**（知识/方法） | Slinky（启动期下发） |
+| **TaskRequest.permissions** | agent **能动手碰什么**（工具/路径） | M002 policy（既有机制） |
+
+两层都不因对方而变。任务权限那一层的既有机制照常生效：模型若调用了未启用的工具，
+`before_tool` 会以 `tool <name> is not enabled` 阻断（`src/pi-runtime.ts:255`），
+这与本机制无关，也不因技能是否存在而不同。
+
+**因此本机制不设"技能依赖声明"、不做依赖校验、也不需要 `strict` 开关**——
+一个技能在不在清单里，是加载期就已经确定的事实，没有"在但被拒绝"这个中间态。
 
 ### 11.3 路径穿越
 
@@ -1477,7 +1468,6 @@ Result 中新增（Planned，需同步契约版本）：
 |---|---|---|---|---|---|
 | `RuntimeConfig.skill_profile` / 本机制 v0.1.0-draft.1 | 本机制 §4.3.1（JSON Schema 待建，G-SKILL-SCHEMA-1） | 启动期校验（§5.1.1）；失败 ⇒ 不进 READY | 新增可选字段，老配置行为不变（缺省＝无 L1/L2） | 不适用（启动期） | 移除该字段即回到 V0.1 | VR-SKILL-1 |
 | `RuntimeConfig.identity.role` / 既有 | `src/types.ts` | 启动期与 `profile.role` 一致性校验（C-2） | 不变 | 不适用 | 同 §13.2 | VR-SKILL-1 |
-| `profile.strict_dependencies` / 本机制 | §7.2 | 每任务加载期 | 新增可选布尔，默认 `false` | 不适用 | 改回 `false` | VR-SKILL-5 |
 | 公共技能内置根路径 / 本机制 | §4.1.2（**具体路径待定**，RISK-SKILL-007） | 启动期 | 随 Piko 版本 | 不适用 | — | — |
 
 ### 13.1 配置项
@@ -1490,8 +1480,7 @@ Result 中新增（Planned，需同步契约版本）：
     "profile_id": "test_engineer",
     "role": "test_engineer",
     "skill_roots": ["/srv/slinky/skills"],
-    "skills": ["roles/test_engineer/*"],
-    "strict_dependencies": false
+    "skills": ["roles/test_engineer/*"]
   }
 }
 ```
@@ -1597,7 +1586,7 @@ Slinky 编排层可以在需要时滚动重启实例，这比在 Piko 内部做�
 | CAP-SKILL-2 公共技能强制加载 | `M006 pi-adapter` | 外部技能目录 | L1 `Skill[]` | 固定：不可被 profile 排除；自由度：公共技能的**内容**（属 Piko 仓库） | M006 单测（VR-SKILL-2） |
 | CAP-SKILL-3 角色技能按清单加载 | `M006 pi-adapter` | 外部技能目录、Slinky（清单） | L2 `Skill[]` | 固定：只含清单内项；自由度：清单怎么写（属 Slinky） | M006 单测（VR-SKILL-3） |
 | CAP-SKILL-4 项目经验预取 | `M006 pi-adapter` | Mem0 | 经验条目（可能空） | 固定：`user_id` 在 Piko 侧构造、失败不阻塞；自由度：检索实现（Mem0 内部） | 已有 V0.1 覆盖（VR-SKILL-4） |
-| CAP-SKILL-5 依赖校验 | `M006 pi-adapter` | `M002 policy`（判定） | `satisfied` / `unsatisfied` | 固定：只校验不授权；自由度：具体依赖声明格式（待 schema 定稿） | M006 + M002 单测（VR-SKILL-5） |
+| CAP-SKILL-5 技能可见性受 profile 约束 | `M006 pi-adapter` | Slinky（清单） | 只装配 `skills[]` 匹配项 | 固定：清单外技能不出现；自由度：glob 匹配语义 | M006 单测（VR-SKILL-3/5） |
 | CAP-SKILL-6 加载失败降级 | `M006 pi-adapter` | `M009 observability` | 诊断事件 | 固定：不阻断任务；自由度：诊断的展示格式 | M006 单测（VR-SKILL-6） |
 | CAP-SKILL-7 技能事实进 Result | `M005 worker`（写 Result） | `M006`（提供事实）、`M003`（持久化） | `skills_used` / `experience_hits` | 固定：只记 ID 与条数，不记正文；自由度：字段顺序 | 集成（VR-SKILL-7） |
 | INV-SKILL-1..6 | `M006 pi-adapter` | `M002`、`M005` | — | 固定：见 §8.1 六条不变量；自由度：内部实现 | §15.1 各 VR |
@@ -1624,7 +1613,6 @@ Slinky 编排层可以在需要时滚动重启实例，这比在 Piko 内部做�
 |---|---|---|---|---|---|---|
 | `resolveSkillProfile` / 本机制 v0.1.0-draft.1 | `M006 pi-adapter` | `M000 bootstrap`（启动期调用） | 同步函数调用 | 成功＝返回已校验 profile；失败＝抛 `SkillProfileInvalid`（含字段名） | 启动期一次；幂等；无取消概念 |
 | `loadProfileSkills` / 本机制 v0.1.0-draft.1 | `M006 pi-adapter` | `M006`（自身装配流程） | 异步函数调用 | **不抛**；坏技能进 `diagnostics` | 启动期一次；幂等；目录变化时结果可能不同（§13.2） |
-| `checkSkillDependencies` / 本机制 v0.1.0-draft.1 | `M006 pi-adapter` | `M006` | 同步函数调用 | **不抛、不授权**；只回答"声明的依赖在不在" | 每任务一次；幂等 |
 | `buildSkillPromptBlock` / Pi `formatSkillsForSystemPrompt`（pinned `9767ba2`） | Pi 上游 | `M006` | 同步函数调用 | 空数组返回空串；过滤 `disableModelInvocation` | 纯函数；幂等 |
 | `Mem0Adapter.search` / `src/mem0-client.ts`（V0.1） | 外部 Mem0（经 M006 调用） | `M006` | HTTP POST | 失败抛 `Mem0ApiError`；调用方必须降级为空经验块 | 每任务一次；结果可重复调用（内容可能不同） |
 | `M002 authorizePath` / `src/policy.ts` | `M002 policy` | `M006`（路径校验与依赖判定） | 同步函数调用 | 拒绝＝抛 typed 错误；**不得**被技能绕过 | 同步；无状态 |
@@ -1655,7 +1643,7 @@ Slinky 编排层可以在需要时滚动重启实例，这比在 Piko 内部做�
 |---|---|---|---|---|---|---|---|---|
 | `M-SKILL-DI-001` | `M006 pi-adapter` / `piko-pi-adapter-impl.isd.md` | CAP-SKILL-1 / `resolveSkillProfile` | 解析并校验 `skill_profile`；失败抛 `SkillProfileInvalid` | 提供 `resolveSkillProfile` | profile 的配置来源与校验时机 | 内部实现与错误消息措辞 | 单测 VR-SKILL-1 |
 | `M-SKILL-DI-002` | `M006 pi-adapter` / 同上 | CAP-SKILL-2/3 / `loadProfileSkills` | 加载 L1（强制）＋ L2（按清单）；坏技能降级为诊断 | 提供 `loadProfileSkills` | 公共技能的**存放位置**（Piko 仓库内哪个路径） | 诊断事件的字段命名 | 单测 VR-SKILL-2/3/6 |
-| `M-SKILL-DI-003` | `M006 pi-adapter` / 同上 | CAP-SKILL-5 / `checkSkillDependencies` | 只校验不授权；`strict` 时升级为失败 | 提供 `checkSkillDependencies` | 依赖声明的 frontmatter 语法（与 schema 一并定稿） | 校验顺序与批量策略 | 单测 VR-SKILL-5 |
+| `M-SKILL-DI-003` | `M006 pi-adapter` / 同上 | CAP-SKILL-5 / INV-SKILL-3 | 只加载 profile 清单内的技能；不在清单里的技能不进提示 | 提供装配结果 | 公共技能在 Piko 仓库内的存放位置（RISK-SKILL-007） | 清单匹配的 glob 语义 | 单测 VR-SKILL-3/5 |
 | `M-SKILL-DI-004` | `M006 pi-adapter` / 同上 | §5.1.4 / `formatSkillsForSystemPrompt` | 技能块进系统提示；位置与顺序符合 Pi 约定 | 消费 Pi 的渲染函数 | 技能块与经验块、身份块的**相对顺序** | 提示措辞 | 集成 |
 | `M-SKILL-DI-005` | `M002 policy` / `piko-policy-impl.isd.md` | §11.2 / `M002 authorizePath` | 技能声明**不得**扩大权限；路径判定与业务路径共用同一套 | 提供 `authorizePath` | 技能依赖检查如何复用既有路径判定 | — | 单测（与 M006 联测） |
 | `M-SKILL-DI-006` | `M005 worker` / `piko-worker-impl.isd.md` | CAP-SKILL-7 | Result 携带 `skills_used` / `experience_hits`；只记 ID 与条数 | 提供消费 M006 的技能事实 | 契约升版 `simplified.6 → .7` 的具体字段与默认值 | 写入时机 | 集成 VR-SKILL-7 |
@@ -1691,7 +1679,7 @@ Slinky 编排层可以在需要时滚动重启实例，这比在 Piko 内部做�
 | VR-SKILL-2 / INV-SKILL-1 | `skills: []` 的 profile | 单测 | Oracle：L1 集合非空且等于内置公共集 | VR-SKILL-2 |
 | VR-SKILL-3 / CAP-SKILL-3 | 清单内外的角色技能 | 单测（临时目录放真实 SKILL.md） | Oracle：结果集合＝清单匹配集 | VR-SKILL-3 |
 | VR-SKILL-4 / CAP-SKILL-4 | Mem0 有/无命中 | 已有单测（`src/skill-prefetch.test.ts`） | Oracle：命中数与注入条数一致 | 已有 |
-| VR-SKILL-5 / INV-SKILL-3 | 技能声明 `matrix_send`，任务无此工具 | 单测（lenient 与 strict 两臂） | Oracle：lenient ⇒ 剔除且任务成功；strict ⇒ 任务失败且 code 正确 | VR-SKILL-5 |
+| VR-SKILL-5 / INV-SKILL-3 | 清单外的一个角色技能 | 单测（临时目录放真实 SKILL.md） | Oracle：该技能不在 `skillSet` 中 | VR-SKILL-5 |
 | VR-SKILL-6 / CAP-SKILL-6 / INV-SKILL-6 | 目录缺失、坏 frontmatter、无读权限 | 单测 | Oracle：任务成功 ＋ 诊断可见 ＋ Result.failure 无技能类错误 | VR-SKILL-6 |
 | VR-SKILL-7 / CAP-SKILL-7 | 一次真实任务 | 集成 | Oracle：`skills_used` ＝ 装配集合 | VR-SKILL-7 |
 | VR-SKILL-8 / INV-SKILL-2 | `relPath: "../../etc/passwd"` | 单测 | Oracle：抛 `SkillPathEscapesRoot` 且根外文件未被读取 | VR-SKILL-8 |
@@ -1778,7 +1766,7 @@ backend 通过不能代表本批闭合，未实现者不删除。复用系统清
 | VR-SKILL-2 | 公共技能强制加载 | 单测：`skills: []` 时仍有 L1 | L1 集合非空 |
 | VR-SKILL-3 | 角色技能按清单加载 | 单测：清单外的角色技能不出现 | 只含清单内项 |
 | VR-SKILL-4 | 项目经验预取 | 已有：`UT-PI-*` 覆盖 `prefetchSkillContext` | V0.1 已通过 |
-| VR-SKILL-5 | 依赖校验 | 单测：技能声明 `matrix_send` 但任务无此工具 | lenient 剔除 / strict 失败 |
+| VR-SKILL-5 | 技能可见性 | 单测：清单外的技能不出现 | 清单外技能不在 `skillSet` |
 | VR-SKILL-6 | 加载失败降级 | 单测：目录缺失、坏 frontmatter、无读权限 | 任务仍成功，诊断可见 |
 | VR-SKILL-7 | 技能事实进 Result | 集成：跑一个任务后读 Result | `skills_used` 与装配集合一致 |
 | VR-SKILL-8 | 路径穿越拒绝 | 单测：`relPath: "../../etc/passwd"` | `SkillPathEscapesRoot`，不读根外 |
@@ -1806,6 +1794,8 @@ backend 通过不能代表本批闭合，未实现者不删除。复用系统清
 - **未关闭 Critical 计数**：0（无记录与证据矛盾、无静默缺失、无越权结论）；
   未关闭 deviation 3 条（`G-SKILL-REQ-1` 需求未编号、`G-SKILL-SCHEMA-1` schema 待建、
   `G-SKILL-VR-1` ST Case 待补），均为**已登记且有 Owner** 的下游输入，不是本篇的内部矛盾。
+  本轮修订按评审意见**移除了技能依赖声明与校验机制**：profile 的 `skills[]` 本身就是白名单，
+  不在清单里的技能不存在，技能与工具权限两层互不影响（§11.2）。
 - **Reviewer / Approver / Approval Date**：待填（进入评审状态时填写）。
 - **checklist 执行结果**：`docs/20_system_design/mechanisms/piko-skill-system.checklist-result.json`
   （22 项，13 conformed / 3 deviation / 6 na）。
@@ -1836,10 +1826,10 @@ backend 通过不能代表本批闭合，未实现者不删除。复用系统清
 | **RISK-SKILL-001** · 风险 | 技能内容由外部提供，Piko 不扫描安全性 | 一旦技能被篡改为恶意内容，模型会照做 | 由技能作者审阅；Piko 侧只做路径防穿越。判据：上线前每个技能有 review 记录 | 技能作者 / 上线前 | **未决**（需确定审阅流程） |
 | **RISK-SKILL-002** · 风险 | 技能数量增长会挤占上下文 | 超过百级时提示过长，模型注意力下降 | 先测 50 个技能的实际 token 占用；判据：占用 < 上下文 5% | 架构 / V2 实现前 | **未决** |
 | **RISK-SKILL-003** · 风险 | 技能目录变更需重启，重启期间任务中断 | 运维成本 | 由 Slinky 滚动重启；判据：重启窗口 < 10s 且无在途任务 | 架构 / 上线前 | **已决定**：不做热加载（§13.2） |
-| **RISK-SKILL-004** · 未决 | `strict_dependencies` 默认值是否应为 `false` | 影响"配错权限时的行为" | 与 V0.1「不阻塞任务」保持一致取 `false`；若线上出现"静默少技能导致结果差"，再评估 | 架构 / V2 实现前 | **已决定**：`false`（§7.2） |
+| **RISK-SKILL-004** · 风险 | 公共技能内置还是也在外部目录（与 RISK-SKILL-007 合并前的旧表述） | — | — | — | **已关闭**：合并入 RISK-SKILL-007 |
 | **RISK-SKILL-005** · 未决 | Result 增加 `skills_used` 需要契约升版 | 阻塞 VR-SKILL-7 | 按 `0.3.0-simplified.6 → .7` 走契约变更流程；判据：schema + validator + Slinky 解析同步 | 架构 + Slinky / 上线前 | **未决**（依赖契约版本） |
 | **RISK-SKILL-006** · 风险 | L3 经验不满足 INV-SKILL-5（每次检索结果不同） | 同任务重放可能用不同经验 | 已明确标注为"上下文增强、不保证重放一致"；若未来要求确定性，需把命中经验快照进 session | 架构 / 若需求出现 | **已决定**：接受此限制（§8.1） |
-| **RISK-SKILL-007** · 未决 | 公共技能内置于 Piko 仓库还是也在外部目录 | 影响"公共技能能否随部署定制" | 当前设计：内置（随版本）；若要定制化，改为 profile 可覆盖 | 架构 / V2 实现前 | **未决** |
+| **RISK-SKILL-007** · 未决 | 公共技能内置于 Piko 仓库还是也在外部目录 | 影响"公共技能能否随部署定制" | 当前设计：内置（随版本）；若要定制化，改为 profile 可覆盖。**注意**：外部目录本身已是信任边界（§11.1），放外部不增加风险等级 | 架构 / V2 实现前 | **未决** |
 
 ### 16.1 决定记录
 
@@ -1848,7 +1838,7 @@ backend 通过不能代表本批闭合，未实现者不删除。复用系统清
 | 2026-11-12 | 复用 Pi 的 Agent Skills，不自造格式 | Pi 已实现 Agent Skills 标准（`loadSkills` / `formatSkillsForSystemPrompt`），Piko 重造只会产生第二套语法 |
 | 2026-11-12 | 三层模型：公共 / 角色 / 项目经验 | 三者的权威来源与变化频率不同；混在一起会让"升级 Piko"与"换角色"互相牵连 |
 | 2026-11-12 | 技能内容放外部目录，profile 指路 | 与"对接外部系统而非自建"的既有方向一致；改技能不用改 Piko |
-| 2026-11-12 | 技能声明依赖但不授予权限 | 否则"换技能文件"等于"提权"，绕开 M002 的权限围栏 |
+| 2026-11-12 | 技能的可见性由 profile 决定，不做依赖声明 | profile 清单即白名单：清单外技能不加载、agent 看不到，没有"技能提权"问题（评审意见，2026-11-13 修订） |
 | 2026-11-12 | 不做热加载 | 换取 INV-SKILL-5 的确定性；重启代价小于复杂度 |
 
 ## A. 输入基线、适用性与图文规则
@@ -2020,4 +2010,5 @@ tailoring 依据；不能把应解释的关系只留给口头说明。
 
 | 文档版本 | 日期 | 修改范围及依据 | 作者/评审记录 |
 |---|---|---|---|
+| 0.1.0-draft.2 | 2026-11-13 | 按评审意见移除技能依赖声明与校验机制（`SkillDependency` / `checkSkillDependencies` / `strict_dependencies` / `SkillDependencyUnsatisfied` 一并删除）；§11.2 改为"技能的可见性就是它的权限"；S-5 场景改为"清单外的技能" | 作者 Claude；评审待填 |
 | 0.1.0-draft.1 | 2026-11-12 | 首次成文：三层技能模型（公共/角色/项目经验）、`SkillProfile` schema、装配流程、安全边界、验证项。依据：Slinky 口头需求 ＋ `piko-skill-memory.md` V0.1 ＋ Pi `9767ba2` 的 `loadSkills` / `formatSkillsForSystemPrompt` | 作者 Claude；评审待填 |
